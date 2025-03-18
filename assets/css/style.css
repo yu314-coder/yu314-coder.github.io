@@ -1,0 +1,29 @@
+/* assets/css/style.css */
+body {
+  font-family: Arial, sans-serif;
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+}
+
+.navbar {
+  margin-bottom: 20px;
+}
+
+.hero-section {
+  background: url('../images/hero-bg.jpg') no-repeat center center/cover;
+  color: #fff;
+  padding: 100px 0;
+}
+
+.about-section,
+.projects-section,
+.blog-section,
+.contact-section {
+  padding: 40px 0;
+}
+
+footer {
+  background: #f4f4f4;
+  padding: 20px 0;
+}
