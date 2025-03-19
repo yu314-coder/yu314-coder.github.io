@@ -1,49 +1,77 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Your Name | Home</title>
-  <link rel="stylesheet" href="assets/css/style.css">
-  <!-- Bootstrap CSS CDN -->
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Manim Animation Studio (Pyodide Demo)</title>
+  <!-- Load Pyodide -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.23.3/full/pyodide.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2rem;
+      background-color: #f9f9f9;
+    }
+    textarea {
+      width: 100%;
+      font-family: monospace;
+      font-size: 1rem;
+    }
+    #output {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #e0e0e0;
+      border-radius: 5px;
+      min-height: 50px;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      margin-top: 0.5rem;
+    }
+  </style>
 </head>
 <body>
-  <!-- Navigation -->
-  <nav class="navbar navbar-expand-lg navbar-light bg-light">
-    <a class="navbar-brand" href="#">Your Name</a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" >
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav ml-auto">
-        <li class="nav-item"><a class="nav-link" href="about.html">About</a></li>
-        <li class="nav-item"><a class="nav-link" href="projects.html">Projects</a></li>
-        <li class="nav-item"><a class="nav-link" href="contact.html">Contact</a></li>
-      </ul>
-    </div>
-  </nav>
+  <h1>Manim Animation Studio (Pyodide Demo)</h1>
+  <p>
+    This demo simulates running a simplified Manim animation generator in the browser using Pyodide.
+    (Full Manim support is not available due to dependency and performance constraints.)
+  </p>
+  <h2>Enter Your Manim Code</h2>
+  <textarea id="manimCode" rows="10">
+# This is a simplified demo code.
+# In a full version, you would run actual Manim animations.
+from manim import *
 
-  <!-- Hero Section -->
-  <header class="hero-section text-center">
-    <div class="container">
-      <h1>Hi, I'm Your Name</h1>
-      <p>Web Developer | Designer | Creator</p>
-      <a href="projects.html" class="btn btn-primary">View My Work</a>
-    </div>
-  </header>
+class DemoScene(Scene):
+    def construct(self):
+        circle = Circle()
+        self.play(Create(circle))
+        self.wait(1)
+  </textarea>
+  <br>
+  <button id="runCode">Simulate Run</button>
+  <div id="output"></div>
 
-  <!-- Footer -->
-  <footer class="text-center">
-    <div class="container">
-      <p>&copy; 2025 Your Name. All rights reserved.</p>
-    </div>
-  </footer>
+  <script>
+    async function main() {
+      // Load Pyodide (it provides a full Python runtime in the browser)
+      let pyodide = await loadPyodide();
+      // For demonstration, we create a simulated "run_manim" function.
+      // Note: Actual Manim is not available in Pyodide.
+      function runManimCode(code) {
+        // Instead of actually running the code, we simulate a response.
+        // In a real adaptation, you might parse the code and generate an SVG or canvas animation.
+        return "Simulated animation output for your code:\n" + code.substring(0, 150) + "...";
+      }
 
-  <!-- Bootstrap & Custom Scripts -->
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-  <script src="assets/js/script.js"></script>
+      document.getElementById("runCode").addEventListener("click", () => {
+        let code = document.getElementById("manimCode").value;
+        let output = runManimCode(code);
+        document.getElementById("output").innerText = output;
+      });
+    }
+    main();
+  </script>
 </body>
 </html>
