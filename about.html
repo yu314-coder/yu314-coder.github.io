@@ -4,57 +4,129 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>About Me | Euler</title>
-  <link rel="stylesheet" href="assets/css/style.css">
+  <!-- Bootstrap CSS (v4.5) -->
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      scroll-behavior: smooth;
+    }
+    .page-header {
+      background: url('assets/images/about-bg.jpg') no-repeat center center/cover;
+      position: relative;
+      height: 40vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+    .page-header::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+    }
+    .page-header h1 {
+      position: relative;
+      z-index: 2;
+      font-size: 3rem;
+      font-weight: 700;
+    }
+    .content-section {
+      padding: 60px 0;
+    }
+    .timeline {
+      border-left: 3px solid #007bff;
+      margin: 20px 0;
+      padding-left: 20px;
+    }
+    .timeline-item {
+      margin-bottom: 20px;
+    }
+    .timeline-item h5 {
+      font-weight: 700;
+    }
+  </style>
 </head>
 <body>
   <!-- Navigation -->
-  <nav class="navbar navbar-expand-lg navbar-light bg-light">
-    <a class="navbar-brand" href="index.html">Euler</a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav ml-auto">
-        <li class="nav-item active"><a class="nav-link" href="about.html">About</a></li>
-        <li class="nav-item"><a class="nav-link" href="projects.html">Projects</a></li>
-        <li class="nav-item"><a class="nav-link" href="contact.html">Contact</a></li>
-      </ul>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <div class="container">
+      <a class="navbar-brand" href="index.html">Euler</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" 
+              aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item active"><a class="nav-link" href="about.html">About</a></li>
+          <li class="nav-item"><a class="nav-link" href="projects.html">Projects</a></li>
+          <li class="nav-item"><a class="nav-link" href="contact.html">Contact</a></li>
+        </ul>
+      </div>
     </div>
   </nav>
 
-  <!-- About Section -->
-  <section class="about-section container mt-5">
-    <h2>About Me</h2>
-    <p>Hello, I’m <strong>Euler</strong>. I’m a passionate developer, data enthusiast, and creative problem solver who loves exploring new technologies and building innovative projects. My journey began with a deep curiosity for how things work, and over time I’ve dedicated myself to mastering both the art of programming and the science behind data analysis.</p>
-    
-    <h3>Education</h3>
-    <p>Currently, I am pursuing my studies at <strong>Taipei Municipal Chien Kuo High School</strong>, where I dive deep into computer science, applied mathematics, and data analytics. My academic experience continually fuels my passion for learning and innovation.</p>
-    
-    <h3>Skills</h3>
-    <ul>
-      <li>Mathematical Modeling (including techniques like M-P Law and Stejious Transform)</li>
-      <li>Machine Learning & AI</li>
-      <li>Web Development & Coding</li>
-      <li>Data Analysis & Visualization</li>
-      <li>Algorithm Design & Problem Solving</li>
-    </ul>
-    
-    <h3>Interests</h3>
-    <p>I am deeply interested in machine learning, artificial intelligence, mathematics, and coding. I love experimenting with new frameworks and exploring how data and algorithms can solve real-world problems. My work ranges from creating dynamic visualizations to developing automated data analysis tools.</p>
+  <!-- Header Section -->
+  <header class="page-header">
+    <h1>About Me</h1>
+  </header>
+
+  <!-- Main Content -->
+  <section class="content-section container">
+    <div class="row">
+      <div class="col-lg-8 offset-lg-2">
+        <p>Hello, I’m <strong>Euler</strong>. I’m a passionate developer, data enthusiast, and creative problem solver driven by a deep curiosity about technology and its potential. My journey started with exploring the intricacies of mathematics and computer science, and I continue to blend art and science to create innovative solutions.</p>
+        
+        <h3>Education</h3>
+        <p>Currently, I’m studying at <strong>Taipei Municipal Chien Kuo High School</strong>, where I dive into advanced computer science, applied mathematics, and data analytics. This academic environment inspires me to push the boundaries of what’s possible and constantly challenge myself.</p>
+        
+        <h3>Skills</h3>
+        <ul>
+          <li>Advanced Mathematical Modeling (M-P Law, Stejious Transform, and more)</li>
+          <li>Machine Learning & Artificial Intelligence</li>
+          <li>Web Development & Software Engineering</li>
+          <li>Data Analysis, Visualization, & Statistical Methods</li>
+          <li>Algorithm Design & Optimization</li>
+        </ul>
+        
+        <h3>Interests</h3>
+        <p>I’m fascinated by the convergence of machine learning, mathematics, and coding. I spend time researching AI trends, developing data-driven projects, and experimenting with new technologies. My interests drive my constant learning and the innovative solutions I bring to each project.</p>
+        
+        <h3>Experience & Timeline</h3>
+        <div class="timeline">
+          <div class="timeline-item">
+            <h5>2023 - Present</h5>
+            <p>Deepening my studies at MIT and working on advanced research projects in AI and data analytics.</p>
+          </div>
+          <div class="timeline-item">
+            <h5>2021 - 2023</h5>
+            <p>Worked on multiple projects involving mathematical modeling, web development, and data visualization.</p>
+          </div>
+          <div class="timeline-item">
+            <h5>2019 - 2021</h5>
+            <p>Explored various programming languages and technologies while contributing to open source and personal projects.</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- Footer -->
-  <footer class="text-center mt-5">
+  <footer class="text-center">
     <div class="container">
-      <p>&copy; 2025 Euler. All rights reserved.</p>
+      <p class="mb-0">&copy; 2025 Euler. All rights reserved.</p>
     </div>
   </footer>
 
-  <!-- Bootstrap & Custom Scripts -->
+  <!-- Bootstrap JS and Dependencies -->
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-  <script src="assets/js/script.js"></script>
 </body>
 </html>
