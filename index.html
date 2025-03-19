@@ -4,33 +4,52 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Euler | Home</title>
-  <link rel="stylesheet" href="assets/css/style.css">
-  <!-- Bootstrap CSS -->
+  <!-- Bootstrap CSS (v4.5) -->
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="assets/css/style.css">
   <style>
-    /* Custom styles for the hero section */
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 0;
+      scroll-behavior: smooth;
+    }
+    /* Navbar styling */
+    .navbar {
+      transition: background-color 0.4s ease;
+    }
+    .navbar.scrolled {
+      background-color: rgba(0,0,0,0.8) !important;
+    }
+    /* Hero Section */
     .hero {
-      background: url('assets/images/hero-bg.jpg') no-repeat center center/cover;
-      height: 100vh;
-      color: #fff;
       position: relative;
+      height: 100vh;
+      background: url('assets/images/hero-bg.jpg') no-repeat center center/cover;
       display: flex;
       align-items: center;
+      justify-content: center;
+      color: #fff;
       text-align: center;
     }
-    .hero-overlay {
+    .hero::before {
+      content: "";
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 1;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0,0,0,0.6);
     }
     .hero-content {
       position: relative;
       z-index: 2;
-      width: 100%;
+      animation: fadeInUp 1.2s ease-out;
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     .hero h1 {
       font-size: 4rem;
@@ -40,14 +59,32 @@
       font-size: 1.5rem;
       margin-bottom: 30px;
     }
-    .section-link {
-      margin-top: 40px;
+    /* Section Headings */
+    .section-heading {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+    /* Quick preview card hover effect */
+    .card {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      border: none;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+    }
+    /* Footer styling */
+    footer {
+      background-color: #222;
+      color: #ccc;
+      padding: 30px 0;
     }
   </style>
 </head>
 <body>
   <!-- Navigation -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+  <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
     <div class="container">
       <a class="navbar-brand" href="#">Euler</a>
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" 
@@ -66,68 +103,76 @@
 
   <!-- Hero Section -->
   <header class="hero">
-    <div class="hero-overlay"></div>
     <div class="hero-content container">
       <h1>Hi, I'm Euler</h1>
-      <p>Developer | Data Enthusiast | Problem Solver</p>
-      <a href="about.html" class="btn btn-primary btn-lg">Learn More About Me</a>
-      <div class="section-link">
-        <a href="#projects" class="btn btn-outline-light mt-4">See My Projects</a>
+      <p>Developer | Data Enthusiast | Innovator</p>
+      <a href="about.html" class="btn btn-primary btn-lg">Discover More</a>
+      <div class="mt-4">
+        <a href="#projects" class="btn btn-outline-light">See My Projects</a>
       </div>
     </div>
   </header>
 
-  <!-- Quick Projects Section Preview -->
-  <section id="projects" class="container mt-5">
-    <h2 class="text-center mb-4">Featured Projects</h2>
+  <!-- Quick Projects Preview -->
+  <section id="projects" class="container my-5">
+    <h2 class="section-heading text-center">Featured Projects</h2>
     <div class="row">
-      <!-- Preview Card: Manim Builder -->
-      <div class="col-sm-12 col-md-6 col-lg-4 d-flex">
-        <div class="card flex-fill">
+      <!-- Project Card: Manim Builder -->
+      <div class="col-md-4 d-flex">
+        <div class="card flex-fill mb-4">
           <div class="card-body">
             <h5 class="card-title">Manim Builder</h5>
-            <p class="card-text">Create dynamic mathematical animations with a custom Manim builder.</p>
-            <a href="https://huggingface.co/spaces/euler314/manim_builder" target="_blank" class="btn btn-primary">View</a>
+            <p class="card-text">Craft dynamic mathematical animations with a custom Manim builder.</p>
+            <a href="https://huggingface.co/spaces/euler314/manim_builder" target="_blank" class="btn btn-primary">View Project</a>
           </div>
         </div>
       </div>
-      <!-- Preview Card: Typhoon Data Analysis -->
-      <div class="col-sm-12 col-md-6 col-lg-4 d-flex">
-        <div class="card flex-fill">
+      <!-- Project Card: Typhoon Data Analysis -->
+      <div class="col-md-4 d-flex">
+        <div class="card flex-fill mb-4">
           <div class="card-body">
             <h5 class="card-title">Typhoon Data Analysis</h5>
-            <p class="card-text">Analyze and visualize typhoon data to understand weather patterns.</p>
-            <a href="https://huggingface.co/spaces/euler314/typhoon-data-analysis" target="_blank" class="btn btn-primary">View</a>
+            <p class="card-text">Visualize and analyze typhoon data to understand weather patterns.</p>
+            <a href="https://huggingface.co/spaces/euler314/typhoon-data-analysis" target="_blank" class="btn btn-primary">View Project</a>
           </div>
         </div>
       </div>
-      <!-- Preview Card: Random Matrix ESD -->
-      <div class="col-sm-12 col-md-6 col-lg-4 d-flex">
-        <div class="card flex-fill">
+      <!-- Project Card: Random Matrix ESD -->
+      <div class="col-md-4 d-flex">
+        <div class="card flex-fill mb-4">
           <div class="card-body">
             <h5 class="card-title">Random Matrix ESD</h5>
-            <p class="card-text">Explore the eigenvalue spectral distribution in random matrices.</p>
-            <a href="https://huggingface.co/spaces/euler314/random_matrix_ESD" target="_blank" class="btn btn-primary">View</a>
+            <p class="card-text">Explore eigenvalue spectral distributions in random matrices.</p>
+            <a href="https://huggingface.co/spaces/euler314/random_matrix_ESD" target="_blank" class="btn btn-primary">View Project</a>
           </div>
         </div>
       </div>
     </div>
-    <div class="text-center mt-4">
+    <div class="text-center">
       <a href="projects.html" class="btn btn-outline-secondary">View All Projects</a>
     </div>
   </section>
 
   <!-- Footer -->
-  <footer class="bg-dark text-white text-center p-4 mt-5">
+  <footer class="text-center">
     <div class="container">
       <p class="mb-0">&copy; 2025 Euler. All rights reserved.</p>
     </div>
   </footer>
 
-  <!-- Bootstrap & Custom Scripts -->
+  <!-- Bootstrap JS and Dependencies -->
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-  <script src="assets/js/script.js"></script>
+  <!-- Custom Script: Change navbar background on scroll -->
+  <script>
+    $(window).scroll(function() {
+      if ($(window).scrollTop() > 50) {
+        $('.navbar').addClass('scrolled');
+      } else {
+        $('.navbar').removeClass('scrolled');
+      }
+    });
+  </script>
 </body>
 </html>
