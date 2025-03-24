@@ -96,6 +96,41 @@
       cursor: pointer;
       z-index: 2100;
     }
+    /* Hidden Admin Overlay */
+    #hidden-admin {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(10,10,10,0.95);
+      z-index: 3000;
+      overflow-y: auto;
+      padding: 30px;
+      color: #fff;
+      font-family: 'Roboto', sans-serif;
+    }
+    #adminPanel {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #333;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+    }
+    #exitAdmin {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: #444;
+      color: #fff;
+      border: none;
+      padding: 10px 15px;
+      font-size: 1rem;
+      cursor: pointer;
+      z-index: 3100;
+    }
   </style>
 </head>
 <body>
@@ -129,7 +164,7 @@
     </div>
   </header>
 
-  <!-- Normal Page Content (could include more sections) -->
+  <!-- Normal Page Content -->
   <section class="container my-5">
     <h2 class="text-center">Welcome to My Portfolio</h2>
     <p class="text-center">Explore my projects and learn more about my work.</p>
@@ -149,33 +184,57 @@
     <p>Enjoy this secret game! Use the arrow keys to move the paddle.</p>
   </div>
 
+  <!-- Hidden Admin Overlay -->
+  <div id="hidden-admin">
+    <button id="exitAdmin" onclick="exitAdmin()">Exit Admin Panel</button>
+    <div id="adminPanel">
+      <h2>Admin Panel</h2>
+      <p>Welcome, Admin. This section is for administrative controls and information.</p>
+      <!-- Add admin functionalities or controls here -->
+      <p>Placeholder: You can add data reports, system status, or other secret content here.</p>
+    </div>
+  </div>
+
   <!-- jQuery and Bootstrap JS -->
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
-  <!-- Hidden Easter Egg Game Script -->
+  <!-- Hidden Easter Egg & Admin Key Sequence Script -->
   <script>
-    // Secret key sequence detection for "easter"
+    // Key sequence detection for "easter" to show the game overlay
     let keySequence = [];
-    const secretSequence = ['e', 'a', 's', 't', 'e', 'r'];
+    const secretGameSequence = ['e', 'a', 's', 't', 'e', 'r'];
+    
+    // Key sequence detection for "admin" to show the admin overlay
+    let adminSequence = [];
+    const secretAdminSequence = ['a', 'd', 'm', 'i', 'n'];
+
     document.addEventListener('keydown', function(event) {
+      // Process game secret sequence
       keySequence.push(event.key.toLowerCase());
-      if (keySequence.length > secretSequence.length) {
+      if (keySequence.length > secretGameSequence.length) {
         keySequence.shift();
       }
-      if (secretSequence.every((letter, index) => letter === keySequence[index])) {
-        // Reveal the hidden game overlay
+      if (secretGameSequence.every((letter, index) => letter === keySequence[index])) {
         document.getElementById('hidden-game').style.display = 'block';
-        // Initialize the game (only once)
         if (!window.gameInitialized) {
           initGame();
           window.gameInitialized = true;
         }
       }
+      
+      // Process admin secret sequence
+      adminSequence.push(event.key.toLowerCase());
+      if (adminSequence.length > secretAdminSequence.length) {
+        adminSequence.shift();
+      }
+      if (secretAdminSequence.every((letter, index) => letter === adminSequence[index])) {
+        document.getElementById('hidden-admin').style.display = 'block';
+      }
     });
 
-    // Simple game: a bouncing ball and paddle (mimicking a Pygame-like experience)
+    // Simple game: a bouncing ball and paddle (for the hidden game overlay)
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
@@ -199,76 +258,45 @@
 
     let keys = {};
 
-    document.addEventListener('keydown', (e) => {
-      keys[e.key] = true;
-    });
-    document.addEventListener('keyup', (e) => {
-      keys[e.key] = false;
-    });
+    document.addEventListener('keydown', (e) => { keys[e.key] = true; });
+    document.addEventListener('keyup', (e) => { keys[e.key] = false; });
 
     function updateGame() {
-      // Update ball position
       ball.x += ball.dx;
       ball.y += ball.dy;
 
-      // Bounce off left/right walls
-      if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) {
-        ball.dx = -ball.dx;
-      }
-      // Bounce off top wall
-      if (ball.y - ball.radius < 0) {
-        ball.dy = -ball.dy;
-      }
-      // Bounce off paddle
-      if (ball.y + ball.radius >= paddle.y &&
-          ball.x >= paddle.x &&
-          ball.x <= paddle.x + paddle.width) {
+      if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) { ball.dx = -ball.dx; }
+      if (ball.y - ball.radius < 0) { ball.dy = -ball.dy; }
+      if (ball.y + ball.radius >= paddle.y && ball.x >= paddle.x && ball.x <= paddle.x + paddle.width) {
         ball.dy = -ball.dy;
         ball.y = paddle.y - ball.radius;
       }
-      // Reset ball if it falls below the paddle
       if (ball.y - ball.radius > canvas.height) {
         ball.x = canvas.width / 2;
         ball.y = canvas.height / 2;
-        ball.dx = 3;
-        ball.dy = 3;
+        ball.dx = 3; ball.dy = 3;
       }
 
-      // Paddle movement
-      if (keys['ArrowLeft'] && paddle.x > 0) {
-        paddle.x -= paddle.speed;
-      }
-      if (keys['ArrowRight'] && paddle.x + paddle.width < canvas.width) {
-        paddle.x += paddle.speed;
-      }
+      if (keys['ArrowLeft'] && paddle.x > 0) { paddle.x -= paddle.speed; }
+      if (keys['ArrowRight'] && paddle.x + paddle.width < canvas.width) { paddle.x += paddle.speed; }
     }
 
     function drawGame() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      // Draw ball
       ctx.beginPath();
       ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
       ctx.fillStyle = ball.color;
       ctx.fill();
       ctx.closePath();
-      // Draw paddle
       ctx.fillStyle = paddle.color;
       ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
     }
 
-    function gameLoop() {
-      updateGame();
-      drawGame();
-      requestAnimationFrame(gameLoop);
-    }
+    function gameLoop() { updateGame(); drawGame(); requestAnimationFrame(gameLoop); }
+    function initGame() { gameLoop(); }
 
-    function initGame() {
-      gameLoop();
-    }
-
-    function exitGame() {
-      document.getElementById('hidden-game').style.display = 'none';
-    }
+    function exitGame() { document.getElementById('hidden-game').style.display = 'none'; }
+    function exitAdmin() { document.getElementById('hidden-admin').style.display = 'none'; }
   </script>
 </body>
 </html>
