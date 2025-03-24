@@ -5,7 +5,7 @@ Welcome to Euler's personal portfolio website. This project is a static website 
 
 ## Project Structure
 
-```
+
 yu314-coder.github.io/
 ├── assets/
 │   ├── css/
@@ -17,7 +17,7 @@ yu314-coder.github.io/
 ├── index.html                # Home page with hero section and project preview
 ├── projects.html             # Projects page listing past projects and interactive visualizations
 ├── README.md                 # This README file
-```
+
 
 ## Features
 
