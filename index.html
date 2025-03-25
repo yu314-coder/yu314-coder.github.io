@@ -33,7 +33,9 @@
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     }
     /* Game Overlay */
-    #hidden-game { background-color: rgba(0,0,0,0.95); text-align: center; color: #fff; overflow: auto; padding-top: 20px; z-index:2000; }
+    #hidden-game {
+      background-color: rgba(0,0,0,0.95); text-align: center; color: #fff; overflow: auto; padding-top: 20px; z-index:2000;
+    }
     #gameControls { margin: 10px auto; }
     #gameCanvas { background: #222; border: 2px solid #555; margin: 20px auto; display: block; }
     #exitGame { position: fixed; top: 20px; right: 20px; background: #444; color: #fff; border: none; padding: 10px 15px; font-size: 1rem; cursor: pointer; z-index:2100; }
@@ -100,6 +102,7 @@
         <option value="breakout">Breakout</option>
         <option value="dino">Google Dino</option>
       </select>
+      <button onclick="startGame()">Start Game</button>
     </div>
     <canvas id="gameCanvas" width="640" height="480"></canvas>
     <p id="scoreDisplay">Score: 0</p>
@@ -124,7 +127,7 @@
 
   <!-- Hidden Easter Egg & Admin Key Sequence Script -->
   <script>
-    // ---- Visitor Logging with IP & Timestamp ----
+    // ---- Admin Panel: Visitor Logging with IP & Timestamp ----
     function recordVisit() {
       fetch("https://api.ipify.org?format=json")
         .then(response => response.json())
@@ -173,7 +176,6 @@
       if (keySequence.length > secretGameSequence.length) { keySequence.shift(); }
       if (secretGameSequence.every((l, i) => l === keySequence[i])) {
         document.getElementById('hidden-game').style.display = 'block';
-        if (!window.gameInitialized) { initGame(); window.gameInitialized = true; }
       }
       // Process admin secret sequence
       adminSequence.push(event.key.toLowerCase());
@@ -187,28 +189,40 @@
     // ---- Game Code ----
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
+    let gameActive = false;
     let currentGame = "breakout"; // default game mode
     let score = 0;
-    // --- Breakout Game Variables ---
+
+    // ---- Breakout Game Variables & Functions ----
     let ball = { x: canvas.width/2, y: canvas.height-30, radius: 10, dx: 3, dy: -3, color: 'orange' };
     let paddle = { width: 75, height: 10, x: (canvas.width-75)/2, color: 'cyan', speed: 7 };
     let rightPressed = false, leftPressed = false;
     const brickRowCount = 5, brickColumnCount = 7;
     const brickWidth = 75, brickHeight = 20, brickPadding = 10, brickOffsetTop = 30, brickOffsetLeft = 30;
     let bricks = [];
-    for(let c=0; c<brickColumnCount; c++) {
-      bricks[c] = [];
-      for(let r=0; r<brickRowCount; r++) {
-        bricks[c][r] = { x: 0, y: 0, status: 1 };
+    function initBreakout() {
+      // Initialize bricks
+      bricks = [];
+      for(let c=0; c<brickColumnCount; c++) {
+        bricks[c] = [];
+        for(let r=0; r<brickRowCount; r++) {
+          bricks[c][r] = { x: 0, y: 0, status: 1 };
+        }
       }
+      // Reset ball and paddle
+      ball = { x: canvas.width/2, y: canvas.height-30, radius: 10, dx: 3, dy: -3, color: 'orange' };
+      paddle.x = (canvas.width-paddle.width)/2;
+      score = 0;
+      document.getElementById("scoreDisplay").innerText = "Score: " + score;
+      rightPressed = leftPressed = false;
     }
     function breakoutKeyDown(e) {
-      if (currentGame !== "breakout") return;
+      if(currentGame !== "breakout") return;
       if(e.key === "Right" || e.key === "ArrowRight") { rightPressed = true; }
       else if(e.key === "Left" || e.key === "ArrowLeft") { leftPressed = true; }
     }
     function breakoutKeyUp(e) {
-      if (currentGame !== "breakout") return;
+      if(currentGame !== "breakout") return;
       if(e.key === "Right" || e.key === "ArrowRight") { rightPressed = false; }
       else if(e.key === "Left" || e.key === "ArrowLeft") { leftPressed = false; }
     }
@@ -218,8 +232,8 @@
       for(let c=0; c<brickColumnCount; c++) {
         for(let r=0; r<brickRowCount; r++) {
           if(bricks[c][r].status === 1) {
-            let brickX = (c*(brickWidth+brickPadding))+brickOffsetLeft;
-            let brickY = (r*(brickHeight+brickPadding))+brickOffsetTop;
+            let brickX = (c*(brickWidth+brickPadding)) + brickOffsetLeft;
+            let brickY = (r*(brickHeight+brickPadding)) + brickOffsetTop;
             bricks[c][r].x = brickX;
             bricks[c][r].y = brickY;
             ctx.beginPath();
@@ -236,16 +250,15 @@
         for(let r=0; r<brickRowCount; r++) {
           let b = bricks[c][r];
           if(b.status === 1) {
-            if(ball.x > b.x && ball.x < b.x+brickWidth && ball.y > b.y && ball.y < b.y+brickHeight) {
+            if(ball.x > b.x && ball.x < b.x+brickWidth &&
+               ball.y > b.y && ball.y < b.y+brickHeight) {
               ball.dy = -ball.dy;
               b.status = 0;
               score++;
               document.getElementById("scoreDisplay").innerText = "Score: " + score;
-              // Win condition: All bricks cleared
               if(score === brickRowCount * brickColumnCount) {
                 alert("YOU WIN! Restarting Breakout.");
-                resetBreakout();
-                return;
+                initBreakout();
               }
             }
           }
@@ -269,25 +282,29 @@
       ctx.closePath();
       collisionDetection();
       // Bounce off walls
-      if(ball.x + ball.dx > canvas.width-ball.radius || ball.x + ball.dx < ball.radius) { ball.dx = -ball.dx; }
-      if(ball.y + ball.dy < ball.radius) { ball.dy = -ball.dy; }
-      else if(ball.y + ball.dy > canvas.height-ball.radius) {
-        if(ball.x > paddle.x && ball.x < paddle.x+paddle.width) { ball.dy = -ball.dy; }
-        else { alert("Game Over. Restarting Breakout."); resetBreakout(); return; }
+      if(ball.x + ball.dx > canvas.width - ball.radius || ball.x + ball.dx < ball.radius) {
+        ball.dx = -ball.dx;
+      }
+      if(ball.y + ball.dy < ball.radius) {
+        ball.dy = -ball.dy;
+      } else if(ball.y + ball.dy > canvas.height - ball.radius) {
+        if(ball.x > paddle.x && ball.x < paddle.x+paddle.width) {
+          ball.dy = -ball.dy;
+        } else {
+          alert("Game Over. Restarting Breakout.");
+          initBreakout();
+        }
       }
       ball.x += ball.dx;
       ball.y += ball.dy;
-      if(rightPressed && paddle.x < canvas.width-paddle.width) { paddle.x += paddle.speed; }
-      else if(leftPressed && paddle.x > 0) { paddle.x -= paddle.speed; }
+      if(rightPressed && paddle.x < canvas.width-paddle.width) {
+        paddle.x += paddle.speed;
+      } else if(leftPressed && paddle.x > 0) {
+        paddle.x -= paddle.speed;
+      }
     }
-    function resetBreakout() {
-      ball = { x: canvas.width/2, y: canvas.height-30, radius: 10, dx: 3, dy: -3, color: 'orange' };
-      paddle.x = (canvas.width-paddle.width)/2;
-      bricks.forEach(col => col.forEach(brick => brick.status = 1));
-      score = 0;
-      document.getElementById("scoreDisplay").innerText = "Score: " + score;
-    }
-    // --- Dino Game Variables & Functions ---
+
+    // ---- Dino Game Variables & Functions ----
     let dino = { x: 50, y: canvas.height-60, width: 40, height: 40, color: 'lime', dy: 0, gravity: 0.8, jumpForce: -15, onGround: true };
     let cactus = { x: canvas.width, y: canvas.height-50, width: 20, height: 50, color: 'red', speed: 4 };
     let dinoScore = 0;
@@ -309,12 +326,24 @@
     }
     function updateDino() {
       dino.y += dino.dy;
-      if(dino.y + dino.height < canvas.height) { dino.dy += dino.gravity; dino.onGround = false; }
-      else { dino.y = canvas.height - dino.height; dino.dy = 0; dino.onGround = true; }
+      if(dino.y + dino.height < canvas.height) {
+        dino.dy += dino.gravity;
+        dino.onGround = false;
+      } else {
+        dino.y = canvas.height - dino.height;
+        dino.dy = 0;
+        dino.onGround = true;
+      }
       cactus.x -= cactus.speed;
-      if(cactus.x + cactus.width < 0) { cactus.x = canvas.width; dinoScore++; document.getElementById("scoreDisplay").innerText = "Score: " + dinoScore; }
+      if(cactus.x + cactus.width < 0) {
+        cactus.x = canvas.width;
+        dinoScore++;
+        document.getElementById("scoreDisplay").innerText = "Score: " + dinoScore;
+      }
       if(dino.x < cactus.x + cactus.width && dino.x + dino.width > cactus.x &&
-         dino.y < cactus.y + cactus.height && dino.y + dino.height > cactus.y) { dinoGameOver = true; }
+         dino.y < cactus.y + cactus.height && dino.y + dino.height > cactus.y) {
+        dinoGameOver = true;
+      }
     }
     function drawDinoGame() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -328,21 +357,41 @@
       dinoGameOver = false;
       document.getElementById("scoreDisplay").innerText = "Score: " + dinoScore;
     }
+
     // ---- Main Game Loop ----
     function gameLoop() {
-      if(currentGame === "breakout") { drawBreakout(); }
-      else if(currentGame === "dino") { updateDino(); drawDinoGame(); if(dinoGameOver) { alert("Dino Game Over. Restarting..."); resetDino(); } }
+      if(!gameActive) return;
+      if(currentGame === "breakout") {
+        drawBreakout();
+      } else if(currentGame === "dino") {
+        updateDino();
+        drawDinoGame();
+        if(dinoGameOver) {
+          alert("Dino Game Over. Restarting...");
+          resetDino();
+        }
+      }
       requestAnimationFrame(gameLoop);
     }
-    function initGame() {
+    function startGame() {
+      // Set game mode from dropdown selection and initialize variables accordingly.
       currentGame = document.getElementById("gameSelect").value;
-      if(currentGame === "breakout") { resetBreakout(); }
-      else if(currentGame === "dino") { resetDino(); }
+      gameActive = true;
+      if(currentGame === "breakout") {
+        initBreakout();
+      } else if(currentGame === "dino") {
+        resetDino();
+      }
       gameLoop();
+    }
+    function initGame() {
+      // Called when the easter overlay is revealed for the first time.
+      startGame();
+      window.gameInitialized = true;
     }
     // ---- End of Game Code ----
 
-    function exitGame() { document.getElementById('hidden-game').style.display = 'none'; }
+    function exitGame() { gameActive = false; document.getElementById('hidden-game').style.display = 'none'; }
     function exitAdmin() { document.getElementById('hidden-admin').style.display = 'none'; }
   </script>
 </body>
