@@ -11,123 +11,42 @@
   <!-- Custom CSS -->
   <link rel="stylesheet" href="assets/css/style.css">
   <style>
-    body {
-      font-family: 'Roboto', sans-serif;
-      margin: 0;
-      padding: 0;
-      scroll-behavior: smooth;
-    }
+    body { font-family: 'Roboto', sans-serif; margin: 0; padding: 0; scroll-behavior: smooth; }
     /* Navbar styling */
-    .navbar {
-      transition: background-color 0.4s ease;
-    }
-    .navbar.scrolled {
-      background-color: rgba(0,0,0,0.8) !important;
-    }
+    .navbar { transition: background-color 0.4s ease; }
+    .navbar.scrolled { background-color: rgba(0,0,0,0.8) !important; }
     /* Hero Section */
     .hero {
-      position: relative;
-      height: 100vh;
+      position: relative; height: 100vh;
       background: url('assets/images/hero-bg.jpg') no-repeat center center/cover;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      text-align: center;
+      display: flex; align-items: center; justify-content: center; color: #fff; text-align: center;
     }
-    .hero::before {
-      content: "";
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background-color: rgba(0,0,0,0.6);
-    }
-    .hero-content {
-      position: relative;
-      z-index: 2;
-      animation: fadeInUp 1.2s ease-out;
-    }
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .hero h1 {
-      font-size: 4rem;
-      font-weight: 700;
-    }
-    .hero p {
-      font-size: 1.5rem;
-      margin-bottom: 30px;
-    }
+    .hero::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); }
+    .hero-content { position: relative; z-index: 2; animation: fadeInUp 1.2s ease-out; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .hero h1 { font-size: 4rem; font-weight: 700; }
+    .hero p { font-size: 1.5rem; margin-bottom: 30px; }
     /* Footer styling */
-    footer {
-      background-color: #222;
-      color: #ccc;
-      padding: 30px 0;
+    footer { background-color: #222; color: #ccc; padding: 30px 0; }
+    /* Hidden Game Overlay */
+    #hidden-game, #hidden-admin {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2000;
     }
-    /* Hidden Game Overlay (Easter Egg) */
-    #hidden-game {
-      display: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background-color: rgba(0,0,0,0.95);
-      z-index: 2000;
-      text-align: center;
-      color: #fff;
-      overflow: auto;
-      padding-top: 20px;
-    }
-    #gameCanvas {
-      background: #222;
-      border: 2px solid #555;
-      margin: 20px auto;
-      display: block;
-    }
-    #exitGame {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: #444;
-      color: #fff;
-      border: none;
-      padding: 10px 15px;
-      font-size: 1rem;
-      cursor: pointer;
-      z-index: 2100;
-    }
-    /* Hidden Admin Overlay */
+    /* Game overlay styling */
+    #hidden-game { background-color: rgba(0,0,0,0.95); text-align: center; color: #fff; overflow: auto; padding-top: 20px; }
+    #gameControls { margin: 10px auto; }
+    #gameCanvas { background: #222; border: 2px solid #555; margin: 20px auto; display: block; }
+    #exitGame { position: fixed; top: 20px; right: 20px; background: #444; color: #fff; border: none; padding: 10px 15px; font-size: 1rem; cursor: pointer; z-index: 2100; }
+    /* Admin overlay styling */
     #hidden-admin {
-      display: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background-color: rgba(10,10,10,0.95);
+      background-color: rgba(10,10,10,0.95); overflow-y: auto; padding: 30px; color: #fff;
       z-index: 3000;
-      overflow-y: auto;
-      padding: 30px;
-      color: #fff;
     }
     #adminPanel {
-      max-width: 800px;
-      margin: 0 auto;
-      background: #333;
-      padding: 20px;
-      border-radius: 8px;
+      max-width: 800px; margin: 0 auto; background: #333; padding: 20px; border-radius: 8px;
       box-shadow: 0 8px 16px rgba(0,0,0,0.3);
     }
-    #exitAdmin {
-      position: fixed;
-      top: 20px;
-      left: 20px;
-      background: #444;
-      color: #fff;
-      border: none;
-      padding: 10px 15px;
-      font-size: 1rem;
-      cursor: pointer;
-      z-index: 3100;
-    }
+    #exitAdmin { position: fixed; top: 20px; left: 20px; background: #444; color: #fff; border: none; padding: 10px 15px; font-size: 1rem; cursor: pointer; z-index: 3100; }
   </style>
 </head>
 <body>
@@ -135,8 +54,7 @@
   <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
     <div class="container">
       <a class="navbar-brand" href="#">Euler</a>
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" 
-              aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
@@ -177,6 +95,13 @@
   <!-- Hidden Game Overlay (Easter Egg) -->
   <div id="hidden-game">
     <button id="exitGame" onclick="exitGame()">Exit Game</button>
+    <div id="gameControls">
+      <label for="gameSelect">Choose Game:</label>
+      <select id="gameSelect">
+        <option value="breakout">Breakout</option>
+        <option value="dino">Google Dino</option>
+      </select>
+    </div>
     <canvas id="gameCanvas" width="640" height="480"></canvas>
     <p id="scoreDisplay">Score: 0</p>
   </div>
@@ -187,9 +112,9 @@
     <div id="adminPanel">
       <h2>Admin Panel</h2>
       <p><strong>Visitor Count:</strong> <span id="visitorCount">0</span></p>
+      <p><strong>Latest Visitor IP:</strong> <span id="visitorIP">Fetching...</span></p>
       <h4>Visit Logs:</h4>
       <ul id="visitLogs"></ul>
-      <!-- You can add more administrative controls or reports here -->
     </div>
   </div>
 
@@ -200,19 +125,15 @@
 
   <!-- Hidden Easter Egg & Admin Key Sequence Script -->
   <script>
-    // Visitor logging using localStorage
+    // ---- Visitor Logging & IP Fetching for Admin Panel ----
     function logVisit() {
-      let count = parseInt(localStorage.getItem('visitorCount') || '0');
-      count++;
+      let count = parseInt(localStorage.getItem('visitorCount') || '0') + 1;
       localStorage.setItem('visitorCount', count);
       document.getElementById('visitorCount').innerText = count;
-      
       let logs = JSON.parse(localStorage.getItem('visitLogs') || '[]');
       let now = new Date().toLocaleString();
       logs.push("Visited on " + now);
       localStorage.setItem('visitLogs', JSON.stringify(logs));
-      
-      // Populate the admin panel logs
       let logsList = document.getElementById('visitLogs');
       logsList.innerHTML = "";
       logs.forEach(function(log) {
@@ -221,58 +142,56 @@
         logsList.appendChild(li);
       });
     }
-    // Log the visit on page load
     logVisit();
 
-    // Key sequences for hidden features
+    // Fetch visitor IP using ipify API
+    function fetchVisitorIP() {
+      fetch("https://api.ipify.org?format=json")
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('visitorIP').innerText = data.ip;
+        })
+        .catch(err => {
+          document.getElementById('visitorIP').innerText = "Unavailable";
+        });
+    }
+    fetchVisitorIP();
+
+    // ---- Secret Key Sequence Detection ----
     let keySequence = [];
     const secretGameSequence = ['e', 'a', 's', 't', 'e', 'r'];
-    
     let adminSequence = [];
     const secretAdminSequence = ['a', 'd', 'm', 'i', 'n'];
-
     document.addEventListener('keydown', function(event) {
-      // Process game secret sequence
+      // Game secret
       keySequence.push(event.key.toLowerCase());
-      if (keySequence.length > secretGameSequence.length) {
-        keySequence.shift();
-      }
-      if (secretGameSequence.every((letter, index) => letter === keySequence[index])) {
+      if (keySequence.length > secretGameSequence.length) { keySequence.shift(); }
+      if (secretGameSequence.every((l, i) => l === keySequence[i])) {
         document.getElementById('hidden-game').style.display = 'block';
-        if (!window.gameInitialized) {
-          initGame();
-          window.gameInitialized = true;
-        }
+        if (!window.gameInitialized) { initGame(); window.gameInitialized = true; }
       }
-      
-      // Process admin secret sequence
+      // Admin secret
       adminSequence.push(event.key.toLowerCase());
-      if (adminSequence.length > secretAdminSequence.length) {
-        adminSequence.shift();
-      }
-      if (secretAdminSequence.every((letter, index) => letter === adminSequence[index])) {
+      if (adminSequence.length > secretAdminSequence.length) { adminSequence.shift(); }
+      if (secretAdminSequence.every((l, i) => l === adminSequence[i])) {
         document.getElementById('hidden-admin').style.display = 'block';
-        // Refresh visitor logs in case they updated
         logVisit();
+        fetchVisitorIP();
       }
     });
 
-    // ------------------------------------------
-    // Enhanced Breakout-style Game (Easter Egg)
-    // ------------------------------------------
+    // ---- Easter Egg Games ----
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
+    let currentGame = "breakout"; // default
+    let gameInterval, score = 0;
 
-    // Game variables
+    // --- Breakout Game Variables ---
     let ball = { x: canvas.width/2, y: canvas.height-30, radius: 10, dx: 3, dy: -3, color: 'orange' };
     let paddle = { width: 75, height: 10, x: (canvas.width-75)/2, color: 'cyan', speed: 7 };
     let rightPressed = false, leftPressed = false;
-    let score = 0;
-    
-    // Brick variables
     const brickRowCount = 5, brickColumnCount = 7;
-    const brickWidth = 75, brickHeight = 20, brickPadding = 10;
-    const brickOffsetTop = 30, brickOffsetLeft = 30;
+    const brickWidth = 75, brickHeight = 20, brickPadding = 10, brickOffsetTop = 30, brickOffsetLeft = 30;
     let bricks = [];
     for(let c=0; c<brickColumnCount; c++) {
       bricks[c] = [];
@@ -280,56 +199,16 @@
         bricks[c][r] = { x: 0, y: 0, status: 1 };
       }
     }
-
-    document.addEventListener("keydown", keyDownHandler, false);
-    document.addEventListener("keyup", keyUpHandler, false);
-
-    function keyDownHandler(e) {
+    document.addEventListener("keydown", breakoutKeyDown, false);
+    document.addEventListener("keyup", breakoutKeyUp, false);
+    function breakoutKeyDown(e) {
       if(e.key === "Right" || e.key === "ArrowRight") { rightPressed = true; }
       else if(e.key === "Left" || e.key === "ArrowLeft") { leftPressed = true; }
     }
-    function keyUpHandler(e) {
+    function breakoutKeyUp(e) {
       if(e.key === "Right" || e.key === "ArrowRight") { rightPressed = false; }
       else if(e.key === "Left" || e.key === "ArrowLeft") { leftPressed = false; }
     }
-
-    function collisionDetection() {
-      for(let c=0; c<brickColumnCount; c++) {
-        for(let r=0; r<brickRowCount; r++) {
-          let b = bricks[c][r];
-          if(b.status === 1) {
-            if(ball.x > b.x && ball.x < b.x+brickWidth &&
-               ball.y > b.y && ball.y < b.y+brickHeight) {
-              ball.dy = -ball.dy;
-              b.status = 0;
-              score++;
-              document.getElementById("scoreDisplay").innerText = "Score: " + score;
-              if(score === brickRowCount * brickColumnCount) {
-                alert("YOU WIN, CONGRATULATIONS!");
-                document.location.reload();
-              }
-            }
-          }
-        }
-      }
-    }
-
-    function drawBall() {
-      ctx.beginPath();
-      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2);
-      ctx.fillStyle = ball.color;
-      ctx.fill();
-      ctx.closePath();
-    }
-
-    function drawPaddle() {
-      ctx.beginPath();
-      ctx.rect(paddle.x, canvas.height-paddle.height, paddle.width, paddle.height);
-      ctx.fillStyle = paddle.color;
-      ctx.fill();
-      ctx.closePath();
-    }
-
     function drawBricks() {
       for(let c=0; c<brickColumnCount; c++) {
         for(let r=0; r<brickRowCount; r++) {
@@ -347,48 +226,144 @@
         }
       }
     }
-
-    function drawGame() {
+    function collisionDetection() {
+      for(let c=0; c<brickColumnCount; c++) {
+        for(let r=0; r<brickRowCount; r++) {
+          let b = bricks[c][r];
+          if(b.status === 1) {
+            if(ball.x > b.x && ball.x < b.x+brickWidth && ball.y > b.y && ball.y < b.y+brickHeight) {
+              ball.dy = -ball.dy;
+              b.status = 0;
+              score++;
+              document.getElementById("scoreDisplay").innerText = "Score: " + score;
+            }
+          }
+        }
+      }
+    }
+    function drawBreakout() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       drawBricks();
-      drawBall();
-      drawPaddle();
+      // Draw ball
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2);
+      ctx.fillStyle = ball.color;
+      ctx.fill();
+      ctx.closePath();
+      // Draw paddle
+      ctx.beginPath();
+      ctx.rect(paddle.x, canvas.height-paddle.height, paddle.width, paddle.height);
+      ctx.fillStyle = paddle.color;
+      ctx.fill();
+      ctx.closePath();
       collisionDetection();
-
-      // Ball movement and wall collision
+      // Bounce off walls
       if(ball.x + ball.dx > canvas.width-ball.radius || ball.x + ball.dx < ball.radius) { ball.dx = -ball.dx; }
       if(ball.y + ball.dy < ball.radius) { ball.dy = -ball.dy; }
       else if(ball.y + ball.dy > canvas.height-ball.radius) {
-        // Check if ball hits paddle
-        if(ball.x > paddle.x && ball.x < paddle.x + paddle.width) {
-          ball.dy = -ball.dy;
-        }
-        else {
-          alert("GAME OVER");
-          document.location.reload();
+        if(ball.x > paddle.x && ball.x < paddle.x+paddle.width) { ball.dy = -ball.dy; }
+        else { // Game over – reset game
+          alert("Game Over. Restarting Breakout.");
+          resetBreakout();
+          return;
         }
       }
       ball.x += ball.dx;
       ball.y += ball.dy;
-
-      // Paddle movement
-      if(rightPressed && paddle.x < canvas.width - paddle.width) { paddle.x += paddle.speed; }
+      if(rightPressed && paddle.x < canvas.width-paddle.width) { paddle.x += paddle.speed; }
       else if(leftPressed && paddle.x > 0) { paddle.x -= paddle.speed; }
     }
+    function resetBreakout() {
+      // Reset Breakout variables
+      ball = { x: canvas.width/2, y: canvas.height-30, radius: 10, dx: 3, dy: -3, color: 'orange' };
+      paddle.x = (canvas.width-paddle.width)/2;
+      bricks.forEach(col => col.forEach(brick => brick.status = 1));
+      score = 0;
+      document.getElementById("scoreDisplay").innerText = "Score: " + score;
+    }
 
+    // --- Dino Game Variables & Functions ---
+    let dino = { x: 50, y: canvas.height-60, width: 40, height: 40, color: 'lime', dy: 0, gravity: 0.8, jumpForce: -15, onGround: true };
+    let cactus = { x: canvas.width, y: canvas.height-50, width: 20, height: 50, color: 'red', speed: 4 };
+    let dinoScore = 0;
+    let dinoGameOver = false;
+    function dinoKeyDown(e) {
+      if(e.key === " " || e.key === "ArrowUp") {
+        if(dino.onGround) {
+          dino.dy = dino.jumpForce;
+          dino.onGround = false;
+        }
+      }
+    }
+    document.addEventListener("keydown", dinoKeyDown, false);
+    function drawDino() {
+      ctx.fillStyle = dino.color;
+      ctx.fillRect(dino.x, dino.y, dino.width, dino.height);
+    }
+    function drawCactus() {
+      ctx.fillStyle = cactus.color;
+      ctx.fillRect(cactus.x, cactus.y, cactus.width, cactus.height);
+    }
+    function updateDino() {
+      dino.y += dino.dy;
+      if(dino.y + dino.height < canvas.height) {
+        dino.dy += dino.gravity;
+        dino.onGround = false;
+      } else {
+        dino.y = canvas.height - dino.height;
+        dino.dy = 0;
+        dino.onGround = true;
+      }
+      cactus.x -= cactus.speed;
+      if(cactus.x + cactus.width < 0) {
+        cactus.x = canvas.width;
+        dinoScore++;
+        document.getElementById("scoreDisplay").innerText = "Score: " + dinoScore;
+      }
+      // Collision detection for dino game
+      if(dino.x < cactus.x + cactus.width && dino.x + dino.width > cactus.x &&
+         dino.y < cactus.y + cactus.height && dino.y + dino.height > cactus.y) {
+        dinoGameOver = true;
+      }
+    }
+    function drawDinoGame() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawDino();
+      drawCactus();
+    }
+    function resetDino() {
+      dino = { x: 50, y: canvas.height-60, width: 40, height: 40, color: 'lime', dy: 0, gravity: 0.8, jumpForce: -15, onGround: true };
+      cactus.x = canvas.width;
+      dinoScore = 0;
+      dinoGameOver = false;
+      document.getElementById("scoreDisplay").innerText = "Score: " + dinoScore;
+    }
+
+    // ---- Main Game Loop ----
     function gameLoop() {
-      drawGame();
+      if(currentGame === "breakout") {
+        drawBreakout();
+      } else if(currentGame === "dino") {
+        updateDino();
+        drawDinoGame();
+        if(dinoGameOver) {
+          alert("Dino Game Over. Restarting...");
+          resetDino();
+        }
+      }
       requestAnimationFrame(gameLoop);
     }
-
     function initGame() {
-      score = 0;
-      document.getElementById("scoreDisplay").innerText = "Score: 0";
+      // Check selected game
+      currentGame = document.getElementById("gameSelect").value;
+      if(currentGame === "breakout") {
+        resetBreakout();
+      } else if(currentGame === "dino") {
+        resetDino();
+      }
       gameLoop();
     }
-    // ------------------------------------------
-    // End of Game Code
-    // ------------------------------------------
+    // ---- End of Game Code ----
 
     function exitGame() { document.getElementById('hidden-game').style.display = 'none'; }
     function exitAdmin() { document.getElementById('hidden-admin').style.display = 'none'; }
