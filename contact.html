@@ -11,63 +11,17 @@
   <!-- Custom CSS -->
   <link rel="stylesheet" href="assets/css/style.css">
   <style>
-    body {
-      font-family: 'Roboto', sans-serif;
-      scroll-behavior: smooth;
-    }
-    .navbar {
-      transition: background-color 0.4s ease;
-    }
-    .navbar.scrolled {
-      background-color: rgba(0,0,0,0.8) !important;
-    }
-    .page-header {
-      background: url('assets/images/contact-bg.jpg') no-repeat center center/cover;
-      position: relative;
-      height: 30vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-    }
-    .page-header::before {
-      content: "";
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5);
-    }
-    .page-header h1 {
-      position: relative;
-      z-index: 2;
-      font-size: 3rem;
-      font-weight: 700;
-    }
-    .contact-form {
-      background: #f8f9fa;
-      padding: 40px;
-      border-radius: 8px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    }
-    .form-control:focus {
-      box-shadow: none;
-      border-color: #007bff;
-    }
-    .social-icons a {
-      color: #007bff;
-      font-size: 1.5rem;
-      margin-right: 15px;
-      transition: color 0.3s;
-    }
-    .social-icons a:hover {
-      color: #0056b3;
-      text-decoration: none;
-    }
-    footer {
-      background-color: #222;
-      color: #ccc;
-      padding: 30px 0;
-    }
+    body { font-family: 'Roboto', sans-serif; scroll-behavior: smooth; }
+    .navbar { transition: background-color 0.4s ease; }
+    .navbar.scrolled { background-color: rgba(0,0,0,0.8) !important; }
+    .page-header { background: url('assets/images/contact-bg.jpg') no-repeat center center/cover; position: relative; height: 30vh; display: flex; align-items: center; justify-content: center; color: #fff; }
+    .page-header::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+    .page-header h1 { position: relative; z-index: 2; font-size: 3rem; font-weight: 700; }
+    .contact-form { background: #f8f9fa; padding: 40px; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+    .form-control:focus { box-shadow: none; border-color: #007bff; }
+    .social-icons a { color: #007bff; font-size: 1.5rem; margin-right: 15px; transition: color 0.3s; }
+    .social-icons a:hover { color: #0056b3; text-decoration: none; }
+    footer { background-color: #222; color: #ccc; padding: 30px 0; }
   </style>
 </head>
 <body>
@@ -75,8 +29,7 @@
   <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
     <div class="container">
       <a class="navbar-brand" href="index.html">Euler</a>
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" 
-              aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
@@ -100,28 +53,29 @@
       <div class="col-lg-8">
         <div class="contact-form">
           <h3 class="mb-4 text-center">Let's Connect</h3>
-          <!-- Using mailto for direct email submission -->
-          <form action="mailto:euler.yu@gmail.com" method="post" enctype="text/plain">
+          <!-- Replace "yourFormID" with your actual Formspree form ID -->
+          <form action="https://formspree.io/f/yourFormID" method="POST">
+            <input type="hidden" name="_subject" value="New message from portfolio contact form">
             <div class="form-row">
               <div class="form-group col-md-6">
                 <label for="name">Name</label>
-                <input type="text" class="form-control" id="name" name="Name" placeholder="Your Name" required>
+                <input type="text" class="form-control" id="name" name="name" placeholder="Your Name" required>
               </div>
               <div class="form-group col-md-6">
                 <label for="email">Email</label>
-                <input type="email" class="form-control" id="email" name="Email" placeholder="you@example.com" required>
+                <input type="email" class="form-control" id="email" name="_replyto" placeholder="you@example.com" required>
               </div>
             </div>
             <div class="form-group">
               <label for="subject">Subject</label>
-              <input type="text" class="form-control" id="subject" name="Subject" placeholder="Subject" required>
+              <input type="text" class="form-control" id="subject" name="subject" placeholder="Subject" required>
             </div>
             <div class="form-group">
               <label for="message">Message</label>
-              <textarea class="form-control" id="message" name="Message" rows="6" placeholder="Your message..." required></textarea>
+              <textarea class="form-control" id="message" name="message" rows="6" placeholder="Your message..." required></textarea>
             </div>
             <div class="text-center">
-              <button type="submit" class="btn btn-primary btn-lg">Send Email</button>
+              <button type="submit" class="btn btn-primary btn-lg">Send Message</button>
             </div>
           </form>
           <p class="text-center mt-3">Or email me directly at <a href="mailto:euler.yu@gmail.com">euler.yu@gmail.com</a></p>
@@ -131,6 +85,7 @@
           <a href="https://linkedin.com/in/euler314" target="_blank" aria-label="LinkedIn"><i class="fab fa-linkedin"></i></a>
           <a href="mailto:euler.yu@gmail.com" aria-label="Email"><i class="fas fa-envelope"></i></a>
         </div>
+        <p class="mt-3"><em>Note:</em> Sign up at <a href="https://formspree.io/" target="_blank">Formspree</a> and replace <code>yourFormID</code> with your generated ID for the form to work.</p>
       </div>
     </div>
   </section>
