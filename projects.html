@@ -46,6 +46,76 @@
       transform: translateY(-5px);
       box-shadow: 0 10px 25px rgba(0,0,0,0.15);
     }
+    .featured-project {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 15px;
+      padding: 40px;
+      margin-bottom: 50px;
+      position: relative;
+      overflow: hidden;
+    }
+    .featured-project::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 100%;
+      height: 100%;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="2"/></svg>') no-repeat;
+      opacity: 0.3;
+    }
+    .featured-content {
+      position: relative;
+      z-index: 2;
+    }
+    .feature-badge {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 15px;
+      font-size: 0.8rem;
+      margin: 3px;
+      display: inline-block;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+    .download-btn {
+      background: rgba(255,255,255,0.2);
+      border: 2px solid white;
+      color: white;
+      padding: 12px 25px;
+      font-size: 1rem;
+      border-radius: 25px;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+      margin-top: 15px;
+    }
+    .download-btn:hover {
+      background: white;
+      color: #667eea;
+      text-decoration: none;
+    }
+    .requirements-list {
+      background: rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+    .requirements-list ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+    .installation-steps {
+      background: rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+    .installation-steps ol {
+      margin: 0;
+      padding-left: 20px;
+    }
   </style>
 </head>
 <body>
@@ -72,19 +142,70 @@
     <h1>Projects</h1>
   </header>
 
-  <!-- Projects Listing -->
+  <!-- Featured Project: ManimStudio -->
   <section class="container my-5">
-    <div class="row">
-      <!-- Project Card: Manim Builder -->
-      <div class="col-md-4 d-flex">
-        <div class="card flex-fill">
-          <div class="card-body d-flex flex-column">
-            <h5 class="card-title">Manim Builder</h5>
-            <p class="card-text">A custom builder leveraging Manim to create dynamic mathematical animations and visualizations.</p>
-            <a href="https://huggingface.co/spaces/euler314/manim_builder" target="_blank" class="mt-auto btn btn-primary">View Project</a>
+    <div class="featured-project">
+      <div class="featured-content">
+        <div class="row">
+          <div class="col-lg-8">
+            <h2 class="mb-3"><strong>🎯 Featured: ManimStudio v1.0.0</strong></h2>
+            <p class="lead">A powerful GUI application for creating mathematical animations using Manim. Microsoft Store compatible - No administrator rights required!</p>
+            
+            <div class="mb-3">
+              <span class="feature-badge">Visual Code Editor</span>
+              <span class="feature-badge">Live Preview</span>
+              <span class="feature-badge">No Admin Required</span>
+              <span class="feature-badge">Auto Dependencies</span>
+              <span class="feature-badge">Asset Management</span>
+            </div>
+
+            <p><strong>What's Included:</strong> ManimStudio application, Python 3.12.7 installer, and MiKTeX Basic installer (all bundled for automatic installation)</p>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="requirements-list">
+                  <h6><strong>Requirements:</strong></h6>
+                  <ul>
+                    <li>Windows 7 SP1+ (64-bit)</li>
+                    <li>No admin privileges needed</li>
+                    <li>Internet for initial setup</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="installation-steps">
+                  <h6><strong>Quick Install:</strong></h6>
+                  <ol>
+                    <li>Run ManimStudio installer</li>
+                    <li>Auto-installs Python & MiKTeX</li>
+                    <li>Follow on-screen instructions</li>
+                    <li>Launch and create!</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+
+            <a href="https://huggingface.co/spaces/euler314/manim_builder" target="_blank" class="download-btn">🚀 Try ManimStudio</a>
+            <a href="mailto:euler.yu@gmail.com" class="download-btn">📧 Contact Developer</a>
+          </div>
+          <div class="col-lg-4 text-center">
+            <div class="mt-4">
+              <h5>Technical Details</h5>
+              <p><strong>Created by:</strong> Yu Yao-Hsing<br>
+              <strong>License:</strong> MIT License<br>
+              <strong>LaTeX:</strong> MiKTeX (officially recommended)<br>
+              <strong>Store Ready:</strong> MSIX compatible</p>
+            </div>
           </div>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- Other Projects Listing -->
+  <section class="container my-5">
+    <h2 class="text-center mb-5">Other Projects</h2>
+    <div class="row">
       <!-- Project Card: Typhoon Data Analysis -->
       <div class="col-md-4 d-flex">
         <div class="card flex-fill">
