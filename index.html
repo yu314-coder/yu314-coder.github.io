@@ -26,6 +26,68 @@
     @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     .hero h1 { font-size: 4rem; font-weight: 700; }
     .hero p { font-size: 1.5rem; margin-bottom: 30px; }
+    
+    /* Featured Project Section */
+    .featured-project {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 60px 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .featured-project::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="30" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/><circle cx="20" cy="20" r="15" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/><circle cx="80" cy="80" r="20" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></svg>') repeat;
+      opacity: 0.3;
+    }
+    .featured-content {
+      position: relative;
+      z-index: 2;
+    }
+    .feature-badge {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      margin: 5px;
+      display: inline-block;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+    .cta-btn {
+      background: rgba(255,255,255,0.2);
+      border: 2px solid white;
+      color: white;
+      padding: 15px 30px;
+      font-size: 1.1rem;
+      border-radius: 30px;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+      margin: 10px;
+    }
+    .cta-btn:hover {
+      background: white;
+      color: #667eea;
+      text-decoration: none;
+    }
+    .stats-card {
+      background: rgba(255,255,255,0.1);
+      border-radius: 15px;
+      padding: 30px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .stats-number {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    
     /* Footer styling */
     footer { background-color: #222; color: #ccc; padding: 30px 0; }
     /* Hidden Overlays */
@@ -80,10 +142,94 @@
     </div>
   </header>
 
-  <!-- Normal Page Content -->
+  <!-- Featured Project: ManimStudio Section -->
+  <section class="featured-project">
+    <div class="container">
+      <div class="featured-content">
+        <div class="row align-items-center">
+          <div class="col-lg-8">
+            <h2 class="mb-4"><strong>🚀 Introducing ManimStudio v1.0.0</strong></h2>
+            <p class="lead mb-4">A powerful GUI application for creating mathematical animations using Manim. No administrator rights required - perfect for students, educators, and professionals!</p>
+            
+            <div class="mb-4">
+              <span class="feature-badge">🎨 Visual Code Editor</span>
+              <span class="feature-badge">⚡ Live Preview</span>
+              <span class="feature-badge">🔒 No Admin Required</span>
+              <span class="feature-badge">🤖 Auto Dependencies</span>
+              <span class="feature-badge">📁 Asset Management</span>
+              <span class="feature-badge">🏪 Microsoft Store Ready</span>
+            </div>
+
+            <p><strong>What makes it special:</strong> Bundled with Python 3.12.7 and MiKTeX Basic for seamless installation. Uses the officially recommended LaTeX distribution for Manim on Windows.</p>
+            
+            <div class="mt-4">
+              <a href="https://huggingface.co/spaces/euler314/manim_builder" target="_blank" class="cta-btn">🎯 Try ManimStudio</a>
+              <a href="projects.html" class="cta-btn">📖 Learn More</a>
+            </div>
+          </div>
+          
+          <div class="col-lg-4">
+            <div class="row">
+              <div class="col-6 mb-3">
+                <div class="stats-card">
+                  <div class="stats-number">0</div>
+                  <div>Admin Rights Needed</div>
+                </div>
+              </div>
+              <div class="col-6 mb-3">
+                <div class="stats-card">
+                  <div class="stats-number">3</div>
+                  <div>Components Bundled</div>
+                </div>
+              </div>
+              <div class="col-12">
+                <div class="stats-card">
+                  <div class="stats-number">Windows 7+</div>
+                  <div>Compatible</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Welcome Section -->
   <section class="container my-5">
-    <h2 class="text-center">Welcome to My Portfolio</h2>
-    <p class="text-center">Explore my projects and learn more about my work.</p>
+    <div class="row">
+      <div class="col-lg-8 offset-lg-2 text-center">
+        <h2>Welcome to My Portfolio</h2>
+        <p class="lead">I'm passionate about creating innovative solutions that bridge mathematics, technology, and creativity. From developing GUI applications to analyzing complex data patterns, I love turning ideas into reality.</p>
+        
+        <div class="row mt-5">
+          <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+              <div class="card-body text-center">
+                <h4>🔬 Mathematical Modeling</h4>
+                <p>Advanced research in M-P Law, Stejious Transform, and statistical methods</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+              <div class="card-body text-center">
+                <h4>🤖 AI & Machine Learning</h4>
+                <p>Developing intelligent systems and exploring cutting-edge AI technologies</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4 mb-4">
+            <div class="card h-100 border-0 shadow-sm">
+              <div class="card-body text-center">
+                <h4>💻 Software Development</h4>
+                <p>Creating user-friendly applications and tools for complex mathematical tasks</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- Footer -->
