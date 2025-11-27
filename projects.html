@@ -60,32 +60,53 @@
 
   <!-- Featured Projects Section -->
   <section class="container my-5">
-    <h2 class="text-center mb-5" style="font-size: 2.5rem; font-weight: 700; color: #333;">Featured Projects</h2>
+    <div class="text-center mb-5">
+      <h2 class="display-4 fw-bold mb-3" style="color: #333;">Featured Projects</h2>
+      <p class="lead text-muted">Microsoft Store applications showcasing innovation in mathematics and technology</p>
+    </div>
 
     <!-- Featured Project 1: ManimStudio -->
-    <div class="featured-project mb-5">
+    <article class="featured-project mb-5 rounded-4 shadow-lg">
       <div class="featured-content">
-        <div class="row">
-          <div class="col-lg-8">
-            <h2 class="mb-3"><strong>🎯 ManimStudio v1.0.0</strong></h2>
-            <p class="lead">A powerful GUI application for creating mathematical animations using Manim. Microsoft Store compatible - No administrator rights required!</p>
+        <div class="row g-0">
+          <!-- Main Content -->
+          <div class="col-lg-8 p-5">
+            <header class="mb-4">
+              <div class="d-flex align-items-center mb-3">
+                <span class="display-6 me-3">🎯</span>
+                <div>
+                  <h3 class="h2 mb-1 fw-bold">ManimStudio</h3>
+                  <span class="badge bg-light text-dark">v1.0.0</span>
+                </div>
+              </div>
+              <p class="lead mb-0">Create stunning mathematical animations with a powerful GUI application. Microsoft Store compatible - no administrator rights required!</p>
+            </header>
 
-            <div class="mb-3">
-              <span class="feature-badge">Visual Code Editor</span>
-              <span class="feature-badge">Live Preview</span>
-              <span class="feature-badge">No Admin Required</span>
-              <span class="feature-badge">Auto Dependencies</span>
-              <span class="feature-badge">Asset Management</span>
+            <!-- Feature Tags -->
+            <div class="mb-4">
+              <span class="feature-badge">🎨 Visual Code Editor</span>
+              <span class="feature-badge">⚡ Live Preview</span>
+              <span class="feature-badge">🔓 No Admin Rights</span>
+              <span class="feature-badge">🤖 Auto Dependencies</span>
+              <span class="feature-badge">📁 Asset Management</span>
             </div>
 
-            <p><strong>What's Included:</strong> ManimStudio application, Python 3.12.7 installer, and MiKTeX Basic installer (all bundled for automatic installation)</p>
-            <p><strong>Try it now:</strong> Test the online demo on Hugging Face or download the full application from Microsoft Store!</p>
+            <!-- Description -->
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">What's Included</h4>
+              <ul class="list-unstyled">
+                <li class="mb-2">✅ ManimStudio GUI Application</li>
+                <li class="mb-2">✅ Python 3.12.7 (bundled installer)</li>
+                <li class="mb-2">✅ MiKTeX Basic (officially recommended for Manim)</li>
+              </ul>
+            </div>
 
-            <div class="row">
+            <!-- Two-Column Info -->
+            <div class="row g-3 mb-4">
               <div class="col-md-6">
                 <div class="requirements-list">
-                  <h6><strong>Requirements:</strong></h6>
-                  <ul>
+                  <h5 class="h6 fw-bold mb-3">📋 Requirements</h5>
+                  <ul class="small mb-0">
                     <li>Windows 7 SP1+ (64-bit)</li>
                     <li>No admin privileges needed</li>
                     <li>Internet for initial setup</li>
@@ -94,68 +115,111 @@
               </div>
               <div class="col-md-6">
                 <div class="installation-steps">
-                  <h6><strong>Quick Install:</strong></h6>
-                  <ol>
+                  <h5 class="h6 fw-bold mb-3">⚙️ Quick Install</h5>
+                  <ol class="small mb-0">
                     <li>Run ManimStudio installer</li>
-                    <li>Auto-installs Python & MiKTeX</li>
-                    <li>Follow on-screen instructions</li>
+                    <li>Auto-installs dependencies</li>
+                    <li>Follow setup wizard</li>
                     <li>Launch and create!</li>
                   </ol>
                 </div>
               </div>
             </div>
 
-            <a href="https://huggingface.co/spaces/euler314/manim_builder" target="_blank" rel="noopener noreferrer" class="download-btn">🌐 Try Online Demo</a>
-            <a href="ms-windows-store://pdp/?productid=9NZFT55DVCBS" class="download-btn">🏪 Get from Microsoft Store</a>
-            <a href="mailto:euler.yu@gmail.com" class="download-btn">📧 Contact Developer</a>
-          </div>
-          <div class="col-lg-4 text-center">
-            <div class="mt-4">
-              <h5>Technical Details</h5>
-              <p><strong>Created by:</strong> Yu Yao-Hsing<br>
-              <strong>License:</strong> MIT License<br>
-              <strong>LaTeX:</strong> MiKTeX (officially recommended)<br>
-              <strong>Store Ready:</strong> MSIX compatible</p>
+            <!-- Action Buttons -->
+            <div class="d-flex flex-wrap gap-3">
+              <a href="https://huggingface.co/spaces/euler314/manim_builder" target="_blank" rel="noopener noreferrer" class="download-btn">
+                🌐 Try Online Demo
+              </a>
+              <a href="ms-windows-store://pdp/?productid=9NZFT55DVCBS" class="download-btn">
+                🏪 Microsoft Store
+              </a>
+              <a href="mailto:euler.yu@gmail.com" class="download-btn">
+                📧 Contact
+              </a>
             </div>
           </div>
+
+          <!-- Sidebar -->
+          <aside class="col-lg-4 bg-white bg-opacity-10 p-5 d-flex align-items-center">
+            <div class="w-100">
+              <h4 class="h5 fw-bold mb-4 text-center">Technical Specs</h4>
+              <dl class="row mb-0 small">
+                <dt class="col-5">Created by:</dt>
+                <dd class="col-7">Yu Yao-Hsing</dd>
+
+                <dt class="col-5">License:</dt>
+                <dd class="col-7">MIT License</dd>
+
+                <dt class="col-5">LaTeX:</dt>
+                <dd class="col-7">MiKTeX</dd>
+
+                <dt class="col-5">Format:</dt>
+                <dd class="col-7">MSIX Package</dd>
+
+                <dt class="col-5">Platform:</dt>
+                <dd class="col-7 mb-0">Windows 7+</dd>
+              </dl>
+            </div>
+          </aside>
         </div>
       </div>
-    </div>
+    </article>
 
     <!-- Featured Project 2: Generalized Covariance Matrix -->
-    <div class="featured-project" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+    <article class="featured-project rounded-4 shadow-lg" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
       <div class="featured-content">
-        <div class="row">
-          <div class="col-lg-8">
-            <h2 class="mb-3"><strong>📊 Generalized Covariance Matrix</strong></h2>
-            <p class="lead">Advanced eigenvalue spectral distribution analysis tool for generalized covariance matrices. Powerful mathematical research tool now available on Microsoft Store!</p>
+        <div class="row g-0">
+          <!-- Main Content -->
+          <div class="col-lg-8 p-5">
+            <header class="mb-4">
+              <div class="d-flex align-items-center mb-3">
+                <span class="display-6 me-3">📊</span>
+                <div>
+                  <h3 class="h2 mb-1 fw-bold">Generalized Covariance Matrix</h3>
+                  <span class="badge bg-light text-dark">ESD Analysis Tool</span>
+                </div>
+              </div>
+              <p class="lead mb-0">Advanced eigenvalue spectral distribution analysis for generalized covariance matrices. A powerful research tool for mathematicians and data scientists!</p>
+            </header>
 
-            <div class="mb-3">
-              <span class="feature-badge">ESD Analysis</span>
-              <span class="feature-badge">Matrix Computation</span>
-              <span class="feature-badge">Offline Mode</span>
-              <span class="feature-badge">Real-time Visualization</span>
-              <span class="feature-badge">Export Results</span>
+            <!-- Feature Tags -->
+            <div class="mb-4">
+              <span class="feature-badge">📈 ESD Analysis</span>
+              <span class="feature-badge">🔢 Matrix Computation</span>
+              <span class="feature-badge">📴 Offline Mode</span>
+              <span class="feature-badge">⚡ Real-time Visualization</span>
+              <span class="feature-badge">💾 Export Results</span>
             </div>
 
-            <p><strong>Key Features:</strong> Analyze eigenvalue distributions, visualize spectral densities, and explore random matrix theory with an intuitive interface designed for researchers and students.</p>
-            <p><strong>Perfect for:</strong> Statistical analysis, machine learning research, quantum mechanics, and financial modeling applications.</p>
+            <!-- Description -->
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">Key Capabilities</h4>
+              <ul class="list-unstyled">
+                <li class="mb-2">✅ Analyze eigenvalue distributions</li>
+                <li class="mb-2">✅ Visualize spectral densities</li>
+                <li class="mb-2">✅ Explore random matrix theory</li>
+                <li class="mb-2">✅ Export data for further analysis</li>
+              </ul>
+              <p class="small"><strong>Perfect for:</strong> Statistical analysis, ML research, quantum mechanics, and financial modeling</p>
+            </div>
 
-            <div class="row">
+            <!-- Two-Column Info -->
+            <div class="row g-3 mb-4">
               <div class="col-md-6">
                 <div class="requirements-list">
-                  <h6><strong>System Requirements:</strong></h6>
-                  <ul>
+                  <h5 class="h6 fw-bold mb-3">💻 System Requirements</h5>
+                  <ul class="small mb-0">
                     <li>Windows 10+ (64-bit)</li>
                     <li>Works completely offline</li>
-                    <li>No installation hassles</li>
+                    <li>One-click installation</li>
                   </ul>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="installation-steps">
-                  <h6><strong>Get Started:</strong></h6>
-                  <ol>
+                  <h5 class="h6 fw-bold mb-3">🚀 Get Started</h5>
+                  <ol class="small mb-0">
                     <li>Install from Microsoft Store</li>
                     <li>Launch the application</li>
                     <li>Input your matrix data</li>
@@ -165,21 +229,42 @@
               </div>
             </div>
 
-            <a href="https://apps.microsoft.com/detail/9nzj475s7b01" target="_blank" rel="noopener noreferrer" class="download-btn">📦 Get from Microsoft Store</a>
-            <a href="mailto:euler.yu@gmail.com" class="download-btn">📧 Contact Developer</a>
-          </div>
-          <div class="col-lg-4 text-center">
-            <div class="mt-4">
-              <h5>Technical Details</h5>
-              <p><strong>Created by:</strong> Yu Yao-Hsing<br>
-              <strong>Category:</strong> Research & Education<br>
-              <strong>Platform:</strong> Windows Store App<br>
-              <strong>Status:</strong> Active Development</p>
+            <!-- Action Buttons -->
+            <div class="d-flex flex-wrap gap-3">
+              <a href="https://apps.microsoft.com/detail/9nzj475s7b01" target="_blank" rel="noopener noreferrer" class="download-btn">
+                📦 Get from Microsoft Store
+              </a>
+              <a href="mailto:euler.yu@gmail.com" class="download-btn">
+                📧 Contact Developer
+              </a>
             </div>
           </div>
+
+          <!-- Sidebar -->
+          <aside class="col-lg-4 bg-white bg-opacity-10 p-5 d-flex align-items-center">
+            <div class="w-100">
+              <h4 class="h5 fw-bold mb-4 text-center">Technical Specs</h4>
+              <dl class="row mb-0 small">
+                <dt class="col-5">Created by:</dt>
+                <dd class="col-7">Yu Yao-Hsing</dd>
+
+                <dt class="col-5">Category:</dt>
+                <dd class="col-7">Research & Education</dd>
+
+                <dt class="col-5">Platform:</dt>
+                <dd class="col-7">Windows Store</dd>
+
+                <dt class="col-5">Type:</dt>
+                <dd class="col-7">Desktop App</dd>
+
+                <dt class="col-5">Status:</dt>
+                <dd class="col-7 mb-0">Active Development</dd>
+              </dl>
+            </div>
+          </aside>
         </div>
       </div>
-    </div>
+    </article>
   </section>
 
   <!-- Other Projects Listing -->
