@@ -139,7 +139,7 @@
           keySequence.shift();
         }
         if (secretGameSequence.every((l, i) => l === keySequence[i])) {
-          document.getElementById('hidden-game').style.display = 'block';
+          document.getElementById('hidden-game').style.display = 'flex';
         }
       });
     },
@@ -177,7 +177,43 @@
         DinoGame.draw(this);
       }
 
-      requestAnimationFrame(() => this.gameLoop());
+      if (this.gameActive) {
+        requestAnimationFrame(() => this.gameLoop());
+      }
+    },
+
+    showGameOver: function(message) {
+      this.gameActive = false;
+      const ctx = this.ctx;
+      const canvas = this.canvas;
+      
+      // Overlay
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Text
+      ctx.font = 'bold 30px "Segoe UI", Arial, sans-serif';
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.fillText(message, canvas.width/2, canvas.height/2 - 10);
+      
+      ctx.font = '20px "Segoe UI", Arial, sans-serif';
+      ctx.fillStyle = '#ccc';
+      ctx.fillText('Press Space or Click to Restart', canvas.width/2, canvas.height/2 + 30);
+      
+      // Restart handlers
+      const restart = () => {
+        canvas.removeEventListener('click', restart);
+        document.removeEventListener('keydown', keyRestart);
+        this.startGame();
+      };
+      
+      const keyRestart = (e) => {
+        if (e.code === 'Space') restart();
+      };
+      
+      canvas.addEventListener('click', restart);
+      document.addEventListener('keydown', keyRestart);
     },
 
     updateScore: function(newScore) {
@@ -198,6 +234,8 @@
     bricks: [],
     rightPressed: false,
     leftPressed: false,
+    keyDownHandler: null,
+    keyUpHandler: null,
     config: {
       brickRowCount: 5,
       brickColumnCount: 7,
@@ -239,8 +277,19 @@
       this.rightPressed = false;
       this.leftPressed = false;
 
-      document.addEventListener('keydown', (e) => this.keyDown(e));
-      document.addEventListener('keyup', (e) => this.keyUp(e));
+      // Remove old listeners if they exist
+      if (this.keyDownHandler) {
+        document.removeEventListener('keydown', this.keyDownHandler);
+      }
+      if (this.keyUpHandler) {
+        document.removeEventListener('keyup', this.keyUpHandler);
+      }
+
+      // Create new listeners and store references
+      this.keyDownHandler = (e) => this.keyDown(e);
+      this.keyUpHandler = (e) => this.keyUp(e);
+      document.addEventListener('keydown', this.keyDownHandler);
+      document.addEventListener('keyup', this.keyUpHandler);
     },
 
     keyDown: function(e) {
@@ -267,6 +316,7 @@
     },
 
     drawBricks: function(ctx) {
+      const colors = ['#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#3498db'];
       for (let c = 0; c < this.config.brickColumnCount; c++) {
         for (let r = 0; r < this.config.brickRowCount; r++) {
           if (this.bricks[c][r].status === 1) {
@@ -276,8 +326,8 @@
             this.bricks[c][r].y = brickY;
 
             ctx.beginPath();
-            ctx.rect(brickX, brickY, this.config.brickWidth, this.config.brickHeight);
-            ctx.fillStyle = 'green';
+            ctx.roundRect ? ctx.roundRect(brickX, brickY, this.config.brickWidth, this.config.brickHeight, 4) : ctx.rect(brickX, brickY, this.config.brickWidth, this.config.brickHeight);
+            ctx.fillStyle = colors[r % colors.length];
             ctx.fill();
             ctx.closePath();
           }
@@ -288,14 +338,19 @@
     drawBall: function(ctx) {
       ctx.beginPath();
       ctx.arc(this.ball.x, this.ball.y, this.ball.radius, 0, Math.PI * 2);
-      ctx.fillStyle = this.ball.color;
+      const gradient = ctx.createRadialGradient(this.ball.x - 2, this.ball.y - 2, 2, this.ball.x, this.ball.y, this.ball.radius);
+      gradient.addColorStop(0, '#fff');
+      gradient.addColorStop(1, this.ball.color);
+      ctx.fillStyle = gradient;
       ctx.fill();
       ctx.closePath();
     },
 
     drawPaddle: function(ctx, canvas) {
       ctx.beginPath();
-      ctx.rect(this.paddle.x, canvas.height - this.paddle.height, this.paddle.width, this.paddle.height);
+      const pX = this.paddle.x;
+      const pY = canvas.height - this.paddle.height;
+      ctx.roundRect ? ctx.roundRect(pX, pY, this.paddle.width, this.paddle.height, 5) : ctx.rect(pX, pY, this.paddle.width, this.paddle.height);
       ctx.fillStyle = this.paddle.color;
       ctx.fill();
       ctx.closePath();
@@ -313,8 +368,7 @@
               game.updateScore(++game.score);
 
               if (game.score === this.config.brickRowCount * this.config.brickColumnCount) {
-                alert('YOU WIN! Restarting Breakout.');
-                this.init(game);
+                game.showGameOver('YOU WIN!');
               }
             }
           }
@@ -334,8 +388,7 @@
         if (this.ball.x > this.paddle.x && this.ball.x < this.paddle.x + this.paddle.width) {
           this.ball.dy = -this.ball.dy;
         } else {
-          alert('Game Over. Restarting Breakout.');
-          this.init(game);
+          game.showGameOver('Game Over');
         }
       }
 
@@ -359,6 +412,7 @@
     dino: null,
     cactus: null,
     gameOver: false,
+    jumpHandler: null,
 
     init: function(game) {
       const canvas = game.canvas;
@@ -385,7 +439,14 @@
       game.score = 0;
       game.updateScore(0);
 
-      document.addEventListener('keydown', (e) => this.jump(e));
+      // Remove old listener if it exists
+      if (this.jumpHandler) {
+        document.removeEventListener('keydown', this.jumpHandler);
+      }
+
+      // Create new listener and store reference
+      this.jumpHandler = (e) => this.jump(e);
+      document.addEventListener('keydown', this.jumpHandler);
     },
 
     jump: function(e) {
@@ -424,8 +485,7 @@
           this.dino.y < this.cactus.y + this.cactus.height &&
           this.dino.y + this.dino.height > this.cactus.y) {
         this.gameOver = true;
-        alert('Dino Game Over. Restarting...');
-        this.init(game);
+        game.showGameOver('Game Over');
       }
     },
 
@@ -435,13 +495,27 @@
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+      // Ground
+      ctx.beginPath();
+      ctx.moveTo(0, canvas.height - 20);
+      ctx.lineTo(canvas.width, canvas.height - 20);
+      ctx.strokeStyle = '#888';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
       // Draw dino
       ctx.fillStyle = this.dino.color;
       ctx.fillRect(this.dino.x, this.dino.y, this.dino.width, this.dino.height);
+      // Eye
+      ctx.fillStyle = '#222';
+      ctx.fillRect(this.dino.x + this.dino.width - 12, this.dino.y + 6, 6, 6);
 
       // Draw cactus
       ctx.fillStyle = this.cactus.color;
       ctx.fillRect(this.cactus.x, this.cactus.y, this.cactus.width, this.cactus.height);
+      // Cactus arms
+      ctx.fillRect(this.cactus.x - 6, this.cactus.y + 15, 6, 10);
+      ctx.fillRect(this.cactus.x + this.cactus.width, this.cactus.y + 10, 6, 10);
     }
   };
 
