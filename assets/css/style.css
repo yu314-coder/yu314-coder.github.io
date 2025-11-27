@@ -199,6 +199,11 @@ body {
   font-weight: 700;
 }
 
+.featured-project .d-inline-block {
+  text-align: left;
+  max-width: 400px;
+}
+
 .feature-badge {
   background: rgba(255,255,255,0.2);
   color: white;
@@ -493,9 +498,13 @@ footer a:hover {
     border-top: 1px solid rgba(255,255,255,0.2);
   }
 
-  .featured-project .col-lg-8,
-  .featured-project .col-lg-4 {
+  .featured-project .col-lg-10,
+  .featured-project .col-xl-9 {
     padding: 2rem !important;
+  }
+
+  .featured-project .row.g-3 > .col-md-5 {
+    max-width: 100%;
   }
 }
 
@@ -669,6 +678,10 @@ section h2::after {
 }
 
 /* Gap utility for flexbox */
+.gap-2 {
+  gap: 0.5rem !important;
+}
+
 .gap-3 {
   gap: 1rem !important;
 }
