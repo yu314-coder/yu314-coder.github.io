@@ -3,125 +3,52 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Euler | Home</title>
-  <!-- Bootstrap CSS -->
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Euler's Portfolio - Developer, Data Enthusiast, and Innovator specializing in mathematical modeling, AI, and software development.">
+  <meta name="keywords" content="Euler, portfolio, developer, data science, AI, machine learning, mathematical modeling, ManimStudio">
+  <meta name="author" content="Euler">
+  <meta name="robots" content="index, follow">
+
+  <!-- Security Headers -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+
+  <!-- Open Graph / Social Media -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Euler | Developer & Innovator">
+  <meta property="og:description" content="Explore innovative projects in mathematics, AI, and software development">
+  <meta property="og:url" content="https://yu314-coder.github.io/">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Euler | Developer & Innovator">
+  <meta name="twitter:description" content="Explore innovative projects in mathematics, AI, and software development">
+
+  <title>Euler | Home - Developer & Data Enthusiast</title>
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
   <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
   <!-- Custom CSS -->
   <link rel="stylesheet" href="assets/css/style.css">
-  <style>
-    body { font-family: 'Roboto', sans-serif; margin: 0; padding: 0; scroll-behavior: smooth; }
-    /* Navbar styling */
-    .navbar { transition: background-color 0.4s ease; }
-    .navbar.scrolled { background-color: rgba(0,0,0,0.8) !important; }
-    /* Hero Section */
-    .hero {
-      position: relative; height: 100vh;
-      background: url('assets/images/hero-bg.jpg') no-repeat center center/cover;
-      display: flex; align-items: center; justify-content: center; color: #fff; text-align: center;
-    }
-    .hero::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); }
-    .hero-content { position: relative; z-index: 2; animation: fadeInUp 1.2s ease-out; }
-    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    .hero h1 { font-size: 4rem; font-weight: 700; }
-    .hero p { font-size: 1.5rem; margin-bottom: 30px; }
-    
-    /* Featured Project Section */
-    .featured-project {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 60px 0;
-      position: relative;
-      overflow: hidden;
-    }
-    .featured-project::before {
-      content: "";
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="30" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/><circle cx="20" cy="20" r="15" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/><circle cx="80" cy="80" r="20" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></svg>') repeat;
-      opacity: 0.3;
-    }
-    .featured-content {
-      position: relative;
-      z-index: 2;
-    }
-    .feature-badge {
-      background: rgba(255,255,255,0.2);
-      color: white;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 0.9rem;
-      margin: 5px;
-      display: inline-block;
-      border: 1px solid rgba(255,255,255,0.3);
-    }
-    .cta-btn {
-      background: rgba(255,255,255,0.2);
-      border: 2px solid white;
-      color: white;
-      padding: 15px 30px;
-      font-size: 1.1rem;
-      border-radius: 30px;
-      transition: all 0.3s ease;
-      text-decoration: none;
-      display: inline-block;
-      margin: 10px;
-    }
-    .cta-btn:hover {
-      background: white;
-      color: #667eea;
-      text-decoration: none;
-    }
-    .stats-card {
-      background: rgba(255,255,255,0.1);
-      border-radius: 15px;
-      padding: 30px;
-      text-align: center;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.2);
-    }
-    .stats-number {
-      font-size: 2.5rem;
-      font-weight: 700;
-      margin-bottom: 10px;
-    }
-    
-    /* Footer styling */
-    footer { background-color: #222; color: #ccc; padding: 30px 0; }
-    /* Hidden Overlays */
-    #hidden-game, #hidden-admin {
-      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    }
-    /* Game Overlay */
-    #hidden-game {
-      background-color: rgba(0,0,0,0.95); text-align: center; color: #fff; overflow: auto; padding-top: 20px; z-index:2000;
-    }
-    #gameControls { margin: 10px auto; }
-    #gameCanvas { background: #222; border: 2px solid #555; margin: 20px auto; display: block; }
-    #exitGame { position: fixed; top: 20px; right: 20px; background: #444; color: #fff; border: none; padding: 10px 15px; font-size: 1rem; cursor: pointer; z-index:2100; }
-    /* Admin Overlay */
-    #hidden-admin {
-      background-color: rgba(10,10,10,0.95); overflow-y: auto; padding: 30px; color: #fff; z-index:3000;
-    }
-    #adminPanel {
-      max-width: 800px; margin: 0 auto; background: #333; padding: 20px; border-radius: 8px;
-      box-shadow: 0 8px 16px rgba(0,0,0,0.3);
-    }
-    #exitAdmin { position: fixed; top: 20px; left: 20px; background: #444; color: #fff; border: none; padding: 10px 15px; font-size: 1rem; cursor: pointer; z-index:3100; }
-  </style>
 </head>
 <body>
   <!-- Navigation -->
   <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
     <div class="container">
-      <a class="navbar-brand" href="#">Euler</a>
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-label="Toggle navigation">
+      <a class="navbar-brand" href="index.html" aria-label="Euler Home">Euler</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
         <ul class="navbar-nav">
+          <li class="nav-item"><a class="nav-link active" aria-current="page" href="index.html">Home</a></li>
           <li class="nav-item"><a class="nav-link" href="about.html">About</a></li>
           <li class="nav-item"><a class="nav-link" href="projects.html">Projects</a></li>
           <li class="nav-item"><a class="nav-link" href="contact.html">Contact</a></li>
@@ -268,251 +195,10 @@
     </div>
   </div>
 
-  <!-- jQuery and Bootstrap JS -->
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <!-- Bootstrap 5 JS Bundle (includes Popper) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
-  <!-- Hidden Easter Egg & Admin Key Sequence Script -->
-  <script>
-    // ---- Admin Panel: Record Visitor (on initial page load only) ----
-    function recordVisit() {
-      // Fetch IP and record visit only once per page load.
-      fetch("https://api.ipify.org?format=json")
-        .then(response => response.json())
-        .then(data => {
-          let ip = data.ip;
-          let now = new Date().toLocaleString();
-          let logs = JSON.parse(localStorage.getItem('visitLogs') || '[]');
-          logs.push({ip: ip, time: now});
-          localStorage.setItem('visitLogs', JSON.stringify(logs));
-          updateAdminPanel();
-        })
-        .catch(err => {
-          let now = new Date().toLocaleString();
-          let logs = JSON.parse(localStorage.getItem('visitLogs') || '[]');
-          logs.push({ip: "Unavailable", time: now});
-          localStorage.setItem('visitLogs', JSON.stringify(logs));
-          updateAdminPanel();
-        });
-    }
-    function updateAdminPanel() {
-      let logs = JSON.parse(localStorage.getItem('visitLogs') || '[]');
-      document.getElementById('visitorCount').innerText = logs.length;
-      let logsList = document.getElementById('visitLogs');
-      logsList.innerHTML = "";
-      logs.forEach(log => {
-        let li = document.createElement("li");
-        li.innerText = `IP: ${log.ip} - Time: ${log.time}`;
-        logsList.appendChild(li);
-      });
-    }
-    function clearLogs() {
-      localStorage.removeItem('visitLogs');
-      updateAdminPanel();
-    }
-    // Record visit on page load (this logs the visitor's IP for the website)
-    recordVisit();
-
-    // ---- Secret Key Sequence Detection ----
-    let keySequence = [];
-    const secretGameSequence = ['e', 'a', 's', 't', 'e', 'r'];
-    let adminSequence = [];
-    const secretAdminSequence = ['a', 'd', 'm', 'i', 'n'];
-    document.addEventListener('keydown', function(event) {
-      // Process game secret sequence
-      keySequence.push(event.key.toLowerCase());
-      if (keySequence.length > secretGameSequence.length) { keySequence.shift(); }
-      if (secretGameSequence.every((l, i) => l === keySequence[i])) {
-        document.getElementById('hidden-game').style.display = 'block';
-      }
-      // Process admin secret sequence
-      adminSequence.push(event.key.toLowerCase());
-      if (adminSequence.length > secretAdminSequence.length) { adminSequence.shift(); }
-      if (secretAdminSequence.every((l, i) => l === adminSequence[i])) {
-        document.getElementById('hidden-admin').style.display = 'block';
-        updateAdminPanel();
-      }
-    });
-
-    // ---- Game Code ----
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    let gameActive = false;
-    let currentGame = "breakout"; // default game mode
-    let score = 0;
-
-    // ---- Breakout Game Variables & Functions ----
-    let ball = { x: canvas.width/2, y: canvas.height-30, radius: 10, dx: 3, dy: -3, color: 'orange' };
-    let paddle = { width: 75, height: 10, x: (canvas.width-75)/2, color: 'cyan', speed: 7 };
-    let rightPressed = false, leftPressed = false;
-    const brickRowCount = 5, brickColumnCount = 7;
-    const brickWidth = 75, brickHeight = 20, brickPadding = 10, brickOffsetTop = 30, brickOffsetLeft = 30;
-    let bricks = [];
-    function initBreakout() {
-      bricks = [];
-      for(let c=0; c<brickColumnCount; c++) {
-        bricks[c] = [];
-        for(let r=0; r<brickRowCount; r++) {
-          bricks[c][r] = { x: 0, y: 0, status: 1 };
-        }
-      }
-      ball = { x: canvas.width/2, y: canvas.height-30, radius: 10, dx: 3, dy: -3, color: 'orange' };
-      paddle.x = (canvas.width-paddle.width)/2;
-      score = 0;
-      document.getElementById("scoreDisplay").innerText = "Score: " + score;
-      rightPressed = leftPressed = false;
-    }
-    function breakoutKeyDown(e) {
-      if(currentGame !== "breakout") return;
-      if(e.key === "Right" || e.key === "ArrowRight") { rightPressed = true; }
-      else if(e.key === "Left" || e.key === "ArrowLeft") { leftPressed = true; }
-    }
-    function breakoutKeyUp(e) {
-      if(currentGame !== "breakout") return;
-      if(e.key === "Right" || e.key === "ArrowRight") { rightPressed = false; }
-      else if(e.key === "Left" || e.key === "ArrowLeft") { leftPressed = false; }
-    }
-    document.addEventListener("keydown", breakoutKeyDown, false);
-    document.addEventListener("keyup", breakoutKeyUp, false);
-    function drawBricks() {
-      for(let c=0; c<brickColumnCount; c++) {
-        for(let r=0; r<brickRowCount; r++) {
-          if(bricks[c][r].status === 1) {
-            let brickX = (c*(brickWidth+brickPadding)) + brickOffsetLeft;
-            let brickY = (r*(brickHeight+brickPadding)) + brickOffsetTop;
-            bricks[c][r].x = brickX;
-            bricks[c][r].y = brickY;
-            ctx.beginPath();
-            ctx.rect(brickX, brickY, brickWidth, brickHeight);
-            ctx.fillStyle = "green";
-            ctx.fill();
-            ctx.closePath();
-          }
-        }
-      }
-    }
-    function collisionDetection() {
-      for(let c=0; c<brickColumnCount; c++) {
-        for(let r=0; r<brickRowCount; r++) {
-          let b = bricks[c][r];
-          if(b.status === 1) {
-            if(ball.x > b.x && ball.x < b.x+brickWidth &&
-               ball.y > b.y && ball.y < b.y+brickHeight) {
-              ball.dy = -ball.dy;
-              b.status = 0;
-              score++;
-              document.getElementById("scoreDisplay").innerText = "Score: " + score;
-              if(score === brickRowCount * brickColumnCount) {
-                alert("YOU WIN! Restarting Breakout.");
-                initBreakout();
-              }
-            }
-          }
-        }
-      }
-    }
-    function drawBreakout() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawBricks();
-      ctx.beginPath();
-      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI*2);
-      ctx.fillStyle = ball.color;
-      ctx.fill();
-      ctx.closePath();
-      ctx.beginPath();
-      ctx.rect(paddle.x, canvas.height-paddle.height, paddle.width, paddle.height);
-      ctx.fillStyle = paddle.color;
-      ctx.fill();
-      ctx.closePath();
-      collisionDetection();
-      if(ball.x + ball.dx > canvas.width-ball.radius || ball.x + ball.dx < ball.radius) { ball.dx = -ball.dx; }
-      if(ball.y + ball.dy < ball.radius) { ball.dy = -ball.dy; }
-      else if(ball.y + ball.dy > canvas.height-ball.radius) {
-        if(ball.x > paddle.x && ball.x < paddle.x+paddle.width) {
-          ball.dy = -ball.dy;
-        } else {
-          alert("Game Over. Restarting Breakout.");
-          initBreakout();
-        }
-      }
-      ball.x += ball.dx;
-      ball.y += ball.dy;
-      if(rightPressed && paddle.x < canvas.width-paddle.width) { paddle.x += paddle.speed; }
-      else if(leftPressed && paddle.x > 0) { paddle.x -= paddle.speed; }
-    }
-
-    // ---- Dino Game Variables & Functions ----
-    let dino = { x: 50, y: canvas.height-60, width: 40, height: 40, color: 'lime', dy: 0, gravity: 0.8, jumpForce: -15, onGround: true };
-    let cactus = { x: canvas.width, y: canvas.height-50, width: 20, height: 50, color: 'red', speed: 4 };
-    let dinoScore = 0;
-    let dinoGameOver = false;
-    function dinoKeyDown(e) {
-      if(currentGame !== "dino") return;
-      if(e.key === " " || e.key === "ArrowUp") {
-        if(dino.onGround) { dino.dy = dino.jumpForce; dino.onGround = false; }
-      }
-    }
-    document.addEventListener("keydown", dinoKeyDown, false);
-    function drawDino() {
-      ctx.fillStyle = dino.color;
-      ctx.fillRect(dino.x, dino.y, dino.width, dino.height);
-    }
-    function drawCactus() {
-      ctx.fillStyle = cactus.color;
-      ctx.fillRect(cactus.x, cactus.y, cactus.width, cactus.height);
-    }
-    function updateDino() {
-      dino.y += dino.dy;
-      if(dino.y + dino.height < canvas.height) { dino.dy += dino.gravity; dino.onGround = false; }
-      else { dino.y = canvas.height - dino.height; dino.dy = 0; dino.onGround = true; }
-      cactus.x -= cactus.speed;
-      if(cactus.x + cactus.width < 0) {
-        cactus.x = canvas.width;
-        dinoScore++;
-        document.getElementById("scoreDisplay").innerText = "Score: " + dinoScore;
-      }
-      if(dino.x < cactus.x + cactus.width && dino.x + dino.width > cactus.x &&
-         dino.y < cactus.y + cactus.height && dino.y + dino.height > cactus.y) {
-        dinoGameOver = true;
-      }
-    }
-    function drawDinoGame() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawDino();
-      drawCactus();
-    }
-    function resetDino() {
-      dino = { x: 50, y: canvas.height-60, width: 40, height: 40, color: 'lime', dy: 0, gravity: 0.8, jumpForce: -15, onGround: true };
-      cactus.x = canvas.width;
-      dinoScore = 0;
-      dinoGameOver = false;
-      document.getElementById("scoreDisplay").innerText = "Score: " + dinoScore;
-    }
-
-    // ---- Main Game Loop ----
-    function gameLoop() {
-      if(!gameActive) return;
-      if(currentGame === "breakout") { drawBreakout(); }
-      else if(currentGame === "dino") {
-        updateDino();
-        drawDinoGame();
-        if(dinoGameOver) { alert("Dino Game Over. Restarting..."); resetDino(); }
-      }
-      requestAnimationFrame(gameLoop);
-    }
-    function startGame() {
-      currentGame = document.getElementById("gameSelect").value;
-      gameActive = true;
-      if(currentGame === "breakout") { initBreakout(); }
-      else if(currentGame === "dino") { resetDino(); }
-      gameLoop();
-    }
-    function initGame() { startGame(); window.gameInitialized = true; }
-    // ---- End of Game Code ----
-
-    function exitGame() { gameActive = false; document.getElementById('hidden-game').style.display = 'none'; }
-    function exitAdmin() { document.getElementById('hidden-admin').style.display = 'none'; }
-  </script>
+  <!-- Custom JavaScript -->
+  <script src="assets/js/main.js"></script>
 </body>
 </html>

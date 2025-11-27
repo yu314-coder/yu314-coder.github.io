@@ -1,29 +1,458 @@
-/* assets/css/style.css */
-body {
-  font-family: Arial, sans-serif;
-  line-height: 1.6;
+/* assets/css/style.css - Upgraded for modern portfolio */
+
+/* ======================
+   Global Styles
+   ====================== */
+:root {
+  --primary-color: #667eea;
+  --primary-dark: #764ba2;
+  --dark-bg: #222;
+  --light-bg: #f8f9fa;
+  --text-light: #ccc;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.1);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.15);
+  --shadow-lg: 0 10px 25px rgba(0,0,0,0.2);
+  --transition: all 0.3s ease;
+}
+
+* {
   margin: 0;
   padding: 0;
+  box-sizing: border-box;
 }
 
+body {
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  line-height: 1.6;
+  scroll-behavior: smooth;
+  color: #333;
+}
+
+/* ======================
+   Navbar Styles
+   ====================== */
 .navbar {
-  margin-bottom: 20px;
+  transition: background-color 0.4s ease;
+  padding: 1rem 0;
 }
 
-.hero-section {
+.navbar.scrolled {
+  background-color: rgba(0,0,0,0.9) !important;
+  box-shadow: var(--shadow-sm);
+}
+
+.navbar-brand {
+  font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: 0.5px;
+}
+
+/* ======================
+   Hero Section (index.html)
+   ====================== */
+.hero {
+  position: relative;
+  height: 100vh;
   background: url('../images/hero-bg.jpg') no-repeat center center/cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #fff;
-  padding: 100px 0;
+  text-align: center;
 }
 
-.about-section,
-.projects-section,
-.blog-section,
-.contact-section {
-  padding: 40px 0;
+.hero::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.6);
+  z-index: 1;
 }
 
+.hero-content {
+  position: relative;
+  z-index: 2;
+  animation: fadeInUp 1.2s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero h1 {
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.hero p {
+  font-size: clamp(1.2rem, 2.5vw, 1.5rem);
+  margin-bottom: 2rem;
+}
+
+/* ======================
+   Page Headers
+   ====================== */
+.page-header {
+  position: relative;
+  height: 40vh;
+  min-height: 250px;
+  background: url('../images/about-bg.jpg') no-repeat center center/cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.page-header::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  z-index: 1;
+}
+
+.page-header h1 {
+  position: relative;
+  z-index: 2;
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 700;
+}
+
+/* ======================
+   Featured Project Section
+   ====================== */
+.featured-project {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  color: white;
+  padding: 60px 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.featured-project::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="30" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/><circle cx="20" cy="20" r="15" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/><circle cx="80" cy="80" r="20" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></svg>') repeat;
+  opacity: 0.3;
+  z-index: 1;
+}
+
+.featured-content {
+  position: relative;
+  z-index: 2;
+}
+
+.feature-badge {
+  background: rgba(255,255,255,0.2);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  margin: 5px;
+  display: inline-block;
+  border: 1px solid rgba(255,255,255,0.3);
+  transition: var(--transition);
+}
+
+.feature-badge:hover {
+  background: rgba(255,255,255,0.3);
+  transform: translateY(-2px);
+}
+
+.cta-btn,
+.download-btn {
+  background: rgba(255,255,255,0.2);
+  border: 2px solid white;
+  color: white;
+  padding: 15px 30px;
+  font-size: 1.1rem;
+  border-radius: 30px;
+  transition: var(--transition);
+  text-decoration: none;
+  display: inline-block;
+  margin: 10px 5px;
+}
+
+.cta-btn:hover,
+.download-btn:hover {
+  background: white;
+  color: var(--primary-color);
+  text-decoration: none;
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.stats-card {
+  background: rgba(255,255,255,0.1);
+  border-radius: 15px;
+  padding: 30px;
+  text-align: center;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.2);
+  transition: var(--transition);
+}
+
+.stats-card:hover {
+  background: rgba(255,255,255,0.15);
+  transform: translateY(-5px);
+}
+
+.stats-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.requirements-list,
+.installation-steps {
+  background: rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 20px;
+  margin-top: 20px;
+  backdrop-filter: blur(5px);
+}
+
+/* ======================
+   Content Sections
+   ====================== */
+.content-section {
+  padding: 60px 0;
+}
+
+.card {
+  transition: var(--transition);
+  border: none;
+  margin-bottom: 30px;
+  box-shadow: var(--shadow-sm);
+  height: 100%;
+}
+
+.card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ======================
+   Timeline (About page)
+   ====================== */
+.timeline {
+  border-left: 3px solid var(--primary-color);
+  margin: 20px 0;
+  padding-left: 30px;
+  position: relative;
+}
+
+.timeline-item {
+  margin-bottom: 30px;
+  position: relative;
+}
+
+.timeline-item::before {
+  content: "";
+  position: absolute;
+  left: -36px;
+  top: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  border: 3px solid white;
+  box-shadow: var(--shadow-sm);
+}
+
+.timeline-item h5 {
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+/* ======================
+   Contact Form
+   ====================== */
+.contact-form {
+  background: var(--light-bg);
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+}
+
+.form-control:focus {
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+  border-color: var(--primary-color);
+}
+
+.social-icons a {
+  color: var(--primary-color);
+  font-size: 2rem;
+  margin: 0 15px;
+  transition: var(--transition);
+  display: inline-block;
+}
+
+.social-icons a:hover {
+  color: var(--primary-dark);
+  transform: translateY(-5px) scale(1.1);
+  text-decoration: none;
+}
+
+/* ======================
+   Footer
+   ====================== */
 footer {
-  background: #f4f4f4;
-  padding: 20px 0;
+  background-color: var(--dark-bg);
+  color: var(--text-light);
+  padding: 40px 0 20px;
+}
+
+footer a {
+  color: var(--text-light);
+  transition: var(--transition);
+}
+
+footer a:hover {
+  color: white;
+  text-decoration: none;
+}
+
+/* ======================
+   Easter Egg Overlays
+   ====================== */
+#hidden-game,
+#hidden-admin {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+}
+
+#hidden-game {
+  background-color: rgba(0,0,0,0.95);
+  text-align: center;
+  color: #fff;
+  overflow: auto;
+  padding-top: 20px;
+}
+
+#gameControls {
+  margin: 10px auto;
+  padding: 20px;
+}
+
+#gameCanvas {
+  background: #222;
+  border: 2px solid #555;
+  margin: 20px auto;
+  display: block;
+  max-width: 100%;
+}
+
+#exitGame,
+#exitAdmin {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #444;
+  color: #fff;
+  border: none;
+  padding: 12px 20px;
+  font-size: 1rem;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: var(--transition);
+  z-index: 10000;
+}
+
+#exitGame:hover,
+#exitAdmin:hover {
+  background: #666;
+  transform: scale(1.05);
+}
+
+#exitAdmin {
+  left: 20px;
+  right: auto;
+}
+
+#hidden-admin {
+  background-color: rgba(10,10,10,0.95);
+  overflow-y: auto;
+  padding: 30px;
+  color: #fff;
+}
+
+#adminPanel {
+  max-width: 800px;
+  margin: 0 auto;
+  background: #333;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+}
+
+#scoreDisplay {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-top: 20px;
+}
+
+/* ======================
+   Responsive Design
+   ====================== */
+@media (max-width: 768px) {
+  .hero h1 {
+    font-size: 2.5rem;
+  }
+
+  .hero p {
+    font-size: 1.2rem;
+  }
+
+  .cta-btn,
+  .download-btn {
+    padding: 12px 24px;
+    font-size: 1rem;
+  }
+
+  .stats-number {
+    font-size: 2rem;
+  }
+
+  .social-icons a {
+    font-size: 1.5rem;
+    margin: 0 10px;
+  }
+}
+
+@media (max-width: 576px) {
+  .contact-form {
+    padding: 25px;
+  }
+
+  #exitGame,
+  #exitAdmin {
+    top: 10px;
+    right: 10px;
+    padding: 8px 15px;
+    font-size: 0.9rem;
+  }
 }
