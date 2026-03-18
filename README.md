@@ -1,47 +1,82 @@
-```markdown
-# Euler's Personal Portfolio
+# Yu, Yao-Hsing 尤耀星 — Personal Portfolio
 
-Welcome to Euler's personal portfolio website. This project is a static website built using HTML, CSS, and JavaScript. It showcases Euler's work as a developer, data enthusiast, and innovator.
+Personal portfolio website showcasing projects, research, and achievements in mathematics, AI, and software development.
 
-## Project Structure
-
-
-yu314-coder.github.io/
-├── assets/
-│   ├── css/
-│   │   └── style.css         # Custom styles for the website
-│   ├── js/
-│   │   └── script.js         # Custom JavaScript functionality
-│   └── images/               # Images and background assets
-├── about.html                # About page with Euler's biography, education, skills, and interests
-├── index.html                # Home page with hero section and project preview
-├── projects.html             # Projects page listing past projects and interactive visualizations
-├── README.md                 # This README file
-
-
-## Features
-
-- Responsive Design:
-  The site uses a responsive layout to ensure a great viewing experience on mobile devices, tablets, and desktops.
-
-- Hero Section:* 
-  The home page features a full-screen hero section with a dynamic background image and call-to-action buttons that lead to the About and Projects pages.
-
-- Interactive Project Previews:
-  The Projects page includes interactive previews of past projects. Each project is represented by a card that links to more details or external project pages.
-
-- Smooth Navigation:
-  A fixed navigation bar allows easy access to different sections of the website.
-
-- Modern Aesthetics:
-  The website features modern design elements including animations, transitions, and sleek typography to reflect a professional and creative portfolio.
-
-
-## License
-
-This project is open source. Feel free to modify and use it as a starting point for your own personal portfolio website.
+**Live site:** [yu314-coder.github.io](https://yu314-coder.github.io/)
 
 ---
 
-Happy coding, and enjoy showcasing your work!
+## Featured Projects
+
+### ManimStudio (v1.1.1.0)
+A GUI application for creating mathematical animations using Manim. Bundled with Python 3.12.7 and MiKTeX Basic — no administrator rights required.
+
+- [Microsoft Store](https://apps.microsoft.com/detail/9NZFT55DVCBS)
+
+### Generalized Covariance Matrix — ESD Analysis Tool
+Advanced eigenvalue spectral distribution analysis for generalized covariance matrices, built for mathematicians and data scientists.
+
+- [Microsoft Store](https://apps.microsoft.com/detail/9nzj475s7b01)
+
+---
+
+## Awards
+
+- **2025 S. T. Yau High School Science Award — Grand Finals (Bronze Medal)**
+  Research on the limiting spectral distributions of products of sample covariance matrices with deterministic sequences.
+- **2025 S. T. Yau High School Science Award — Asia Regional (Silver Medal)**
+
+---
+
+## Project Structure
+
 ```
+yu314-coder.github.io/
+├── assets/
+│   ├── css/
+│   │   └── style.css              # Custom styles
+│   ├── js/
+│   │   ├── main.js                # Home page scripts (games, admin panel)
+│   │   └── script.js              # Shared scripts
+│   └── docs/
+│       └── yau-science-award-research-paper.pdf
+├── index.html                     # Home — hero section, featured project, welcome
+├── about.html                     # About — education, skills, interests, timeline
+├── projects.html                  # Projects — featured apps & other project cards
+├── privacy.html                   # Privacy policy
+├── contact.html                   # Contact (hidden from nav)
+└── README.md
+```
+
+---
+
+## Tech Stack
+
+- **HTML5 / CSS3 / JavaScript**
+- **Bootstrap 5.3.3** — responsive layout & components
+- **Google Fonts** — Roboto typeface
+- **GitHub Pages** — static hosting
+
+---
+
+## Other Projects
+
+| Project | Description | Links |
+|---------|-------------|-------|
+| t-SNE Visualization | Dimensionality reduction tool | [GitHub](https://github.com/yu314-coder/t-sne) · [MS Store](https://apps.microsoft.com/detail/9P969D6N7P6J) |
+| GPS Location App | Precision GPS workout tracker for iPhone & Apple Watch | [GitHub](https://github.com/yu314-coder/GPS-location-app) |
+| ollama-installer | Install Ollama from a Python CLI | [GitHub](https://github.com/yu314-coder/python-ollama) · [PyPI](https://pypi.org/project/ollama-installer/) |
+| narrate | Local text-to-speech with Kokoro and Chatterbox engines | [GitHub](https://github.com/yu314-coder/narrate) · [PyPI](https://pypi.org/project/narrate/) |
+| NeonScribe | Creative writing and text processing tool | [GitHub](https://github.com/yu314-coder/NeonScribe) |
+| Sound Transfer | TCP-based audio streaming between devices | [GitHub](https://github.com/yu314-coder/sound_transfer) |
+| Google Drive Download | Python tool for downloading from Google Drive | [GitHub](https://github.com/yu314-coder/google_drive_download) |
+
+---
+
+## License
+
+This project is open source. Feel free to use it as a starting point for your own portfolio.
+
+---
+
+© 2026 Yu, Yao-Hsing 尤耀星. All rights reserved.
