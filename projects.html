@@ -67,6 +67,14 @@
       padding: 4px 6px;
       border-bottom: 1px solid rgba(255,255,255,0.06);
     }
+    .lib-category-card a.lib-link {
+      color: #8ecfff;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .lib-category-card a.lib-link:hover {
+      color: #fff;
+    }
     .lib-count-badge {
       display: inline-block;
       background: rgba(255,255,255,0.2);
@@ -258,9 +266,9 @@
                   <h5>🔬 Scientific Computing <span class="lib-count-badge">4</span></h5>
                   <table>
                     <tr><th>Library</th><th>Ver</th></tr>
-                    <tr><td>NumPy</td><td>2.3.5</td></tr>
-                    <tr><td>SciPy</td><td>1.15.0</td></tr>
-                    <tr><td>SymPy</td><td>1.14.0</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/numpy.md" target="_blank" rel="noopener noreferrer" class="lib-link">NumPy</a></td><td>2.3.5</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/scipy.md" target="_blank" rel="noopener noreferrer" class="lib-link">SciPy</a></td><td>1.15.0</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/sympy.md" target="_blank" rel="noopener noreferrer" class="lib-link">SymPy</a></td><td>1.14.0</td></tr>
                     <tr><td>mpmath</td><td>1.4.1</td></tr>
                   </table>
                 </div>
@@ -272,7 +280,7 @@
                   <h5>🤖 Machine Learning <span class="lib-count-badge">1</span></h5>
                   <table>
                     <tr><th>Library</th><th>Details</th></tr>
-                    <tr><td>scikit-learn</td><td>40 modules</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/sklearn.md" target="_blank" rel="noopener noreferrer" class="lib-link">scikit-learn</a></td><td>40 modules</td></tr>
                   </table>
                   <p class="mt-2 mb-0" style="font-size:0.75rem; opacity:0.8;">12K+ lines pure NumPy — classification, regression, clustering, preprocessing, 38 metrics</p>
                 </div>
@@ -284,9 +292,9 @@
                   <h5>📊 Visualization <span class="lib-count-badge">3</span></h5>
                   <table>
                     <tr><th>Library</th><th>Ver</th></tr>
-                    <tr><td>matplotlib <span class="dev-badge">BETA</span></td><td>3.9.0</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/matplotlib.md" target="_blank" rel="noopener noreferrer" class="lib-link">matplotlib</a> <span class="dev-badge">BETA</span></td><td>3.9.0</td></tr>
                     <tr><td>Plotly</td><td>6.6.0</td></tr>
-                    <tr><td>manim <span class="dev-badge">BETA</span></td><td>0.20.1</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/manim.md" target="_blank" rel="noopener noreferrer" class="lib-link">manim</a> <span class="dev-badge">BETA</span></td><td>0.20.1</td></tr>
                   </table>
                   <p class="mt-2 mb-0" style="font-size:0.75rem; opacity:0.8;">145+ mobjects, 73 animations, interactive Plotly HTML charts</p>
                 </div>
@@ -298,11 +306,11 @@
                   <h5>🎬 Media & Rendering <span class="lib-count-badge">5</span></h5>
                   <table>
                     <tr><th>Library</th><th>Type</th></tr>
-                    <tr><td>PyAV</td><td>17 C exts</td></tr>
-                    <tr><td>FFmpeg</td><td>7 dylibs</td></tr>
-                    <tr><td>Cairo <span class="dev-badge">BETA</span></td><td>Native iOS</td></tr>
-                    <tr><td>Pillow</td><td>12.2.0</td></tr>
-                    <tr><td>offlinai_latex</td><td>pdftex C</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/media.md" target="_blank" rel="noopener noreferrer" class="lib-link">PyAV</a></td><td>17 C exts</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/media.md" target="_blank" rel="noopener noreferrer" class="lib-link">FFmpeg</a></td><td>7 dylibs</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/media.md" target="_blank" rel="noopener noreferrer" class="lib-link">Cairo</a> <span class="dev-badge">BETA</span></td><td>Native iOS</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/media.md" target="_blank" rel="noopener noreferrer" class="lib-link">Pillow</a></td><td>12.2.0</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/media.md" target="_blank" rel="noopener noreferrer" class="lib-link">offlinai_latex</a></td><td>pdftex C</td></tr>
                   </table>
                 </div>
               </div>
@@ -328,9 +336,9 @@
                   <h5>💻 Interpreters <span class="lib-count-badge">3</span></h5>
                   <table>
                     <tr><th>Language</th><th>Details</th></tr>
-                    <tr><td>C</td><td>~3,450 lines</td></tr>
-                    <tr><td>C++</td><td>~4,200 lines</td></tr>
-                    <tr><td>Fortran</td><td>~4,100 lines</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/interpreters.md" target="_blank" rel="noopener noreferrer" class="lib-link">C</a></td><td>~3,450 lines</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/interpreters.md" target="_blank" rel="noopener noreferrer" class="lib-link">C++</a></td><td>~4,200 lines</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/interpreters.md" target="_blank" rel="noopener noreferrer" class="lib-link">Fortran</a></td><td>~4,100 lines</td></tr>
                   </table>
                   <p class="mt-2 mb-0" style="font-size:0.75rem; opacity:0.8;">Tree-walking interpreters — structs, templates, STL, modules</p>
                 </div>
