@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <!-- SEO Meta Tags -->
-  <meta name="description" content="Yu, Yao-Hsing 尤耀星's Projects - ManimStudio, Typhoon Data Analysis, Random Matrix ESD, and more innovative tools and applications.">
-  <meta name="keywords" content="Yu, Yao-Hsing 尤耀星, projects, ManimStudio, data analysis, mathematical modeling, portfolio">
+  <meta name="description" content="Yu, Yao-Hsing 尤耀星's Projects - ManimStudio, Python iOS Lib, Generalized Covariance Matrix, and more innovative tools and applications.">
+  <meta name="keywords" content="Yu, Yao-Hsing 尤耀星, projects, ManimStudio, python-ios-lib, iOS, data analysis, mathematical modeling, portfolio">
   <meta name="author" content="Yu, Yao-Hsing 尤耀星">
   <meta name="robots" content="index, follow">
 
@@ -19,7 +19,7 @@
   <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="Projects | Yu, Yao-Hsing 尤耀星">
-  <meta property="og:description" content="Explore Yu, Yao-Hsing 尤耀星's innovative projects including ManimStudio, data analysis tools, and more">
+  <meta property="og:description" content="Explore Yu, Yao-Hsing 尤耀星's innovative projects including ManimStudio, Python iOS Lib, data analysis tools, and more">
   <meta property="og:url" content="https://yu314-coder.github.io/projects.html">
 
   <title>Projects | Yu, Yao-Hsing 尤耀星 - Portfolio & Featured Work</title>
@@ -32,6 +32,71 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
   <!-- Custom CSS -->
   <link rel="stylesheet" href="assets/css/style.css">
+
+  <style>
+    /* python-ios-lib specific styles */
+    .lib-category-card {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 12px;
+      padding: 20px;
+      height: 100%;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .lib-category-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+    .lib-category-card h5 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .lib-category-card table {
+      width: 100%;
+      font-size: 0.8rem;
+    }
+    .lib-category-card table th {
+      opacity: 0.7;
+      font-weight: 600;
+      padding: 4px 6px;
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+      white-space: nowrap;
+    }
+    .lib-category-card table td {
+      padding: 4px 6px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .lib-count-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+
+    /* Category section headers for Other Projects */
+    .category-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e9ecef;
+    }
+    .category-header h3 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #333;
+      margin: 0;
+    }
+    .category-header .category-icon {
+      font-size: 1.5rem;
+    }
+  </style>
 </head>
 <body>
   <!-- Navigation -->
@@ -62,14 +127,13 @@
   <section class="container my-5">
     <div class="text-center mb-5">
       <h2 class="display-4 fw-bold mb-3" style="color: #333;">Featured Projects</h2>
-      <p class="lead text-muted">Microsoft Store applications showcasing innovation in mathematics and technology</p>
+      <p class="lead text-muted">Applications and frameworks spanning Windows, iOS, and the web</p>
     </div>
 
     <!-- Featured Project 1: ManimStudio -->
     <article class="featured-project mb-5 rounded-4 shadow-lg">
       <div class="featured-content">
         <div class="row g-0 align-items-center justify-content-center">
-          <!-- Main Content -->
           <div class="col-lg-10 col-xl-9 p-5 text-center">
             <header class="mb-4">
               <div class="d-flex align-items-center justify-content-center mb-3">
@@ -82,7 +146,6 @@
               <p class="lead mb-0">Create stunning mathematical animations with a powerful GUI application. Microsoft Store compatible - no administrator rights required!</p>
             </header>
 
-            <!-- Feature Tags -->
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
               <span class="feature-badge">🎨 Visual Code Editor</span>
               <span class="feature-badge">⚡ Live Preview</span>
@@ -91,7 +154,6 @@
               <span class="feature-badge">📁 Asset Management</span>
             </div>
 
-            <!-- Description -->
             <div class="mb-4">
               <h4 class="h5 fw-bold mb-3">What's Included</h4>
               <ul class="list-unstyled">
@@ -101,7 +163,6 @@
               </ul>
             </div>
 
-            <!-- Two-Column Info -->
             <div class="row g-3 mb-4 justify-content-center">
               <div class="col-md-5">
                 <div class="requirements-list">
@@ -126,7 +187,6 @@
               </div>
             </div>
 
-            <!-- Technical Specs -->
             <div class="mb-4">
               <h4 class="h5 fw-bold mb-3">Technical Specifications</h4>
               <div class="d-inline-block text-start">
@@ -138,7 +198,6 @@
               </div>
             </div>
 
-            <!-- Action Buttons -->
             <div class="d-flex flex-wrap justify-content-center gap-3">
               <a href="https://apps.microsoft.com/detail/9NZFT55DVCBS" target="_blank" rel="noopener noreferrer" class="download-btn">
                 🏪 Microsoft Store
@@ -152,11 +211,180 @@
       </div>
     </article>
 
-    <!-- Featured Project 2: Generalized Covariance Matrix -->
+    <!-- Featured Project 2: Python iOS Lib -->
+    <article class="featured-project mb-5 rounded-4 shadow-lg" style="background: linear-gradient(135deg, #0f2027 0%, #203a43 40%, #2c5364 100%);">
+      <div class="featured-content">
+        <div class="row g-0 align-items-center justify-content-center">
+          <div class="col-lg-11 col-xl-10 p-4 p-md-5 text-center">
+            <header class="mb-4">
+              <div class="d-flex align-items-center justify-content-center mb-3">
+                <span class="display-6 me-3">🐍</span>
+                <div>
+                  <h3 class="h2 mb-1 fw-bold">python-ios-lib</h3>
+                  <span class="badge bg-light text-dark">Python 3.14</span>
+                  <span class="badge bg-warning text-dark ms-1">30+ Libraries</span>
+                </div>
+              </div>
+              <p class="lead mb-0">Full Python 3.14 runtime for iOS/iPadOS with 30+ offline libraries and C/C++/Fortran interpreters. No JIT, App Store safe.</p>
+            </header>
+
+            <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
+              <span class="feature-badge">📱 iOS 17+</span>
+              <span class="feature-badge">✈️ Fully Offline</span>
+              <span class="feature-badge">🛡️ App Store Safe</span>
+              <span class="feature-badge">🧮 NumPy Native</span>
+              <span class="feature-badge">🎬 Manim Video</span>
+              <span class="feature-badge">🔧 C/C++/Fortran</span>
+            </div>
+
+            <!-- Library Categories Grid -->
+            <div class="row g-3 mb-4">
+
+              <!-- Scientific Computing -->
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>🔬 Scientific Computing <span class="lib-count-badge">4</span></h5>
+                  <table>
+                    <tr><th>Library</th><th>Ver</th></tr>
+                    <tr><td>NumPy</td><td>2.3.5</td></tr>
+                    <tr><td>SciPy</td><td>1.15.0</td></tr>
+                    <tr><td>SymPy</td><td>1.14.0</td></tr>
+                    <tr><td>mpmath</td><td>1.4.1</td></tr>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Machine Learning -->
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>🤖 Machine Learning <span class="lib-count-badge">1</span></h5>
+                  <table>
+                    <tr><th>Library</th><th>Details</th></tr>
+                    <tr><td>scikit-learn</td><td>40 modules</td></tr>
+                  </table>
+                  <p class="mt-2 mb-0" style="font-size:0.75rem; opacity:0.8;">12K+ lines pure NumPy — classification, regression, clustering, preprocessing, 38 metrics</p>
+                </div>
+              </div>
+
+              <!-- Visualization -->
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>📊 Visualization <span class="lib-count-badge">3</span></h5>
+                  <table>
+                    <tr><th>Library</th><th>Ver</th></tr>
+                    <tr><td>matplotlib</td><td>3.9.0</td></tr>
+                    <tr><td>Plotly</td><td>6.6.0</td></tr>
+                    <tr><td>manim</td><td>0.20.1</td></tr>
+                  </table>
+                  <p class="mt-2 mb-0" style="font-size:0.75rem; opacity:0.8;">145+ mobjects, 73 animations, interactive Plotly HTML charts</p>
+                </div>
+              </div>
+
+              <!-- Media & Rendering -->
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>🎬 Media & Rendering <span class="lib-count-badge">5</span></h5>
+                  <table>
+                    <tr><th>Library</th><th>Type</th></tr>
+                    <tr><td>PyAV</td><td>17 C exts</td></tr>
+                    <tr><td>FFmpeg</td><td>7 dylibs</td></tr>
+                    <tr><td>Cairo</td><td>Native iOS</td></tr>
+                    <tr><td>Pillow</td><td>12.2.0</td></tr>
+                    <tr><td>offlinai_latex</td><td>pdftex C</td></tr>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Data & Web -->
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>🌐 Data & Web <span class="lib-count-badge">5</span></h5>
+                  <table>
+                    <tr><th>Library</th><th>Purpose</th></tr>
+                    <tr><td>requests</td><td>HTTP client</td></tr>
+                    <tr><td>BeautifulSoup4</td><td>HTML parse</td></tr>
+                    <tr><td>NetworkX</td><td>Graphs</td></tr>
+                    <tr><td>jsonschema</td><td>Validation</td></tr>
+                    <tr><td>PyYAML</td><td>YAML</td></tr>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Interpreters -->
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>💻 Interpreters <span class="lib-count-badge">3</span></h5>
+                  <table>
+                    <tr><th>Language</th><th>Details</th></tr>
+                    <tr><td>C</td><td>~3,450 lines</td></tr>
+                    <tr><td>C++</td><td>~4,200 lines</td></tr>
+                    <tr><td>Fortran</td><td>~4,100 lines</td></tr>
+                  </table>
+                  <p class="mt-2 mb-0" style="font-size:0.75rem; opacity:0.8;">Tree-walking interpreters — structs, templates, STL, modules</p>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Utilities (collapsed list) -->
+            <div class="mb-4">
+              <p class="small mb-2" style="opacity:0.8;"><strong>+ Utilities:</strong> rich, tqdm, Pygments (500+ langs), click, pydub, packaging, srt, svgelements, cffi</p>
+            </div>
+
+            <!-- Specs row -->
+            <div class="row g-3 mb-4 justify-content-center">
+              <div class="col-md-5">
+                <div class="requirements-list">
+                  <h5 class="h6 fw-bold mb-3">📋 Requirements</h5>
+                  <ul class="small mb-0 text-start">
+                    <li>iOS 17.0+ / iPadOS 17.0+</li>
+                    <li>Python 3.14 (BeeWare)</li>
+                    <li>NumPy 2.x (arm64 wheel)</li>
+                    <li>Works completely offline</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="col-md-5">
+                <div class="installation-steps">
+                  <h5 class="h6 fw-bold mb-3">🚀 Quick Start</h5>
+                  <ol class="small mb-0 text-start">
+                    <li>Copy library folders into <code style="color:#ffd;">site-packages/</code></li>
+                    <li>Add interpreter .c/.h to Xcode</li>
+                    <li>Import and use</li>
+                    <li>No JIT needed!</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">Technical Specifications</h4>
+              <div class="d-inline-block text-start">
+                <p class="small mb-1"><strong>Created by:</strong> Yu Yao-Hsing</p>
+                <p class="small mb-1"><strong>License:</strong> MIT</p>
+                <p class="small mb-1"><strong>Runtime:</strong> Python 3.14 on iOS arm64</p>
+                <p class="small mb-1"><strong>Libraries:</strong> 30+ (native + pure Python)</p>
+                <p class="small mb-0"><strong>Platform:</strong> iOS 17+ / iPadOS 17+</p>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap justify-content-center gap-3">
+              <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="download-btn">
+                🐙 GitHub Repository
+              </a>
+              <a href="mailto:euler.yu@gmail.com" class="download-btn">
+                📧 Contact Developer
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- Featured Project 3: Generalized Covariance Matrix -->
     <article class="featured-project rounded-4 shadow-lg" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
       <div class="featured-content">
         <div class="row g-0 align-items-center justify-content-center">
-          <!-- Main Content -->
           <div class="col-lg-10 col-xl-9 p-5 text-center">
             <header class="mb-4">
               <div class="d-flex align-items-center justify-content-center mb-3">
@@ -169,7 +397,6 @@
               <p class="lead mb-0">Advanced eigenvalue spectral distribution analysis for generalized covariance matrices. A powerful research tool for mathematicians and data scientists!</p>
             </header>
 
-            <!-- Feature Tags -->
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
               <span class="feature-badge">📈 ESD Analysis</span>
               <span class="feature-badge">🔢 Matrix Computation</span>
@@ -178,7 +405,6 @@
               <span class="feature-badge">💾 Export Results</span>
             </div>
 
-            <!-- Description -->
             <div class="mb-4">
               <h4 class="h5 fw-bold mb-3">Key Capabilities</h4>
               <ul class="list-unstyled">
@@ -190,7 +416,6 @@
               <p class="small"><strong>Perfect for:</strong> Statistical analysis, ML research, quantum mechanics, and financial modeling</p>
             </div>
 
-            <!-- Two-Column Info -->
             <div class="row g-3 mb-4 justify-content-center">
               <div class="col-md-5">
                 <div class="requirements-list">
@@ -215,7 +440,6 @@
               </div>
             </div>
 
-            <!-- Technical Specs -->
             <div class="mb-4">
               <h4 class="h5 fw-bold mb-3">Technical Specifications</h4>
               <div class="d-inline-block text-start">
@@ -227,7 +451,6 @@
               </div>
             </div>
 
-            <!-- Action Buttons -->
             <div class="d-flex flex-wrap justify-content-center gap-3">
               <a href="https://apps.microsoft.com/detail/9nzj475s7b01" target="_blank" rel="noopener noreferrer" class="download-btn">
                 📦 Get from Microsoft Store
@@ -245,149 +468,174 @@
     </article>
   </section>
 
-  <!-- Other Projects Listing -->
+  <!-- Other Projects -->
   <section class="container my-5">
-    <h2 class="text-center mb-5" style="font-size: 2rem; font-weight: 700; color: #333;">Other Projects</h2>
-    <div class="row justify-content-center">
-      <!-- HIDDEN: Typhoon Data Analysis, Craw Web, Purchase Record (temporarily disabled)
-      <div class="col-md-4 d-flex mb-4">
-        <div class="card flex-fill shadow-sm">
-          <div class="card-body d-flex flex-column">
-            <div class="d-flex align-items-center mb-3">
-              <span style="font-size: 2rem; margin-right: 10px;">🌪️</span>
-              <h5 class="card-title mb-0">Typhoon Data Analysis</h5>
-            </div>
-            <p class="card-text flex-grow-1">An analytical tool for visualizing typhoon data to uncover weather trends and climate impacts.</p>
-            <a href="https://huggingface.co/spaces/euler314/typhoon-data-analysis" target="_blank" rel="noopener noreferrer" class="btn btn-primary">View Project →</a>
-          </div>
-        </div>
+    <div class="text-center mb-5">
+      <h2 style="font-size: 2rem; font-weight: 700; color: #333;">Other Projects</h2>
+      <p class="text-muted">Open-source tools, packages, and utilities</p>
+    </div>
+
+    <!-- Category: Apps & Visualizations -->
+    <div class="mb-5">
+      <div class="category-header">
+        <span class="category-icon">📱</span>
+        <h3>Apps & Visualizations</h3>
       </div>
-      <div class="col-md-4 d-flex mb-4">
-        <div class="card flex-fill shadow-sm">
-          <div class="card-body d-flex flex-column">
-            <div class="d-flex align-items-center mb-3">
-              <span style="font-size: 2rem; margin-right: 10px;">🕷️</span>
-              <h5 class="card-title mb-0">Craw Web</h5>
-            </div>
-            <p class="card-text flex-grow-1">A powerful web crawling tool that extracts and analyzes data from multiple sources.</p>
-            <a href="https://huggingface.co/spaces/euler314/craw_web" target="_blank" rel="noopener noreferrer" class="btn btn-primary">View Project →</a>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-4 d-flex mb-4">
-        <div class="card flex-fill shadow-sm">
-          <div class="card-body d-flex flex-column">
-            <div class="d-flex align-items-center mb-3">
-              <span style="font-size: 2rem; margin-right: 10px;">📝</span>
-              <h5 class="card-title mb-0">Purchase Record</h5>
-            </div>
-            <p class="card-text flex-grow-1">A comprehensive system to manage and analyze purchase records for streamlined data insights.</p>
-            <a href="https://huggingface.co/spaces/euler314/Purchase_record" target="_blank" rel="noopener noreferrer" class="btn btn-primary">View Project →</a>
-          </div>
-        </div>
-      </div>
-      END HIDDEN -->
-      <!-- Project Card: t-SNE -->
-      <div class="col-md-4 d-flex mb-4">
-        <div class="card flex-fill shadow-sm">
-          <div class="card-body d-flex flex-column">
-            <div class="d-flex align-items-center mb-3">
-              <span style="font-size: 2rem; margin-right: 10px;">🔬</span>
-              <h5 class="card-title mb-0">t-SNE Visualization</h5>
-            </div>
-            <p class="card-text flex-grow-1">A powerful dimensionality reduction tool using t-SNE algorithm for high-dimensional data visualization and analysis.</p>
-            <div class="d-flex gap-2 mt-auto">
-              <a href="https://github.com/yu314-coder/t-sne" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary flex-fill">GitHub →</a>
-              <a href="https://apps.microsoft.com/detail/9P969D6N7P6J" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">Download →</a>
+      <div class="row justify-content-center">
+        <div class="col-md-4 d-flex mb-4">
+          <div class="card flex-fill shadow-sm">
+            <div class="card-body d-flex flex-column">
+              <div class="d-flex align-items-center mb-3">
+                <span style="font-size: 2rem; margin-right: 10px;">🔬</span>
+                <h5 class="card-title mb-0">t-SNE Visualization</h5>
+              </div>
+              <p class="card-text flex-grow-1">Dimensionality reduction tool using t-SNE for high-dimensional data visualization and analysis.</p>
+              <div class="d-flex gap-2 mt-auto">
+                <a href="https://github.com/yu314-coder/t-sne" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary flex-fill">GitHub →</a>
+                <a href="https://apps.microsoft.com/detail/9P969D6N7P6J" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">Download →</a>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-      <!-- Project Card: GPS Location App -->
-      <div class="col-md-4 d-flex mb-4">
-        <div class="card flex-fill shadow-sm">
-          <div class="card-body d-flex flex-column">
-            <div class="d-flex align-items-center mb-3">
-              <span style="font-size: 2rem; margin-right: 10px;">📍</span>
-              <h5 class="card-title mb-0">GPS Location App</h5>
-            </div>
-            <p class="card-text flex-grow-1">Precision GPS workout tracker for iPhone & Apple Watch with Kalman-filtered location, HealthKit sync, Live Activities, CarPlay, and route analytics.</p>
-            <a href="https://github.com/yu314-coder/GPS-location-app" target="_blank" rel="noopener noreferrer" class="btn btn-primary">View Project →</a>
-          </div>
-        </div>
-      </div>
-      <!-- Project Card: ollama-installer (PyPI) -->
-      <div class="col-md-4 d-flex mb-4">
-        <div class="card flex-fill shadow-sm">
-          <div class="card-body d-flex flex-column">
-            <div class="d-flex align-items-center mb-3">
-              <span style="font-size: 2rem; margin-right: 10px;">🦙</span>
-              <h5 class="card-title mb-0">ollama-installer</h5>
-            </div>
-            <p class="card-text flex-grow-1">Install Ollama from a Python CLI. A convenient command-line tool for setting up Ollama on your system.</p>
-            <div class="d-flex gap-2 mt-auto">
-              <a href="https://github.com/yu314-coder/python-ollama" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary flex-fill">GitHub →</a>
-              <a href="https://pypi.org/project/ollama-installer/" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">PyPI →</a>
+        <div class="col-md-4 d-flex mb-4">
+          <div class="card flex-fill shadow-sm">
+            <div class="card-body d-flex flex-column">
+              <div class="d-flex align-items-center mb-3">
+                <span style="font-size: 2rem; margin-right: 10px;">📍</span>
+                <h5 class="card-title mb-0">GPS Location App</h5>
+              </div>
+              <p class="card-text flex-grow-1">Precision GPS workout tracker for iPhone & Apple Watch with Kalman-filtered location, HealthKit sync, Live Activities, CarPlay, and route analytics.</p>
+              <a href="https://github.com/yu314-coder/GPS-location-app" target="_blank" rel="noopener noreferrer" class="btn btn-primary mt-auto">View Project →</a>
             </div>
           </div>
         </div>
-      </div>
-      <!-- Project Card: narrate (PyPI) -->
-      <div class="col-md-4 d-flex mb-4">
-        <div class="card flex-fill shadow-sm">
-          <div class="card-body d-flex flex-column">
-            <div class="d-flex align-items-center mb-3">
-              <span style="font-size: 2rem; margin-right: 10px;">🗣️</span>
-              <h5 class="card-title mb-0">narrate</h5>
+        <div class="col-md-4 d-flex mb-4">
+          <div class="card flex-fill shadow-sm">
+            <div class="card-body d-flex flex-column">
+              <div class="d-flex align-items-center mb-3">
+                <span style="font-size: 2rem; margin-right: 10px;">✍️</span>
+                <h5 class="card-title mb-0">NeonScribe</h5>
+              </div>
+              <p class="card-text flex-grow-1">A Python-based creative writing and text processing tool with a modern interface.</p>
+              <a href="https://github.com/yu314-coder/NeonScribe" target="_blank" rel="noopener noreferrer" class="btn btn-primary mt-auto">View Project →</a>
             </div>
-            <p class="card-text flex-grow-1">Local text-to-speech with Kokoro and Chatterbox engines. High-quality voice synthesis running entirely on your machine.</p>
-            <div class="d-flex gap-2 mt-auto">
-              <a href="https://github.com/yu314-coder/narrate" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary flex-fill">GitHub →</a>
-              <a href="https://pypi.org/project/narrate/" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">PyPI →</a>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- Project Card: NeonScribe -->
-      <div class="col-md-4 d-flex mb-4">
-        <div class="card flex-fill shadow-sm">
-          <div class="card-body d-flex flex-column">
-            <div class="d-flex align-items-center mb-3">
-              <span style="font-size: 2rem; margin-right: 10px;">✍️</span>
-              <h5 class="card-title mb-0">NeonScribe</h5>
-            </div>
-            <p class="card-text flex-grow-1">A Python-based creative writing and text processing tool with a modern interface.</p>
-            <a href="https://github.com/yu314-coder/NeonScribe" target="_blank" rel="noopener noreferrer" class="btn btn-primary">View Project →</a>
-          </div>
-        </div>
-      </div>
-      <!-- Project Card: Sound Transfer -->
-      <div class="col-md-4 d-flex mb-4">
-        <div class="card flex-fill shadow-sm">
-          <div class="card-body d-flex flex-column">
-            <div class="d-flex align-items-center mb-3">
-              <span style="font-size: 2rem; margin-right: 10px;">🔊</span>
-              <h5 class="card-title mb-0">Sound Transfer</h5>
-            </div>
-            <p class="card-text flex-grow-1">TCP-based sound transfer tool for streaming audio between devices over a network.</p>
-            <a href="https://github.com/yu314-coder/sound_transfer" target="_blank" rel="noopener noreferrer" class="btn btn-primary">View Project →</a>
-          </div>
-        </div>
-      </div>
-      <!-- Project Card: Google Drive Download -->
-      <div class="col-md-4 d-flex mb-4">
-        <div class="card flex-fill shadow-sm">
-          <div class="card-body d-flex flex-column">
-            <div class="d-flex align-items-center mb-3">
-              <span style="font-size: 2rem; margin-right: 10px;">📥</span>
-              <h5 class="card-title mb-0">Google Drive Download</h5>
-            </div>
-            <p class="card-text flex-grow-1">A Python tool for downloading files from Google Drive with ease and automation.</p>
-            <a href="https://github.com/yu314-coder/google_drive_download" target="_blank" rel="noopener noreferrer" class="btn btn-primary">View Project →</a>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Category: Python Packages -->
+    <div class="mb-5">
+      <div class="category-header">
+        <span class="category-icon">📦</span>
+        <h3>Python Packages (PyPI)</h3>
+      </div>
+      <div class="row justify-content-center">
+        <div class="col-md-4 d-flex mb-4">
+          <div class="card flex-fill shadow-sm">
+            <div class="card-body d-flex flex-column">
+              <div class="d-flex align-items-center mb-3">
+                <span style="font-size: 2rem; margin-right: 10px;">🦙</span>
+                <h5 class="card-title mb-0">ollama-installer</h5>
+              </div>
+              <p class="card-text flex-grow-1">Install Ollama from a Python CLI. A convenient command-line tool for setting up Ollama on your system.</p>
+              <div class="d-flex gap-2 mt-auto">
+                <a href="https://github.com/yu314-coder/python-ollama" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary flex-fill">GitHub →</a>
+                <a href="https://pypi.org/project/ollama-installer/" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">PyPI →</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 d-flex mb-4">
+          <div class="card flex-fill shadow-sm">
+            <div class="card-body d-flex flex-column">
+              <div class="d-flex align-items-center mb-3">
+                <span style="font-size: 2rem; margin-right: 10px;">🗣️</span>
+                <h5 class="card-title mb-0">narrate</h5>
+              </div>
+              <p class="card-text flex-grow-1">Local text-to-speech with Kokoro and Chatterbox engines. High-quality voice synthesis running entirely on your machine.</p>
+              <div class="d-flex gap-2 mt-auto">
+                <a href="https://github.com/yu314-coder/narrate" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary flex-fill">GitHub →</a>
+                <a href="https://pypi.org/project/narrate/" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">PyPI →</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Category: Utilities -->
+    <div class="mb-5">
+      <div class="category-header">
+        <span class="category-icon">🔧</span>
+        <h3>Utilities</h3>
+      </div>
+      <div class="row justify-content-center">
+        <div class="col-md-4 d-flex mb-4">
+          <div class="card flex-fill shadow-sm">
+            <div class="card-body d-flex flex-column">
+              <div class="d-flex align-items-center mb-3">
+                <span style="font-size: 2rem; margin-right: 10px;">🔊</span>
+                <h5 class="card-title mb-0">Sound Transfer</h5>
+              </div>
+              <p class="card-text flex-grow-1">TCP-based sound transfer tool for streaming audio between devices over a network.</p>
+              <a href="https://github.com/yu314-coder/sound_transfer" target="_blank" rel="noopener noreferrer" class="btn btn-primary mt-auto">View Project →</a>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 d-flex mb-4">
+          <div class="card flex-fill shadow-sm">
+            <div class="card-body d-flex flex-column">
+              <div class="d-flex align-items-center mb-3">
+                <span style="font-size: 2rem; margin-right: 10px;">📥</span>
+                <h5 class="card-title mb-0">Google Drive Download</h5>
+              </div>
+              <p class="card-text flex-grow-1">A Python tool for downloading files from Google Drive with ease and automation.</p>
+              <a href="https://github.com/yu314-coder/google_drive_download" target="_blank" rel="noopener noreferrer" class="btn btn-primary mt-auto">View Project →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HIDDEN: Typhoon Data Analysis, Craw Web, Purchase Record (temporarily disabled)
+    <div class="col-md-4 d-flex mb-4">
+      <div class="card flex-fill shadow-sm">
+        <div class="card-body d-flex flex-column">
+          <div class="d-flex align-items-center mb-3">
+            <span style="font-size: 2rem; margin-right: 10px;">🌪️</span>
+            <h5 class="card-title mb-0">Typhoon Data Analysis</h5>
+          </div>
+          <p class="card-text flex-grow-1">An analytical tool for visualizing typhoon data to uncover weather trends and climate impacts.</p>
+          <a href="https://huggingface.co/spaces/euler314/typhoon-data-analysis" target="_blank" rel="noopener noreferrer" class="btn btn-primary">View Project →</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4 d-flex mb-4">
+      <div class="card flex-fill shadow-sm">
+        <div class="card-body d-flex flex-column">
+          <div class="d-flex align-items-center mb-3">
+            <span style="font-size: 2rem; margin-right: 10px;">🕷️</span>
+            <h5 class="card-title mb-0">Craw Web</h5>
+          </div>
+          <p class="card-text flex-grow-1">A powerful web crawling tool that extracts and analyzes data from multiple sources.</p>
+          <a href="https://huggingface.co/spaces/euler314/craw_web" target="_blank" rel="noopener noreferrer" class="btn btn-primary">View Project →</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4 d-flex mb-4">
+      <div class="card flex-fill shadow-sm">
+        <div class="card-body d-flex flex-column">
+          <div class="d-flex align-items-center mb-3">
+            <span style="font-size: 2rem; margin-right: 10px;">📝</span>
+            <h5 class="card-title mb-0">Purchase Record</h5>
+          </div>
+          <p class="card-text flex-grow-1">A comprehensive system to manage and analyze purchase records for streamlined data insights.</p>
+          <a href="https://huggingface.co/spaces/euler314/Purchase_record" target="_blank" rel="noopener noreferrer" class="btn btn-primary">View Project →</a>
+        </div>
+      </div>
+    </div>
+    END HIDDEN -->
   </section>
 
   <!-- Footer -->
