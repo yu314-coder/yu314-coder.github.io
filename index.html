@@ -6,7 +6,7 @@
 
   <!-- SEO Meta Tags -->
   <meta name="description" content="Yu, Yao-Hsing 尤耀星's Portfolio - Developer, Data Enthusiast, and Innovator specializing in mathematical modeling, AI, and software development.">
-  <meta name="keywords" content="Yu, Yao-Hsing 尤耀星, portfolio, developer, data science, AI, machine learning, mathematical modeling, ManimStudio">
+  <meta name="keywords" content="Yu, Yao-Hsing 尤耀星, portfolio, developer, data science, AI, machine learning, mathematical modeling, ManimStudio, python-ios-lib">
   <meta name="author" content="Yu, Yao-Hsing 尤耀星">
   <meta name="robots" content="index, follow">
 
@@ -37,6 +37,101 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
   <!-- Custom CSS -->
   <link rel="stylesheet" href="assets/css/style.css">
+
+  <style>
+    /* Highlights banner */
+    .highlights-banner {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      padding: 50px 0;
+      color: #fff;
+    }
+    .highlight-item {
+      text-align: center;
+      padding: 20px 10px;
+    }
+    .highlight-number {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #64b5f6;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    .highlight-label {
+      font-size: 0.85rem;
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    /* Project spotlight cards */
+    .spotlight-card {
+      border-radius: 16px;
+      overflow: hidden;
+      color: #fff;
+      padding: 36px 30px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+    .spotlight-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+    }
+    .spotlight-card h3 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .spotlight-card .spotlight-desc {
+      font-size: 0.95rem;
+      opacity: 0.9;
+      line-height: 1.6;
+      flex-grow: 1;
+    }
+    .spotlight-tag {
+      display: inline-block;
+      background: rgba(255,255,255,0.18);
+      border-radius: 20px;
+      padding: 3px 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin: 3px 2px;
+    }
+    .spotlight-btn {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 8px;
+      padding: 8px 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    .spotlight-btn:hover {
+      background: rgba(255,255,255,0.35);
+      color: #fff;
+    }
+
+    /* Award banner */
+    .award-banner {
+      background: linear-gradient(90deg, #fceabb 0%, #f8b500 100%);
+      padding: 18px 0;
+      text-align: center;
+    }
+    .award-banner p {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #333;
+    }
+    .award-banner a {
+      color: #1a1a2e;
+      text-decoration: underline;
+    }
+  </style>
 </head>
 <body>
   <!-- Navigation -->
@@ -61,103 +156,151 @@
   <header class="hero">
     <div class="hero-content container">
       <h1>Hi, I'm Yu, Yao-Hsing 尤耀星</h1>
-      <p>Developer | Data Enthusiast | Innovator</p>
-      <a href="about.html" class="btn btn-primary btn-lg">Discover More</a>
-      <div class="mt-4">
-        <a href="projects.html" class="btn btn-outline-light">See My Projects</a>
+      <p>Developer | Researcher | Mathematician</p>
+      <div class="mt-2 mb-4">
+        <span style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 6px 18px; font-size: 0.9rem; display: inline-block;">
+          🥉 2025 S.T. Yau High School Science Award — Bronze Medal (Grand Finals)
+        </span>
       </div>
+      <a href="about.html" class="btn btn-primary btn-lg me-2">About Me</a>
+      <a href="projects.html" class="btn btn-outline-light btn-lg">See My Projects</a>
     </div>
   </header>
 
-  <!-- Featured Project: ManimStudio Section -->
-  <section class="featured-project">
+  <!-- Award Banner -->
+  <div class="award-banner">
     <div class="container">
-      <div class="featured-content">
-        <div class="row align-items-center">
-          <div class="col-lg-8">
-            <h2 class="mb-4"><strong>🚀 Introducing ManimStudio v1.1.1.0</strong></h2>
-            <p class="lead mb-4">A powerful GUI application for creating mathematical animations using Manim. No administrator rights required - perfect for students, educators, and professionals!</p>
-            
-            <div class="mb-4">
-              <span class="feature-badge">🎨 Visual Code Editor</span>
-              <span class="feature-badge">⚡ Live Preview</span>
-              <span class="feature-badge">🔒 No Admin Required</span>
-              <span class="feature-badge">🤖 Auto Dependencies</span>
-              <span class="feature-badge">📁 Asset Management</span>
-              <span class="feature-badge">🏪 Microsoft Store Ready</span>
-            </div>
+      <p>🥈 Silver Medal — S.T. Yau Science Award (Asia Regional) &nbsp;|&nbsp; 📄 <a href="assets/docs/yau-science-award-research-paper.pdf" download>Download Research Paper</a></p>
+    </div>
+  </div>
 
-            <p><strong>What makes it special:</strong> Bundled with Python 3.12.7 and MiKTeX Basic for seamless installation. Uses the officially recommended LaTeX distribution for Manim on Windows.</p>
-            <p><strong>Get started:</strong> Download the full app from Microsoft Store!</p>
-
-            <div class="mt-4">
-              <a href="https://apps.microsoft.com/detail/9NZFT55DVCBS" class="cta-btn">🏪 Microsoft Store</a>
-              <a href="projects.html" class="cta-btn">📖 Learn More</a>
-            </div>
+  <!-- Highlights Banner -->
+  <section class="highlights-banner">
+    <div class="container">
+      <div class="row">
+        <div class="col-6 col-md-3">
+          <div class="highlight-item">
+            <div class="highlight-number">3</div>
+            <div class="highlight-label">Microsoft Store Apps</div>
           </div>
-          
-          <div class="col-lg-4">
-            <div class="row">
-              <div class="col-6 mb-3">
-                <div class="stats-card">
-                  <div class="stats-number">0</div>
-                  <div>Admin Rights Needed</div>
-                </div>
-              </div>
-              <div class="col-6 mb-3">
-                <div class="stats-card">
-                  <div class="stats-number">3</div>
-                  <div>Components Bundled</div>
-                </div>
-              </div>
-              <div class="col-12">
-                <div class="stats-card">
-                  <div class="stats-number">Windows 10+</div>
-                  <div>Compatible</div>
-                </div>
-              </div>
-            </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="highlight-item">
+            <div class="highlight-number">30+</div>
+            <div class="highlight-label">iOS Python Libraries</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="highlight-item">
+            <div class="highlight-number">2</div>
+            <div class="highlight-label">PyPI Packages</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="highlight-item">
+            <div class="highlight-number">2</div>
+            <div class="highlight-label">Science Awards</div>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Welcome Section -->
+  <!-- Project Spotlights -->
+  <section class="container my-5">
+    <div class="text-center mb-5">
+      <h2 style="font-size: 2.2rem; font-weight: 700; color: #333;">Project Spotlights</h2>
+      <p class="text-muted">Flagship projects across Windows and iOS</p>
+    </div>
+
+    <div class="row g-4">
+      <!-- ManimStudio -->
+      <div class="col-lg-6">
+        <div class="spotlight-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+          <div class="mb-3">
+            <h3>🎯 ManimStudio</h3>
+            <span class="badge bg-light text-dark">v1.1.1.0</span>
+            <span class="badge bg-light text-dark ms-1">Windows</span>
+          </div>
+          <p class="spotlight-desc">Create stunning mathematical animations with a powerful GUI. Bundled with Python 3.12.7 and MiKTeX — no admin rights required. Available on the Microsoft Store.</p>
+          <div class="mb-3">
+            <span class="spotlight-tag">Visual Editor</span>
+            <span class="spotlight-tag">Live Preview</span>
+            <span class="spotlight-tag">Auto Dependencies</span>
+            <span class="spotlight-tag">MSIX Package</span>
+          </div>
+          <div class="d-flex gap-2 mt-auto">
+            <a href="https://apps.microsoft.com/detail/9NZFT55DVCBS" target="_blank" rel="noopener noreferrer" class="spotlight-btn">🏪 Microsoft Store</a>
+            <a href="projects.html" class="spotlight-btn">Learn More</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- python-ios-lib -->
+      <div class="col-lg-6">
+        <div class="spotlight-card" style="background: linear-gradient(135deg, #0f2027 0%, #203a43 40%, #2c5364 100%);">
+          <div class="mb-3">
+            <h3>🐍 python-ios-lib</h3>
+            <span class="badge bg-light text-dark">Python 3.14</span>
+            <span class="badge bg-warning text-dark ms-1">30+ Libs</span>
+          </div>
+          <p class="spotlight-desc">Full Python runtime for iOS/iPadOS with NumPy, SciPy, scikit-learn, manim, PyAV/FFmpeg, Cairo, Pillow, and more. Includes C/C++/Fortran interpreters. App Store safe.</p>
+          <div class="mb-3">
+            <span class="spotlight-tag">iOS 17+</span>
+            <span class="spotlight-tag">Fully Offline</span>
+            <span class="spotlight-tag">NumPy Native</span>
+            <span class="spotlight-tag">C/C++/Fortran</span>
+          </div>
+          <div class="d-flex gap-2 mt-auto">
+            <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="spotlight-btn">🐙 GitHub</a>
+            <a href="projects.html" class="spotlight-btn">Learn More</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Welcome / About Section -->
   <section class="container my-5 py-5 pattern-bg" style="border-radius: 15px;">
     <div class="row">
       <div class="col-lg-10 offset-lg-1 text-center">
-        <h2 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 20px;">Welcome to My Portfolio</h2>
-        <p class="lead" style="font-size: 1.3rem; line-height: 1.8; margin-bottom: 50px;">I'm passionate about creating innovative solutions that bridge mathematics, technology, and creativity. From developing GUI applications to analyzing complex data patterns, I love turning ideas into reality.</p>
+        <h2 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 20px;">What I Do</h2>
+        <p class="lead" style="font-size: 1.2rem; line-height: 1.8; margin-bottom: 50px;">I build tools that bridge mathematics, AI, and real-world applications — from desktop apps on the Microsoft Store to full Python runtimes on iOS, research in random matrix theory, and open-source packages on PyPI.</p>
 
-        <div class="row mt-5">
-          <div class="col-md-4 mb-4">
+        <div class="row mt-4">
+          <div class="col-md-3 mb-4">
             <div class="icon-box h-100">
-              <div style="font-size: 3.5rem; margin-bottom: 15px;">🔬</div>
-              <h4 style="color: var(--primary-dark); font-weight: 700; margin-bottom: 15px;">Mathematical Modeling</h4>
-              <p style="color: #666;">Advanced research in M-P Law, Stieltjes Transform, and statistical methods</p>
+              <div style="font-size: 3rem; margin-bottom: 15px;">🔬</div>
+              <h4 style="color: var(--primary-dark); font-weight: 700; margin-bottom: 10px; font-size: 1.1rem;">Mathematical Research</h4>
+              <p style="color: #666; font-size: 0.9rem;">Random matrix theory, Stieltjes transform, spectral distributions, and statistical modeling</p>
             </div>
           </div>
-          <div class="col-md-4 mb-4">
+          <div class="col-md-3 mb-4">
             <div class="icon-box h-100">
-              <div style="font-size: 3.5rem; margin-bottom: 15px;">🤖</div>
-              <h4 style="color: var(--primary-dark); font-weight: 700; margin-bottom: 15px;">AI & Machine Learning</h4>
-              <p style="color: #666;">Developing intelligent systems and exploring cutting-edge AI technologies</p>
+              <div style="font-size: 3rem; margin-bottom: 15px;">🤖</div>
+              <h4 style="color: var(--primary-dark); font-weight: 700; margin-bottom: 10px; font-size: 1.1rem;">AI & Machine Learning</h4>
+              <p style="color: #666; font-size: 0.9rem;">scikit-learn implementations, data visualization, and intelligent system design</p>
             </div>
           </div>
-          <div class="col-md-4 mb-4">
+          <div class="col-md-3 mb-4">
             <div class="icon-box h-100">
-              <div style="font-size: 3.5rem; margin-bottom: 15px;">💻</div>
-              <h4 style="color: var(--primary-dark); font-weight: 700; margin-bottom: 15px;">Software Development</h4>
-              <p style="color: #666;">Creating user-friendly applications and tools for complex mathematical tasks</p>
+              <div style="font-size: 3rem; margin-bottom: 15px;">💻</div>
+              <h4 style="color: var(--primary-dark); font-weight: 700; margin-bottom: 10px; font-size: 1.1rem;">Cross-Platform Apps</h4>
+              <p style="color: #666; font-size: 0.9rem;">Windows Store apps, iOS frameworks, and Python packages published on PyPI</p>
+            </div>
+          </div>
+          <div class="col-md-3 mb-4">
+            <div class="icon-box h-100">
+              <div style="font-size: 3rem; margin-bottom: 15px;">🎬</div>
+              <h4 style="color: var(--primary-dark); font-weight: 700; margin-bottom: 10px; font-size: 1.1rem;">Media & Graphics</h4>
+              <p style="color: #666; font-size: 0.9rem;">Math animations with Manim, video encoding with FFmpeg, and 2D graphics with Cairo</p>
             </div>
           </div>
         </div>
 
-        <!-- Call to Action -->
         <div class="mt-5">
-          <a href="projects.html" class="btn btn-primary btn-lg me-3" style="font-size: 1.1rem;">Explore My Projects</a>
-          <a href="about.html" class="btn btn-outline-primary btn-lg" style="font-size: 1.1rem;">About Me</a>
+          <a href="projects.html" class="btn btn-primary btn-lg me-3" style="font-size: 1.05rem;">Explore All Projects</a>
+          <a href="about.html" class="btn btn-outline-primary btn-lg" style="font-size: 1.05rem;">More About Me</a>
         </div>
       </div>
     </div>
