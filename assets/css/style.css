@@ -383,7 +383,7 @@ footer a:hover {
 }
 
 /* ======================
-   Easter Egg Overlays
+   Easter Egg Overlays — upgraded
    ====================== */
 #hidden-game,
 #hidden-admin {
@@ -396,27 +396,118 @@ footer a:hover {
   z-index: 9999;
 }
 
+@keyframes auroraShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes neonPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(124, 58, 237, 0.45), 0 0 60px rgba(6, 182, 212, 0.25); }
+  50%      { box-shadow: 0 0 35px rgba(34, 211, 238, 0.55), 0 0 80px rgba(168, 85, 247, 0.35); }
+}
+
 #hidden-game {
-  background-color: rgba(0,0,0,0.95);
   text-align: center;
-  color: #fff;
+  color: #f0f6ff;
   overflow: auto;
-  padding-top: 20px;
+  padding-top: 30px;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(124, 58, 237, 0.45) 0%, transparent 55%),
+    radial-gradient(circle at 82% 78%, rgba(6, 182, 212, 0.40) 0%, transparent 55%),
+    radial-gradient(circle at 50% 50%, rgba(236, 72, 153, 0.20) 0%, transparent 60%),
+    linear-gradient(135deg, #050816 0%, #0d0b2e 35%, #1a0e3d 70%, #050816 100%);
+  background-size: 200% 200%, 200% 200%, 200% 200%, 200% 200%;
+  animation: auroraShift 18s ease-in-out infinite;
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+#hidden-game::before {
+  content: "🎮 EASTER EGG · ARCADE";
+  display: block;
+  font-size: 0.85rem;
+  letter-spacing: 4px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.85);
+  text-transform: uppercase;
+  margin-top: 8px;
+  background: linear-gradient(90deg, #22d3ee 0%, #a855f7 50%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.4));
 }
 
 #gameControls {
-  margin: 10px auto;
-  padding: 20px;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 24px auto;
+  padding: 18px 28px;
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+#gameControls label {
+  color: #cbd5ff;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+#gameControls select {
+  background: rgba(15, 12, 41, 0.7);
+  color: #f0f6ff;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+#gameControls select:hover,
+#gameControls select:focus {
+  border-color: #22d3ee;
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.18);
+}
+
+#gameControls button {
+  background: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%);
+  color: #fff;
+  border: none;
+  padding: 9px 22px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);
+}
+
+#gameControls button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(34, 211, 238, 0.5);
 }
 
 #gameCanvas {
-  background: #222;
-  border: 2px solid #555;
-  border-radius: 8px;
-  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+  background:
+    radial-gradient(circle at 50% 50%, #1a1240 0%, #0a0820 100%);
+  border: 2px solid rgba(168, 85, 247, 0.5);
+  border-radius: 14px;
   margin: 20px auto;
   display: block;
-  max-width: 100%;
+  max-width: 95%;
+  animation: neonPulse 3.5s ease-in-out infinite;
 }
 
 #exitGame,
@@ -424,49 +515,254 @@ footer a:hover {
   position: fixed;
   top: 20px;
   right: 20px;
-  background: #444;
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.85) 0%, rgba(124, 58, 237, 0.85) 100%);
   color: #fff;
-  border: none;
-  padding: 12px 20px;
-  font-size: 1rem;
+  border: 1px solid rgba(255,255,255,0.25);
+  padding: 11px 22px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
   cursor: pointer;
-  border-radius: 5px;
+  border-radius: 10px;
   transition: var(--transition);
   z-index: 10000;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 20px rgba(236, 72, 153, 0.35);
 }
 
 #exitGame:hover,
 #exitAdmin:hover {
-  background: #666;
-  transform: scale(1.05);
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 8px 28px rgba(236, 72, 153, 0.55);
 }
 
 #exitAdmin {
   left: 20px;
   right: auto;
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.85) 0%, rgba(124, 58, 237, 0.85) 100%);
+  box-shadow: 0 4px 20px rgba(34, 211, 238, 0.35);
+}
+
+#exitAdmin:hover {
+  box-shadow: 0 8px 28px rgba(34, 211, 238, 0.55);
 }
 
 #hidden-admin {
-  background-color: rgba(10,10,10,0.95);
   overflow-y: auto;
   padding: 30px;
-  color: #fff;
+  color: #f0f6ff;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(6, 182, 212, 0.30) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(124, 58, 237, 0.30) 0%, transparent 50%),
+    linear-gradient(160deg, #050816 0%, #0a0e27 50%, #0d0b2e 100%);
+}
+
+#hidden-admin::before {
+  content: "🔒 ADMIN · VISITOR LOG";
+  display: block;
+  text-align: center;
+  font-size: 0.8rem;
+  letter-spacing: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  background: linear-gradient(90deg, #22d3ee 0%, #a855f7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 #adminPanel {
   max-width: 800px;
-  margin: 0 auto;
-  background: #333;
-  padding: 30px;
-  border-radius: 12px;
-  box-shadow: var(--shadow-lg);
+  margin: 20px auto;
+  background: rgba(20, 16, 50, 0.65);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  padding: 36px;
+  border-radius: 18px;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05) inset;
+}
+
+#adminPanel h2 {
+  background: linear-gradient(90deg, #22d3ee 0%, #a855f7 50%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 800;
+  margin-bottom: 18px;
+  padding-bottom: 0;
+}
+
+#adminPanel h2::after { display: none; }
+
+#adminPanel h4 {
+  color: #cbd5ff;
+  font-weight: 700;
+  margin-top: 18px;
+  margin-bottom: 10px;
+}
+
+#adminPanel p strong { color: #22d3ee; }
+
+#visitorCount {
+  font-size: 1.6rem;
+  font-weight: 800;
+  background: linear-gradient(90deg, #22d3ee, #a855f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-left: 6px;
+}
+
+#visitLogs {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+#visitLogs li {
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  font-family: 'SF Mono', 'Consolas', monospace;
+  font-size: 0.85rem;
+  color: #d8e0ff;
+}
+
+#visitLogs li:last-child { border-bottom: none; }
+#visitLogs li:hover { background: rgba(168, 85, 247, 0.10); }
+
+#adminPanel button {
+  background: linear-gradient(135deg, #ec4899 0%, #7c3aed 100%);
+  color: #fff;
+  border: none;
+  padding: 10px 22px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-top: 14px;
+  transition: var(--transition);
+  box-shadow: 0 4px 14px rgba(236, 72, 153, 0.35);
+}
+
+#adminPanel button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(236, 72, 153, 0.5);
 }
 
 #scoreDisplay {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-top: 20px;
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin-top: 24px;
+  letter-spacing: 1px;
+  background: linear-gradient(90deg, #22d3ee 0%, #a855f7 50%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.4));
 }
+
+/* ======================
+   Device-Aware Theming (tablet / phone / desktop)
+   ====================== */
+/* Base = desktop. Body gets a class when JS detects device type;
+   each class flips a few CSS variables and tweaks the chrome so
+   the site visibly adapts to phone / tablet / desktop hardware. */
+
+body[data-device="desktop"] {
+  --device-accent: #4c1d95;
+  --device-accent-2: #06b6d4;
+  --device-glyph: "🖥️";
+  --device-label: "Desktop";
+}
+body[data-device="tablet"] {
+  --device-accent: #0891b2;
+  --device-accent-2: #14b8a6;
+  --device-glyph: "📱"; /* tablet emoji is the same family in many fonts */
+  --device-label: "Tablet";
+}
+body[data-device="phone"] {
+  --device-accent: #db2777;
+  --device-accent-2: #f97316;
+  --device-glyph: "📱";
+  --device-label: "Phone";
+}
+
+/* Floating "you're on X" chip — only visible when JS sets data-device */
+.device-chip {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  z-index: 8000;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px 8px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(135deg, var(--device-accent, #4c1d95) 0%, var(--device-accent-2, #06b6d4) 100%);
+  border-radius: 100px;
+  border: 1px solid rgba(255,255,255,0.2);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  cursor: default;
+  user-select: none;
+  transition: var(--transition);
+}
+.device-chip:hover { transform: translateY(-2px); }
+body[data-device] .device-chip { display: inline-flex; }
+.device-chip .glyph { font-size: 1rem; line-height: 1; }
+.device-chip::after {
+  content: var(--device-label, "");
+}
+
+/* Recolor the hero badge + spotlight CTAs subtly per device */
+body[data-device="phone"] .navbar.scrolled,
+body[data-device="phone"] footer { background: linear-gradient(90deg, #1f0a1c 0%, #2a0f1d 100%) !important; }
+body[data-device="tablet"] .navbar.scrolled,
+body[data-device="tablet"] footer { background: linear-gradient(90deg, #062a2f 0%, #08313a 100%) !important; }
+
+/* Phone-specific layout tightening */
+body[data-device="phone"] .hero { min-height: 88vh; }
+body[data-device="phone"] .hero h1 { font-size: clamp(2rem, 8vw, 2.6rem); }
+body[data-device="phone"] .hero p { font-size: clamp(1rem, 4vw, 1.15rem); }
+body[data-device="phone"] .highlights-banner { padding: 32px 0; }
+body[data-device="phone"] .highlight-number { font-size: 1.9rem; }
+body[data-device="phone"] .highlight-label { font-size: 0.7rem; letter-spacing: 0.5px; }
+body[data-device="phone"] .spotlight-card { padding: 26px 22px; }
+body[data-device="phone"] .spotlight-card h3 { font-size: 1.3rem; }
+body[data-device="phone"] .spotlight-tag { font-size: 0.7rem; padding: 2px 9px; }
+body[data-device="phone"] .featured-project .col-lg-10,
+body[data-device="phone"] .featured-project .col-xl-9,
+body[data-device="phone"] .featured-project .col-lg-11,
+body[data-device="phone"] .featured-project .col-xl-10 { padding: 1.5rem !important; }
+body[data-device="phone"] .lib-category-card { padding: 14px; }
+body[data-device="phone"] .lib-category-card h5 { font-size: 0.92rem; }
+body[data-device="phone"] .feature-badge { padding: 6px 12px; font-size: 0.78rem; }
+body[data-device="phone"] .download-btn,
+body[data-device="phone"] .cta-btn { padding: 11px 20px; font-size: 0.92rem; }
+body[data-device="phone"] #gameCanvas { max-width: 96vw; }
+
+/* Tablet — medium density */
+body[data-device="tablet"] .hero h1 { font-size: clamp(2.6rem, 6vw, 3.4rem); }
+body[data-device="tablet"] .spotlight-card { padding: 32px 28px; }
+body[data-device="tablet"] .feature-badge { padding: 7px 14px; font-size: 0.85rem; }
+
+/* Desktop — keep the airy default but a touch more presence */
+body[data-device="desktop"] .hero h1 { letter-spacing: -0.5px; }
+body[data-device="desktop"] .spotlight-card:hover { transform: translateY(-7px); }
 
 /* ======================
    Responsive Design
