@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <!-- SEO Meta Tags -->
-  <meta name="description" content="Yu, Yao-Hsing 尤耀星's Projects - ManimStudio, Python iOS Lib, Generalized Covariance Matrix, and more innovative tools and applications.">
-  <meta name="keywords" content="Yu, Yao-Hsing 尤耀星, projects, ManimStudio, python-ios-lib, iOS, data analysis, mathematical modeling, portfolio">
+  <meta name="description" content="Yu, Yao-Hsing 尤耀星's Projects - CodeBench, ManimStudio, Python iOS Lib, Generalized Covariance Matrix, and more innovative tools and applications.">
+  <meta name="keywords" content="Yu, Yao-Hsing 尤耀星, projects, CodeBench, ManimStudio, python-ios-lib, iPad IDE, on-device LLM, iOS, data analysis, mathematical modeling, portfolio">
   <meta name="author" content="Yu, Yao-Hsing 尤耀星">
   <meta name="robots" content="index, follow">
 
@@ -231,7 +231,151 @@
       </div>
     </article>
 
-    <!-- Featured Project 2: Python iOS Lib -->
+    <!-- Featured Project 2: CodeBench -->
+    <article class="featured-project mb-5 rounded-4 shadow-lg" style="background: linear-gradient(135deg, #0a0e27 0%, #1e1b4b 22%, #4c1d95 50%, #7c3aed 78%, #06b6d4 100%); position: relative; overflow: hidden;">
+      <div style="position: absolute; top: -80px; right: -60px; width: 380px; height: 380px; background: radial-gradient(circle, rgba(34,211,238,0.30) 0%, transparent 70%); pointer-events: none; z-index: 0;"></div>
+      <div style="position: absolute; bottom: -100px; left: -80px; width: 420px; height: 420px; background: radial-gradient(circle, rgba(168,85,247,0.28) 0%, transparent 70%); pointer-events: none; z-index: 0;"></div>
+      <div style="position: absolute; top: 30%; left: 50%; width: 300px; height: 300px; background: radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%); pointer-events: none; z-index: 0; transform: translate(-50%, -50%);"></div>
+      <div class="featured-content" style="position: relative; z-index: 1;">
+        <div class="row g-0 align-items-center justify-content-center">
+          <div class="col-lg-11 col-xl-10 p-4 p-md-5 text-center">
+            <header class="mb-4">
+              <div class="d-flex align-items-center justify-content-center mb-3">
+                <span class="display-6 me-3">🛠️</span>
+                <div>
+                  <h3 class="h2 mb-1 fw-bold">CodeBench</h3>
+                  <span class="badge bg-light text-dark">iPad · iPadOS · Mac Catalyst</span>
+                  <span class="badge bg-warning text-dark ms-1">Local AI</span>
+                </div>
+              </div>
+              <p class="lead mb-0">A self-contained developer / scientific / AI workstation for iPad and Mac. Python 3.14, C, C++, Fortran, pdflatex, and local LLMs — all running on-device, no internet required.</p>
+            </header>
+
+            <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
+              <span class="feature-badge">📝 Monaco Editor</span>
+              <span class="feature-badge">🧠 IntelliSense</span>
+              <span class="feature-badge">⌨️ SwiftTerm REPL</span>
+              <span class="feature-badge">📐 pdflatex</span>
+              <span class="feature-badge">🦙 llama.cpp</span>
+              <span class="feature-badge">⚡ ExecuTorch</span>
+              <span class="feature-badge">🔍 RAG Engine</span>
+              <span class="feature-badge">🎨 Image Gen</span>
+              <span class="feature-badge">💾 Auto-save</span>
+            </div>
+
+            <!-- Capability Grid -->
+            <div class="row g-3 mb-4">
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>📝 Code Editor <span class="lib-count-badge">VS Code</span></h5>
+                  <p class="mt-1 mb-0" style="font-size:0.82rem; opacity:0.9; text-align:left;">Real Monaco editor in WKWebView. Python IntelliSense with ~70-entry signature DB, hover docs, and live resolve from the embedded Python daemon for numpy / scipy / sklearn / matplotlib / sympy completions.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>⌨️ Integrated Terminal <span class="lib-count-badge">PTY</span></h5>
+                  <p class="mt-1 mb-0" style="font-size:0.82rem; opacity:0.9; text-align:left;">SwiftTerm-backed terminal piped through a real PTY into the embedded CPython REPL. Type Python directly, or use POSIX-style builtins like <code style="color:#ffd;">ls</code>, <code style="color:#ffd;">grep</code>, <code style="color:#ffd;">ncdu</code>, <code style="color:#ffd;">top</code>, <code style="color:#ffd;">git clone</code>.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>📐 On-Device pdflatex <span class="lib-count-badge">WASM</span></h5>
+                  <p class="mt-1 mb-0" style="font-size:0.82rem; opacity:0.9; text-align:left;">busytex (pdftex 1.40.25 + xetex + luatex + bibtex8) running in a hidden WKWebView. TeX Live 2023 preloaded into MEMFS plus a 23 MB overlay with PGF/TikZ/beamer, hyperref, mathtools, microtype, fontspec, CJK.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>🦙 Local LLMs <span class="lib-count-badge">GGUF</span></h5>
+                  <p class="mt-1 mb-0" style="font-size:0.82rem; opacity:0.9; text-align:left;">llama.cpp as an XCFramework — load any Llama / Mistral / Qwen / Phi GGUF model and chat with streaming tokens. ExecuTorch backends for Apple Core ML / XNNPACK kernel-optimized PyTorch inference.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>🔍 RAG &amp; Image Gen <span class="lib-count-badge">offline</span></h5>
+                  <p class="mt-1 mb-0" style="font-size:0.82rem; opacity:0.9; text-align:left;">In-process sentence-embedding + vector store over user-imported text / PDF / markdown. Offline image generation via ExecuTorch-runnable diffusion models. All models stay in the app sandbox — no tokens leave the device.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>💾 Workspace System <span class="lib-count-badge">multi-tab</span></h5>
+                  <p class="mt-1 mb-0" style="font-size:0.82rem; opacity:0.9; text-align:left;">iOS document browser with multiple concurrent workspaces. Auto-save debounced ~600 ms after every keystroke + on run, tab-switch, view-disappear, and app-backgrounding. Tombstone system records deleted files so seeders don't resurrect them.</p>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Languages strip -->
+            <div class="mb-4">
+              <h4 class="h6 fw-bold mb-3" style="opacity:0.95;">Languages — all share Monaco + IntelliSense + auto-save</h4>
+              <div class="d-flex flex-wrap justify-content-center gap-2">
+                <span class="feature-badge">Python 3.14 (BeeWare CPython)</span>
+                <span class="feature-badge">C — 3.4k LOC interpreter</span>
+                <span class="feature-badge">C++ — 4.2k LOC interpreter</span>
+                <span class="feature-badge">Fortran — 4.1k LOC interpreter</span>
+              </div>
+            </div>
+
+            <!-- Specs row -->
+            <div class="row g-3 mb-4 justify-content-center">
+              <div class="col-md-5">
+                <div class="requirements-list">
+                  <h5 class="h6 fw-bold mb-3">📋 Built On</h5>
+                  <ul class="small mb-0 text-start">
+                    <li><strong>python-ios-lib</strong> — runtime layer</li>
+                    <li>SwiftTerm — xterm-compatible PTY</li>
+                    <li>Monaco Editor — VS Code in WebView</li>
+                    <li>busytex — TeX Live 2023 in WASM</li>
+                    <li>llama.cpp + ExecuTorch — local AI</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="col-md-5">
+                <div class="installation-steps">
+                  <h5 class="h6 fw-bold mb-3">📦 Bundle Composition</h5>
+                  <ul class="small mb-0 text-start">
+                    <li>~1 GB installed app size</li>
+                    <li>791 MB Frameworks (Python, llama, ExecuTorch)</li>
+                    <li>484 MB Python site-packages</li>
+                    <li>254 MB Swift source + LaTeX data</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">Technical Specifications</h4>
+              <div class="d-inline-block text-start">
+                <p class="small mb-1"><strong>Created by:</strong> Yu Yao-Hsing</p>
+                <p class="small mb-1"><strong>Platforms:</strong> iPad · iPadOS · Mac Catalyst</p>
+                <p class="small mb-1"><strong>Runtime:</strong> Python 3.14 + four interpreters</p>
+                <p class="small mb-1"><strong>Editor:</strong> Monaco (VS Code) in WKWebView</p>
+                <p class="small mb-0"><strong>Status:</strong> Active Development</p>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap justify-content-center gap-3">
+              <a href="https://github.com/yu314-coder/codebench" target="_blank" rel="noopener noreferrer" class="download-btn">
+                🐙 GitHub Repository
+              </a>
+              <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="download-btn">
+                🧱 Runtime Layer
+              </a>
+              <a href="mailto:euler.yu@gmail.com" class="download-btn">
+                📧 Contact Developer
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- Featured Project 3: Python iOS Lib -->
     <article class="featured-project mb-5 rounded-4 shadow-lg" style="background: linear-gradient(135deg, #0f2027 0%, #203a43 40%, #2c5364 100%);">
       <div class="featured-content">
         <div class="row g-0 align-items-center justify-content-center">
@@ -245,7 +389,7 @@
                   <span class="badge bg-warning text-dark ms-1">30+ Libraries</span>
                 </div>
               </div>
-              <p class="lead mb-0">Full Python 3.14 runtime for iOS/iPadOS with 30+ offline libraries — including native PyTorch, HuggingFace transformers, and Rust tokenizers. Train on-device. No JIT, App Store safe.</p>
+              <p class="lead mb-0">Full Python 3.14 runtime for iOS/iPadOS with 30+ offline libraries — including native PyTorch, HuggingFace transformers, and Rust tokenizers. Train on-device. No JIT, App Store safe. Powers <strong>CodeBench</strong>.</p>
             </header>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
@@ -357,6 +501,46 @@
               <p class="small mb-2" style="opacity:0.8;"><strong>+ Utilities:</strong> rich, tqdm, Pygments (500+ langs), click, pydub, packaging, srt, svgelements, cffi</p>
             </div>
 
+            <!-- App-side capabilities (CodeBench-driven) -->
+            <div class="row g-3 mb-4">
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>📝 Monaco IntelliSense <span class="lib-count-badge">~70 sigs</span></h5>
+                  <p class="mt-1 mb-0" style="font-size:0.78rem; opacity:0.85; text-align:left;">Real VS Code editor in WKWebView with Python signature help, hover docs, and live resolve from Python for numpy / scipy / sklearn / matplotlib / sympy.</p>
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>📐 Expanded LaTeX Bundle <span class="lib-count-badge">33 MB</span></h5>
+                  <p class="mt-1 mb-0" style="font-size:0.78rem; opacity:0.85; text-align:left;">Full Latin Modern Type 1 fonts, expl3 (1.3 MB), firstaid, hyphenation, unicode-data, pdftex.map. Math-mode rendering via SwiftMath is unlimited.</p>
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>⌨️ Shell Builtins <span class="lib-count-badge">POSIX-y</span></h5>
+                  <p class="mt-1 mb-0" style="font-size:0.78rem; opacity:0.85; text-align:left;"><code style="color:#ffd;">ncdu</code> with arrow-key navigation, <code style="color:#ffd;">top</code> with Apple-chip detection, <code style="color:#ffd;">git clone</code> via zipball fetch, universal <code style="color:#ffd;">--help</code> interception.</p>
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>💾 Auto-save <span class="lib-count-badge">~600 ms</span></h5>
+                  <p class="mt-1 mb-0" style="font-size:0.78rem; opacity:0.85; text-align:left;">Edits persist to disk on every keystroke (debounced) plus on run, tab-switch, view-disappear, and app-backgrounding. No more lost edits on reopen.</p>
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>🪦 Tombstone System <span class="lib-count-badge">.offlinai_deleted</span></h5>
+                  <p class="mt-1 mb-0" style="font-size:0.78rem; opacity:0.85; text-align:left;">Files deleted via UI / shell <code style="color:#ffd;">rm</code> / ncdu's <code style="color:#ffd;">d</code> are recorded so starter-script seeders (<code style="color:#ffd;">pip_demo.py</code>, <code style="color:#ffd;">torch_test_all.py</code>) won't re-create them.</p>
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>🧪 Test Coverage <span class="lib-count-badge">24/24</span></h5>
+                  <p class="mt-1 mb-0" style="font-size:0.78rem; opacity:0.85; text-align:left;">Full integration test for the transformers stack passes 24/24. PyTorch ships 95/95 correctness asserts. First public iOS builds for PyTorch + tokenizers.</p>
+                </div>
+              </div>
+            </div>
+
             <!-- Specs row -->
             <div class="row g-3 mb-4 justify-content-center">
               <div class="col-md-5">
@@ -407,7 +591,7 @@
       </div>
     </article>
 
-    <!-- Featured Project 3: Generalized Covariance Matrix -->
+    <!-- Featured Project 4: Generalized Covariance Matrix -->
     <article class="featured-project rounded-4 shadow-lg" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
       <div class="featured-content">
         <div class="row g-0 align-items-center justify-content-center">
