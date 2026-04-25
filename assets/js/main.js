@@ -254,13 +254,13 @@
         radius: 10,
         dx: 3,
         dy: -3,
-        color: 'orange'
+        color: '#ec4899'
       };
       this.paddle = {
         width: 75,
         height: 10,
         x: (canvas.width - 75) / 2,
-        color: 'cyan',
+        color: '#22d3ee',
         speed: 7
       };
 
@@ -316,7 +316,7 @@
     },
 
     drawBricks: function(ctx) {
-      const colors = ['#e74c3c', '#e67e22', '#f1c40f', '#2ecc71', '#3498db'];
+      const colors = ['#ec4899', '#a855f7', '#7c3aed', '#06b6d4', '#22d3ee'];
       for (let c = 0; c < this.config.brickColumnCount; c++) {
         for (let r = 0; r < this.config.brickRowCount; r++) {
           if (this.bricks[c][r].status === 1) {
@@ -421,7 +421,7 @@
         y: canvas.height - 60,
         width: 40,
         height: 40,
-        color: 'lime',
+        color: '#22d3ee',
         dy: 0,
         gravity: 0.8,
         jumpForce: -15,
@@ -432,7 +432,7 @@
         y: canvas.height - 50,
         width: 20,
         height: 50,
-        color: 'red',
+        color: '#ec4899',
         speed: 4
       };
       this.gameOver = false;
@@ -534,7 +534,57 @@
   // ===================================
   // Initialize on DOM Load
   // ===================================
+  // ===================================
+  // Device-Aware Theming
+  // ===================================
+  const DeviceDetect = {
+    detect: function() {
+      const ua = (navigator.userAgent || '').toLowerCase();
+      const w = Math.min(window.innerWidth, window.screen.width || window.innerWidth);
+      const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+      // iPad masquerades as Mac on iPadOS 13+ — use touch + screen heuristic
+      const isIPad = /ipad/.test(ua) || (ua.includes('macintosh') && hasTouch);
+      const isPhone = /iphone|ipod|android.*mobile|windows phone|blackberry|bb10/.test(ua);
+      const isAndroidTablet = /android/.test(ua) && !/mobile/.test(ua);
+
+      if (isPhone || (hasTouch && w < 600)) return 'phone';
+      if (isIPad || isAndroidTablet || (hasTouch && w >= 600 && w < 1180)) return 'tablet';
+      return 'desktop';
+    },
+
+    apply: function() {
+      const kind = this.detect();
+      document.body.setAttribute('data-device', kind);
+      // Inject floating chip if not present
+      if (!document.querySelector('.device-chip')) {
+        const chip = document.createElement('div');
+        chip.className = 'device-chip';
+        chip.title = 'Detected hardware — site theme adapts';
+        const glyph = document.createElement('span');
+        glyph.className = 'glyph';
+        glyph.textContent = kind === 'desktop' ? '🖥️' : (kind === 'tablet' ? '🖼️' : '📱');
+        chip.appendChild(glyph);
+        document.body.appendChild(chip);
+      }
+      // Re-detect on resize / orientation change
+      let t;
+      window.addEventListener('resize', () => {
+        clearTimeout(t);
+        t = setTimeout(() => {
+          const next = this.detect();
+          if (next !== document.body.getAttribute('data-device')) {
+            document.body.setAttribute('data-device', next);
+            const g = document.querySelector('.device-chip .glyph');
+            if (g) g.textContent = next === 'desktop' ? '🖥️' : (next === 'tablet' ? '🖼️' : '📱');
+          }
+        }, 200);
+      });
+    }
+  };
+
   document.addEventListener('DOMContentLoaded', function() {
+    DeviceDetect.apply();
     AdminPanel.init();
     GameSystem.init();
     console.log('Portfolio website loaded successfully!');

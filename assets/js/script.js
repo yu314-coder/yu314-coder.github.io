@@ -65,4 +65,48 @@
     }
   });
 
+  // ===================================
+  // Device-Aware Theming (shared on all pages)
+  // ===================================
+  function detectDevice() {
+    const ua = (navigator.userAgent || '').toLowerCase();
+    const w = Math.min(window.innerWidth, window.screen.width || window.innerWidth);
+    const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    const isIPad = /ipad/.test(ua) || (ua.includes('macintosh') && hasTouch);
+    const isPhone = /iphone|ipod|android.*mobile|windows phone|blackberry|bb10/.test(ua);
+    const isAndroidTablet = /android/.test(ua) && !/mobile/.test(ua);
+    if (isPhone || (hasTouch && w < 600)) return 'phone';
+    if (isIPad || isAndroidTablet || (hasTouch && w >= 600 && w < 1180)) return 'tablet';
+    return 'desktop';
+  }
+
+  function applyDevice() {
+    const kind = detectDevice();
+    document.body.setAttribute('data-device', kind);
+    if (!document.querySelector('.device-chip')) {
+      const chip = document.createElement('div');
+      chip.className = 'device-chip';
+      chip.title = 'Detected hardware — site theme adapts';
+      const glyph = document.createElement('span');
+      glyph.className = 'glyph';
+      glyph.textContent = kind === 'desktop' ? '🖥️' : (kind === 'tablet' ? '🖼️' : '📱');
+      chip.appendChild(glyph);
+      document.body.appendChild(chip);
+    }
+    let t;
+    window.addEventListener('resize', () => {
+      clearTimeout(t);
+      t = setTimeout(() => {
+        const next = detectDevice();
+        if (next !== document.body.getAttribute('data-device')) {
+          document.body.setAttribute('data-device', next);
+          const g = document.querySelector('.device-chip .glyph');
+          if (g) g.textContent = next === 'desktop' ? '🖥️' : (next === 'tablet' ? '🖼️' : '📱');
+        }
+      }, 200);
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', applyDevice);
+
 })();
