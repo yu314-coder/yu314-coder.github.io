@@ -97,6 +97,18 @@
       vertical-align: middle;
       letter-spacing: 0.3px;
     }
+    .new-badge {
+      display: inline-block;
+      background: #5cb85c;
+      color: #fff;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 0.6rem;
+      font-weight: 700;
+      margin-left: 4px;
+      vertical-align: middle;
+      letter-spacing: 0.3px;
+    }
 
     /* Category section headers for Other Projects */
     .category-header {
@@ -416,7 +428,7 @@
                     <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/numpy.md" target="_blank" rel="noopener noreferrer" class="lib-link">NumPy</a></td><td>2.3.5</td></tr>
                     <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/scipy.md" target="_blank" rel="noopener noreferrer" class="lib-link">SciPy</a></td><td>1.15.0</td></tr>
                     <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/sympy.md" target="_blank" rel="noopener noreferrer" class="lib-link">SymPy</a></td><td>1.14.0</td></tr>
-                    <tr><td>mpmath</td><td>1.4.1</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/mpmath.md" target="_blank" rel="noopener noreferrer" class="lib-link">mpmath</a></td><td>1.4.1</td></tr>
                   </table>
                 </div>
               </div>
@@ -443,7 +455,7 @@
                   <table>
                     <tr><th>Library</th><th>Ver</th></tr>
                     <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/matplotlib.md" target="_blank" rel="noopener noreferrer" class="lib-link">matplotlib</a></td><td>3.9.0</td></tr>
-                    <tr><td>Plotly</td><td>6.6.0</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/plotly.md" target="_blank" rel="noopener noreferrer" class="lib-link">Plotly</a></td><td>6.6.0</td></tr>
                     <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/manim.md" target="_blank" rel="noopener noreferrer" class="lib-link">manim</a> <span class="dev-badge">BETA</span></td><td>0.20.1</td></tr>
                   </table>
                   <p class="mt-2 mb-0" style="font-size:0.75rem; opacity:0.8;">145+ mobjects, 73 animations, interactive Plotly HTML charts</p>
@@ -456,11 +468,11 @@
                   <h5>🎬 Media & Rendering <span class="lib-count-badge">5</span></h5>
                   <table>
                     <tr><th>Library</th><th>Type</th></tr>
-                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/media.md" target="_blank" rel="noopener noreferrer" class="lib-link">PyAV</a></td><td>17 C exts</td></tr>
-                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/media.md" target="_blank" rel="noopener noreferrer" class="lib-link">FFmpeg</a></td><td>7 dylibs</td></tr>
-                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/media.md" target="_blank" rel="noopener noreferrer" class="lib-link">Cairo</a></td><td>Native iOS</td></tr>
-                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/media.md" target="_blank" rel="noopener noreferrer" class="lib-link">Pillow</a></td><td>12.2.0</td></tr>
-                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/media.md" target="_blank" rel="noopener noreferrer" class="lib-link">offlinai_latex</a></td><td>pdftex C</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/ffmpeg-pyav.md" target="_blank" rel="noopener noreferrer" class="lib-link">PyAV</a></td><td>17 C exts</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/ffmpeg-pyav.md" target="_blank" rel="noopener noreferrer" class="lib-link">FFmpeg</a></td><td>7 dylibs</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/cairographics.md" target="_blank" rel="noopener noreferrer" class="lib-link">Cairo + Pango</a></td><td>Native iOS</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/pillow.md" target="_blank" rel="noopener noreferrer" class="lib-link">Pillow</a></td><td>12.2.0</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/latex-engine.md" target="_blank" rel="noopener noreferrer" class="lib-link">offlinai_latex</a></td><td>SwiftMath + 33MB texmf</td></tr>
                   </table>
                 </div>
               </div>
@@ -468,14 +480,15 @@
               <!-- Data & Web -->
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>🌐 Data & Web <span class="lib-count-badge">5</span></h5>
+                  <h5>🌐 Data & Web <span class="lib-count-badge">6</span></h5>
                   <table>
                     <tr><th>Library</th><th>Purpose</th></tr>
-                    <tr><td>requests</td><td>HTTP client</td></tr>
-                    <tr><td>BeautifulSoup4</td><td>HTML parse</td></tr>
-                    <tr><td>NetworkX</td><td>Graphs</td></tr>
-                    <tr><td>jsonschema</td><td>Validation</td></tr>
-                    <tr><td>PyYAML</td><td>YAML</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/pywebview.md" target="_blank" rel="noopener noreferrer" class="lib-link">PyWebView</a> <span class="new-badge">NEW</span></td><td>v5.4.0 — iOS WKWebView</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/requests.md" target="_blank" rel="noopener noreferrer" class="lib-link">requests</a></td><td>HTTP client</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/beautifulsoup.md" target="_blank" rel="noopener noreferrer" class="lib-link">BeautifulSoup4</a></td><td>HTML parse</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/networkx.md" target="_blank" rel="noopener noreferrer" class="lib-link">NetworkX</a></td><td>Graphs</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/jsonschema.md" target="_blank" rel="noopener noreferrer" class="lib-link">jsonschema</a></td><td>Validation</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/pyyaml.md" target="_blank" rel="noopener noreferrer" class="lib-link">PyYAML</a></td><td>YAML</td></tr>
                   </table>
                 </div>
               </div>
@@ -486,9 +499,9 @@
                   <h5>💻 Interpreters <span class="lib-count-badge">3</span></h5>
                   <table>
                     <tr><th>Language</th><th>Details</th></tr>
-                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/interpreters.md" target="_blank" rel="noopener noreferrer" class="lib-link">C</a></td><td>~3,450 lines</td></tr>
-                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/interpreters.md" target="_blank" rel="noopener noreferrer" class="lib-link">C++</a></td><td>~4,200 lines</td></tr>
-                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/interpreters.md" target="_blank" rel="noopener noreferrer" class="lib-link">Fortran</a></td><td>~4,100 lines</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/c-interpreter.md" target="_blank" rel="noopener noreferrer" class="lib-link">C</a></td><td>~3,661 lines</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/cpp-interpreter.md" target="_blank" rel="noopener noreferrer" class="lib-link">C++</a></td><td>~4,287 lines</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/fortran-interpreter.md" target="_blank" rel="noopener noreferrer" class="lib-link">Fortran</a></td><td>~3,876 lines</td></tr>
                   </table>
                   <p class="mt-2 mb-0" style="font-size:0.75rem; opacity:0.8;">Tree-walking interpreters — structs, templates, STL, modules</p>
                 </div>
@@ -496,9 +509,38 @@
 
             </div>
 
-            <!-- Utilities (collapsed list) -->
-            <div class="mb-4">
-              <p class="small mb-2" style="opacity:0.8;"><strong>+ Utilities:</strong> rich, tqdm, Pygments (500+ langs), click, pydub, packaging, srt, svgelements, cffi</p>
+            <!-- Additional Categories: Terminal Utilities + System & Graphics -->
+            <div class="row g-3 mb-4">
+              <!-- Terminal & CLI Utilities -->
+              <div class="col-md-6">
+                <div class="lib-category-card">
+                  <h5>🛠️ Terminal & CLI Utilities <span class="lib-count-badge">5</span></h5>
+                  <table>
+                    <tr><th>Library</th><th>Purpose</th></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/rich.md" target="_blank" rel="noopener noreferrer" class="lib-link">rich</a></td><td>Tables, progress bars</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/tqdm.md" target="_blank" rel="noopener noreferrer" class="lib-link">tqdm</a></td><td>Loop progress</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/click.md" target="_blank" rel="noopener noreferrer" class="lib-link">click</a></td><td>CLI framework</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/pygments.md" target="_blank" rel="noopener noreferrer" class="lib-link">Pygments</a></td><td>Syntax highlight (500+)</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/pydub.md" target="_blank" rel="noopener noreferrer" class="lib-link">pydub</a></td><td>Audio manipulation</td></tr>
+                  </table>
+                </div>
+              </div>
+              <!-- System & Graphics -->
+              <div class="col-md-6">
+                <div class="lib-category-card">
+                  <h5>⚙️ System & Graphics <span class="lib-count-badge">7</span></h5>
+                  <table>
+                    <tr><th>Library</th><th>Ver</th></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/process-and-io.md" target="_blank" rel="noopener noreferrer" class="lib-link">psutil</a></td><td>5.9.8</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/process-and-io.md" target="_blank" rel="noopener noreferrer" class="lib-link">watchdog</a></td><td>4.0.0</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/moderngl.md" target="_blank" rel="noopener noreferrer" class="lib-link">moderngl</a></td><td>5.12.0</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/svgelements.md" target="_blank" rel="noopener noreferrer" class="lib-link">svgelements</a></td><td>1.9.6</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/decorator.md" target="_blank" rel="noopener noreferrer" class="lib-link">decorator</a> <span class="new-badge">NEW</span></td><td>5.1.1</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/safetensors.md" target="_blank" rel="noopener noreferrer" class="lib-link">safetensors</a></td><td>HF deps</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/huggingface-hub.md" target="_blank" rel="noopener noreferrer" class="lib-link">huggingface-hub</a></td><td>HF deps</td></tr>
+                  </table>
+                </div>
+              </div>
             </div>
 
             <!-- App-side capabilities (CodeBench-driven) -->
