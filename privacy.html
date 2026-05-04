@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <!-- SEO Meta Tags -->
-  <meta name="description" content="Privacy Policies for Yu, Yao-Hsing 尤耀星's Applications - t-SNE Explorer and Generalized Covariance Matrix">
-  <meta name="keywords" content="privacy policy, data protection, t-SNE Explorer, Generalized Covariance Matrix">
+  <meta name="description" content="Privacy Policies for Yu, Yao-Hsing 尤耀星's Applications - t-SNE Explorer, Manim Studio, Generalized Covariance Matrix, and EigenDenoise">
+  <meta name="keywords" content="privacy policy, data protection, t-SNE Explorer, Manim Studio, Generalized Covariance Matrix, EigenDenoise">
   <meta name="author" content="Yu, Yao-Hsing 尤耀星">
   <meta name="robots" content="index, follow">
 
@@ -141,6 +141,7 @@
           <a href="#tsne">t-SNE Explorer</a>
           <a href="#manim-studio">Manim Studio</a>
           <a href="#random-matrix">Generalized Covariance Matrix</a>
+          <a href="#eigendenoise">EigenDenoise</a>
         </div>
       </div>
 
@@ -402,6 +403,68 @@
 
           <hr>
           <p><em>This Privacy Policy applies to the Generalized Covariance Matrix application available on the Microsoft Store and other distribution platforms.</em></p>
+        </div>
+
+        <hr class="app-divider">
+
+        <!-- EigenDenoise Privacy Policy -->
+        <div id="eigendenoise" class="privacy-content">
+          <h2>EigenDenoise Privacy Policy</h2>
+          <p class="last-updated">Last Updated: May 4, 2026</p>
+
+          <p>EigenDenoise ("the App") is a native macOS application developed by Yao-Hsing Yu ("we", "I"). This policy explains, in plain language, exactly what the App does and does not do with your information.</p>
+
+          <h3>TL;DR</h3>
+          <p>EigenDenoise runs entirely on your Mac. It does not collect, transmit, sell, or share any personal information. There is no account, no login, no analytics, and no advertising SDK.</p>
+
+          <h3>1. Information we do not collect</h3>
+          <p>We do <strong>not</strong> collect, store, or transmit any of the following:</p>
+          <ul>
+            <li>Your name, email address, or any other identity information.</li>
+            <li>Your IP address, device identifiers (IDFA, IDFV), or hardware fingerprint.</li>
+            <li>Your location.</li>
+            <li>Usage analytics, crash reports, or telemetry of any kind.</li>
+            <li>The contents of the images you load, denoise, or analyse.</li>
+            <li>The contents of any folder you select.</li>
+          </ul>
+          <p>The App contains no third-party analytics, advertising, attribution, or tracking SDKs.</p>
+
+          <h3>2. Local data the App stores on your Mac</h3>
+          <p>All computation runs on-device. The App stores the following on your Mac only — it never leaves your computer:</p>
+          <ul>
+            <li><strong>Image datasets you download.</strong> When you click a curated dataset in the Datasets tab, or paste your own image URLs, the files are saved to the App's sandboxed Application Support folder (the macOS equivalent of <code>C:\.eigendenoise</code>), or to a folder you have picked via the "Storage location → Change…" action.</li>
+            <li><strong>A security-scoped bookmark</strong> to your chosen storage / image folder, so you do not have to re-pick the folder every launch. This bookmark is stored in the App's own preferences and is readable only by the App.</li>
+            <li><strong>A small UserDefaults preferences entry</strong> for non-personal UI settings (last-used parameters, toggle states).</li>
+          </ul>
+          <p>You can delete all of the above at any time by emptying the App's storage folder and removing the App from your Applications folder.</p>
+
+          <h3>3. Network access</h3>
+          <p>EigenDenoise only makes network requests when <strong>you explicitly initiate them</strong>, by clicking a dataset preset (ORL Faces / CBSD68 / Brain MRI), clicking "Download" on a custom URL list, or selecting a Help-menu link. In those cases the App fetches:</p>
+          <ul>
+            <li>Public image files from <a href="https://raw.githubusercontent.com" target="_blank" rel="noopener noreferrer">raw.githubusercontent.com</a>.</li>
+            <li>A directory listing from <a href="https://api.github.com" target="_blank" rel="noopener noreferrer">api.github.com</a> (read-only, unauthenticated) — for the Brain MRI preset only, to enumerate the actual filenames.</li>
+          </ul>
+          <p>No personal data is sent in these requests. The requests are made by the system <code>URLSession</code> API and are subject to Apple's standard network privacy protections.</p>
+          <p>The App does <strong>not</strong> make any background network calls, does <strong>not</strong> "phone home" on launch, and does <strong>not</strong> check for updates from us — all update distribution happens through the Mac App Store.</p>
+
+          <h3>4. Datasets fetched from third parties</h3>
+          <p>When you download a dataset preset, the files come from a public third-party GitHub repository (e.g. <code>MohamedAliHabib/Brain-Tumor-Detection</code>, <code>clausmichele/CBSD68-dataset</code>, <code>mims-harvard/nimfa</code>). Those repositories have their own owners, licenses, and terms; this policy does not cover them. Please consult the source repository before redistributing downloaded images.</p>
+
+          <h3>5. Children</h3>
+          <p>The App is not directed to children under 13 and does not knowingly collect any information from anyone, including children.</p>
+
+          <h3>6. Changes to this policy</h3>
+          <p>If this policy ever changes, the new version will be posted at the same URL with an updated "Last updated" date. Material changes will also be reflected in the App's release notes on the Mac App Store.</p>
+
+          <h3>7. Contact</h3>
+          <p>Questions about this policy or the App's behaviour:</p>
+          <ul>
+            <li><strong>Yao-Hsing Yu</strong> · <a href="mailto:euler.yu@gmail.com">euler.yu@gmail.com</a></li>
+            <li>GitHub: <a href="https://github.com/yu314-coder/EigenDenoise" target="_blank" rel="noopener noreferrer">https://github.com/yu314-coder/EigenDenoise</a></li>
+          </ul>
+
+          <hr>
+          <p><em>EigenDenoise is a privacy-respecting macOS application. All processing happens on your Mac, with no telemetry or analytics of any kind.</em></p>
         </div>
       </div>
     </div>
