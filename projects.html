@@ -155,12 +155,37 @@
     <h1>Projects</h1>
   </header>
 
-  <!-- Featured Projects Section -->
+  <!-- Projects Section (tabbed) -->
   <section class="container my-5">
     <div class="text-center mb-5">
-      <h2 class="display-4 fw-bold mb-3" style="color: #333;">Featured Projects</h2>
-      <p class="lead text-muted">Applications and frameworks spanning Windows, iOS, and the web</p>
+      <h2 class="display-4 fw-bold mb-3" style="color: #333;">My Projects</h2>
+      <p class="lead text-muted">Featured apps, libraries, and tools — organized by category</p>
     </div>
+
+    <!-- Tab Navigation -->
+    <ul class="nav nav-pills justify-content-center flex-wrap mb-5 gap-2" id="projectTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tab-manim-btn" data-bs-toggle="pill" data-bs-target="#tab-manim" type="button" role="tab" aria-controls="tab-manim" aria-selected="true">🎯 ManimStudio</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-codebench-btn" data-bs-toggle="pill" data-bs-target="#tab-codebench" type="button" role="tab" aria-controls="tab-codebench" aria-selected="false">💻 CodeBench</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-gencov-btn" data-bs-toggle="pill" data-bs-target="#tab-gencov" type="button" role="tab" aria-controls="tab-gencov" aria-selected="false">📊 Generalized Covariance</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-pypi-btn" data-bs-toggle="pill" data-bs-target="#tab-pypi" type="button" role="tab" aria-controls="tab-pypi" aria-selected="false">📦 PyPI Packages</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-other-btn" data-bs-toggle="pill" data-bs-target="#tab-other" type="button" role="tab" aria-controls="tab-other" aria-selected="false">🔧 Others</button>
+      </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="projectTabsContent">
+
+    <!-- Tab 1: ManimStudio -->
+    <div class="tab-pane fade show active" id="tab-manim" role="tabpanel" aria-labelledby="tab-manim-btn">
 
     <!-- Featured Project 1: ManimStudio -->
     <article class="featured-project mb-5 rounded-4 shadow-lg">
@@ -242,6 +267,10 @@
         </div>
       </div>
     </article>
+    </div><!-- /tab-manim -->
+
+    <!-- Tab 2: CodeBench + python-ios-lib -->
+    <div class="tab-pane fade" id="tab-codebench" role="tabpanel" aria-labelledby="tab-codebench-btn">
 
     <!-- Featured Project 2: CodeBench -->
     <article class="featured-project mb-5 rounded-4 shadow-lg" style="background: linear-gradient(135deg, #0a0e27 0%, #1e1b4b 22%, #4c1d95 50%, #7c3aed 78%, #06b6d4 100%); position: relative; overflow: hidden;">
@@ -632,6 +661,10 @@
         </div>
       </div>
     </article>
+    </div><!-- /tab-codebench -->
+
+    <!-- Tab 3: Generalized Covariance + EigenDenoise -->
+    <div class="tab-pane fade" id="tab-gencov" role="tabpanel" aria-labelledby="tab-gencov-btn">
 
     <!-- Featured Project 4: Generalized Covariance Matrix -->
     <article class="featured-project rounded-4 shadow-lg" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
@@ -817,63 +850,10 @@
         </div>
       </div>
     </article>
-  </section>
+    </div><!-- /tab-gencov -->
 
-  <!-- Other Projects -->
-  <section class="container my-5">
-    <div class="text-center mb-5">
-      <h2 style="font-size: 2rem; font-weight: 700; color: #333;">Other Projects</h2>
-      <p class="text-muted">Open-source tools, packages, and utilities</p>
-    </div>
-
-    <!-- Category: Apps & Visualizations -->
-    <div class="mb-5">
-      <div class="category-header">
-        <span class="category-icon">📱</span>
-        <h3>Apps & Visualizations</h3>
-      </div>
-      <div class="row justify-content-center">
-        <div class="col-md-4 d-flex mb-4">
-          <div class="card flex-fill shadow-sm">
-            <div class="card-body d-flex flex-column">
-              <div class="d-flex align-items-center mb-3">
-                <span style="font-size: 2rem; margin-right: 10px;">🔬</span>
-                <h5 class="card-title mb-0">t-SNE Visualization</h5>
-              </div>
-              <p class="card-text flex-grow-1">Dimensionality reduction tool using t-SNE for high-dimensional data visualization and analysis.</p>
-              <div class="d-flex gap-2 mt-auto">
-                <a href="https://github.com/yu314-coder/t-sne" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary flex-fill">GitHub →</a>
-                <a href="https://apps.microsoft.com/detail/9P969D6N7P6J" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">Download →</a>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4 d-flex mb-4">
-          <div class="card flex-fill shadow-sm">
-            <div class="card-body d-flex flex-column">
-              <div class="d-flex align-items-center mb-3">
-                <span style="font-size: 2rem; margin-right: 10px;">📍</span>
-                <h5 class="card-title mb-0">GPS Location App</h5>
-              </div>
-              <p class="card-text flex-grow-1">Precision GPS workout tracker for iPhone & Apple Watch with Kalman-filtered location, HealthKit sync, Live Activities, CarPlay, and route analytics.</p>
-              <a href="https://github.com/yu314-coder/GPS-location-app" target="_blank" rel="noopener noreferrer" class="btn btn-primary mt-auto">View Project →</a>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4 d-flex mb-4">
-          <div class="card flex-fill shadow-sm">
-            <div class="card-body d-flex flex-column">
-              <div class="d-flex align-items-center mb-3">
-                <span style="font-size: 2rem; margin-right: 10px;">✍️</span>
-                <h5 class="card-title mb-0">NeonScribe</h5>
-              </div>
-              <p class="card-text flex-grow-1">A Python-based creative writing and text processing tool with a modern interface.</p>
-              <a href="https://github.com/yu314-coder/NeonScribe" target="_blank" rel="noopener noreferrer" class="btn btn-primary mt-auto">View Project →</a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- Tab 4: PyPI Packages -->
+    <div class="tab-pane fade" id="tab-pypi" role="tabpanel" aria-labelledby="tab-pypi-btn">
 
     <!-- Category: Python Packages -->
     <div class="mb-5">
@@ -924,6 +904,59 @@
                 <a href="https://github.com/yu314-coder/rmt-denoise" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary flex-fill">GitHub →</a>
                 <a href="https://pypi.org/project/rmt-denoise/" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">PyPI →</a>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div><!-- /tab-pypi -->
+
+    <!-- Tab 5: Other Projects -->
+    <div class="tab-pane fade" id="tab-other" role="tabpanel" aria-labelledby="tab-other-btn">
+
+    <!-- Category: Apps & Visualizations -->
+    <div class="mb-5">
+      <div class="category-header">
+        <span class="category-icon">📱</span>
+        <h3>Apps & Visualizations</h3>
+      </div>
+      <div class="row justify-content-center">
+        <div class="col-md-4 d-flex mb-4">
+          <div class="card flex-fill shadow-sm">
+            <div class="card-body d-flex flex-column">
+              <div class="d-flex align-items-center mb-3">
+                <span style="font-size: 2rem; margin-right: 10px;">🔬</span>
+                <h5 class="card-title mb-0">t-SNE Visualization</h5>
+              </div>
+              <p class="card-text flex-grow-1">Dimensionality reduction tool using t-SNE for high-dimensional data visualization and analysis.</p>
+              <div class="d-flex gap-2 mt-auto">
+                <a href="https://github.com/yu314-coder/t-sne" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary flex-fill">GitHub →</a>
+                <a href="https://apps.microsoft.com/detail/9P969D6N7P6J" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">Download →</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 d-flex mb-4">
+          <div class="card flex-fill shadow-sm">
+            <div class="card-body d-flex flex-column">
+              <div class="d-flex align-items-center mb-3">
+                <span style="font-size: 2rem; margin-right: 10px;">📍</span>
+                <h5 class="card-title mb-0">GPS Location App</h5>
+              </div>
+              <p class="card-text flex-grow-1">Precision GPS workout tracker for iPhone & Apple Watch with Kalman-filtered location, HealthKit sync, Live Activities, CarPlay, and route analytics.</p>
+              <a href="https://github.com/yu314-coder/GPS-location-app" target="_blank" rel="noopener noreferrer" class="btn btn-primary mt-auto">View Project →</a>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 d-flex mb-4">
+          <div class="card flex-fill shadow-sm">
+            <div class="card-body d-flex flex-column">
+              <div class="d-flex align-items-center mb-3">
+                <span style="font-size: 2rem; margin-right: 10px;">✍️</span>
+                <h5 class="card-title mb-0">NeonScribe</h5>
+              </div>
+              <p class="card-text flex-grow-1">A Python-based creative writing and text processing tool with a modern interface.</p>
+              <a href="https://github.com/yu314-coder/NeonScribe" target="_blank" rel="noopener noreferrer" class="btn btn-primary mt-auto">View Project →</a>
             </div>
           </div>
         </div>
@@ -1002,6 +1035,9 @@
       </div>
     </div>
     END HIDDEN -->
+
+    </div><!-- /tab-other -->
+    </div><!-- /tab-content -->
   </section>
 
   <!-- Footer -->
