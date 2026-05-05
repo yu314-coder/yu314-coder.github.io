@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <!-- SEO Meta Tags -->
-  <meta name="description" content="Yu, Yao-Hsing 尤耀星's Projects - CodeBench, ManimStudio, Python iOS Lib, Generalized Covariance Matrix, and more innovative tools and applications.">
-  <meta name="keywords" content="Yu, Yao-Hsing 尤耀星, projects, CodeBench, ManimStudio, python-ios-lib, iPad IDE, on-device LLM, iOS, data analysis, mathematical modeling, portfolio">
+  <meta name="description" content="Yu, Yao-Hsing 尤耀星's Projects - CodeBench, ManimStudio, Python iOS Lib, Generalized Covariance Matrix, EigenDenoise (macOS), and more innovative tools and applications.">
+  <meta name="keywords" content="Yu, Yao-Hsing 尤耀星, projects, CodeBench, ManimStudio, python-ios-lib, EigenDenoise, macOS denoiser, random matrix theory, iPad IDE, on-device LLM, iOS, data analysis, mathematical modeling, portfolio">
   <meta name="author" content="Yu, Yao-Hsing 尤耀星">
   <meta name="robots" content="index, follow">
 
@@ -709,6 +709,105 @@
               </a>
               <a href="assets/docs/yau-science-award-research-paper.pdf" class="download-btn" download>
                 📄 Download Research Paper
+              </a>
+              <a href="mailto:euler.yu@gmail.com" class="download-btn">
+                📧 Contact Developer
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- Featured Project 5: EigenDenoise (macOS) -->
+    <article class="featured-project mt-5 rounded-4 shadow-lg" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #00c9ff 100%);">
+      <div class="featured-content">
+        <div class="row g-0 align-items-center justify-content-center">
+          <div class="col-lg-10 col-xl-9 p-5 text-center">
+            <header class="mb-4">
+              <div class="d-flex align-items-center justify-content-center mb-3">
+                <span class="display-6 me-3">🎨</span>
+                <div>
+                  <h3 class="h2 mb-1 fw-bold">EigenDenoise</h3>
+                  <span class="badge bg-light text-dark">macOS 14+</span>
+                  <span class="badge bg-warning text-dark ms-1">Metal GPU</span>
+                </div>
+              </div>
+              <p class="lead mb-0">Native macOS image denoiser using random matrix theory — the macOS counterpart to Generalized Covariance Matrix. Pure Swift, Metal-accelerated, App Store sandbox-ready.</p>
+            </header>
+
+            <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
+              <span class="feature-badge">🔬 Marchenko–Pastur</span>
+              <span class="feature-badge">📈 Generalized-Cov Oracle</span>
+              <span class="feature-badge">⚡ Metal Acceleration</span>
+              <span class="feature-badge">🎲 5 Noise Models</span>
+              <span class="feature-badge">📊 Spectral Visualizations</span>
+              <span class="feature-badge">🛡️ App Sandbox</span>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">Key Capabilities</h4>
+              <ul class="list-unstyled">
+                <li class="mb-2">✅ Side-by-side RMT denoisers — MP thresholding + generalized-covariance oracle (β·δ_a + (1−β)·δ_1)</li>
+                <li class="mb-2">✅ Differential evolution to find best (a, β) against a clean reference</li>
+                <li class="mb-2">✅ Three interactive spectral tabs — Eigenvalue density, Im(s) vs z, Roots vs β</li>
+                <li class="mb-2">✅ Curated dataset gallery: ORL Faces (400 PGMs), CBSD68 (68 colour), Brain MRI (3,264 T1 slices)</li>
+                <li class="mb-2">✅ Custom URL lists with per-image checkboxes &amp; destination preview</li>
+              </ul>
+            </div>
+
+            <div class="row g-3 mb-4 justify-content-center">
+              <div class="col-md-5">
+                <div class="requirements-list">
+                  <h5 class="h6 fw-bold mb-3">💻 System Requirements</h5>
+                  <ul class="small mb-0 text-start">
+                    <li>macOS 14 (Sonoma) or later</li>
+                    <li>Apple Silicon (arm64) — Rosetta supported</li>
+                    <li>Metal GPU acceleration (LAPACK fallback)</li>
+                    <li>App Sandbox enabled</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="col-md-5">
+                <div class="installation-steps">
+                  <h5 class="h6 fw-bold mb-3">⚙️ Tech Stack</h5>
+                  <ul class="small mb-0 text-start">
+                    <li>Pure Swift 5.9+ / SwiftUI / Charts</li>
+                    <li><code style="color:#cfe;">MPSMatrixMultiplication</code> for Gram step</li>
+                    <li>LAPACK <code style="color:#cfe;">dsyevd</code> for eigen-decomposition</li>
+                    <li>Zero external Swift package deps</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">Mathematics</h4>
+              <p class="small mb-0">For X ∈ ℝ^(p×n) with i.i.d. N(0,1) entries, S_n = (1/n)XXᵀ and T_n = diag(t₁,…,t_p), the generalized sample covariance B_n = S_n T_n. Its Stieltjes transform satisfies a cubic:</p>
+              <p class="small mt-2 mb-0" style="font-family: monospace; opacity:0.9;">a·z·s³ + (a(z − y + 1) + z)·s² + (a + z − y + 1 − y·β·(a − 1))·s + 1 = 0</p>
+              <p class="small mt-2 mb-0" style="opacity:0.85;">Limiting density f_{y,H}(z) follows from Cardano's depressed-cubic root; support recovered via bulk-edge function and quartic discriminant for one-interval (Cases 1, 3) vs two-interval (Case 2) topology.</p>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">Technical Specifications</h4>
+              <div class="d-inline-block text-start">
+                <p class="small mb-1"><strong>Created by:</strong> Yao-Hsing Yu</p>
+                <p class="small mb-1"><strong>License:</strong> MIT</p>
+                <p class="small mb-1"><strong>Platform:</strong> macOS 14+ (Apple Silicon)</p>
+                <p class="small mb-1"><strong>Type:</strong> Native macOS App (App Store ready)</p>
+                <p class="small mb-0"><strong>Status:</strong> Active Development</p>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap justify-content-center gap-3">
+              <a href="https://github.com/yu314-coder/EigenDenoise" target="_blank" rel="noopener noreferrer" class="download-btn">
+                🐙 GitHub Repository
+              </a>
+              <a href="privacy.html#eigendenoise" class="download-btn">
+                🔒 Privacy Policy
+              </a>
+              <a href="assets/docs/yau-science-award-research-paper.pdf" class="download-btn" download>
+                📄 Research Paper
               </a>
               <a href="mailto:euler.yu@gmail.com" class="download-btn">
                 📧 Contact Developer
