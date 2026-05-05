@@ -67,6 +67,7 @@ yu314-coder.github.io/
 | GPS Location App | Precision GPS workout tracker for iPhone & Apple Watch | [GitHub](https://github.com/yu314-coder/GPS-location-app) |
 | ollama-installer | Install Ollama from a Python CLI | [GitHub](https://github.com/yu314-coder/python-ollama) · [PyPI](https://pypi.org/project/ollama-installer/) |
 | narrate | Local text-to-speech with Kokoro and Chatterbox engines | [GitHub](https://github.com/yu314-coder/narrate) · [PyPI](https://pypi.org/project/narrate/) |
+| rmt-denoise | Image denoising via Random Matrix Theory (MP-Law + Generalized-Covariance oracle) | [GitHub](https://github.com/yu314-coder/rmt-denoise) · [PyPI](https://pypi.org/project/rmt-denoise/) |
 | NeonScribe | Creative writing and text processing tool | [GitHub](https://github.com/yu314-coder/NeonScribe) |
 | Sound Transfer | TCP-based audio streaming between devices | [GitHub](https://github.com/yu314-coder/sound_transfer) |
 | Google Drive Download | Python tool for downloading from Google Drive | [GitHub](https://github.com/yu314-coder/google_drive_download) |
