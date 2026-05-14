@@ -399,9 +399,11 @@
               <span class="feature-badge">⌨️ SwiftTerm REPL</span>
               <span class="feature-badge">📐 pdflatex</span>
               <span class="feature-badge">🦙 llama.cpp</span>
-              <span class="feature-badge">⚡ ExecuTorch</span>
-              <span class="feature-badge">🔍 RAG Engine</span>
+              <span class="feature-badge">⚡ Metal GPU PyTorch</span>
               <span class="feature-badge">🎨 Image Gen</span>
+              <span class="feature-badge">🔍 RAG Engine</span>
+              <span class="feature-badge">⌘ Command Palette</span>
+              <span class="feature-badge">📊 Live RAM Sparkline</span>
               <span class="feature-badge">💾 Auto-save</span>
             </div>
 
@@ -447,6 +449,27 @@
                 <div class="lib-category-card">
                   <h5>💾 Workspace System <span class="lib-count-badge">multi-tab</span></h5>
                   <p class="mt-1 mb-0" style="font-size:0.82rem; opacity:0.9; text-align:left;">iOS document browser with multiple concurrent workspaces. Auto-save debounced ~600 ms after every keystroke + on run, tab-switch, view-disappear, and app-backgrounding. Tombstone system records deleted files so seeders don't resurrect them.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>⚡ Metal GPU PyTorch <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <p class="mt-1 mb-0" style="font-size:0.82rem; opacity:0.9; text-align:left;">Monkey-patched <code style="color:#cfe;">torch.matmul / mm / bmm / addmm</code>, <code style="color:#cfe;">F.linear</code>, and SDPA onto Apple's <code style="color:#cfe;">MPSMatrixMultiplication</code> via ctypes → Swift <code style="color:#cfe;">@_cdecl</code>. <strong>2–10× speedup</strong> at training sizes. fp32/fp16 native, bf16 via fp32 cast. Autograd-aware via <code style="color:#cfe;">torch.autograd.Function</code>. Auto-installed via <code style="color:#cfe;">sitecustomize.py</code> — zero user code changes.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>⌘ UI Polish <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <p class="mt-1 mb-0" style="font-size:0.82rem; opacity:0.9; text-align:left;">Live RAM sparkline in the top-right tab bar, command palette (⌘P), editor status bar, tab slide animation, drag-to-select in the terminal (via SwiftTerm doubleTap), and a real Stop button that interrupts the running task.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>🧪 Training Toolkit <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <p class="mt-1 mb-0" style="font-size:0.82rem; opacity:0.9; text-align:left;">Opt-in <code style="color:#cfe;">_cb_training.py</code> (~12 KB pure Python) ships OOMGuard, MemoryProfiler, KVCache, and TrainingMonitor. Plus a pure-Python <code style="color:#cfe;">safetensors</code> reader (mmap + struct + <code style="color:#cfe;">torch.frombuffer</code>) so <code style="color:#cfe;">transformers.from_pretrained()</code> works without Rust crates.</p>
                 </div>
               </div>
 
@@ -539,11 +562,13 @@
               <span class="feature-badge">✈️ Fully Offline</span>
               <span class="feature-badge">🛡️ App Store Safe</span>
               <span class="feature-badge">🔥 PyTorch Native</span>
+              <span class="feature-badge">⚡ Metal GPU Bridge</span>
               <span class="feature-badge">🤗 Transformers</span>
               <span class="feature-badge">🦀 Rust Tokenizers</span>
               <span class="feature-badge">🧮 NumPy Native</span>
               <span class="feature-badge">🎬 Manim Video</span>
               <span class="feature-badge">🔧 C/C++/Fortran</span>
+              <span class="feature-badge">📂 dulwich Git</span>
             </div>
 
             <!-- Library Categories Grid -->
@@ -574,7 +599,7 @@
                     <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/tokenizers.md" target="_blank" rel="noopener noreferrer" class="lib-link">tokenizers</a> <span class="dev-badge">BETA</span></td><td>0.19.1</td></tr>
                     <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/sklearn.md" target="_blank" rel="noopener noreferrer" class="lib-link">scikit-learn</a></td><td>40 modules</td></tr>
                   </table>
-                  <p class="mt-2 mb-0" style="font-size:0.75rem; opacity:0.8;">Native PyTorch (95/95 asserts) + HuggingFace transformers &amp; Rust tokenizers — train on-device</p>
+                  <p class="mt-2 mb-0" style="font-size:0.75rem; opacity:0.8;">Native PyTorch (95/95 asserts) + Metal GPU bridge (<strong>2–10× speedup</strong>) + HuggingFace transformers &amp; Rust tokenizers — train on-device</p>
                 </div>
               </div>
 
@@ -709,6 +734,18 @@
                 <div class="lib-category-card">
                   <h5>🧪 Test Coverage <span class="lib-count-badge">24/24</span></h5>
                   <p class="mt-1 mb-0" style="font-size:0.78rem; opacity:0.85; text-align:left;">Full integration test for the transformers stack passes 24/24. PyTorch ships 95/95 correctness asserts. First public iOS builds for PyTorch + tokenizers.</p>
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>⚡ Metal GPU Bridge <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <p class="mt-1 mb-0" style="font-size:0.78rem; opacity:0.85; text-align:left;"><code style="color:#ffd;">_torch_metal_bridge.py</code> patches torch matmul / mm / bmm / addmm, <code style="color:#ffd;">F.linear</code>, and SDPA onto Apple's <code style="color:#ffd;">MPSMatrixMultiplication</code>. <strong>2–10× speedup</strong> at training sizes. fp32/fp16 native, bf16 via fp32 cast. Autograd-aware, auto-installed via <code style="color:#ffd;">sitecustomize.py</code>.</p>
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>📂 Git via dulwich <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <p class="mt-1 mb-0" style="font-size:0.78rem; opacity:0.85; text-align:left;">Real <code style="color:#ffd;">git push</code> / <code style="color:#ffd;">pull</code> / <code style="color:#ffd;">commit</code> via auto-installed <a href="https://github.com/jelmer/dulwich" target="_blank" rel="noopener noreferrer" style="color:#8ecfff;">dulwich</a>. Plus pywebview <code style="color:#ffd;">FileDialog</code> enum and faulthandler that writes C-level crashes to <code style="color:#ffd;">~/Documents/log.txt</code>.</p>
                 </div>
               </div>
             </div>
