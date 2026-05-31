@@ -147,6 +147,32 @@
     .store-badge-sm img {
       height: 40px;
     }
+    /* Companion buttons styled to match the official store badges */
+    .badge-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: 48px;
+      padding: 0 18px;
+      background: #000;
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 8px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      line-height: 1;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: transform 0.15s, background 0.15s, border-color 0.15s;
+    }
+    .badge-btn:hover {
+      background: #1a1a1a;
+      border-color: rgba(255,255,255,0.45);
+      color: #fff;
+      transform: translateY(-2px);
+      text-decoration: none;
+    }
   </style>
 </head>
 <body>
@@ -281,10 +307,10 @@
               <a href="https://apps.microsoft.com/detail/9NZFT55DVCBS" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Get ManimStudio from the Microsoft Store">
                 <img src="assets/img/badges/microsoft-store.svg" alt="Get it from Microsoft">
               </a>
-              <a href="privacy.html#manim-studio" class="download-btn">
+              <a href="privacy.html#manim-studio" class="badge-btn">
                 🔒 Privacy Policy
               </a>
-              <a href="mailto:euler.yu@gmail.com" class="download-btn">
+              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
                 📧 Contact
               </a>
             </div>
@@ -373,16 +399,16 @@
               <a href="https://apps.apple.com/app/manimstudio/id6764472686" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Download ManimStudio on the App Store">
                 <img src="assets/img/badges/appstore.svg" alt="Download on the App Store">
               </a>
-              <a href="https://github.com/yu314-coder/manim_app/tree/ios" target="_blank" rel="noopener noreferrer" class="download-btn">
+              <a href="https://github.com/yu314-coder/manim_app/tree/ios" target="_blank" rel="noopener noreferrer" class="badge-btn">
                 🐙 GitHub (ios branch)
               </a>
-              <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="download-btn">
+              <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="badge-btn">
                 🐍 python-ios-lib
               </a>
-              <a href="https://github.com/yu314-coder/CodeBench" target="_blank" rel="noopener noreferrer" class="download-btn">
+              <a href="https://github.com/yu314-coder/CodeBench" target="_blank" rel="noopener noreferrer" class="badge-btn">
                 💻 CodeBench
               </a>
-              <a href="privacy.html#manim-studio-ios" class="download-btn">
+              <a href="privacy.html#manim-studio-ios" class="badge-btn">
                 🔒 Privacy Policy
               </a>
             </div>
@@ -547,13 +573,13 @@
             </div>
 
             <div class="d-flex flex-wrap justify-content-center gap-3">
-              <a href="https://github.com/yu314-coder/codebench" target="_blank" rel="noopener noreferrer" class="download-btn">
+              <a href="https://github.com/yu314-coder/codebench" target="_blank" rel="noopener noreferrer" class="badge-btn">
                 🐙 GitHub Repository
               </a>
-              <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="download-btn">
+              <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="badge-btn">
                 🧱 Runtime Layer
               </a>
-              <a href="mailto:euler.yu@gmail.com" class="download-btn">
+              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
                 📧 Contact Developer
               </a>
             </div>
@@ -829,10 +855,10 @@
             </div>
 
             <div class="d-flex flex-wrap justify-content-center gap-3">
-              <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="download-btn">
+              <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="badge-btn">
                 🐙 GitHub Repository
               </a>
-              <a href="mailto:euler.yu@gmail.com" class="download-btn">
+              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
                 📧 Contact Developer
               </a>
             </div>
@@ -919,13 +945,13 @@
               <a href="https://apps.microsoft.com/detail/9nzj475s7b01" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Get Generalized Covariance Matrix from the Microsoft Store">
                 <img src="assets/img/badges/microsoft-store.svg" alt="Get it from Microsoft">
               </a>
-              <a href="privacy.html#random-matrix" class="download-btn">
+              <a href="privacy.html#random-matrix" class="badge-btn">
                 🔒 Privacy Policy
               </a>
-              <a href="assets/docs/yau-science-award-research-paper.pdf" class="download-btn" download>
+              <a href="assets/docs/yau-science-award-research-paper.pdf" class="badge-btn" download>
                 📄 Download Research Paper
               </a>
-              <a href="mailto:euler.yu@gmail.com" class="download-btn">
+              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
                 📧 Contact Developer
               </a>
             </div>
@@ -1018,16 +1044,16 @@
               <a href="https://apps.apple.com/app/eigendenoise/id6764759636" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Download EigenDenoise on the Mac App Store">
                 <img src="assets/img/badges/macappstore.svg" alt="Download on the Mac App Store">
               </a>
-              <a href="https://github.com/yu314-coder/EigenDenoise" target="_blank" rel="noopener noreferrer" class="download-btn">
+              <a href="https://github.com/yu314-coder/EigenDenoise" target="_blank" rel="noopener noreferrer" class="badge-btn">
                 🐙 GitHub Repository
               </a>
-              <a href="privacy.html#eigendenoise" class="download-btn">
+              <a href="privacy.html#eigendenoise" class="badge-btn">
                 🔒 Privacy Policy
               </a>
-              <a href="assets/docs/yau-science-award-research-paper.pdf" class="download-btn" download>
+              <a href="assets/docs/yau-science-award-research-paper.pdf" class="badge-btn" download>
                 📄 Research Paper
               </a>
-              <a href="mailto:euler.yu@gmail.com" class="download-btn">
+              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
                 📧 Contact Developer
               </a>
             </div>
@@ -1182,13 +1208,13 @@
               <a href="https://apps.apple.com/app/gps-location-app/id6764729098" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Download GPS-location-app on the App Store">
                 <img src="assets/img/badges/appstore.svg" alt="Download on the App Store">
               </a>
-              <a href="https://github.com/yu314-coder/GPS-location-app" target="_blank" rel="noopener noreferrer" class="download-btn">
+              <a href="https://github.com/yu314-coder/GPS-location-app" target="_blank" rel="noopener noreferrer" class="badge-btn">
                 🐙 GitHub Repository
               </a>
-              <a href="privacy.html#gps-location-app" class="download-btn">
+              <a href="privacy.html#gps-location-app" class="badge-btn">
                 🔒 Privacy Policy
               </a>
-              <a href="mailto:euler.yu@gmail.com" class="download-btn">
+              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
                 📧 Contact Developer
               </a>
             </div>
