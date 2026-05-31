@@ -114,6 +114,21 @@
       background: rgba(255,255,255,0.35);
       color: #fff;
     }
+    /* Official store badge */
+    .store-badge {
+      display: inline-flex;
+      align-items: center;
+      transition: transform 0.15s, filter 0.15s;
+    }
+    .store-badge img {
+      height: 44px;
+      width: auto;
+      display: block;
+    }
+    .store-badge:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.08);
+    }
 
     /* Award banner */
     .award-banner {
@@ -229,8 +244,10 @@
             <span class="spotlight-tag">Auto Dependencies</span>
             <span class="spotlight-tag">MSIX Package</span>
           </div>
-          <div class="d-flex gap-2 mt-auto">
-            <a href="https://apps.microsoft.com/detail/9NZFT55DVCBS" target="_blank" rel="noopener noreferrer" class="spotlight-btn">🏪 Microsoft Store</a>
+          <div class="d-flex gap-3 mt-auto align-items-center flex-wrap">
+            <a href="https://apps.microsoft.com/detail/9NZFT55DVCBS" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Get ManimStudio from the Microsoft Store">
+              <img src="assets/img/badges/microsoft-store.svg" alt="Get it from Microsoft">
+            </a>
             <a href="projects.html" class="spotlight-btn">Learn More</a>
           </div>
         </div>

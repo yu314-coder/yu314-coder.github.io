@@ -128,6 +128,25 @@
     .category-header .category-icon {
       font-size: 1.5rem;
     }
+    /* Official store badges */
+    .store-badge {
+      display: inline-flex;
+      align-items: center;
+      transition: transform 0.15s, filter 0.15s;
+    }
+    .store-badge img {
+      height: 48px;
+      width: auto;
+      display: block;
+    }
+    .store-badge:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.08);
+    }
+    /* Smaller badge inside compact project cards */
+    .store-badge-sm img {
+      height: 40px;
+    }
   </style>
 </head>
 <body>
@@ -258,9 +277,9 @@
               </div>
             </div>
 
-            <div class="d-flex flex-wrap justify-content-center gap-3">
-              <a href="https://apps.microsoft.com/detail/9NZFT55DVCBS" target="_blank" rel="noopener noreferrer" class="download-btn">
-                🏪 Microsoft Store
+            <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
+              <a href="https://apps.microsoft.com/detail/9NZFT55DVCBS" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Get ManimStudio from the Microsoft Store">
+                <img src="assets/img/badges/microsoft-store.svg" alt="Get it from Microsoft">
               </a>
               <a href="privacy.html#manim-studio" class="download-btn">
                 🔒 Privacy Policy
@@ -350,9 +369,9 @@
               </div>
             </div>
 
-            <div class="d-flex flex-wrap justify-content-center gap-3">
-              <a href="https://apps.apple.com/app/manimstudio/id6764472686" target="_blank" rel="noopener noreferrer" class="download-btn">
-                🍎 App Store
+            <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
+              <a href="https://apps.apple.com/app/manimstudio/id6764472686" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Download ManimStudio on the App Store">
+                <img src="assets/img/badges/appstore.svg" alt="Download on the App Store">
               </a>
               <a href="https://github.com/yu314-coder/manim_app/tree/ios" target="_blank" rel="noopener noreferrer" class="download-btn">
                 🐙 GitHub (ios branch)
@@ -896,9 +915,9 @@
               </div>
             </div>
 
-            <div class="d-flex flex-wrap justify-content-center gap-3">
-              <a href="https://apps.microsoft.com/detail/9nzj475s7b01" target="_blank" rel="noopener noreferrer" class="download-btn">
-                📦 Get from Microsoft Store
+            <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
+              <a href="https://apps.microsoft.com/detail/9nzj475s7b01" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Get Generalized Covariance Matrix from the Microsoft Store">
+                <img src="assets/img/badges/microsoft-store.svg" alt="Get it from Microsoft">
               </a>
               <a href="privacy.html#random-matrix" class="download-btn">
                 🔒 Privacy Policy
@@ -995,9 +1014,9 @@
               </div>
             </div>
 
-            <div class="d-flex flex-wrap justify-content-center gap-3">
-              <a href="https://apps.apple.com/app/eigendenoise/id6764759636" target="_blank" rel="noopener noreferrer" class="download-btn">
-                🍎 Mac App Store
+            <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
+              <a href="https://apps.apple.com/app/eigendenoise/id6764759636" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Download EigenDenoise on the Mac App Store">
+                <img src="assets/img/badges/macappstore.svg" alt="Download on the Mac App Store">
               </a>
               <a href="https://github.com/yu314-coder/EigenDenoise" target="_blank" rel="noopener noreferrer" class="download-btn">
                 🐙 GitHub Repository
@@ -1159,9 +1178,9 @@
               </div>
             </div>
 
-            <div class="d-flex flex-wrap justify-content-center gap-3">
-              <a href="https://apps.apple.com/app/gps-location-app/id6764729098" target="_blank" rel="noopener noreferrer" class="download-btn">
-                🍎 App Store
+            <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
+              <a href="https://apps.apple.com/app/gps-location-app/id6764729098" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Download GPS-location-app on the App Store">
+                <img src="assets/img/badges/appstore.svg" alt="Download on the App Store">
               </a>
               <a href="https://github.com/yu314-coder/GPS-location-app" target="_blank" rel="noopener noreferrer" class="download-btn">
                 🐙 GitHub Repository
@@ -1197,11 +1216,13 @@
                 <h5 class="card-title mb-0">t-SNE Visualization</h5>
               </div>
               <p class="card-text flex-grow-1">Dimensionality reduction tool using t-SNE for high-dimensional data visualization and analysis.</p>
-              <div class="d-flex gap-2 mt-auto">
-                <a href="https://github.com/yu314-coder/t-sne" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary flex-fill">GitHub →</a>
-                <a href="https://apps.microsoft.com/detail/9P969D6N7P6J" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">Download →</a>
+              <a href="https://apps.microsoft.com/detail/9P969D6N7P6J" target="_blank" rel="noopener noreferrer" class="store-badge store-badge-sm mt-auto mb-2" aria-label="Get t-SNE Visualization from the Microsoft Store">
+                <img src="assets/img/badges/microsoft-store.svg" alt="Get it from Microsoft">
+              </a>
+              <div class="d-flex gap-2 align-items-center">
+                <a href="https://github.com/yu314-coder/t-sne" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary btn-sm flex-fill">GitHub →</a>
+                <a href="privacy.html#tsne" class="small text-muted text-decoration-none" style="font-size: 0.8rem;">🔒 Privacy</a>
               </div>
-              <a href="privacy.html#tsne" class="small mt-2 text-muted text-decoration-none" style="font-size: 0.8rem;">🔒 Privacy Policy</a>
             </div>
           </div>
         </div>
