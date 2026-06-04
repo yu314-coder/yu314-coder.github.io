@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://yu314-coder.github.io/sitemap.xml

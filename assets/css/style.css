@@ -1006,3 +1006,39 @@ section h2::after {
   --bs-gutter-x: 1rem;
   --bs-gutter-y: 1rem;
 }
+
+/* ===== Shared site footer with social links ===== */
+.site-footer {
+  background: #16213e;
+  color: #fff;
+}
+.footer-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+.footer-links a {
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: color 0.2s, transform 0.2s;
+}
+.footer-links a:hover {
+  color: #fff;
+  transform: translateY(-2px);
+}
+.footer-links svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+.footer-copy {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+}
