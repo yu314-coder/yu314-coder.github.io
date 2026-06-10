@@ -670,6 +670,19 @@ footer a:hover {
   filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.4));
 }
 
+#gameHint {
+  font-size: 0.92rem;
+  color: #a5b4fc;
+  margin: 4px auto 28px;
+  letter-spacing: 0.4px;
+  opacity: 0.85;
+}
+
+/* Keep the arcade playable on touch — the canvas owns its gestures */
+#gameCanvas {
+  touch-action: none;
+}
+
 /* ======================
    Device-Aware Theming (tablet / phone / desktop)
    ====================== */

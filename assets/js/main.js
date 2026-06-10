@@ -111,22 +111,63 @@
   };
 
   // ===================================
+  // Arcade: High Score Persistence
+  // ===================================
+  const HighScores = {
+    KEY: 'arcadeHighScores',
+
+    all: function() {
+      try {
+        return JSON.parse(localStorage.getItem(this.KEY) || '{}');
+      } catch (e) {
+        return {};
+      }
+    },
+
+    get: function(game) {
+      return this.all()[game] || 0;
+    },
+
+    // Returns true when score is a new record
+    submit: function(game, score) {
+      const scores = this.all();
+      if (score > (scores[game] || 0)) {
+        scores[game] = score;
+        try { localStorage.setItem(this.KEY, JSON.stringify(scores)); } catch (e) {}
+        return true;
+      }
+      return false;
+    }
+  };
+
+  // ===================================
   // Easter Egg Game System
   // ===================================
   const GameSystem = {
     canvas: null,
     ctx: null,
     gameActive: false,
-    currentGame: "breakout",
+    currentGame: 'breakout',
     score: 0,
+    games: {},
+    restartHandlersBound: false,
+
+    HINTS: {
+      breakout: '⬅️➡️ arrows, mouse, or drag — 3 lives, clear the wall to level up',
+      dino: 'Space / ⬆️ / tap to jump — survive as the speed ramps up',
+      snake: 'Arrows / WASD / swipe — eat the food, don\'t bite yourself'
+    },
 
     init: function() {
       this.canvas = document.getElementById('gameCanvas');
       if (!this.canvas) return;
 
       this.ctx = this.canvas.getContext('2d');
+      this.games = { breakout: Breakout, dino: DinoGame, snake: SnakeGame };
       this.setupGameSequence();
       this.setupControls();
+      this.setupPointer();
+      this.refreshMeta();
     },
 
     setupGameSequence: function() {
@@ -140,6 +181,14 @@
         }
         if (secretGameSequence.every((l, i) => l === keySequence[i])) {
           document.getElementById('hidden-game').style.display = 'flex';
+          this.refreshMeta();
+        }
+        // Escape closes whichever overlay is open
+        if (event.key === 'Escape') {
+          const g = document.getElementById('hidden-game');
+          const a = document.getElementById('hidden-admin');
+          if (g && g.style.display !== 'none' && g.style.display !== '') window.exitGame();
+          if (a && a.style.display !== 'none' && a.style.display !== '') window.exitAdmin();
         }
       });
     },
@@ -149,84 +198,151 @@
       if (gameSelect) {
         gameSelect.addEventListener('change', (e) => {
           this.currentGame = e.target.value;
+          this.refreshMeta();
         });
       }
+    },
+
+    // Shared pointer plumbing — each game opts into what it needs
+    setupPointer: function() {
+      const canvas = this.canvas;
+      const pos = (clientX) => {
+        const rect = canvas.getBoundingClientRect();
+        return (clientX - rect.left) * (canvas.width / rect.width);
+      };
+
+      canvas.addEventListener('mousemove', (e) => {
+        if (!this.gameActive) return;
+        const game = this.games[this.currentGame];
+        if (game.onPointerMove) game.onPointerMove(pos(e.clientX), this);
+      });
+
+      canvas.addEventListener('touchmove', (e) => {
+        if (!this.gameActive) return;
+        const game = this.games[this.currentGame];
+        if (game.onPointerMove) {
+          e.preventDefault();
+          game.onPointerMove(pos(e.touches[0].clientX), this);
+        }
+      }, { passive: false });
+
+      const tap = (e) => {
+        if (!this.gameActive) return;
+        const game = this.games[this.currentGame];
+        if (game.onTap) game.onTap(this);
+      };
+      canvas.addEventListener('mousedown', tap);
+      canvas.addEventListener('touchstart', (e) => {
+        if (!this.gameActive) return;
+        const game = this.games[this.currentGame];
+        if (game.onSwipeStart) game.onSwipeStart(e.touches[0].clientX, e.touches[0].clientY);
+        tap(e);
+      }, { passive: true });
+      canvas.addEventListener('touchend', (e) => {
+        if (!this.gameActive) return;
+        const game = this.games[this.currentGame];
+        if (game.onSwipeEnd && e.changedTouches.length) {
+          game.onSwipeEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+        }
+      }, { passive: true });
+    },
+
+    refreshMeta: function() {
+      const hintEl = document.getElementById('gameHint');
+      if (hintEl) hintEl.textContent = this.HINTS[this.currentGame] || '';
+      this.updateScore(this.score);
     },
 
     startGame: function() {
       const select = document.getElementById('gameSelect');
       this.currentGame = select ? select.value : 'breakout';
       this.gameActive = true;
+      this.score = 0;
 
-      if (this.currentGame === 'breakout') {
-        Breakout.init(this);
-      } else if (this.currentGame === 'dino') {
-        DinoGame.init(this);
-      }
+      const game = this.games[this.currentGame];
+      if (game) game.init(this);
 
-      this.gameLoop();
+      this.refreshMeta();
+      // Generation token: restarting mid-game must orphan the old rAF chain
+      this.loopId = (this.loopId || 0) + 1;
+      this.gameLoop(this.loopId);
     },
 
-    gameLoop: function() {
-      if (!this.gameActive) return;
+    gameLoop: function(id, ts) {
+      if (!this.gameActive || id !== this.loopId) return;
 
-      if (this.currentGame === 'breakout') {
-        Breakout.draw(this);
-      } else if (this.currentGame === 'dino') {
-        DinoGame.update(this);
-        DinoGame.draw(this);
+      const game = this.games[this.currentGame];
+      if (game) {
+        if (game.update) game.update(this, ts || performance.now());
+        // update() may have ended the game — don't let draw() erase the game-over screen
+        if (!this.gameActive) return;
+        game.draw(this);
       }
 
-      if (this.gameActive) {
-        requestAnimationFrame(() => this.gameLoop());
-      }
+      requestAnimationFrame((t) => this.gameLoop(id, t));
     },
 
     showGameOver: function(message) {
       this.gameActive = false;
       const ctx = this.ctx;
       const canvas = this.canvas;
-      
+      const isRecord = HighScores.submit(this.currentGame, this.score);
+      this.updateScore(this.score);
+
       // Overlay
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+      ctx.fillStyle = 'rgba(5, 8, 22, 0.82)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Text
-      ctx.font = 'bold 30px "Segoe UI", Arial, sans-serif';
-      ctx.fillStyle = '#fff';
+
       ctx.textAlign = 'center';
-      ctx.fillText(message, canvas.width/2, canvas.height/2 - 10);
-      
-      ctx.font = '20px "Segoe UI", Arial, sans-serif';
-      ctx.fillStyle = '#ccc';
-      ctx.fillText('Press Space or Click to Restart', canvas.width/2, canvas.height/2 + 30);
-      
-      // Restart handlers
-      const restart = () => {
-        canvas.removeEventListener('click', restart);
-        document.removeEventListener('keydown', keyRestart);
-        this.startGame();
-      };
-      
-      const keyRestart = (e) => {
-        if (e.code === 'Space') restart();
-      };
-      
-      canvas.addEventListener('click', restart);
-      document.addEventListener('keydown', keyRestart);
+      ctx.font = 'bold 34px "Segoe UI", Arial, sans-serif';
+      ctx.fillStyle = '#fff';
+      ctx.fillText(message, canvas.width / 2, canvas.height / 2 - 40);
+
+      ctx.font = '22px "Segoe UI", Arial, sans-serif';
+      ctx.fillStyle = '#22d3ee';
+      ctx.fillText(`Score: ${this.score}`, canvas.width / 2, canvas.height / 2);
+
+      if (isRecord && this.score > 0) {
+        ctx.font = 'bold 20px "Segoe UI", Arial, sans-serif';
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillText('🏆 NEW HIGH SCORE!', canvas.width / 2, canvas.height / 2 + 34);
+      } else {
+        ctx.font = '17px "Segoe UI", Arial, sans-serif';
+        ctx.fillStyle = '#a5b4fc';
+        ctx.fillText(`Best: ${HighScores.get(this.currentGame)}`, canvas.width / 2, canvas.height / 2 + 32);
+      }
+
+      ctx.font = '17px "Segoe UI", Arial, sans-serif';
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText('Space · Click · Tap to restart', canvas.width / 2, canvas.height / 2 + 70);
+
+      // Restart handlers (deduped — bound once)
+      if (!this.restartHandlersBound) {
+        this.restartHandlersBound = true;
+        const tryRestart = () => {
+          const overlay = document.getElementById('hidden-game');
+          const visible = overlay && overlay.style.display !== 'none' && overlay.style.display !== '';
+          if (visible && !this.gameActive) this.startGame();
+        };
+        canvas.addEventListener('click', tryRestart);
+        canvas.addEventListener('touchstart', tryRestart, { passive: true });
+        document.addEventListener('keydown', (e) => {
+          if (e.code === 'Space') tryRestart();
+        });
+      }
     },
 
     updateScore: function(newScore) {
       this.score = newScore;
       const scoreEl = document.getElementById('scoreDisplay');
       if (scoreEl) {
-        scoreEl.textContent = `Score: ${this.score}`;
+        scoreEl.textContent = `Score: ${this.score} · Best: ${HighScores.get(this.currentGame)}`;
       }
     }
   };
 
   // ===================================
-  // Breakout Game
+  // Breakout — lives, levels, angled bounces, pointer control
   // ===================================
   const Breakout = {
     ball: null,
@@ -234,6 +350,10 @@
     bricks: [],
     rightPressed: false,
     leftPressed: false,
+    lives: 3,
+    level: 1,
+    speed: 4,
+    levelFlash: 0,
     keyDownHandler: null,
     keyUpHandler: null,
     config: {
@@ -242,28 +362,30 @@
       brickWidth: 75,
       brickHeight: 20,
       brickPadding: 10,
-      brickOffsetTop: 30,
+      brickOffsetTop: 40,
       brickOffsetLeft: 30
     },
 
     init: function(game) {
-      const canvas = game.canvas;
-      this.ball = {
-        x: canvas.width / 2,
-        y: canvas.height - 30,
-        radius: 10,
-        dx: 3,
-        dy: -3,
-        color: '#ec4899'
-      };
-      this.paddle = {
-        width: 75,
-        height: 10,
-        x: (canvas.width - 75) / 2,
-        color: '#22d3ee',
-        speed: 7
-      };
+      this.lives = 3;
+      this.level = 1;
+      this.speed = 4;
+      game.updateScore(0);
+      this.buildLevel(game);
+      this.resetBall(game.canvas);
 
+      this.rightPressed = false;
+      this.leftPressed = false;
+
+      if (this.keyDownHandler) document.removeEventListener('keydown', this.keyDownHandler);
+      if (this.keyUpHandler) document.removeEventListener('keyup', this.keyUpHandler);
+      this.keyDownHandler = (e) => this.keyDown(e);
+      this.keyUpHandler = (e) => this.keyUp(e);
+      document.addEventListener('keydown', this.keyDownHandler);
+      document.addEventListener('keyup', this.keyUpHandler);
+    },
+
+    buildLevel: function(game) {
       this.bricks = [];
       for (let c = 0; c < this.config.brickColumnCount; c++) {
         this.bricks[c] = [];
@@ -271,25 +393,24 @@
           this.bricks[c][r] = { x: 0, y: 0, status: 1 };
         }
       }
+      this.levelFlash = 90; // frames of "LEVEL n" banner
+    },
 
-      game.score = 0;
-      game.updateScore(0);
-      this.rightPressed = false;
-      this.leftPressed = false;
-
-      // Remove old listeners if they exist
-      if (this.keyDownHandler) {
-        document.removeEventListener('keydown', this.keyDownHandler);
-      }
-      if (this.keyUpHandler) {
-        document.removeEventListener('keyup', this.keyUpHandler);
-      }
-
-      // Create new listeners and store references
-      this.keyDownHandler = (e) => this.keyDown(e);
-      this.keyUpHandler = (e) => this.keyUp(e);
-      document.addEventListener('keydown', this.keyDownHandler);
-      document.addEventListener('keyup', this.keyUpHandler);
+    resetBall: function(canvas) {
+      this.ball = {
+        x: canvas.width / 2,
+        y: canvas.height - 60,
+        radius: 10,
+        dx: this.speed * (Math.random() < 0.5 ? 1 : -1) * 0.7,
+        dy: -this.speed,
+        color: '#ec4899'
+      };
+      this.paddle = this.paddle || {};
+      this.paddle.width = 90;
+      this.paddle.height = 12;
+      this.paddle.x = (canvas.width - 90) / 2;
+      this.paddle.color = '#22d3ee';
+      this.paddle.speed = 8;
     },
 
     keyDown: function(e) {
@@ -302,6 +423,18 @@
       if (e.key === 'Left' || e.key === 'ArrowLeft') this.leftPressed = false;
     },
 
+    onPointerMove: function(x, game) {
+      this.paddle.x = Math.max(0, Math.min(game.canvas.width - this.paddle.width, x - this.paddle.width / 2));
+    },
+
+    bricksLeft: function() {
+      let n = 0;
+      for (let c = 0; c < this.config.brickColumnCount; c++)
+        for (let r = 0; r < this.config.brickRowCount; r++)
+          if (this.bricks[c][r].status === 1) n++;
+      return n;
+    },
+
     draw: function(game) {
       const ctx = game.ctx;
       const canvas = game.canvas;
@@ -310,9 +443,29 @@
       this.drawBricks(ctx);
       this.drawBall(ctx);
       this.drawPaddle(ctx, canvas);
+      this.drawHud(ctx, canvas);
       this.collisionDetection(game);
       this.moveBall(canvas, game);
       this.movePaddle(canvas);
+    },
+
+    drawHud: function(ctx, canvas) {
+      ctx.font = '16px "Segoe UI", Arial, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#a5b4fc';
+      ctx.fillText(`Level ${this.level}`, 12, 24);
+      ctx.textAlign = 'right';
+      ctx.fillText('❤️'.repeat(Math.max(0, this.lives)), canvas.width - 12, 24);
+
+      if (this.levelFlash > 0) {
+        this.levelFlash--;
+        ctx.globalAlpha = Math.min(1, this.levelFlash / 30);
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 40px "Segoe UI", Arial, sans-serif';
+        ctx.fillStyle = '#a855f7';
+        ctx.fillText(`LEVEL ${this.level}`, canvas.width / 2, canvas.height / 2);
+        ctx.globalAlpha = 1;
+      }
     },
 
     drawBricks: function(ctx) {
@@ -349,8 +502,8 @@
     drawPaddle: function(ctx, canvas) {
       ctx.beginPath();
       const pX = this.paddle.x;
-      const pY = canvas.height - this.paddle.height;
-      ctx.roundRect ? ctx.roundRect(pX, pY, this.paddle.width, this.paddle.height, 5) : ctx.rect(pX, pY, this.paddle.width, this.paddle.height);
+      const pY = canvas.height - this.paddle.height - 4;
+      ctx.roundRect ? ctx.roundRect(pX, pY, this.paddle.width, this.paddle.height, 6) : ctx.rect(pX, pY, this.paddle.width, this.paddle.height);
       ctx.fillStyle = this.paddle.color;
       ctx.fill();
       ctx.closePath();
@@ -365,10 +518,14 @@
                 this.ball.y > b.y && this.ball.y < b.y + this.config.brickHeight) {
               this.ball.dy = -this.ball.dy;
               b.status = 0;
-              game.updateScore(++game.score);
+              game.updateScore(game.score + 10);
 
-              if (game.score === this.config.brickRowCount * this.config.brickColumnCount) {
-                game.showGameOver('YOU WIN!');
+              if (this.bricksLeft() === 0) {
+                // Next level: rebuild wall, faster ball
+                this.level++;
+                this.speed = Math.min(this.speed * 1.18, 11);
+                this.buildLevel(game);
+                this.resetBall(game.canvas);
               }
             }
           }
@@ -382,14 +539,29 @@
         this.ball.dx = -this.ball.dx;
       }
 
+      const paddleTop = canvas.height - this.paddle.height - 4;
       if (this.ball.y + this.ball.dy < this.ball.radius) {
         this.ball.dy = -this.ball.dy;
-      } else if (this.ball.y + this.ball.dy > canvas.height - this.ball.radius) {
-        if (this.ball.x > this.paddle.x && this.ball.x < this.paddle.x + this.paddle.width) {
-          this.ball.dy = -this.ball.dy;
-        } else {
-          game.showGameOver('Game Over');
+      } else if (this.ball.dy > 0 &&
+                 this.ball.y + this.ball.dy > paddleTop - this.ball.radius &&
+                 this.ball.y < paddleTop) {
+        if (this.ball.x > this.paddle.x - this.ball.radius &&
+            this.ball.x < this.paddle.x + this.paddle.width + this.ball.radius) {
+          // Bounce angle depends on where the ball hits the paddle
+          const hit = (this.ball.x - (this.paddle.x + this.paddle.width / 2)) / (this.paddle.width / 2);
+          const angle = hit * (Math.PI / 3); // up to 60°
+          const v = Math.hypot(this.ball.dx, this.ball.dy);
+          this.ball.dx = v * Math.sin(angle);
+          this.ball.dy = -Math.abs(v * Math.cos(angle));
         }
+      } else if (this.ball.y + this.ball.dy > canvas.height - this.ball.radius) {
+        this.lives--;
+        if (this.lives <= 0) {
+          game.showGameOver('Game Over');
+          return;
+        }
+        this.resetBall(canvas);
+        return;
       }
 
       this.ball.x += this.ball.dx;
@@ -406,86 +578,119 @@
   };
 
   // ===================================
-  // Dino Game
+  // Dino — distance score, speed ramp, varied obstacles, clouds
   // ===================================
   const DinoGame = {
     dino: null,
-    cactus: null,
-    gameOver: false,
+    obstacles: [],
+    clouds: [],
+    distance: 0,
+    speed: 5,
+    spawnGap: 0,
     jumpHandler: null,
 
     init: function(game) {
       const canvas = game.canvas;
       this.dino = {
-        x: 50,
-        y: canvas.height - 60,
+        x: 60,
+        y: canvas.height - 70,
         width: 40,
-        height: 40,
+        height: 44,
         color: '#22d3ee',
         dy: 0,
-        gravity: 0.8,
-        jumpForce: -15,
+        gravity: 0.85,
+        jumpForce: -16,
         onGround: true
       };
-      this.cactus = {
-        x: canvas.width,
-        y: canvas.height - 50,
-        width: 20,
-        height: 50,
-        color: '#ec4899',
-        speed: 4
-      };
-      this.gameOver = false;
-      game.score = 0;
+      this.obstacles = [];
+      this.clouds = [
+        { x: 120, y: 70, s: 0.4 },
+        { x: 380, y: 110, s: 0.55 },
+        { x: 560, y: 50, s: 0.3 }
+      ];
+      this.distance = 0;
+      this.speed = 5;
+      this.spawnGap = 90;
       game.updateScore(0);
 
-      // Remove old listener if it exists
-      if (this.jumpHandler) {
-        document.removeEventListener('keydown', this.jumpHandler);
-      }
-
-      // Create new listener and store reference
-      this.jumpHandler = (e) => this.jump(e);
+      if (this.jumpHandler) document.removeEventListener('keydown', this.jumpHandler);
+      this.jumpHandler = (e) => {
+        if (e.key === ' ' || e.key === 'ArrowUp') this.doJump();
+      };
       document.addEventListener('keydown', this.jumpHandler);
     },
 
-    jump: function(e) {
-      if (e.key === ' ' || e.key === 'ArrowUp') {
-        if (this.dino.onGround) {
-          this.dino.dy = this.dino.jumpForce;
-          this.dino.onGround = false;
-        }
+    doJump: function() {
+      if (this.dino.onGround) {
+        this.dino.dy = this.dino.jumpForce;
+        this.dino.onGround = false;
       }
+    },
+
+    onTap: function() { this.doJump(); },
+
+    spawnObstacle: function(canvas) {
+      const type = Math.random();
+      let w, h;
+      if (type < 0.45)      { w = 20; h = 45; }   // single cactus
+      else if (type < 0.75) { w = 42; h = 45; }   // double cactus
+      else                  { w = 22; h = 65; }   // tall cactus
+      this.obstacles.push({
+        x: canvas.width + 10,
+        y: canvas.height - h - 20,
+        width: w,
+        height: h,
+        color: '#ec4899'
+      });
+      // Next spawn: random gap that shrinks slightly as speed grows
+      const minGap = Math.max(46, 95 - this.speed * 4);
+      this.spawnGap = minGap + Math.random() * 70;
     },
 
     update: function(game) {
       const canvas = game.canvas;
 
-      // Update dino physics
+      // Physics
       this.dino.y += this.dino.dy;
-      if (this.dino.y + this.dino.height < canvas.height) {
+      const groundY = canvas.height - this.dino.height - 20;
+      if (this.dino.y < groundY) {
         this.dino.dy += this.dino.gravity;
         this.dino.onGround = false;
       } else {
-        this.dino.y = canvas.height - this.dino.height;
+        this.dino.y = groundY;
         this.dino.dy = 0;
         this.dino.onGround = true;
       }
 
-      // Update cactus
-      this.cactus.x -= this.cactus.speed;
-      if (this.cactus.x + this.cactus.width < 0) {
-        this.cactus.x = canvas.width;
-        game.updateScore(++game.score);
-      }
+      // Distance score + speed ramp
+      this.distance += this.speed / 10;
+      const score = Math.floor(this.distance);
+      if (score !== game.score) game.updateScore(score);
+      this.speed = Math.min(5 + this.distance / 180, 13);
 
-      // Collision detection
-      if (this.dino.x < this.cactus.x + this.cactus.width &&
-          this.dino.x + this.dino.width > this.cactus.x &&
-          this.dino.y < this.cactus.y + this.cactus.height &&
-          this.dino.y + this.dino.height > this.cactus.y) {
-        this.gameOver = true;
-        game.showGameOver('Game Over');
+      // Clouds drift
+      this.clouds.forEach(c => {
+        c.x -= this.speed * c.s * 0.4;
+        if (c.x < -60) { c.x = canvas.width + 40; c.y = 40 + Math.random() * 90; }
+      });
+
+      // Obstacles
+      this.spawnGap -= this.speed / 4;
+      if (this.spawnGap <= 0) this.spawnObstacle(canvas);
+
+      for (let i = this.obstacles.length - 1; i >= 0; i--) {
+        const o = this.obstacles[i];
+        o.x -= this.speed;
+        if (o.x + o.width < 0) { this.obstacles.splice(i, 1); continue; }
+
+        // Collision (with a little forgiveness)
+        if (this.dino.x + 6 < o.x + o.width &&
+            this.dino.x + this.dino.width - 6 > o.x &&
+            this.dino.y + 6 < o.y + o.height &&
+            this.dino.y + this.dino.height - 4 > o.y) {
+          game.showGameOver('Game Over');
+          return;
+        }
       }
     },
 
@@ -495,6 +700,15 @@
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+      // Clouds
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      this.clouds.forEach(c => {
+        ctx.beginPath();
+        ctx.ellipse(c.x, c.y, 28, 12, 0, 0, Math.PI * 2);
+        ctx.ellipse(c.x + 18, c.y - 6, 18, 10, 0, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
       // Ground
       ctx.beginPath();
       ctx.moveTo(0, canvas.height - 20);
@@ -503,19 +717,145 @@
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // Draw dino
+      // Dino (with simple leg animation)
       ctx.fillStyle = this.dino.color;
       ctx.fillRect(this.dino.x, this.dino.y, this.dino.width, this.dino.height);
-      // Eye
       ctx.fillStyle = '#222';
       ctx.fillRect(this.dino.x + this.dino.width - 12, this.dino.y + 6, 6, 6);
+      if (this.dino.onGround) {
+        const step = Math.floor(this.distance * 2) % 2 === 0;
+        ctx.fillStyle = this.dino.color;
+        ctx.fillRect(this.dino.x + (step ? 4 : 22), this.dino.y + this.dino.height, 8, 6);
+      }
 
-      // Draw cactus
-      ctx.fillStyle = this.cactus.color;
-      ctx.fillRect(this.cactus.x, this.cactus.y, this.cactus.width, this.cactus.height);
-      // Cactus arms
-      ctx.fillRect(this.cactus.x - 6, this.cactus.y + 15, 6, 10);
-      ctx.fillRect(this.cactus.x + this.cactus.width, this.cactus.y + 10, 6, 10);
+      // Obstacles
+      this.obstacles.forEach(o => {
+        ctx.fillStyle = o.color;
+        ctx.fillRect(o.x, o.y, o.width, o.height);
+        ctx.fillRect(o.x - 6, o.y + 15, 6, 10);
+        ctx.fillRect(o.x + o.width, o.y + 10, 6, 10);
+      });
+    }
+  };
+
+  // ===================================
+  // Snake — grid classic with swipe support
+  // ===================================
+  const SnakeGame = {
+    CELL: 20,
+    cols: 0,
+    rows: 0,
+    snake: [],
+    dir: { x: 1, y: 0 },
+    nextDir: { x: 1, y: 0 },
+    food: null,
+    tickMs: 110,
+    lastTick: 0,
+    keyHandler: null,
+    swipeStart: null,
+
+    init: function(game) {
+      const canvas = game.canvas;
+      this.cols = Math.floor(canvas.width / this.CELL);
+      this.rows = Math.floor(canvas.height / this.CELL);
+      const cx = Math.floor(this.cols / 2);
+      const cy = Math.floor(this.rows / 2);
+      this.snake = [ { x: cx, y: cy }, { x: cx - 1, y: cy }, { x: cx - 2, y: cy } ];
+      this.dir = { x: 1, y: 0 };
+      this.nextDir = { x: 1, y: 0 };
+      this.tickMs = 110;
+      this.lastTick = 0;
+      this.placeFood();
+      game.updateScore(0);
+
+      if (this.keyHandler) document.removeEventListener('keydown', this.keyHandler);
+      this.keyHandler = (e) => {
+        const k = e.key.toLowerCase();
+        if (k === 'arrowup' || k === 'w') this.turn(0, -1);
+        else if (k === 'arrowdown' || k === 's') this.turn(0, 1);
+        else if (k === 'arrowleft' || k === 'a') this.turn(-1, 0);
+        else if (k === 'arrowright' || k === 'd') this.turn(1, 0);
+      };
+      document.addEventListener('keydown', this.keyHandler);
+    },
+
+    turn: function(x, y) {
+      // No 180° reversals
+      if (x === -this.dir.x && y === -this.dir.y) return;
+      this.nextDir = { x: x, y: y };
+    },
+
+    onSwipeStart: function(x, y) { this.swipeStart = { x: x, y: y }; },
+
+    onSwipeEnd: function(x, y) {
+      if (!this.swipeStart) return;
+      const dx = x - this.swipeStart.x;
+      const dy = y - this.swipeStart.y;
+      this.swipeStart = null;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return; // too small
+      if (Math.abs(dx) > Math.abs(dy)) this.turn(dx > 0 ? 1 : -1, 0);
+      else this.turn(0, dy > 0 ? 1 : -1);
+    },
+
+    placeFood: function() {
+      let spot;
+      do {
+        spot = { x: Math.floor(Math.random() * this.cols), y: Math.floor(Math.random() * this.rows) };
+      } while (this.snake.some(s => s.x === spot.x && s.y === spot.y));
+      this.food = spot;
+    },
+
+    update: function(game, ts) {
+      if (ts - this.lastTick < this.tickMs) return;
+      this.lastTick = ts;
+
+      this.dir = this.nextDir;
+      const head = { x: this.snake[0].x + this.dir.x, y: this.snake[0].y + this.dir.y };
+
+      // Wall or self collision
+      if (head.x < 0 || head.x >= this.cols || head.y < 0 || head.y >= this.rows ||
+          this.snake.some(s => s.x === head.x && s.y === head.y)) {
+        game.showGameOver('Game Over');
+        return;
+      }
+
+      this.snake.unshift(head);
+
+      if (head.x === this.food.x && head.y === this.food.y) {
+        game.updateScore(game.score + 10);
+        this.tickMs = Math.max(60, this.tickMs - 2); // speed up
+        this.placeFood();
+      } else {
+        this.snake.pop();
+      }
+    },
+
+    draw: function(game) {
+      const ctx = game.ctx;
+      const canvas = game.canvas;
+      const C = this.CELL;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Food
+      ctx.beginPath();
+      ctx.arc(this.food.x * C + C / 2, this.food.y * C + C / 2, C / 2 - 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#ec4899';
+      ctx.fill();
+
+      // Snake — head brighter, body gradient
+      this.snake.forEach((s, i) => {
+        const t = i / Math.max(1, this.snake.length - 1);
+        ctx.fillStyle = i === 0 ? '#22d3ee' : `rgba(124, 58, 237, ${1 - t * 0.55})`;
+        const pad = i === 0 ? 1 : 2;
+        if (ctx.roundRect) {
+          ctx.beginPath();
+          ctx.roundRect(s.x * C + pad, s.y * C + pad, C - pad * 2, C - pad * 2, 5);
+          ctx.fill();
+        } else {
+          ctx.fillRect(s.x * C + pad, s.y * C + pad, C - pad * 2, C - pad * 2);
+        }
+      });
     }
   };
 
@@ -531,9 +871,6 @@
     document.getElementById('hidden-game').style.display = 'none';
   };
 
-  // ===================================
-  // Initialize on DOM Load
-  // ===================================
   // ===================================
   // Device-Aware Theming
   // ===================================
@@ -583,11 +920,31 @@
     }
   };
 
+  // ===================================
+  // Console Easter Egg Hint
+  // ===================================
+  function consoleHint() {
+    try {
+      console.log(
+        '%c🎮 Secret Arcade %c\n\nThere are hidden pages on this site…\n  · type %ceaster%c anywhere for the arcade (Breakout · Dino · Snake)\n  · type %cadmin%c for the visitor panel\n  · Esc closes them\n',
+        'font-size:18px; font-weight:bold; background:linear-gradient(90deg,#22d3ee,#a855f7,#ec4899); -webkit-background-clip:text; color:transparent;',
+        'color:#94a3b8; font-size:12px;',
+        'color:#22d3ee; font-weight:bold; font-size:12px;',
+        'color:#94a3b8; font-size:12px;',
+        'color:#22d3ee; font-weight:bold; font-size:12px;',
+        'color:#94a3b8; font-size:12px;'
+      );
+    } catch (e) { /* console styling unsupported — fine */ }
+  }
+
+  // ===================================
+  // Initialize on DOM Load
+  // ===================================
   document.addEventListener('DOMContentLoaded', function() {
     DeviceDetect.apply();
     AdminPanel.init();
     GameSystem.init();
-    console.log('Portfolio website loaded successfully!');
+    consoleHint();
   });
 
 })();
