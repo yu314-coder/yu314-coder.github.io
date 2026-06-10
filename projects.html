@@ -441,6 +441,7 @@
                   <h3 class="h2 mb-1 fw-bold">CodeBench</h3>
                   <span class="badge bg-light text-dark">iPad · iPadOS · Mac Catalyst</span>
                   <span class="badge bg-warning text-dark ms-1">Local AI</span>
+                  <span class="badge bg-light text-dark ms-1">App Store name: BenchCode</span>
                 </div>
               </div>
               <p class="lead mb-0">A self-contained developer / scientific / AI workstation for iPad and Mac. Python 3.14, C, C++, Fortran, pdflatex, and local LLMs — all running on-device, no internet required.</p>
@@ -453,6 +454,8 @@
               <span class="feature-badge">📐 pdflatex</span>
               <span class="feature-badge">🦙 llama.cpp</span>
               <span class="feature-badge">⚡ Metal GPU PyTorch</span>
+              <span class="feature-badge">🎛️ LoRA Fine-tune</span>
+              <span class="feature-badge">🟨 JS REPL</span>
               <span class="feature-badge">🎨 Image Gen</span>
               <span class="feature-badge">🔍 RAG Engine</span>
               <span class="feature-badge">⌘ Command Palette</span>
@@ -507,22 +510,43 @@
 
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>⚡ Metal GPU PyTorch <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <h5>⚡ Metal GPU PyTorch</h5>
                   <p class="mt-1 mb-0" style="font-size:0.82rem; opacity:0.9; text-align:left;">Monkey-patched <code style="color:#cfe;">torch.matmul / mm / bmm / addmm</code>, <code style="color:#cfe;">F.linear</code>, and SDPA onto Apple's <code style="color:#cfe;">MPSMatrixMultiplication</code> via ctypes → Swift <code style="color:#cfe;">@_cdecl</code>. <strong>2–10× speedup</strong> at training sizes. fp32/fp16 native, bf16 via fp32 cast. Autograd-aware via <code style="color:#cfe;">torch.autograd.Function</code>. Auto-installed via <code style="color:#cfe;">sitecustomize.py</code> — zero user code changes.</p>
                 </div>
               </div>
 
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>⌘ UI Polish <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <h5>⌘ UI Polish</h5>
                   <p class="mt-1 mb-0" style="font-size:0.82rem; opacity:0.9; text-align:left;">Live RAM sparkline in the top-right tab bar, command palette (⌘P), editor status bar, tab slide animation, drag-to-select in the terminal (via SwiftTerm doubleTap), and a real Stop button that interrupts the running task.</p>
                 </div>
               </div>
 
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>🧪 Training Toolkit <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <h5>🧪 Training Toolkit</h5>
                   <p class="mt-1 mb-0" style="font-size:0.82rem; opacity:0.9; text-align:left;">Opt-in <code style="color:#cfe;">_cb_training.py</code> (~12 KB pure Python) ships OOMGuard, MemoryProfiler, KVCache, and TrainingMonitor. Plus a pure-Python <code style="color:#cfe;">safetensors</code> reader (mmap + struct + <code style="color:#cfe;">torch.frombuffer</code>) so <code style="color:#cfe;">transformers.from_pretrained()</code> works without Rust crates.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>🎛️ LoRA Fine-tuning <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <p class="mt-1 mb-0" style="font-size:0.82rem; opacity:0.9; text-align:left;">Train a LoRA adapter on a GGUF base model in-place via llama.cpp's Metal backward kernels (<code style="color:#cfe;">LlamaFinetuner.swift</code>). Closes the train→deploy loop: fine-tune with PyTorch + HF Trainer (Metal bridge for speed), then convert the <code style="color:#cfe;">.pt</code> to a GGUF adapter with a pure-Python writer for fast Metal inference.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>🟨 JavaScript REPL <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <p class="mt-1 mb-0" style="font-size:0.82rem; opacity:0.9; text-align:left;"><code style="color:#cfe;">js</code> shell builtin backed by Apple's JavaScriptCore (zero bundle cost) — persistent Node-style REPL globals, <code style="color:#cfe;">js -e</code> one-liners, and <code style="color:#cfe;">js script.js</code> file execution, sitting alongside the <code style="color:#cfe;">python</code> builtin.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>🏎️ Editor Performance <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <p class="mt-1 mb-0" style="font-size:0.82rem; opacity:0.9; text-align:left;">IntelliSense engine moved from a 3 s blocking loop to <code style="color:#cfe;">DispatchSource</code> event watch (no held threads), Monaco file opens batched 3 JS round-trips → 1 (~100 ms saved per open), and C/C++/Fortran language providers lazy-register only on first non-Python file.</p>
                 </div>
               </div>
 
@@ -584,6 +608,9 @@
               <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="badge-btn">
                 🧱 Runtime Layer
               </a>
+              <a href="privacy.html#benchcode" class="badge-btn">
+                🔒 Privacy Policy
+              </a>
               <a href="mailto:euler.yu@gmail.com" class="badge-btn">
                 📧 Contact Developer
               </a>
@@ -607,7 +634,7 @@
                   <span class="badge bg-warning text-dark ms-1">30+ Libraries</span>
                 </div>
               </div>
-              <p class="lead mb-0">Full Python 3.14 runtime for iOS/iPadOS with 30+ offline libraries — including native PyTorch, HuggingFace transformers, and Rust tokenizers. Train on-device. No JIT, App Store safe. Powers <strong>CodeBench</strong>.</p>
+              <p class="lead mb-0">Full Python 3.14 runtime for iOS/iPadOS with 30+ offline libraries — including native PyTorch, HuggingFace transformers, and Rust tokenizers. Train on-device. No JIT, App Store safe. Powers <strong>CodeBench</strong>. Its Metal-accelerated pieces also ship as standalone repos: <a href="https://github.com/yu314-coder/cairometal" target="_blank" rel="noopener noreferrer" style="color:#8ecfff;">cairometal</a> and <a href="https://github.com/yu314-coder/torchmetal" target="_blank" rel="noopener noreferrer" style="color:#8ecfff;">torchmetal</a>.</p>
             </header>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
@@ -615,12 +642,14 @@
               <span class="feature-badge">✈️ Fully Offline</span>
               <span class="feature-badge">🛡️ App Store Safe</span>
               <span class="feature-badge">🔥 PyTorch Native</span>
-              <span class="feature-badge">⚡ Metal GPU Bridge</span>
+              <span class="feature-badge">⚡ TorchMetal GPU</span>
+              <span class="feature-badge">🎨 CairoMetal GPU</span>
               <span class="feature-badge">🤗 Transformers</span>
               <span class="feature-badge">🦀 Rust Tokenizers</span>
               <span class="feature-badge">🧮 NumPy Native</span>
-              <span class="feature-badge">🎬 Manim Video</span>
+              <span class="feature-badge">🎬 Manim up to 8K</span>
               <span class="feature-badge">🔧 C/C++/Fortran</span>
+              <span class="feature-badge">🟨 JavaScript REPL</span>
               <span class="feature-badge">📂 dulwich Git</span>
               <span class="feature-badge">🌐 Web Stack (Flask · Dash · Streamlit)</span>
             </div>
@@ -810,14 +839,38 @@
               </div>
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>⚡ Metal GPU Bridge <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <h5>⚡ Metal GPU Bridge</h5>
                   <p class="mt-1 mb-0" style="font-size:0.78rem; opacity:0.85; text-align:left;"><code style="color:#ffd;">_torch_metal_bridge.py</code> patches torch matmul / mm / bmm / addmm, <code style="color:#ffd;">F.linear</code>, and SDPA onto Apple's <code style="color:#ffd;">MPSMatrixMultiplication</code>. <strong>2–10× speedup</strong> at training sizes. fp32/fp16 native, bf16 via fp32 cast. Autograd-aware, auto-installed via <code style="color:#ffd;">sitecustomize.py</code>.</p>
                 </div>
               </div>
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>📂 Git via dulwich <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <h5>📂 Git via dulwich</h5>
                   <p class="mt-1 mb-0" style="font-size:0.78rem; opacity:0.85; text-align:left;">Real <code style="color:#ffd;">git push</code> / <code style="color:#ffd;">pull</code> / <code style="color:#ffd;">commit</code> via auto-installed <a href="https://github.com/jelmer/dulwich" target="_blank" rel="noopener noreferrer" style="color:#8ecfff;">dulwich</a>. Plus pywebview <code style="color:#ffd;">FileDialog</code> enum and faulthandler that writes C-level crashes to <code style="color:#ffd;">~/Documents/log.txt</code>.</p>
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>🎨 CairoMetal <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <p class="mt-1 mb-0" style="font-size:0.78rem; opacity:0.85; text-align:left;">pycairo-compatible 2D vector graphics rendered on the Apple GPU — <strong>246 <code style="color:#ffd;">cm_*</code> functions</strong>, stencil-then-cover fills, all 28 compositing operators, IOSurface-backed <code style="color:#ffd;">MTLTexture</code>, pixel-diffed vs real cairo. Cairo has no other Metal backend — to our knowledge this is novel. Standalone repo: <a href="https://github.com/yu314-coder/cairometal" target="_blank" rel="noopener noreferrer" style="color:#8ecfff;">cairometal</a>.</p>
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>🚀 TorchMetal <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <p class="mt-1 mb-0" style="font-size:0.78rem; opacity:0.85; text-align:left;">App-Store-safe per-op Metal/MPS routing for PyTorch inference — matmul, linear, softmax, layer_norm, gelu, attention — size + dtype gated with bit-exact CPU fallback. fp16 matmul is often <strong>hundreds of times faster</strong> than CPU. Public MPS only, no private symbols. Standalone repo: <a href="https://github.com/yu314-coder/torchmetal" target="_blank" rel="noopener noreferrer" style="color:#8ecfff;">torchmetal</a>.</p>
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>🎬 Manim 4K/8K <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <p class="mt-1 mb-0" style="font-size:0.78rem; opacity:0.85; text-align:left;">Memory-safe high-res rendering up to <strong>8K (7680×4320)</strong> without tripping iOS jetsam — bounded GIF buffer, frames stream to mp4 instead of accumulating, resolution-tiered RAM pre-flight, <code style="color:#ffd;">h264_videotoolbox</code> encode. Quality selectable 480p→8K.</p>
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>🟨 JavaScript REPL <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <p class="mt-1 mb-0" style="font-size:0.78rem; opacity:0.85; text-align:left;"><code style="color:#ffd;">js</code> shell builtin backed by Apple's JavaScriptCore — zero bundle cost. Persistent REPL globals (Node-style), <code style="color:#ffd;">js -e "code"</code> one-liners, and <code style="color:#ffd;">js script.js</code> file execution. See <a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/js-engine.md" target="_blank" rel="noopener noreferrer" class="lib-link">js-engine.md</a>.</p>
                 </div>
               </div>
             </div>
@@ -1239,6 +1292,21 @@
         <h3>Apps & Visualizations</h3>
       </div>
       <div class="row justify-content-center">
+        <div class="col-md-4 d-flex mb-4">
+          <div class="card flex-fill shadow-sm">
+            <div class="card-body d-flex flex-column">
+              <div class="d-flex align-items-center mb-3">
+                <span style="font-size: 2rem; margin-right: 10px;">🎙️</span>
+                <h5 class="card-title mb-0">WhisperKit <span class="badge bg-success ms-1" style="font-size:0.6rem; vertical-align:middle;">NEW</span></h5>
+              </div>
+              <p class="card-text flex-grow-1">On-device speech transcription for iPhone &amp; iPad — Whisper models running entirely on Apple's Neural Engine. Record, import audio/video, or pick from Photos; transcripts never leave your device.</p>
+              <a href="https://apps.apple.com/app/whisperkit/id6764759491" target="_blank" rel="noopener noreferrer" class="store-badge store-badge-sm mt-auto mb-2" aria-label="Download WhisperKit on the App Store">
+                <img src="assets/img/badges/appstore.svg" alt="Download on the App Store">
+              </a>
+              <a href="privacy.html#whisper" class="small text-muted text-decoration-none" style="font-size: 0.8rem;">🔒 Privacy Policy</a>
+            </div>
+          </div>
+        </div>
         <div class="col-md-4 d-flex mb-4">
           <div class="card flex-fill shadow-sm">
             <div class="card-body d-flex flex-column">
