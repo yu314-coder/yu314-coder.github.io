@@ -54,7 +54,8 @@ Precision GPS workout tracker for iPhone & Apple Watch — Kalman-filtered locat
 |---------|-------------|-------|
 | ollama-installer | Install Ollama from a Python CLI | [GitHub](https://github.com/yu314-coder/python-ollama) · [PyPI](https://pypi.org/project/ollama-installer/) |
 | narrate | Local text-to-speech (Kokoro + Chatterbox) | [GitHub](https://github.com/yu314-coder/narrate) · [PyPI](https://pypi.org/project/narrate/) |
-| rmt-denoise | Image denoising via Random Matrix Theory | [GitHub](https://github.com/yu314-coder/rmt-denoise) · [PyPI](https://pypi.org/project/rmt-denoise/) |
+| rmt-denoise | Image denoising via Random Matrix Theory (v2.3.0) | [GitHub](https://github.com/yu314-coder/rmt-denoise) · [PyPI](https://pypi.org/project/rmt-denoise/) |
+| cairometal | pycairo-compatible 2D graphics on the Apple GPU via Metal (macOS arm64 wheel) | [GitHub](https://github.com/yu314-coder/cairometal) · [PyPI](https://pypi.org/project/cairometal/) |
 
 ---
 
