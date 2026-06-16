@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PyPI Download Stats</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.plot.ly/plotly-basic-2.35.2.min.js" charset="utf-8"></script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="toolbar" aria-label="Query controls">
+        <div class="brand">
+          <h1>PyPI Download Stats</h1>
+          <p>Live downloads by country, package version &amp; Python version — public ClickPy data</p>
+        </div>
+
+        <div class="quick-picks" aria-label="My packages">
+          <span class="quick-label">My packages:</span>
+          <button type="button" class="chip" data-pkg="rmt-denoise">rmt-denoise</button>
+          <button type="button" class="chip" data-pkg="cairometal">cairometal</button>
+          <button type="button" class="chip" data-pkg="narrate">narrate</button>
+          <button type="button" class="chip" data-pkg="ollama-installer">ollama-installer</button>
+        </div>
+
+        <form id="tracker-form" class="controls">
+          <label>
+            Package
+            <input id="package" name="package" value="rmt-denoise" autocomplete="off" />
+          </label>
+          <label>
+            Start
+            <input id="start-date" name="startDate" type="date" />
+          </label>
+          <label>
+            End
+            <input id="end-date" name="endDate" type="date" />
+          </label>
+          <label>
+            Rows
+            <input id="limit" name="limit" type="number" min="10" max="1000" value="100" />
+          </label>
+          <label class="check">
+            <input id="full-history" name="fullHistory" type="checkbox" />
+            Full history
+          </label>
+          <button id="run" type="submit">Analyze</button>
+        </form>
+      </section>
+
+      <section id="status" class="status" role="status"></section>
+
+      <section class="summary">
+        <div>
+          <span>Total downloads</span>
+          <strong id="total-downloads">0</strong>
+        </div>
+        <div>
+          <span>Countries</span>
+          <strong id="country-count">0</strong>
+        </div>
+        <div>
+          <span>Package versions</span>
+          <strong id="version-count">0</strong>
+        </div>
+        <div>
+          <span>Python versions</span>
+          <strong id="python-count">0</strong>
+        </div>
+      </section>
+
+      <section class="panel chart-panel">
+        <header>
+          <h2>Downloads Over Time</h2>
+          <span id="chart-range"></span>
+        </header>
+        <div class="chart-wrap">
+          <div id="download-chart" role="img" aria-label="Daily downloads line chart"></div>
+          <div id="chart-empty" class="empty">Run a query to draw the graph</div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="panel">
+          <header>
+            <h2>Countries</h2>
+          </header>
+          <div id="countries" class="bar-list"></div>
+        </article>
+
+        <article class="panel">
+          <header>
+            <h2>Package Versions</h2>
+          </header>
+          <div id="package-versions" class="bar-list"></div>
+        </article>
+
+        <article class="panel">
+          <header>
+            <h2>Python Versions</h2>
+          </header>
+          <div id="python-versions" class="bar-list"></div>
+        </article>
+      </section>
+
+      <section class="panel table-panel">
+        <header>
+          <h2>Country × Version Breakdown</h2>
+        </header>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Country</th>
+                <th>Package Version</th>
+                <th>Python Version</th>
+                <th>Downloads</th>
+              </tr>
+            </thead>
+            <tbody id="matrix"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <details class="author-explorer">
+        <summary>Explore any author's packages →</summary>
+        <section class="panel author-panel">
+          <form id="author-form" class="author-controls">
+            <label>
+              Author
+              <input id="author-query" autocomplete="off" placeholder="Search author name" />
+            </label>
+            <label>
+              Rows
+              <input id="author-limit" type="number" min="10" max="1000" value="50" />
+            </label>
+            <button id="author-search" type="submit">Search</button>
+          </form>
+          <div class="author-layout">
+            <div>
+              <h3>Matches</h3>
+              <div id="author-list" class="author-list"></div>
+            </div>
+            <div>
+              <h3 id="author-title">Packages</h3>
+              <div class="table-wrap author-table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Package</th>
+                      <th>Summary</th>
+                      <th>Latest</th>
+                      <th>Python</th>
+                      <th>Downloads</th>
+                      <th>Files</th>
+                    </tr>
+                  </thead>
+                  <tbody id="author-projects"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+      </details>
+    </main>
+
+    <script src="app.js"></script>
+    <script>
+      // Quick-pick chips: fill the package field and run the analysis
+      document.querySelectorAll('.chip').forEach((chip) => {
+        chip.addEventListener('click', () => {
+          document.querySelector('#package').value = chip.dataset.pkg;
+          document.querySelector('#tracker-form').requestSubmit();
+        });
+      });
+    </script>
+  </body>
+</html>

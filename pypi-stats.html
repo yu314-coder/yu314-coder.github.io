@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="PyPI download statistics for Yu, Yao-Hsing 尤耀星's Python packages — live downloads by country, package version, and Python version. Packages: rmt-denoise, cairometal, narrate, ollama-installer.">
+  <meta name="keywords" content="Yu, Yao-Hsing 尤耀星, PyPI, download stats, rmt-denoise, cairometal, narrate, ollama-installer, ClickPy, package analytics">
+  <meta name="author" content="Yu, Yao-Hsing 尤耀星">
+  <meta name="robots" content="index, follow">
+
+  <!-- Security Headers -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="PyPI Stats | Yu, Yao-Hsing 尤耀星">
+  <meta property="og:description" content="Live PyPI download statistics for my Python packages — by country, version, and Python version">
+  <meta property="og:url" content="https://yu314-coder.github.io/pypi-stats.html">
+  <meta property="og:image" content="https://yu314-coder.github.io/assets/img/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://yu314-coder.github.io/assets/img/og-image.png">
+
+  <title>PyPI Stats | Yu, Yao-Hsing 尤耀星 - Package Download Analytics</title>
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="assets/css/style.css">
+
+  <style>
+    .category-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e9ecef;
+    }
+    .category-header h3 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #333;
+      margin: 0;
+    }
+    .category-header .category-icon { font-size: 1.5rem; }
+
+    /* Embedded tracker frame */
+    .tracker-shell {
+      background: linear-gradient(135deg, #0a0e1a 0%, #0f1729 100%);
+      border-radius: 16px;
+      padding: 10px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+      border: 1px solid #1c2540;
+    }
+    #pypi-frame {
+      width: 100%;
+      border: 0;
+      border-radius: 10px;
+      display: block;
+      min-height: 1200px;
+      background: transparent;
+    }
+    .tracker-note {
+      font-size: 0.85rem;
+      color: #6c757d;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <div class="container">
+      <a class="navbar-brand" href="index.html" aria-label="Yu, Yao-Hsing 尤耀星 Home">Yu, Yao-Hsing 尤耀星</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+              aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="about.html">About</a></li>
+          <li class="nav-item"><a class="nav-link" href="projects.html">Projects</a></li>
+          <li class="nav-item"><a class="nav-link active" aria-current="page" href="pypi-stats.html">PyPI Stats</a></li>
+          <li class="nav-item"><a class="nav-link" href="privacy.html">Privacy</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Header Section -->
+  <header class="page-header">
+    <h1>PyPI Stats</h1>
+  </header>
+
+  <!-- My Packages -->
+  <section class="container my-5">
+    <div class="text-center mb-5">
+      <h2 class="display-5 fw-bold mb-3" style="color: #333;">My Python Packages</h2>
+      <p class="lead text-muted">Open-source packages published on PyPI — click through to GitHub or PyPI, or scroll down for live download stats</p>
+    </div>
+
+    <div class="category-header">
+      <span class="category-icon">📦</span>
+      <h3>Packages on PyPI</h3>
+    </div>
+    <div class="row justify-content-center">
+      <div class="col-md-4 d-flex mb-4">
+        <div class="card flex-fill shadow-sm">
+          <div class="card-body d-flex flex-column">
+            <div class="d-flex align-items-center mb-3">
+              <span style="font-size: 2rem; margin-right: 10px;">🧮</span>
+              <h5 class="card-title mb-0">rmt-denoise <span class="badge bg-light text-dark ms-1" style="font-size:0.65rem; vertical-align:middle;">v2.3.0</span></h5>
+            </div>
+            <p class="card-text flex-grow-1">Image denoising via Random Matrix Theory. Two denoisers — MP-Law thresholding (i.i.d. Gaussian) and GeneralizedCov (oracle search for (a, β) via differential evolution). The Python library counterpart to EigenDenoise.</p>
+            <div class="d-flex gap-2 mt-auto">
+              <a href="https://github.com/yu314-coder/rmt-denoise" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary flex-fill">GitHub →</a>
+              <a href="https://pypi.org/project/rmt-denoise/" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">PyPI →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 d-flex mb-4">
+        <div class="card flex-fill shadow-sm">
+          <div class="card-body d-flex flex-column">
+            <div class="d-flex align-items-center mb-3">
+              <span style="font-size: 2rem; margin-right: 10px;">🎨</span>
+              <h5 class="card-title mb-0">cairometal <span class="badge bg-success ms-1" style="font-size:0.6rem; vertical-align:middle;">NEW</span></h5>
+            </div>
+            <p class="card-text flex-grow-1">pycairo-compatible 2D vector graphics rendered on the Apple GPU via Metal — 246 C functions, drop-in <code>import cairo_metal as cairo</code>, pixel-diffed against real cairo. Ships a macOS arm64 wheel (Python ≥3.10). The first GPU/Metal cairo on PyPI.</p>
+            <div class="d-flex gap-2 mt-auto">
+              <a href="https://github.com/yu314-coder/cairometal" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary flex-fill">GitHub →</a>
+              <a href="https://pypi.org/project/cairometal/" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">PyPI →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 d-flex mb-4">
+        <div class="card flex-fill shadow-sm">
+          <div class="card-body d-flex flex-column">
+            <div class="d-flex align-items-center mb-3">
+              <span style="font-size: 2rem; margin-right: 10px;">🗣️</span>
+              <h5 class="card-title mb-0">narrate</h5>
+            </div>
+            <p class="card-text flex-grow-1">Local text-to-speech with Kokoro and Chatterbox engines. High-quality voice synthesis running entirely on your machine.</p>
+            <div class="d-flex gap-2 mt-auto">
+              <a href="https://github.com/yu314-coder/narrate" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary flex-fill">GitHub →</a>
+              <a href="https://pypi.org/project/narrate/" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">PyPI →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 d-flex mb-4">
+        <div class="card flex-fill shadow-sm">
+          <div class="card-body d-flex flex-column">
+            <div class="d-flex align-items-center mb-3">
+              <span style="font-size: 2rem; margin-right: 10px;">🦙</span>
+              <h5 class="card-title mb-0">ollama-installer</h5>
+            </div>
+            <p class="card-text flex-grow-1">Install Ollama from a Python CLI. A convenient command-line tool for setting up Ollama on your system.</p>
+            <div class="d-flex gap-2 mt-auto">
+              <a href="https://github.com/yu314-coder/python-ollama" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary flex-fill">GitHub →</a>
+              <a href="https://pypi.org/project/ollama-installer/" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">PyPI →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Live Download Stats -->
+  <section class="container my-5">
+    <div class="text-center mb-4">
+      <h2 class="display-5 fw-bold mb-3" style="color: #333;">Live Download Statistics</h2>
+      <p class="lead text-muted">Pick one of my packages (or any PyPI project) to see downloads by country, version, and Python version</p>
+      <p class="tracker-note mb-0">Data pulled live from the public <a href="https://clickpy.clickhouse.com/" target="_blank" rel="noopener noreferrer">ClickPy</a> dataset (PyPI download logs on ClickHouse). Queries run entirely in your browser — nothing is sent to me.</p>
+    </div>
+
+    <div class="tracker-shell">
+      <iframe id="pypi-frame" src="assets/pypi-tracker/index.html" title="PyPI Download Statistics" loading="lazy"></iframe>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="site-footer text-center">
+    <div class="container py-4">
+      <div class="footer-links mb-3">
+        <a href="https://github.com/yu314-coder" target="_blank" rel="noopener noreferrer" aria-label="GitHub profile">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222 0 1.606-.014 2.898-.014 3.293 0 .322.216.694.825.576C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg> GitHub
+        </a>
+        <a href="https://pypi.org/user/euler314/" target="_blank" rel="noopener noreferrer" aria-label="PyPI profile">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5 8 5.961 14.154 3.5 8.186 1.113zM15 4.239l-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923l6.5 2.6zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464L7.443.184z"/></svg> PyPI
+        </a>
+        <a href="mailto:euler.yu@gmail.com" aria-label="Email">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z"/></svg> Email
+        </a>
+      </div>
+      <p class="mb-0 footer-copy">&copy; 2026 Yu, Yao-Hsing 尤耀星. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Bootstrap 5 JS Bundle (includes Popper) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+  <!-- Auto-size the same-origin tracker iframe to its content -->
+  <script>
+    (function () {
+      var frame = document.getElementById('pypi-frame');
+      function sizeFrame() {
+        try {
+          var doc = frame.contentDocument || frame.contentWindow.document;
+          var h = doc.body ? doc.body.scrollHeight : 0;
+          if (h > 0) frame.style.height = (h + 24) + 'px';
+        } catch (e) { /* cross-origin fallback: keep min-height */ }
+      }
+      frame.addEventListener('load', function () {
+        sizeFrame();
+        // Re-measure as the app renders results / expands the author panel
+        setInterval(sizeFrame, 800);
+      });
+    })();
+  </script>
+
+  <!-- Custom JavaScript -->
+  <script src="assets/js/script.js"></script>
+</body>
+</html>

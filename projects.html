@@ -194,6 +194,7 @@
           <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
           <li class="nav-item"><a class="nav-link" href="about.html">About</a></li>
           <li class="nav-item"><a class="nav-link active" aria-current="page" href="projects.html">Projects</a></li>
+          <li class="nav-item"><a class="nav-link" href="pypi-stats.html">PyPI Stats</a></li>
           <li class="nav-item"><a class="nav-link" href="privacy.html">Privacy</a></li>
         </ul>
       </div>
@@ -225,9 +226,6 @@
       </li>
       <li class="nav-item" role="presentation">
         <button class="nav-link" id="tab-gps-btn" data-bs-toggle="pill" data-bs-target="#tab-gps" type="button" role="tab" aria-controls="tab-gps" aria-selected="false">📍 GPS-location-app</button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-pypi-btn" data-bs-toggle="pill" data-bs-target="#tab-pypi" type="button" role="tab" aria-controls="tab-pypi" aria-selected="false">📦 PyPI Packages</button>
       </li>
       <li class="nav-item" role="presentation">
         <button class="nav-link" id="tab-other-btn" data-bs-toggle="pill" data-bs-target="#tab-other" type="button" role="tab" aria-controls="tab-other" aria-selected="false">🔧 Others</button>
@@ -1136,80 +1134,6 @@
       </div>
     </article>
     </div><!-- /tab-gencov -->
-
-    <!-- Tab 4: PyPI Packages -->
-    <div class="tab-pane fade" id="tab-pypi" role="tabpanel" aria-labelledby="tab-pypi-btn">
-
-    <!-- Category: Python Packages -->
-    <div class="mb-5">
-      <div class="category-header">
-        <span class="category-icon">📦</span>
-        <h3>Python Packages (PyPI)</h3>
-      </div>
-      <div class="row justify-content-center">
-        <div class="col-md-4 d-flex mb-4">
-          <div class="card flex-fill shadow-sm">
-            <div class="card-body d-flex flex-column">
-              <div class="d-flex align-items-center mb-3">
-                <span style="font-size: 2rem; margin-right: 10px;">🦙</span>
-                <h5 class="card-title mb-0">ollama-installer</h5>
-              </div>
-              <p class="card-text flex-grow-1">Install Ollama from a Python CLI. A convenient command-line tool for setting up Ollama on your system.</p>
-              <div class="d-flex gap-2 mt-auto">
-                <a href="https://github.com/yu314-coder/python-ollama" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary flex-fill">GitHub →</a>
-                <a href="https://pypi.org/project/ollama-installer/" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">PyPI →</a>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4 d-flex mb-4">
-          <div class="card flex-fill shadow-sm">
-            <div class="card-body d-flex flex-column">
-              <div class="d-flex align-items-center mb-3">
-                <span style="font-size: 2rem; margin-right: 10px;">🗣️</span>
-                <h5 class="card-title mb-0">narrate</h5>
-              </div>
-              <p class="card-text flex-grow-1">Local text-to-speech with Kokoro and Chatterbox engines. High-quality voice synthesis running entirely on your machine.</p>
-              <div class="d-flex gap-2 mt-auto">
-                <a href="https://github.com/yu314-coder/narrate" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary flex-fill">GitHub →</a>
-                <a href="https://pypi.org/project/narrate/" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">PyPI →</a>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4 d-flex mb-4">
-          <div class="card flex-fill shadow-sm">
-            <div class="card-body d-flex flex-column">
-              <div class="d-flex align-items-center mb-3">
-                <span style="font-size: 2rem; margin-right: 10px;">🧮</span>
-                <h5 class="card-title mb-0">rmt-denoise <span class="badge bg-light text-dark ms-1" style="font-size:0.65rem; vertical-align:middle;">v2.3.0</span></h5>
-              </div>
-              <p class="card-text flex-grow-1">Image denoising via Random Matrix Theory. Two denoisers — MP-Law thresholding (i.i.d. Gaussian) and GeneralizedCov (oracle search for (a, β) via differential evolution). The Python library counterpart to EigenDenoise.</p>
-              <div class="d-flex gap-2 mt-auto">
-                <a href="https://github.com/yu314-coder/rmt-denoise" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary flex-fill">GitHub →</a>
-                <a href="https://pypi.org/project/rmt-denoise/" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">PyPI →</a>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4 d-flex mb-4">
-          <div class="card flex-fill shadow-sm">
-            <div class="card-body d-flex flex-column">
-              <div class="d-flex align-items-center mb-3">
-                <span style="font-size: 2rem; margin-right: 10px;">🎨</span>
-                <h5 class="card-title mb-0">cairometal <span class="badge bg-success ms-1" style="font-size:0.6rem; vertical-align:middle;">NEW</span></h5>
-              </div>
-              <p class="card-text flex-grow-1">pycairo-compatible 2D vector graphics rendered on the Apple GPU via Metal — 246 C functions, drop-in <code>import cairo_metal as cairo</code>, pixel-diffed against real cairo. Ships a macOS arm64 wheel (Python ≥3.10). The first GPU/Metal cairo on PyPI.</p>
-              <div class="d-flex gap-2 mt-auto">
-                <a href="https://github.com/yu314-coder/cairometal" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary flex-fill">GitHub →</a>
-                <a href="https://pypi.org/project/cairometal/" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">PyPI →</a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    </div><!-- /tab-pypi -->
 
     <!-- Tab 5: GPS-location-app -->
     <div class="tab-pane fade" id="tab-gps" role="tabpanel" aria-labelledby="tab-gps-btn">
