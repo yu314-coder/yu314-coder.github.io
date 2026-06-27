@@ -12,8 +12,8 @@
   --bg-alt:    #fafaf8;   /* subtle alternating section */
   --surface:   #ffffff;
   --ink:       #15140f;   /* near-black, warm-neutral */
-  --ink-2:     #57564f;   /* muted body / secondary */
-  --ink-3:     #8c8b83;   /* hints, captions */
+  --ink-2:     #54534c;   /* muted body / secondary */
+  --ink-3:     #6f6e66;   /* hints, captions — meets AA on white */
   --line:      rgba(21,20,15,0.10);
   --line-2:    rgba(21,20,15,0.16);
   --accent:    #2d6bff;   /* ink-blue, used sparingly */
@@ -41,6 +41,20 @@
   --shadow-sm: 0 1px 2px rgba(21,20,15,.05), 0 4px 14px rgba(21,20,15,.05);
   --shadow-md: 0 10px 40px rgba(21,20,15,.10);
   --ease: cubic-bezier(.2,.7,.2,1);
+
+  /* Bridge Bootstrap's color vars to our tokens so Bootstrap components
+     (.card, .text-muted, .card-title, …) inherit the right ink in BOTH
+     themes — without this, Bootstrap forces #212529 (dark-on-dark). */
+  --bs-body-color: var(--ink);
+  --bs-body-color-rgb: 21, 20, 15;
+  --bs-body-bg: var(--bg);
+  --bs-emphasis-color: var(--ink);
+  --bs-secondary-color: var(--ink-2);
+  --bs-tertiary-color: var(--ink-3);
+  --bs-heading-color: var(--ink);
+  --bs-link-color: var(--accent);
+  --bs-link-hover-color: var(--accent-press);
+  --bs-border-color: var(--line);
 }
 
 /* ---------------------------------------------------------------------------
@@ -220,15 +234,16 @@ body.theme-dark {
   --bg-alt:    #11151f;
   --surface:   #141a27;
   --ink:       #f2f4f8;
-  --ink-2:     #a7adbd;
-  --ink-3:     #6a7185;
+  --ink-2:     #aeb4c4;
+  --ink-3:     #828aa0;
   --line:      rgba(255,255,255,0.10);
   --line-2:    rgba(255,255,255,0.18);
-  --accent:    #4f88ff;
-  --accent-press: #6b9bff;
-  --accent-tint:  rgba(79,136,255,0.16);
+  --accent:    #6b9bff;
+  --accent-press: #8bb4ff;
+  --accent-tint:  rgba(107,155,255,0.18);
   --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
   --shadow-md: 0 16px 40px rgba(0,0,0,.45);
+  --bs-body-color-rgb: 242, 244, 248;
   background: var(--bg);
   color: var(--ink);
 }
@@ -246,6 +261,9 @@ body.theme-dark .navbar-toggler-icon {
   body.theme-dark .navbar-collapse { background: rgba(11,14,20,0.96); border-color: var(--line); }
 }
 body.theme-dark .site-footer { background: var(--bg); border-top-color: var(--line); }
+/* On dark, the accent is light-blue — primary buttons take dark text for contrast */
+body.theme-dark .btn-primary,
+body.theme-dark .btn-primary:hover { color: #07101f !important; }
 body.theme-dark .app-icon { background: var(--surface); }
 body.theme-dark .badge-neutral,
 body.theme-dark .dev-badge,
@@ -348,12 +366,18 @@ body.theme-dark .spotlight-tag { background: rgba(255,255,255,0.06); }
    ------------------------------------------------------------------------- */
 .card {
   background: var(--surface);
+  color: var(--ink);
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
   box-shadow: none;
   transition: transform .25s var(--ease), box-shadow .25s var(--ease), border-color .25s var(--ease);
   overflow: hidden;
 }
+.card h1, .card h2, .card h3, .card h4, .card h5, .card h6, .card-title { color: var(--ink); }
+.card-text, .card .card-body p, .card li { color: var(--ink-2); }
+.text-muted { color: var(--ink-2) !important; }
+.featured-project, .featured-project p, .featured-project li, .lib-category-card, .lib-category-card p { color: var(--ink-2); }
+.featured-project h1, .featured-project h2, .featured-project h3, .featured-project h4, .featured-project h5, .featured-project h6 { color: var(--ink); }
 .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: var(--line-2); }
 .card-body { padding: 1.6rem; }
 .card-title { font-size: 1.15rem; }
