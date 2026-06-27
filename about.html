@@ -29,22 +29,24 @@
 
   <title>About Me | Yu, Yao-Hsing 尤耀星 - Developer & Data Enthusiast</title>
 
-  <!-- Bootstrap 5 CSS -->
+  <!-- Bootstrap 5 (UNCHANGED — keep loaded for grid + tab/collapse JS) -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-  <!-- Google Fonts -->
+
+  <!-- Fonts: retire Roboto entirely. Load all four families in ONE request. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
-  <!-- Custom CSS -->
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+
+  <!-- Site stylesheet (single source of truth) -->
   <link rel="stylesheet" href="assets/css/style.css">
+  <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
 <body>
   <!-- Navigation -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+  <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
     <div class="container">
-      <a class="navbar-brand" href="index.html" aria-label="Yu, Yao-Hsing 尤耀星 Home">Yu, Yao-Hsing 尤耀星</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-              aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <a class="navbar-brand" href="index.html" aria-label="Yu, Yao-Hsing 尤耀星 Home">Yu, Yao-Hsing <span class="brand-cjk">尤耀星</span></a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
@@ -59,26 +61,35 @@
     </div>
   </nav>
 
-  <!-- Header Section -->
+  <!-- Page header -->
   <header class="page-header">
-    <h1>About Me</h1>
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-10 offset-lg-1">
+          <p class="eyebrow eyebrow--rule reveal">// about</p>
+          <h1 class="reveal reveal-delay-1">About Me</h1>
+          <p class="lead-2 reveal reveal-delay-2" style="max-width: 46rem;">Developer, data enthusiast, and creative problem solver — blending mathematics, machine learning, and software to ship things that run where people actually are.</p>
+        </div>
+      </div>
+    </div>
   </header>
 
   <!-- Main Content -->
-  <section class="content-section container">
+  <section class="section container">
     <div class="row">
       <div class="col-lg-10 offset-lg-1">
         <!-- Introduction -->
-        <div class="mb-5 text-center">
-          <p class="lead" style="font-size: 1.3rem; line-height: 1.8;">Hello, I'm <strong class="gradient-text">Yu, Yao-Hsing 尤耀星</strong>. I'm a passionate developer, data enthusiast, and creative problem solver driven by a deep curiosity about technology and its potential. My journey started with exploring the intricacies of mathematics and computer science, and I continue to blend art and science to create innovative solutions.</p>
+        <div class="mb-5 reveal">
+          <p class="lead-2">Hello, I'm <strong>Yu, Yao-Hsing <span class="brand-cjk">尤耀星</span></strong>. I'm a passionate developer, data enthusiast, and creative problem solver driven by a deep curiosity about technology and its potential. My journey started with exploring the intricacies of mathematics and computer science, and I continue to blend art and science to create innovative solutions.</p>
         </div>
 
         <!-- Education Section -->
         <div class="mb-5">
-          <h3 class="mb-4" style="color: var(--primary-color); font-weight: 700;">🎓 Education</h3>
-          <div class="card shadow-sm border-0">
+          <p class="eyebrow eyebrow--rule reveal">// education</p>
+          <h3 class="mb-4 reveal">Education</h3>
+          <div class="card reveal">
             <div class="card-body p-4">
-              <h5 style="color: var(--primary-dark); font-weight: 700;">Taipei Municipal Chien Kuo High School</h5>
+              <h5>Taipei Municipal Chien Kuo High School</h5>
               <p class="mb-0">Currently diving into advanced computer science, applied mathematics, and data analytics. This academic environment inspires me to push the boundaries of what's possible and constantly challenge myself.</p>
             </div>
           </div>
@@ -86,42 +97,55 @@
 
         <!-- Skills Section -->
         <div class="mb-5">
-          <h3 class="mb-4" style="color: var(--primary-color); font-weight: 700;">💡 Skills & Expertise</h3>
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <div class="icon-box">
-                <h5>🔬 Mathematical Research</h5>
-                <p class="mb-0">Random Matrix Theory, Stieltjes Transform, M-P Law, spectral distributions</p>
+          <p class="eyebrow eyebrow--rule reveal">// skills &amp; expertise</p>
+          <h3 class="mb-4 reveal">Skills &amp; Expertise</h3>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="card h-100 reveal">
+                <div class="card-body">
+                  <h5>Mathematical Research</h5>
+                  <p class="mb-0">Random Matrix Theory, Stieltjes Transform, M-P Law, spectral distributions</p>
+                </div>
               </div>
             </div>
-            <div class="col-md-6 mb-3">
-              <div class="icon-box">
-                <h5>🤖 Machine Learning & AI</h5>
-                <p class="mb-0">PyTorch, HuggingFace transformers, on-device LLMs, scikit-learn</p>
+            <div class="col-md-6">
+              <div class="card h-100 reveal reveal-delay-1">
+                <div class="card-body">
+                  <h5>Machine Learning &amp; AI</h5>
+                  <p class="mb-0">PyTorch, HuggingFace transformers, on-device LLMs, scikit-learn</p>
+                </div>
               </div>
             </div>
-            <div class="col-md-6 mb-3">
-              <div class="icon-box">
-                <h5>📱 iOS & Apple Platforms</h5>
-                <p class="mb-0">Swift, SwiftUI, iOS / iPadOS / macOS apps, HealthKit, CarPlay, Metal</p>
+            <div class="col-md-6">
+              <div class="card h-100 reveal">
+                <div class="card-body">
+                  <h5>iOS &amp; Apple Platforms</h5>
+                  <p class="mb-0">Swift, SwiftUI, iOS / iPadOS / macOS apps, HealthKit, CarPlay, Metal</p>
+                </div>
               </div>
             </div>
-            <div class="col-md-6 mb-3">
-              <div class="icon-box">
-                <h5>🛠️ Systems & Cross-Compilation</h5>
-                <p class="mb-0">Native iOS arm64 builds, Rust (PyO3), C / C++ / Fortran, Metal GPU bridges</p>
+            <div class="col-md-6">
+              <div class="card h-100 reveal reveal-delay-1">
+                <div class="card-body">
+                  <h5>Systems &amp; Cross-Compilation</h5>
+                  <p class="mb-0">Native iOS arm64 builds, Rust (PyO3), C / C++ / Fortran, Metal GPU bridges</p>
+                </div>
               </div>
             </div>
-            <div class="col-md-6 mb-3">
-              <div class="icon-box">
-                <h5>💻 Software Engineering</h5>
-                <p class="mb-0">Windows Store apps, GUI applications, Python packaging, web development</p>
+            <div class="col-md-6">
+              <div class="card h-100 reveal">
+                <div class="card-body">
+                  <h5>Software Engineering</h5>
+                  <p class="mb-0">Windows Store apps, GUI applications, Python packaging, web development</p>
+                </div>
               </div>
             </div>
-            <div class="col-md-6 mb-3">
-              <div class="icon-box">
-                <h5>📊 Data Science & Visualization</h5>
-                <p class="mb-0">Data analysis, Manim animations, matplotlib / Plotly, FFmpeg / Cairo</p>
+            <div class="col-md-6">
+              <div class="card h-100 reveal reveal-delay-1">
+                <div class="card-body">
+                  <h5>Data Science &amp; Visualization</h5>
+                  <p class="mb-0">Data analysis, Manim animations, matplotlib / Plotly, FFmpeg / Cairo</p>
+                </div>
               </div>
             </div>
           </div>
@@ -129,17 +153,18 @@
 
         <!-- Interests Section -->
         <div class="mb-5">
-          <h3 class="mb-4" style="color: var(--primary-color); font-weight: 700;">🚀 Interests</h3>
-          <div class="card shadow-sm border-0" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+          <p class="eyebrow eyebrow--rule reveal">// interests</p>
+          <h3 class="mb-4 reveal">Interests</h3>
+          <div class="card reveal">
             <div class="card-body p-4">
               <p class="mb-3">I'm fascinated by the convergence of machine learning, mathematics, and coding — especially pushing heavy compute (PyTorch, transformers, LaTeX, Manim) onto devices people actually carry. I spend my time researching random matrix theory, building offline-first apps, and cross-compiling "impossible" libraries to iOS.</p>
-              <div>
-                <span class="badge-custom">On-Device AI</span>
-                <span class="badge-custom">Random Matrix Theory</span>
-                <span class="badge-custom">iOS Development</span>
-                <span class="badge-custom">Cross-Compilation</span>
-                <span class="badge-custom">Mathematical Animation</span>
-                <span class="badge-custom">Data Visualization</span>
+              <div class="d-flex flex-wrap gap-2">
+                <span class="badge-neutral">On-Device AI</span>
+                <span class="badge-neutral">Random Matrix Theory</span>
+                <span class="badge-neutral">iOS Development</span>
+                <span class="badge-neutral">Cross-Compilation</span>
+                <span class="badge-neutral">Mathematical Animation</span>
+                <span class="badge-neutral">Data Visualization</span>
               </div>
             </div>
           </div>
@@ -147,35 +172,38 @@
 
         <!-- Timeline Section -->
         <div class="mb-5">
-          <h3 class="mb-4" style="color: var(--primary-color); font-weight: 700;">📅 Experience & Timeline</h3>
-          <div class="timeline">
+          <p class="eyebrow eyebrow--rule reveal">// experience &amp; timeline</p>
+          <h3 class="mb-4 reveal">Experience &amp; Timeline</h3>
+          <div class="timeline reveal">
             <div class="timeline-item">
-              <h5>2026</h5>
-              <p><strong>📱 Shipped 6 apps across the App Store, Mac App Store, and Microsoft Store</strong> — ManimStudio (Windows + iOS), Generalized Covariance Matrix, EigenDenoise (macOS), GPS-location-app, and t-SNE Visualization.</p>
-              <p><strong>🐍 Built <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer">python-ios-lib</a></strong> — a full Python 3.14 runtime for iOS/iPadOS with 30+ native libraries, including the <strong>first public native PyTorch build on iOS</strong> (with a Metal GPU bridge for a 2–10× on-device training speedup), HuggingFace transformers, and Rust-based tokenizers.</p>
-              <p><strong>🛠️ Built <a href="https://github.com/yu314-coder/CodeBench" target="_blank" rel="noopener noreferrer">CodeBench</a></strong> — a fully offline developer / scientific / AI workstation for iPad &amp; Mac: Monaco editor, integrated terminal, C/C++/Fortran, on-device pdflatex, and local LLMs.</p>
-              <p><strong>📦 Published 3 PyPI packages</strong> — ollama-installer, narrate, and rmt-denoise (random-matrix image denoising).</p>
+              <p class="timeline-date">2026</p>
+              <h5>Shipped 6 apps across the App Store, Mac App Store, and Microsoft Store</h5>
+              <p>ManimStudio (Windows + iOS), Generalized Covariance Matrix, EigenDenoise (macOS), GPS-location-app, and t-SNE Visualization.<br><br><strong>Built <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer">python-ios-lib</a></strong> — a full Python 3.14 runtime for iOS/iPadOS with 30+ native libraries, including the <strong>first public native PyTorch build on iOS</strong> (with a Metal GPU bridge for a 2–10× on-device training speedup), HuggingFace transformers, and Rust-based tokenizers.<br><br><strong>Built <a href="https://github.com/yu314-coder/CodeBench" target="_blank" rel="noopener noreferrer">CodeBench</a></strong> — a fully offline developer / scientific / AI workstation for iPad &amp; Mac: Monaco editor, integrated terminal, C/C++/Fortran, on-device pdflatex, and local LLMs.<br><br><strong>Published 3 PyPI packages</strong> — ollama-installer, narrate, and rmt-denoise (random-matrix image denoising).</p>
             </div>
             <div class="timeline-item">
-              <h5>2025</h5>
-              <p><strong>🥉 2025 丘成桐中學科學獎總決賽 / S. T. Yau High School Science Award — Grand Finals (Bronze Medal)</strong> — Awarded Bronze Medal at the Grand Finals for a research report on the limiting spectral distributions of products of sample covariance matrices with deterministic sequences. Derived explicit support bounds for two-point limiting measures using the Intermediate Value Theorem and Stieltjes transform inversion, with applications in statistics, signal processing, and wireless communications.</p>
-              <p><strong>🥈 S. T. Yau High School Science Award — Asia Regional (Silver Medal)</strong> — Earned Silver Medal at the Asia regional competition, advancing to the Grand Finals.</p>
+              <p class="timeline-date">2025</p>
+              <h5>S. T. Yau High School Science Award — Grand Finals (Bronze Medal)</h5>
+              <div class="pull-quote serif mb-3">2025 丘成桐中學科學獎總決賽 — Awarded the Bronze Medal at the Grand Finals for a research report on the limiting spectral distributions of products of sample covariance matrices with deterministic sequences. Derived explicit support bounds for two-point limiting measures using the Intermediate Value Theorem and Stieltjes transform inversion, with applications in statistics, signal processing, and wireless communications.</div>
+              <p><strong>S. T. Yau High School Science Award — Asia Regional (Silver Medal)</strong> — Earned the Silver Medal at the Asia regional competition, advancing to the Grand Finals.</p>
               <div class="mt-3">
-                <a href="assets/docs/yau-science-award-research-paper.pdf" class="btn btn-primary btn-sm" download>
-                  📄 Download Research Paper (PDF)
+                <a href="assets/docs/yau-science-award-research-paper.pdf" class="btn btn-ghost btn-sm" download>
+                  Download research paper (PDF)
                 </a>
               </div>
             </div>
             <div class="timeline-item">
-              <h5>2023 - 2024</h5>
+              <p class="timeline-date">2023 – 2024</p>
+              <h5>Research &amp; first store releases</h5>
               <p>Studying at Taipei Municipal Chien Kuo High School while building research projects in random matrix theory and AI, and publishing my first applications to the Microsoft Store.</p>
             </div>
             <div class="timeline-item">
-              <h5>2021 - 2023</h5>
+              <p class="timeline-date">2021 – 2023</p>
+              <h5>Mathematical modeling projects</h5>
               <p>Worked on multiple projects involving mathematical modeling and spectral distribution analysis.</p>
             </div>
             <div class="timeline-item">
-              <h5>2019 - 2021</h5>
+              <p class="timeline-date">2019 – 2021</p>
+              <h5>Self-study &amp; exploration</h5>
               <p>Explored various programming languages and technologies through personal projects and self-study.</p>
             </div>
           </div>
@@ -198,14 +226,17 @@
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z"/></svg> Email
         </a>
       </div>
-      <p class="mb-0 footer-copy">&copy; 2026 Yu, Yao-Hsing 尤耀星. All rights reserved.</p>
+      <p class="mb-0 footer-copy" title="🎮 psst… try typing 'easter'">&copy; 2026 Yu, Yao-Hsing 尤耀星. All rights reserved.</p>
     </div>
   </footer>
 
   <!-- Bootstrap 5 JS Bundle (includes Popper) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
-  <!-- Custom JavaScript -->
+  <!-- Site motion -->
+  <script src="assets/js/ui.js"></script>
+
+  <!-- Custom JavaScript (arcade) -->
   <script src="assets/js/script.js"></script>
 </body>
 </html>

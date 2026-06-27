@@ -1,390 +1,853 @@
-/* assets/css/style.css - Upgraded for modern portfolio */
+/* =============================================================================
+   yu314-coder.github.io — Design system
+   DIRECTION: "Hybrid — light shell, dark showcase zones"
+   A clean light editorial frame for the person; intentional dark "product"
+   zones (.zone-dark) for the work. Dark nav + dark footer are constant chrome.
 
-/* ======================
-   Global Styles
-   ====================== */
+   This stylesheet layers ON TOP of Bootstrap 5 and overrides its visuals.
+   Bootstrap stays loaded for grid + tab/collapse JS.
+
+   SECTIONS
+     1.  Tokens (light shell :root + .zone-dark re-declaration)
+     2.  Base / typography
+     3.  Layout helpers (sections, eyebrow, zones)
+     4.  Navbar
+     5.  Footer
+     6.  Buttons (.btn-primary / .btn-ghost) + store badges
+     7.  Badges (.badge-accent / .badge-neutral)
+     8.  Cards (.card, .card--hue) + Bootstrap card override
+     9.  Hero / page headers
+     10. Timeline (about)
+     11. Lib table (dark cards) + nav-pills override
+     12. Motion (.reveal / counters) + reduced-motion
+     13. Misc page components (privacy, tracker, highlights, award)
+     14. App-hue palette helpers
+     15. PRESERVED VERBATIM — arcade / admin / device-chip / keyframes
+     16. Responsive
+   ============================================================================= */
+
+/* =============================================================================
+   1. TOKENS
+   ============================================================================= */
 :root {
-  --primary-color: #667eea;
-  --primary-dark: #764ba2;
-  --dark-bg: #222;
-  --light-bg: #f8f9fa;
-  --text-light: #ccc;
-  --shadow-sm: 0 2px 8px rgba(0,0,0,0.1);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.15);
-  --shadow-lg: 0 10px 25px rgba(0,0,0,0.2);
-  --transition: all 0.3s ease;
+  /* Light shell */
+  --bg: #FBFBFD;
+  --surface: #FFFFFF;
+  --surface-2: #F4F5F8;
+  --ink: #14161D;
+  --ink-2: #4A5066;
+  --ink-3: #8A91A8;
+  --line: rgba(20,22,29,.09);
+  --accent: #2D6BFF;
+  --accent-2: #7C3AED;
+  --shadow-sm: 0 1px 2px rgba(20,22,29,.06), 0 2px 8px rgba(20,22,29,.05);
+  --shadow-md: 0 8px 30px rgba(20,22,29,.10);
+
+  /* Radii */
+  --r-sm: 8px;
+  --r: 14px;
+  --r-card: 18px;
+  --r-pill: 999px;
+
+  /* Rhythm */
+  --section-pad: clamp(3.5rem, 8vw, 7rem);
+
+  /* Typography stacks */
+  --font-head: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
+  --font-serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+
+  /* Motion */
+  --transition: all 0.25s ease;
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* Dark "product" zones re-declare the SAME custom properties so every component
+   that uses var(--accent) etc. flips automatically. No per-component overrides. */
+.zone-dark {
+  --bg: #0B0E14;
+  --surface: #131926;
+  --surface-2: #1A2234;
+  --ink: #ECEFF7;
+  --ink-2: #9AA4BD;
+  --ink-3: #5C6680;
+  --line: rgba(255,255,255,.09);
+  --accent: #22D3EE;
+  --accent-2: #A855F7;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
+  --shadow-md: 0 16px 40px rgba(0,0,0,.45);
+
+  background: var(--bg);
+  color: var(--ink);
 }
+
+/* =============================================================================
+   2. BASE / TYPOGRAPHY
+   ============================================================================= */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
 
 body {
-  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-  line-height: 1.6;
-  scroll-behavior: smooth;
-  color: #333;
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* ======================
-   Navbar Styles
-   ====================== */
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+  font-family: var(--font-head);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+h1, .h1 { font-size: clamp(2.25rem, 5vw, 3.75rem); }
+h2, .h2 { font-size: clamp(1.75rem, 3.5vw, 2.6rem); font-weight: 600; }
+h3, .h3 { font-size: clamp(1.35rem, 2.4vw, 1.85rem); font-weight: 600; }
+h4, .h4 { font-size: clamp(1.15rem, 1.8vw, 1.4rem); font-weight: 600; }
+h5, .h5 { font-size: 1.1rem; font-weight: 600; }
+h6, .h6 { font-size: 0.95rem; font-weight: 600; }
+
+p { color: var(--ink-2); }
+.zone-dark p { color: var(--ink-2); }
+
+a { color: var(--accent); text-decoration: none; transition: var(--transition); }
+a:hover { color: var(--accent); text-decoration: underline; }
+
+/* The CJK name stays in the sans family, bold */
+.brand-cjk,
+.cjk { font-family: var(--font-body); font-weight: 700; }
+
+/* Mono utilities for data / versions / counts */
+.mono,
+code, kbd, samp,
+.count,
+.version { font-family: var(--font-mono); }
+
+/* Research / pull-quote voice */
+.serif,
+.pull-quote,
+blockquote.research {
+  font-family: var(--font-serif);
+  font-weight: 400;
+}
+.pull-quote {
+  font-size: clamp(1.25rem, 2.4vw, 1.75rem);
+  line-height: 1.5;
+  font-style: italic;
+  color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding-left: 1.25rem;
+}
+
+/* Gradient text helper (uses both accents) */
+.gradient-text {
+  background: linear-gradient(120deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+::selection { background: color-mix(in srgb, var(--accent) 28%, transparent); }
+
+/* =============================================================================
+   3. LAYOUT HELPERS
+   ============================================================================= */
+.section { padding-top: var(--section-pad); padding-bottom: var(--section-pad); }
+.section-sm { padding-top: calc(var(--section-pad) * 0.55); padding-bottom: calc(var(--section-pad) * 0.55); }
+
+.bg-surface   { background: var(--surface); }
+.bg-surface-2 { background: var(--surface-2); }
+.bg-bg        { background: var(--bg); }
+
+/* A dark showcase zone — the work pages wrap content in this */
+.zone-dark { position: relative; }
+
+/* The eyebrow: mono, tracked, accent label. Prefix with a // in markup or
+   use .eyebrow--rule for a leading hairline. */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.85rem;
+}
+.eyebrow--rule::before {
+  content: "";
+  width: 28px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+/* Generic muted lead text */
+.lead-2 { font-size: 1.1rem; color: var(--ink-2); line-height: 1.7; }
+
+/* Hairline divider */
+.rule { height: 1px; background: var(--line); border: 0; }
+
+/* =============================================================================
+   4. NAVBAR — one dark slim navbar on every page
+   ============================================================================= */
 .navbar {
-  transition: background-color 0.4s ease;
-  padding: 1rem 0;
+  background: #0B0E14;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  transition: background 0.3s ease, box-shadow 0.3s ease, backdrop-filter 0.3s ease;
 }
-
 .navbar.scrolled {
-  background-color: rgba(0,0,0,0.9) !important;
-  box-shadow: var(--shadow-sm);
+  background: rgba(11,14,20,.72) !important;
+  backdrop-filter: saturate(160%) blur(14px);
+  -webkit-backdrop-filter: saturate(160%) blur(14px);
+  box-shadow: 0 1px 0 rgba(255,255,255,.06), 0 8px 30px rgba(0,0,0,.35);
 }
 
 .navbar-brand {
+  font-family: var(--font-head);
   font-weight: 700;
-  font-size: 1.5rem;
-  letter-spacing: 0.5px;
+  font-size: 1.2rem;
+  letter-spacing: -0.01em;
+  color: #ECEFF7 !important;
+}
+.navbar-brand:hover { color: #fff !important; text-decoration: none; }
+
+.navbar-nav .nav-link {
+  position: relative;
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: rgba(236,239,247,.72) !important;
+  padding: 0.5rem 0.9rem;
+  transition: color 0.2s ease;
+}
+.navbar-nav .nav-link:hover { color: #fff !important; text-decoration: none; }
+
+/* Active-item accent underline */
+.navbar-nav .nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0.9rem;
+  right: 0.9rem;
+  bottom: 0.25rem;
+  height: 2px;
+  border-radius: 2px;
+  background: #22D3EE; /* nav is always dark chrome -> cyan accent */
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.22s ease;
+}
+.navbar-nav .nav-link:hover::after { transform: scaleX(0.6); }
+.navbar-nav .nav-link.active { color: #fff !important; }
+.navbar-nav .nav-link.active::after { transform: scaleX(1); }
+
+.navbar-toggler {
+  border-color: rgba(255,255,255,.18);
+  padding: 0.4rem 0.6rem;
+}
+.navbar-toggler:focus { box-shadow: 0 0 0 0.2rem rgba(34,211,238,.35); }
+
+/* Push fixed-top nav off the content (pages use .fixed-top) */
+body { /* fixed nav offset handled per-page via padding-top utility if needed */ }
+
+/* =============================================================================
+   5. FOOTER — dark chrome on every page
+   ============================================================================= */
+.site-footer {
+  background: #0B0E14;
+  color: #ECEFF7;
+  border-top: 1px solid rgba(255,255,255,.06);
+}
+.site-footer .footer-copy { color: rgba(236,239,247,.55); font-size: 0.9rem; }
+
+.footer-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+.footer-links a {
+  color: rgba(236,239,247,.78);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: color 0.2s, transform 0.2s;
+}
+.footer-links a:hover { color: #22D3EE; transform: translateY(-2px); text-decoration: none; }
+.footer-links svg { width: 20px; height: 20px; fill: currentColor; }
+
+/* =============================================================================
+   6. BUTTONS — the two variants: .btn-primary (accent fill) / .btn-ghost (hairline)
+   Overrides Bootstrap .btn visuals.
+   ============================================================================= */
+.btn {
+  --bs-btn-border-radius: var(--r-sm);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.95rem;
+  border-radius: var(--r-sm);
+  padding: 0.7rem 1.4rem;
+  border: 1px solid transparent;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  line-height: 1.2;
 }
 
-/* ======================
-   Hero Section (index.html)
-   ====================== */
+.btn-primary,
+.btn-primary:focus {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+.btn-primary:hover {
+  background: color-mix(in srgb, var(--accent) 88%, #000);
+  border-color: color-mix(in srgb, var(--accent) 88%, #000);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  text-decoration: none;
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+.btn-ghost:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-2px);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  text-decoration: none;
+}
+.zone-dark .btn-ghost { color: var(--ink); }
+
+.btn-sm { padding: 0.45rem 0.95rem; font-size: 0.85rem; }
+.btn-lg { padding: 0.9rem 1.8rem; font-size: 1.05rem; }
+
+/* Focus ring for accessibility */
+.btn:focus-visible,
+a:focus-visible,
+.card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Official store-badge <img> — consistent frame */
+.store-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--r-sm);
+  transition: transform 0.15s, filter 0.15s;
+}
+.store-badge img { height: 44px; width: auto; display: block; }
+.store-badge-sm img { height: 40px; }
+.store-badge:hover { transform: translateY(-2px); filter: brightness(1.08); }
+
+/* Companion button matched to the black store badges (App Store / Play) */
+.badge-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 18px;
+  background: #000;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.22);
+  border-radius: var(--r-sm);
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: transform 0.15s, background 0.15s, border-color 0.15s;
+}
+.badge-btn:hover {
+  background: #1a1a1a;
+  border-color: rgba(255,255,255,0.45);
+  color: #fff;
+  transform: translateY(-2px);
+  text-decoration: none;
+}
+
+/* =============================================================================
+   7. BADGES — only two variants. Overrides Bootstrap .badge.
+   ============================================================================= */
+.badge-accent,
+.badge-neutral {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  padding: 0.25rem 0.7rem;
+  border-radius: var(--r-pill);
+  vertical-align: middle;
+  line-height: 1.4;
+}
+
+/* NEW -> accent */
+.badge-accent {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+/* Neutral pill — also the home for BETA (subtle amber-ish neutral) */
+.badge-neutral {
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+}
+.badge-neutral--beta {
+  background: rgba(245,158,11,.14);
+  color: #b45309;
+  border: 1px solid rgba(245,158,11,.35);
+}
+.zone-dark .badge-neutral--beta { color: #fbbf24; }
+
+/* =============================================================================
+   8. CARDS — the single card used everywhere. Overrides Bootstrap .card.
+   ============================================================================= */
+.card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-sm);
+  color: var(--ink);
+  overflow: hidden;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  height: 100%;
+}
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+.card .card-body { padding: 1.5rem; color: var(--ink-2); }
+.card .card-title,
+.card h3, .card h4, .card h5 { color: var(--ink); }
+.card p { color: var(--ink-2); }
+
+/* App-hue treatment: a 3px gradient top-edge + a soft radial glow behind the
+   icon. Set per-card with style="--hue:#f5576c". Never a full-card fill. */
+.card--hue::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg,
+    var(--hue, var(--accent)),
+    color-mix(in srgb, var(--hue, var(--accent)) 35%, transparent));
+  z-index: 2;
+}
+.card--hue:hover::before { filter: brightness(1.15); }
+
+/* The icon glow — put an element with .card-icon-glow (or .app-icon) inside */
+.card--hue .card-icon,
+.card--hue .app-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+.card--hue .card-icon::after,
+.card--hue .app-icon::after {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--hue, var(--accent)) 45%, transparent) 0%, transparent 68%);
+  filter: blur(8px);
+  opacity: 0.85;
+}
+
+/* Bootstrap .card-header/.card-footer neutralized to our surface */
+.card-header, .card-footer {
+  background: var(--surface-2);
+  border-color: var(--line);
+  color: var(--ink-2);
+}
+
+/* =============================================================================
+   9. HERO / PAGE HEADERS
+   ============================================================================= */
 .hero {
   position: relative;
-  height: 100vh;
-  background: url('../images/hero-bg.jpg') no-repeat center center/cover;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  text-align: center;
+  background: var(--bg);
+  color: var(--ink);
+  padding-top: calc(var(--section-pad) + 2rem);
+  padding-bottom: var(--section-pad);
 }
-
-.hero::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.6);
-  z-index: 1;
-}
-
-.hero-content {
-  position: relative;
-  z-index: 2;
-  animation: fadeInUp 1.2s ease-out;
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .hero h1 {
-  font-size: clamp(2.5rem, 5vw, 4rem);
-  font-weight: 700;
+  font-size: clamp(2.5rem, 6vw, 4.25rem);
   margin-bottom: 1rem;
 }
+.hero p { font-size: clamp(1.05rem, 2vw, 1.3rem); color: var(--ink-2); }
 
-.hero p {
-  font-size: clamp(1.2rem, 2.5vw, 1.5rem);
-  margin-bottom: 2rem;
-}
+/* Dark hero variant: wrap the hero section in .zone-dark */
+.zone-dark.hero { background: var(--bg); color: var(--ink); }
 
-/* ======================
-   Page Headers
-   ====================== */
+/* Refined page header band */
 .page-header {
   position: relative;
-  height: 40vh;
-  min-height: 250px;
-  background: url('../images/about-bg.jpg') no-repeat center center/cover;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
+  padding: calc(var(--section-pad) + 1.5rem) 0 var(--section-pad);
+  background: var(--surface-2);
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
 }
+.page-header h1 { font-size: clamp(2rem, 4.5vw, 3.25rem); }
+.page-header .lead-2 { color: var(--ink-2); }
 
-.page-header::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.5);
-  z-index: 1;
-}
-
-.page-header h1 {
-  position: relative;
-  z-index: 2;
-  font-size: clamp(2rem, 4vw, 3rem);
-  font-weight: 700;
-}
-
-/* ======================
-   Featured Project Section
-   ====================== */
-.featured-project {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-  color: white;
-  position: relative;
-  overflow: hidden;
-  border: none;
-}
-
-.featured-project::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="30" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/><circle cx="20" cy="20" r="15" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/><circle cx="80" cy="80" r="20" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/></svg>') repeat;
-  opacity: 0.3;
-  z-index: 1;
-}
-
-.featured-content {
-  position: relative;
-  z-index: 2;
-}
-
-.featured-project article,
-.featured-project header {
-  border: none;
-}
-
-.featured-project .display-6 {
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
-}
-
-.featured-project .badge {
-  font-weight: 600;
-  padding: 0.5rem 1rem;
-  font-size: 0.85rem;
-}
-
-.featured-project aside {
-  backdrop-filter: blur(10px);
-  border-left: 1px solid rgba(255,255,255,0.2);
-}
-
-.featured-project dl dt {
-  font-weight: 600;
-  opacity: 0.9;
-}
-
-.featured-project dl dd {
-  font-weight: 400;
-  opacity: 0.95;
-}
-
-.featured-project ul.list-unstyled li {
-  padding-left: 0;
-}
-
-.featured-project .h5,
-.featured-project .h6 {
-  font-weight: 700;
-}
-
-.featured-project .d-inline-block {
-  text-align: left;
-  max-width: 400px;
-}
-
-.feature-badge {
-  background: rgba(255,255,255,0.2);
-  color: white;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  margin: 5px;
-  display: inline-block;
-  border: 1px solid rgba(255,255,255,0.3);
-  transition: var(--transition);
-}
-
-.feature-badge:hover {
-  background: rgba(255,255,255,0.3);
-  transform: translateY(-2px);
-}
-
-.cta-btn,
-.download-btn {
-  background: rgba(255,255,255,0.2);
-  border: 2px solid white;
-  color: white;
-  padding: 15px 30px;
-  font-size: 1.1rem;
-  border-radius: 30px;
-  transition: var(--transition);
-  text-decoration: none;
-  display: inline-block;
-  margin: 10px 5px;
-}
-
-.cta-btn:hover,
-.download-btn:hover {
-  background: white;
-  color: var(--primary-color);
-  text-decoration: none;
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-md);
-}
-
-.stats-card {
-  background: rgba(255,255,255,0.1);
-  border-radius: 15px;
-  padding: 30px;
-  text-align: center;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.2);
-  transition: var(--transition);
-}
-
-.stats-card:hover {
-  background: rgba(255,255,255,0.15);
-  transform: translateY(-5px);
-}
-
-.stats-number {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin-bottom: 10px;
-}
-
-.requirements-list,
-.installation-steps {
-  background: rgba(255,255,255,0.1);
-  border-radius: 10px;
-  padding: 20px;
-  margin-top: 20px;
-  backdrop-filter: blur(5px);
-}
-
-/* ======================
-   Content Sections
-   ====================== */
-.content-section {
-  padding: 60px 0;
-}
-
-.card {
-  transition: var(--transition);
-  border: none;
-  margin-bottom: 30px;
-  box-shadow: var(--shadow-sm);
-  height: 100%;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.card:hover {
-  transform: translateY(-8px);
-  box-shadow: var(--shadow-lg);
-}
-
-.card-title {
-  color: var(--primary-color);
-  font-weight: 700;
-}
-
-/* ======================
-   Timeline (About page)
-   ====================== */
+/* =============================================================================
+   10. TIMELINE (about)
+   ============================================================================= */
 .timeline {
-  border-left: 3px solid var(--primary-color);
-  margin: 20px 0;
-  padding-left: 30px;
   position: relative;
+  margin: 1.5rem 0;
+  padding-left: 2rem;
+  border-left: 2px solid var(--line);
 }
-
-.timeline-item {
-  margin-bottom: 30px;
-  position: relative;
-}
-
+.timeline-item { position: relative; margin-bottom: 2rem; }
+.timeline-item:last-child { margin-bottom: 0; }
 .timeline-item::before {
   content: "";
   position: absolute;
-  left: -36px;
-  top: 0;
+  left: calc(-2rem - 7px);
+  top: 0.3rem;
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: var(--primary-color);
-  border: 3px solid white;
-  box-shadow: var(--shadow-sm);
+  background: var(--accent);
+  border: 3px solid var(--bg);
+  box-shadow: 0 0 0 1px var(--line);
+}
+.timeline-item .timeline-date {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+.timeline-item h5 { color: var(--ink); margin: 0.2rem 0 0.35rem; }
+.timeline-item p { color: var(--ink-2); margin: 0; }
+
+/* =============================================================================
+   11. LIB TABLE (dark cards) + nav-pills override
+   ============================================================================= */
+.lib-table {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  border-collapse: collapse;
+}
+.lib-table th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--ink-3);
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.lib-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink-2);
+}
+.lib-table tr:last-child td { border-bottom: none; }
+.lib-table a,
+.lib-table a.lib-link {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.lib-table a:hover { color: var(--ink); }
+
+/* nav-pills (Bootstrap tab JS) restyled to our tokens */
+.nav-pills .nav-link {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  padding: 0.4rem 1rem;
+  background: transparent;
+  transition: var(--transition);
+}
+.nav-pills .nav-link:hover { color: var(--ink); border-color: var(--accent); }
+.nav-pills .nav-link.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
 }
 
-.timeline-item h5 {
-  font-weight: 700;
-  color: var(--primary-color);
+/* =============================================================================
+   12. MOTION — scroll reveal + counters (driven by assets/js/ui.js)
+   ============================================================================= */
+.reveal {
+  transition: opacity 0.6s cubic-bezier(.2,.7,.2,1), transform 0.6s cubic-bezier(.2,.7,.2,1);
+  will-change: opacity, transform;
+}
+/* Only hide reveals that are NOT yet shown, and only when JS is active
+   (html.js is set inline before paint). Without JS — or if ui.js fails to
+   run — .reveal stays fully visible. The :not() also lets .is-visible win
+   without a specificity fight. */
+html.js .reveal:not(.is-visible) {
+  opacity: 0;
+  transform: translateY(18px);
 }
 
-/* ======================
-   Contact Form
-   ====================== */
-.contact-form {
-  background: var(--light-bg);
-  padding: 40px;
-  border-radius: 12px;
+/* Stagger helper: add .reveal-delay-1..4 alongside .reveal */
+.reveal-delay-1 { transition-delay: 0.08s; }
+.reveal-delay-2 { transition-delay: 0.16s; }
+.reveal-delay-3 { transition-delay: 0.24s; }
+.reveal-delay-4 { transition-delay: 0.32s; }
+
+.count { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+  * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
+}
+
+/* =============================================================================
+   13. MISC PAGE COMPONENTS
+   ============================================================================= */
+
+/* --- Highlights strip (home) — sits inside a .zone-dark wrapper ----------- */
+.highlights-banner { padding: clamp(2rem, 5vw, 3.5rem) 0; }
+.highlight-item { text-align: center; padding: 1rem 0.6rem; }
+.highlight-number {
+  font-family: var(--font-mono);
+  font-size: clamp(1.9rem, 4vw, 2.6rem);
+  font-weight: 600;
+  color: var(--accent);
+  line-height: 1;
+  margin-bottom: 0.4rem;
+  font-variant-numeric: tabular-nums;
+}
+.highlight-label {
+  font-size: 0.78rem;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* --- Spotlight cards (home) — now just the unified .card; keep helpers ---- */
+.spotlight-card { /* apply .card .card--hue in markup; these are layout extras */
+  display: flex;
+  flex-direction: column;
+}
+.spotlight-card .spotlight-desc { color: var(--ink-2); flex-grow: 1; }
+.spotlight-tag { /* alias to .badge-neutral in markup; kept for compat */
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  padding: 0.2rem 0.7rem;
+  margin: 0.15rem 0.1rem;
+}
+
+/* --- Award banner (Yau prize) — research voice ---------------------------- */
+.award-banner {
+  background: var(--surface-2);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 1.1rem 0;
+  text-align: center;
+}
+.award-banner p {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+.award-banner a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+
+/* --- Category header (projects / pypi-stats) ------------------------------ */
+.category-header {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--line);
+}
+.category-header h3 { margin: 0; color: var(--ink); }
+.category-header .category-icon { font-size: 1.4rem; line-height: 1; }
+
+/* --- Lib category card (projects) — alias to unified card ----------------- */
+.lib-category-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  padding: 1.25rem;
+  height: 100%;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.lib-category-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+.lib-category-card h5 { color: var(--ink); margin-bottom: 0.75rem; }
+.lib-category-card table { width: 100%; font-family: var(--font-mono); font-size: 0.8rem; }
+.lib-category-card table th {
+  color: var(--ink-3); font-weight: 600; padding: 4px 6px;
+  border-bottom: 1px solid var(--line); white-space: nowrap; text-align: left;
+}
+.lib-category-card table td { padding: 4px 6px; border-bottom: 1px solid var(--line); color: var(--ink-2); }
+.lib-category-card a.lib-link { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.lib-category-card a.lib-link:hover { color: var(--ink); }
+
+/* --- Compatibility aliases for retired badges ----------------------------- */
+.lib-count-badge {
+  display: inline-flex; align-items: center;
+  font-family: var(--font-mono); font-weight: 600; font-size: 0.7rem;
+  background: var(--surface-2); color: var(--ink-2);
+  border: 1px solid var(--line); border-radius: var(--r-pill);
+  padding: 0.1rem 0.55rem; margin-left: 0.4rem; vertical-align: middle;
+}
+.dev-badge { /* BETA -> subtle amber neutral */
+  display: inline-flex; align-items: center;
+  font-family: var(--font-mono); font-weight: 600; font-size: 0.62rem;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  background: rgba(245,158,11,.16); color: #b45309;
+  border: 1px solid rgba(245,158,11,.35);
+  border-radius: var(--r-sm); padding: 0.05rem 0.4rem; margin-left: 0.3rem; vertical-align: middle;
+}
+.zone-dark .dev-badge { color: #fbbf24; }
+.new-badge { /* NEW -> accent */
+  display: inline-flex; align-items: center;
+  font-family: var(--font-mono); font-weight: 600; font-size: 0.62rem;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 38%, transparent);
+  border-radius: var(--r-sm); padding: 0.05rem 0.4rem; margin-left: 0.3rem; vertical-align: middle;
+}
+/* feature-badge retired -> mono neutral chip */
+.feature-badge {
+  display: inline-flex; align-items: center;
+  font-family: var(--font-mono); font-size: 0.8rem; font-weight: 500;
+  background: var(--surface-2); color: var(--ink-2);
+  border: 1px solid var(--line); border-radius: var(--r-pill);
+  padding: 0.35rem 0.85rem; margin: 0.2rem; transition: var(--transition);
+}
+.feature-badge:hover { border-color: var(--accent); color: var(--ink); transform: translateY(-2px); }
+
+/* --- PyPI tracker shell (pypi-stats) — a dark product surface ------------- */
+.tracker-shell {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  padding: 0.6rem;
   box-shadow: var(--shadow-md);
 }
+.zone-dark .tracker-shell { background: var(--surface-2); }
+#pypi-frame {
+  width: 100%;
+  border: 0;
+  border-radius: var(--r);
+  display: block;
+  min-height: 1200px;
+  background: transparent;
+}
+.tracker-note { font-size: 0.85rem; color: var(--ink-3); }
 
-.form-control:focus {
-  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-  border-color: var(--primary-color);
+/* Live total downloads readout */
+#live-downloads {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--accent);
 }
 
-.social-icons a {
-  color: var(--primary-color);
-  font-size: 2rem;
-  margin: 0 15px;
-  transition: var(--transition);
-  display: inline-block;
+/* --- Privacy page -------------------------------------------------------- */
+.privacy-content {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-sm);
+  margin: 2.5rem 0;
 }
-
-.social-icons a:hover {
-  color: var(--primary-dark);
-  transform: translateY(-5px) scale(1.1);
+.privacy-content h2 { color: var(--ink); margin-top: 2rem; margin-bottom: 1rem; }
+.privacy-content h3 { color: var(--accent-2); margin-top: 1.5rem; margin-bottom: 0.85rem; }
+.privacy-content h4 { color: var(--ink); margin-top: 1.25rem; margin-bottom: 0.6rem; }
+.privacy-content p, .privacy-content ul { color: var(--ink-2); line-height: 1.8; }
+.privacy-content ul { margin-left: 1.25rem; }
+.app-divider { margin: 3.5rem 0; border: 0; border-top: 1px solid var(--line); }
+.last-updated { font-family: var(--font-mono); font-size: 0.85rem; color: var(--ink-3); margin-bottom: 1.25rem; }
+.policy-nav {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  padding: 1.25rem;
+  border-radius: var(--r);
+  margin-bottom: 2rem;
+}
+.policy-nav a {
+  color: var(--accent);
   text-decoration: none;
-}
-
-/* ======================
-   Footer
-   ====================== */
-footer {
-  background-color: var(--dark-bg);
-  color: var(--text-light);
-  padding: 40px 0 20px;
-}
-
-footer a {
-  color: var(--text-light);
+  display: block;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--r-sm);
   transition: var(--transition);
 }
+.policy-nav a:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
 
-footer a:hover {
-  color: white;
-  text-decoration: none;
-}
+/* =============================================================================
+   14. APP-HUE PALETTE HELPERS
+   Each app keeps its identity hue (3px top-edge + icon glow only).
+   Use either style="--hue:#xxxxxx" OR one of these convenience classes
+   on a .card.card--hue.
+   ============================================================================= */
+.hue-manim-win   { --hue: #667eea; }
+.hue-manim-ios   { --hue: #FF6B6B; }
+.hue-codebench   { --hue: #7c3aed; }
+.hue-python-ios  { --hue: #22d3ee; }  /* #2c5364 / #22d3ee — cyan reads better as glow */
+.hue-covariance  { --hue: #f5576c; }
+.hue-eigendenoise{ --hue: #71b280; }
+.hue-gps         { --hue: #71b280; }  /* #134e5e / #71b280 */
 
-/* ======================
-   Easter Egg Overlays — upgraded
-   ====================== */
+/* =============================================================================
+   15. PRESERVED VERBATIM — arcade / admin / device-chip / keyframes
+   (Carried over unchanged from the previous stylesheet. Do not restyle.)
+   ============================================================================= */
 #hidden-game,
 #hidden-admin {
   display: none;
@@ -683,13 +1146,7 @@ footer a:hover {
   touch-action: none;
 }
 
-/* ======================
-   Device-Aware Theming (tablet / phone / desktop)
-   ====================== */
-/* Base = desktop. Body gets a class when JS detects device type;
-   each class flips a few CSS variables and tweaks the chrome so
-   the site visibly adapts to phone / tablet / desktop hardware. */
-
+/* Device-Aware Theming (tablet / phone / desktop) */
 body[data-device="desktop"] {
   --device-accent: #4c1d95;
   --device-accent-2: #06b6d4;
@@ -741,7 +1198,7 @@ body[data-device] .device-chip { display: inline-flex; }
   content: var(--device-label, "");
 }
 
-/* Recolor the hero badge + spotlight CTAs subtly per device */
+/* Recolor the footer/nav chrome subtly per device */
 body[data-device="phone"] .navbar.scrolled,
 body[data-device="phone"] footer { background: linear-gradient(90deg, #1f0a1c 0%, #2a0f1d 100%) !important; }
 body[data-device="tablet"] .navbar.scrolled,
@@ -777,53 +1234,17 @@ body[data-device="tablet"] .feature-badge { padding: 7px 14px; font-size: 0.85re
 body[data-device="desktop"] .hero h1 { letter-spacing: -0.5px; }
 body[data-device="desktop"] .spotlight-card:hover { transform: translateY(-7px); }
 
-/* ======================
-   Responsive Design
-   ====================== */
+/* =============================================================================
+   16. RESPONSIVE
+   ============================================================================= */
 @media (max-width: 768px) {
-  .hero h1 {
-    font-size: 2.5rem;
-  }
-
-  .hero p {
-    font-size: 1.2rem;
-  }
-
-  .cta-btn,
-  .download-btn {
-    padding: 12px 24px;
-    font-size: 1rem;
-  }
-
-  .stats-number {
-    font-size: 2rem;
-  }
-
-  .social-icons a {
-    font-size: 1.5rem;
-    margin: 0 10px;
-  }
-
-  .featured-project aside {
-    border-left: none;
-    border-top: 1px solid rgba(255,255,255,0.2);
-  }
-
-  .featured-project .col-lg-10,
-  .featured-project .col-xl-9 {
-    padding: 2rem !important;
-  }
-
-  .featured-project .row.g-3 > .col-md-5 {
-    max-width: 100%;
-  }
+  .hero h1 { font-size: clamp(2rem, 9vw, 2.75rem); }
+  .footer-links { gap: 18px; }
+  .card .card-body { padding: 1.25rem; }
 }
 
 @media (max-width: 576px) {
-  .contact-form {
-    padding: 25px;
-  }
-
+  .privacy-content { padding: 1.25rem; }
   #exitGame,
   #exitAdmin {
     top: 10px;
@@ -831,227 +1252,4 @@ body[data-device="desktop"] .spotlight-card:hover { transform: translateY(-7px);
     padding: 8px 15px;
     font-size: 0.9rem;
   }
-}
-
-/* ======================
-   Modern UI Enhancements
-   ====================== */
-.btn {
-  border-radius: 8px;
-  padding: 12px 28px;
-  font-weight: 600;
-  transition: var(--transition);
-  border: none;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-  color: white;
-}
-
-.btn-primary:hover {
-  background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-.btn-outline-light:hover {
-  transform: translateY(-2px);
-}
-
-/* Animated Underline for Links */
-a.nav-link {
-  position: relative;
-}
-
-a.nav-link::after {
-  content: '';
-  position: absolute;
-  width: 0;
-  height: 2px;
-  bottom: 0;
-  left: 50%;
-  background-color: white;
-  transition: var(--transition);
-  transform: translateX(-50%);
-}
-
-a.nav-link:hover::after,
-a.nav-link.active::after {
-  width: 80%;
-}
-
-/* Section Headers */
-section h2 {
-  position: relative;
-  padding-bottom: 15px;
-}
-
-section h2::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 80px;
-  height: 4px;
-  background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
-  border-radius: 2px;
-}
-
-/* Skill Badges / Tags */
-.badge-custom {
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-  color: white;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  margin: 5px;
-  display: inline-block;
-  transition: var(--transition);
-}
-
-.badge-custom:hover {
-  transform: scale(1.05);
-  box-shadow: var(--shadow-sm);
-}
-
-/* Loading Animation */
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
-
-/* Gradient Text */
-.gradient-text {
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Icon Boxes */
-.icon-box {
-  padding: 30px 20px;
-  border-radius: 12px;
-  background: white;
-  box-shadow: var(--shadow-sm);
-  transition: var(--transition);
-  text-align: center;
-}
-
-.icon-box:hover {
-  transform: translateY(-10px);
-  box-shadow: var(--shadow-lg);
-}
-
-.icon-box i {
-  font-size: 3rem;
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Subtle Background Pattern */
-.pattern-bg {
-  position: relative;
-  background-color: #f8f9fa;
-}
-
-.pattern-bg::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image:
-    linear-gradient(30deg, #f0f0f0 12%, transparent 12.5%, transparent 87%, #f0f0f0 87.5%, #f0f0f0),
-    linear-gradient(150deg, #f0f0f0 12%, transparent 12.5%, transparent 87%, #f0f0f0 87.5%, #f0f0f0);
-  background-size: 80px 140px;
-  opacity: 0.3;
-  z-index: 0;
-}
-
-.pattern-bg > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* Rounded corners utility */
-.rounded-4 {
-  border-radius: 1rem !important;
-}
-
-/* Gap utility for flexbox */
-.gap-2 {
-  gap: 0.5rem !important;
-}
-
-.gap-3 {
-  gap: 1rem !important;
-}
-
-/* Bootstrap 5 utilities enhancements */
-.fw-bold {
-  font-weight: 700 !important;
-}
-
-.text-muted {
-  color: #6c757d !important;
-}
-
-.bg-opacity-10 {
-  --bs-bg-opacity: 0.1;
-}
-
-.g-0 {
-  --bs-gutter-x: 0;
-  --bs-gutter-y: 0;
-}
-
-.g-3 {
-  --bs-gutter-x: 1rem;
-  --bs-gutter-y: 1rem;
-}
-
-/* ===== Shared site footer with social links ===== */
-.site-footer {
-  background: #16213e;
-  color: #fff;
-}
-.footer-links {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 28px;
-  flex-wrap: wrap;
-}
-.footer-links a {
-  color: rgba(255, 255, 255, 0.85);
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.95rem;
-  font-weight: 500;
-  transition: color 0.2s, transform 0.2s;
-}
-.footer-links a:hover {
-  color: #fff;
-  transform: translateY(-2px);
-}
-.footer-links svg {
-  width: 20px;
-  height: 20px;
-  fill: currentColor;
-}
-.footer-copy {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 0.9rem;
 }

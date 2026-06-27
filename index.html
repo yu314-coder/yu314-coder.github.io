@@ -35,146 +35,34 @@
 
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-  <!-- Google Fonts -->
+  <!-- Fonts: retire Roboto entirely. Load all four families in ONE request. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
   <!-- Custom CSS -->
   <link rel="stylesheet" href="assets/css/style.css">
+  <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 
   <style>
-    /* Highlights banner */
-    .highlights-banner {
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-      padding: 50px 0;
-      color: #fff;
-    }
-    .highlight-item {
-      text-align: center;
-      padding: 20px 10px;
-    }
-    .highlight-number {
-      font-size: 2.5rem;
-      font-weight: 700;
-      color: #64b5f6;
-      line-height: 1;
-      margin-bottom: 6px;
-    }
-    .highlight-label {
-      font-size: 0.85rem;
-      opacity: 0.8;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-
-    /* Project spotlight cards */
-    .spotlight-card {
-      border-radius: 16px;
+    /* Page-specific only: faint accent dot-grid backdrop behind the hero. */
+    .hero {
       overflow: hidden;
-      color: #fff;
-      padding: 36px 30px;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      transition: transform 0.25s, box-shadow 0.25s;
     }
-    .spotlight-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background-image: radial-gradient(var(--accent) 1px, transparent 1px);
+      background-size: 26px 26px;
+      opacity: 0.05;
+      -webkit-mask-image: radial-gradient(ellipse 80% 70% at 70% 30%, #000 0%, transparent 75%);
+      mask-image: radial-gradient(ellipse 80% 70% at 70% 30%, #000 0%, transparent 75%);
+      pointer-events: none;
     }
-    .spotlight-card h3 {
-      font-size: 1.6rem;
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
-    .spotlight-card .spotlight-desc {
-      font-size: 0.95rem;
-      opacity: 0.9;
-      line-height: 1.6;
-      flex-grow: 1;
-    }
-    .spotlight-tag {
-      display: inline-block;
-      background: rgba(255,255,255,0.18);
-      border-radius: 20px;
-      padding: 3px 12px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      margin: 3px 2px;
-    }
-    .spotlight-btn {
-      display: inline-block;
-      background: rgba(255,255,255,0.2);
-      color: #fff;
-      border: 1px solid rgba(255,255,255,0.3);
-      border-radius: 8px;
-      padding: 8px 20px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      text-decoration: none;
-      transition: background 0.2s;
-    }
-    .spotlight-btn:hover {
-      background: rgba(255,255,255,0.35);
-      color: #fff;
-    }
-    /* Official store badge */
-    .store-badge {
-      display: inline-flex;
-      align-items: center;
-      transition: transform 0.15s, filter 0.15s;
-    }
-    .store-badge img {
-      height: 44px;
-      width: auto;
-      display: block;
-    }
-    .store-badge:hover {
-      transform: translateY(-2px);
-      filter: brightness(1.08);
-    }
-    /* Companion buttons styled to match the official store badges */
-    .badge-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      height: 44px;
-      padding: 0 18px;
-      background: #000;
-      color: #fff;
-      border: 1px solid rgba(255,255,255,0.22);
-      border-radius: 8px;
-      font-size: 0.92rem;
-      font-weight: 600;
-      line-height: 1;
-      text-decoration: none;
-      white-space: nowrap;
-      transition: transform 0.15s, background 0.15s, border-color 0.15s;
-    }
-    .badge-btn:hover {
-      background: #1a1a1a;
-      border-color: rgba(255,255,255,0.45);
-      color: #fff;
-      transform: translateY(-2px);
-      text-decoration: none;
-    }
-
-    /* Award banner */
-    .award-banner {
-      background: linear-gradient(90deg, #fceabb 0%, #f8b500 100%);
-      padding: 18px 0;
-      text-align: center;
-    }
-    .award-banner p {
-      margin: 0;
-      font-size: 1rem;
-      font-weight: 600;
-      color: #333;
-    }
-    .award-banner a {
-      color: #1a1a2e;
-      text-decoration: underline;
+    .hero .container { position: relative; z-index: 1; }
+    @media (prefers-reduced-motion: reduce) {
+      .hero::before { opacity: 0.04; }
     }
   </style>
 </head>
@@ -182,7 +70,7 @@
   <!-- Navigation -->
   <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
     <div class="container">
-      <a class="navbar-brand" href="index.html" aria-label="Yu, Yao-Hsing 尤耀星 Home">Yu, Yao-Hsing 尤耀星</a>
+      <a class="navbar-brand" href="index.html" aria-label="Yu, Yao-Hsing 尤耀星 Home">Yu, Yao-Hsing <span class="brand-cjk">尤耀星</span></a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
@@ -200,179 +88,216 @@
 
   <!-- Hero Section -->
   <header class="hero">
-    <div class="hero-content container">
-      <h1>Hi, I'm Yu, Yao-Hsing 尤耀星</h1>
-      <p>Developer | Researcher | Mathematician</p>
-      <div class="mt-2 mb-4">
-        <span style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 6px 18px; font-size: 0.9rem; display: inline-block;">
-          🥉 2025 S.T. Yau High School Science Award — Bronze Medal (Grand Finals)
-        </span>
+    <div class="container">
+      <div class="row align-items-center g-5">
+        <div class="col-lg-8">
+          <p class="eyebrow eyebrow--rule reveal">// developer · researcher · mathematician</p>
+          <h1 class="reveal reveal-delay-1">Yu, Yao-Hsing <span class="brand-cjk">尤耀星</span></h1>
+          <p class="reveal reveal-delay-2">I build tools that bridge mathematics, AI, and real-world applications — from Microsoft Store desktop apps to full Python runtimes and on-device IDEs for iPad.</p>
+          <div class="reveal reveal-delay-2 my-4">
+            <span class="badge-accent">🥉 2025 S.T. Yau High School Science Award — Bronze Medal (Grand Finals)</span>
+          </div>
+          <div class="reveal reveal-delay-3 d-flex flex-wrap gap-2">
+            <a href="projects.html" class="btn btn-primary btn-lg">See my projects</a>
+            <a href="about.html" class="btn btn-ghost btn-lg">About me</a>
+          </div>
+        </div>
       </div>
-      <a href="about.html" class="btn btn-primary btn-lg me-2">About Me</a>
-      <a href="projects.html" class="btn btn-outline-light btn-lg">See My Projects</a>
     </div>
   </header>
 
-  <!-- Award Banner -->
-  <div class="award-banner">
+  <!-- Award strip -->
+  <section class="section-sm">
     <div class="container">
-      <p>🥈 Silver Medal — S.T. Yau Science Award (Asia Regional) &nbsp;|&nbsp; 📄 <a href="assets/docs/yau-science-award-research-paper.pdf" download>Download Research Paper</a></p>
+      <div class="card reveal">
+        <div class="card-body d-flex flex-wrap align-items-center justify-content-center gap-3 text-center">
+          <p class="serif mb-0">🥈 Silver Medal — S.T. Yau Science Award (Asia Regional)</p>
+          <a href="assets/docs/yau-science-award-research-paper.pdf" download class="btn btn-ghost btn-sm">📄 Download research paper</a>
+        </div>
+      </div>
     </div>
+  </section>
+
+  <!-- Highlights Banner (dark band for rhythm) -->
+  <div class="zone-dark">
+    <section class="highlights-banner">
+      <div class="container">
+        <div class="row">
+          <div class="col-6 col-md-3">
+            <div class="highlight-item reveal">
+              <div class="highlight-number"><span class="count" data-count="7">0</span></div>
+              <div class="highlight-label">Apps shipped</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="highlight-item reveal reveal-delay-1">
+              <div class="highlight-number"><span class="count" data-count="30" data-suffix="+">0</span></div>
+              <div class="highlight-label">iOS Python libraries</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="highlight-item reveal reveal-delay-2">
+              <div class="highlight-number"><span class="count" data-count="4">0</span></div>
+              <div class="highlight-label">PyPI packages</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="highlight-item reveal reveal-delay-3">
+              <div class="highlight-number"><span class="count" data-count="2">0</span></div>
+              <div class="highlight-label">Science awards</div>
+            </div>
+          </div>
+        </div>
+        <div class="text-center mt-4 reveal reveal-delay-4" data-live-downloads-wrap>
+          <span class="highlight-label">Live PyPI downloads · </span>
+          <span id="live-downloads"></span>
+        </div>
+      </div>
+    </section>
   </div>
 
-  <!-- Highlights Banner -->
-  <section class="highlights-banner">
+  <!-- Project Spotlights -->
+  <section class="section">
+    <div class="container">
+      <div class="text-center mb-5">
+        <p class="eyebrow eyebrow--rule reveal d-inline-block">// project spotlights</p>
+        <h2 class="reveal">Flagship projects</h2>
+        <p class="text-muted reveal">Across Windows, iPad, and iOS</p>
+      </div>
+
+      <div class="row g-4">
+        <!-- ManimStudio -->
+        <div class="col-lg-6">
+          <div class="card card--hue hue-manim-win spotlight-card h-100 reveal">
+            <div class="card-body d-flex flex-column h-100">
+              <div class="card-icon" style="font-size: 2rem; margin-bottom: 0.75rem;">🎯</div>
+              <div class="mb-2 d-flex flex-wrap align-items-center gap-2">
+                <h3 class="mb-0 me-1">ManimStudio</h3>
+                <span class="badge-neutral">v1.1.1.0</span>
+                <span class="badge-neutral">Windows</span>
+              </div>
+              <p class="spotlight-desc">Create stunning mathematical animations with a powerful GUI. Bundled with Python 3.12.7 and MiKTeX — no admin rights required. Available on the Microsoft Store.</p>
+              <div class="mb-3 d-flex flex-wrap gap-1">
+                <span class="spotlight-tag">Visual editor</span>
+                <span class="spotlight-tag">Live preview</span>
+                <span class="spotlight-tag">Auto dependencies</span>
+                <span class="spotlight-tag">MSIX package</span>
+              </div>
+              <div class="d-flex gap-3 mt-auto align-items-center flex-wrap">
+                <a href="https://apps.microsoft.com/detail/9NZFT55DVCBS" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Get ManimStudio from the Microsoft Store">
+                  <img src="assets/img/badges/microsoft-store.svg" alt="Get it from Microsoft">
+                </a>
+                <a href="projects.html" class="badge-btn">Learn more</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CodeBench -->
+        <div class="col-lg-6">
+          <div class="card card--hue hue-codebench spotlight-card h-100 reveal reveal-delay-1">
+            <div class="card-body d-flex flex-column h-100">
+              <div class="card-icon" style="font-size: 2rem; margin-bottom: 0.75rem;">🛠️</div>
+              <div class="mb-2 d-flex flex-wrap align-items-center gap-2">
+                <h3 class="mb-0 me-1">CodeBench</h3>
+                <span class="badge-neutral">iPad · Mac</span>
+                <span class="badge-accent">Local AI</span>
+              </div>
+              <p class="spotlight-desc">A self-contained dev / scientific / AI workstation. Monaco editor with IntelliSense, integrated terminal, Python 3.14 + C/C++/Fortran, on-device pdflatex, and local LLMs via llama.cpp + ExecuTorch — all offline.</p>
+              <div class="mb-3 d-flex flex-wrap gap-1">
+                <span class="spotlight-tag">Monaco IDE</span>
+                <span class="spotlight-tag">pdflatex</span>
+                <span class="spotlight-tag">llama.cpp</span>
+                <span class="spotlight-tag">RAG</span>
+              </div>
+              <div class="d-flex gap-2 mt-auto flex-wrap">
+                <a href="https://github.com/yu314-coder/codebench" target="_blank" rel="noopener noreferrer" class="badge-btn">🐙 GitHub</a>
+                <a href="projects.html" class="badge-btn">Learn more</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- python-ios-lib -->
+        <div class="col-lg-6">
+          <div class="card card--hue hue-python-ios spotlight-card h-100 reveal reveal-delay-2">
+            <div class="card-body d-flex flex-column h-100">
+              <div class="card-icon" style="font-size: 2rem; margin-bottom: 0.75rem;">🐍</div>
+              <div class="mb-2 d-flex flex-wrap align-items-center gap-2">
+                <h3 class="mb-0 me-1">python-ios-lib</h3>
+                <span class="badge-neutral">Python 3.14</span>
+                <span class="badge-accent">30+ libs</span>
+              </div>
+              <p class="spotlight-desc">Full Python runtime for iOS/iPadOS with native PyTorch 2.1, HuggingFace transformers, Rust tokenizers, NumPy, SciPy, scikit-learn, manim, PyAV/FFmpeg, plus C/C++/Fortran interpreters. Powers CodeBench. App Store safe.</p>
+              <div class="mb-3 d-flex flex-wrap gap-1">
+                <span class="spotlight-tag">iOS 17+</span>
+                <span class="spotlight-tag">PyTorch native</span>
+                <span class="spotlight-tag">Transformers</span>
+                <span class="spotlight-tag">Fully offline</span>
+              </div>
+              <div class="d-flex gap-2 mt-auto flex-wrap">
+                <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="badge-btn">🐙 GitHub</a>
+                <a href="projects.html" class="badge-btn">Learn more</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- What I Do Section -->
+  <section class="section">
     <div class="container">
       <div class="row">
-        <div class="col-6 col-md-3">
-          <div class="highlight-item">
-            <div class="highlight-number">7</div>
-            <div class="highlight-label">Flagship Apps</div>
-          </div>
-        </div>
-        <div class="col-6 col-md-3">
-          <div class="highlight-item">
-            <div class="highlight-number">30+</div>
-            <div class="highlight-label">iOS Python Libraries</div>
-          </div>
-        </div>
-        <div class="col-6 col-md-3">
-          <div class="highlight-item">
-            <div class="highlight-number">4</div>
-            <div class="highlight-label">PyPI Packages</div>
-          </div>
-        </div>
-        <div class="col-6 col-md-3">
-          <div class="highlight-item">
-            <div class="highlight-number">2</div>
-            <div class="highlight-label">Science Awards</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
+        <div class="col-lg-10 offset-lg-1 text-center">
+          <p class="eyebrow eyebrow--rule reveal d-inline-block">// what I do</p>
+          <h2 class="reveal">Mathematics, AI, and shipping</h2>
+          <p class="lead serif reveal" style="margin-bottom: 3rem;">I build tools that bridge mathematics, AI, and real-world applications — from desktop apps on the Microsoft Store to full Python runtimes on iOS, an on-device IDE with local LLMs for iPad, research in random matrix theory, and open-source packages on PyPI.</p>
 
-  <!-- Project Spotlights -->
-  <section class="container my-5">
-    <div class="text-center mb-5">
-      <h2 style="font-size: 2.2rem; font-weight: 700; color: #333;">Project Spotlights</h2>
-      <p class="text-muted">Flagship projects across Windows, iPad, and iOS</p>
-    </div>
-
-    <div class="row g-4">
-      <!-- ManimStudio -->
-      <div class="col-lg-6">
-        <div class="spotlight-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-          <div class="mb-3">
-            <h3>🎯 ManimStudio</h3>
-            <span class="badge bg-light text-dark">v1.1.1.0</span>
-            <span class="badge bg-light text-dark ms-1">Windows</span>
-          </div>
-          <p class="spotlight-desc">Create stunning mathematical animations with a powerful GUI. Bundled with Python 3.12.7 and MiKTeX — no admin rights required. Available on the Microsoft Store.</p>
-          <div class="mb-3">
-            <span class="spotlight-tag">Visual Editor</span>
-            <span class="spotlight-tag">Live Preview</span>
-            <span class="spotlight-tag">Auto Dependencies</span>
-            <span class="spotlight-tag">MSIX Package</span>
-          </div>
-          <div class="d-flex gap-3 mt-auto align-items-center flex-wrap">
-            <a href="https://apps.microsoft.com/detail/9NZFT55DVCBS" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Get ManimStudio from the Microsoft Store">
-              <img src="assets/img/badges/microsoft-store.svg" alt="Get it from Microsoft">
-            </a>
-            <a href="projects.html" class="badge-btn">Learn More</a>
-          </div>
-        </div>
-      </div>
-
-      <!-- CodeBench -->
-      <div class="col-lg-6">
-        <div class="spotlight-card" style="background: linear-gradient(135deg, #0a0e27 0%, #1e1b4b 25%, #4c1d95 55%, #7c3aed 80%, #06b6d4 100%); position: relative; overflow: hidden;">
-          <div style="position: absolute; top: -40px; right: -40px; width: 220px; height: 220px; background: radial-gradient(circle, rgba(34,211,238,0.35) 0%, transparent 70%); pointer-events: none;"></div>
-          <div style="position: absolute; bottom: -60px; left: -30px; width: 260px; height: 260px; background: radial-gradient(circle, rgba(168,85,247,0.25) 0%, transparent 70%); pointer-events: none;"></div>
-          <div class="mb-3">
-            <h3>🛠️ CodeBench</h3>
-            <span class="badge bg-light text-dark">iPad · Mac</span>
-            <span class="badge bg-warning text-dark ms-1">Local AI</span>
-          </div>
-          <p class="spotlight-desc">A self-contained dev / scientific / AI workstation. Monaco editor with IntelliSense, integrated terminal, Python 3.14 + C/C++/Fortran, on-device pdflatex, and local LLMs via llama.cpp + ExecuTorch — all offline.</p>
-          <div class="mb-3">
-            <span class="spotlight-tag">Monaco IDE</span>
-            <span class="spotlight-tag">pdflatex</span>
-            <span class="spotlight-tag">llama.cpp</span>
-            <span class="spotlight-tag">RAG</span>
-          </div>
-          <div class="d-flex gap-2 mt-auto">
-            <a href="https://github.com/yu314-coder/codebench" target="_blank" rel="noopener noreferrer" class="badge-btn">🐙 GitHub</a>
-            <a href="projects.html" class="badge-btn">Learn More</a>
-          </div>
-        </div>
-      </div>
-
-      <!-- python-ios-lib -->
-      <div class="col-lg-6">
-        <div class="spotlight-card" style="background: linear-gradient(135deg, #0f2027 0%, #203a43 40%, #2c5364 100%);">
-          <div class="mb-3">
-            <h3>🐍 python-ios-lib</h3>
-            <span class="badge bg-light text-dark">Python 3.14</span>
-            <span class="badge bg-warning text-dark ms-1">30+ Libs</span>
-          </div>
-          <p class="spotlight-desc">Full Python runtime for iOS/iPadOS with native PyTorch 2.1, HuggingFace transformers, Rust tokenizers, NumPy, SciPy, scikit-learn, manim, PyAV/FFmpeg, plus C/C++/Fortran interpreters. Powers CodeBench. App Store safe.</p>
-          <div class="mb-3">
-            <span class="spotlight-tag">iOS 17+</span>
-            <span class="spotlight-tag">PyTorch Native</span>
-            <span class="spotlight-tag">Transformers</span>
-            <span class="spotlight-tag">Fully Offline</span>
-          </div>
-          <div class="d-flex gap-2 mt-auto">
-            <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="badge-btn">🐙 GitHub</a>
-            <a href="projects.html" class="badge-btn">Learn More</a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Welcome / About Section -->
-  <section class="container my-5 py-5 pattern-bg" style="border-radius: 15px;">
-    <div class="row">
-      <div class="col-lg-10 offset-lg-1 text-center">
-        <h2 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 20px;">What I Do</h2>
-        <p class="lead" style="font-size: 1.2rem; line-height: 1.8; margin-bottom: 50px;">I build tools that bridge mathematics, AI, and real-world applications — from desktop apps on the Microsoft Store to full Python runtimes on iOS, an on-device IDE with local LLMs for iPad, research in random matrix theory, and open-source packages on PyPI.</p>
-
-        <div class="row mt-4">
-          <div class="col-md-3 mb-4">
-            <div class="icon-box h-100">
-              <div style="font-size: 3rem; margin-bottom: 15px;">🔬</div>
-              <h4 style="color: var(--primary-dark); font-weight: 700; margin-bottom: 10px; font-size: 1.1rem;">Mathematical Research</h4>
-              <p style="color: #666; font-size: 0.9rem;">Random matrix theory, Stieltjes transform, spectral distributions, and statistical modeling</p>
+          <div class="row g-4 text-start">
+            <div class="col-md-6 col-lg-3">
+              <div class="card h-100 reveal">
+                <div class="card-body">
+                  <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">🔬</div>
+                  <h4>Mathematical research</h4>
+                  <p class="mb-0">Random matrix theory, Stieltjes transform, spectral distributions, and statistical modeling.</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+              <div class="card h-100 reveal reveal-delay-1">
+                <div class="card-body">
+                  <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">🤖</div>
+                  <h4>AI &amp; machine learning</h4>
+                  <p class="mb-0">scikit-learn implementations, data visualization, and intelligent system design.</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+              <div class="card h-100 reveal reveal-delay-2">
+                <div class="card-body">
+                  <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">💻</div>
+                  <h4>Cross-platform apps</h4>
+                  <p class="mb-0">Windows Store apps, iOS frameworks, and Python packages published on PyPI.</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+              <div class="card h-100 reveal reveal-delay-3">
+                <div class="card-body">
+                  <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">🎬</div>
+                  <h4>Media &amp; graphics</h4>
+                  <p class="mb-0">Math animations with Manim, video encoding with FFmpeg, and 2D graphics with Cairo.</p>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="col-md-3 mb-4">
-            <div class="icon-box h-100">
-              <div style="font-size: 3rem; margin-bottom: 15px;">🤖</div>
-              <h4 style="color: var(--primary-dark); font-weight: 700; margin-bottom: 10px; font-size: 1.1rem;">AI & Machine Learning</h4>
-              <p style="color: #666; font-size: 0.9rem;">scikit-learn implementations, data visualization, and intelligent system design</p>
-            </div>
-          </div>
-          <div class="col-md-3 mb-4">
-            <div class="icon-box h-100">
-              <div style="font-size: 3rem; margin-bottom: 15px;">💻</div>
-              <h4 style="color: var(--primary-dark); font-weight: 700; margin-bottom: 10px; font-size: 1.1rem;">Cross-Platform Apps</h4>
-              <p style="color: #666; font-size: 0.9rem;">Windows Store apps, iOS frameworks, and Python packages published on PyPI</p>
-            </div>
-          </div>
-          <div class="col-md-3 mb-4">
-            <div class="icon-box h-100">
-              <div style="font-size: 3rem; margin-bottom: 15px;">🎬</div>
-              <h4 style="color: var(--primary-dark); font-weight: 700; margin-bottom: 10px; font-size: 1.1rem;">Media & Graphics</h4>
-              <p style="color: #666; font-size: 0.9rem;">Math animations with Manim, video encoding with FFmpeg, and 2D graphics with Cairo</p>
-            </div>
-          </div>
-        </div>
 
-        <div class="mt-5">
-          <a href="projects.html" class="btn btn-primary btn-lg me-3" style="font-size: 1.05rem;">Explore All Projects</a>
-          <a href="about.html" class="btn btn-outline-primary btn-lg" style="font-size: 1.05rem;">More About Me</a>
+          <div class="mt-5 reveal d-flex flex-wrap gap-2 justify-content-center">
+            <a href="projects.html" class="btn btn-primary btn-lg">Explore all projects</a>
+            <a href="about.html" class="btn btn-ghost btn-lg">More about me</a>
+          </div>
         </div>
       </div>
     </div>
@@ -428,7 +353,9 @@
   <!-- Bootstrap 5 JS Bundle (includes Popper) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
-  <!-- Custom JavaScript -->
+  <!-- Site motion / counters / live downloads -->
+  <script src="assets/js/ui.js"></script>
+  <!-- Custom JavaScript (arcade easter egg) -->
   <script src="assets/js/main.js"></script>
 </body>
 </html>
