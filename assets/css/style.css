@@ -19,6 +19,13 @@
   --accent:    #2d6bff;   /* ink-blue, used sparingly */
   --accent-press: #1e54d6;
   --accent-tint:  rgba(45,107,255,0.08);
+  --accent-2:  #7c3aed;   /* violet — gradient partner */
+  --accent-3:  #06b6d4;   /* cyan — gradient partner */
+  /* one cohesive cool gradient family */
+  --grad-text: linear-gradient(115deg, #1e3a8a 0%, #2d6bff 45%, #7c3aed 100%);
+  --grad-btn:  linear-gradient(120deg, #2d6bff 0%, #5b5bf0 55%, #7c3aed 100%);
+  --grad-soft: radial-gradient(60% 70% at 75% 25%, rgba(45,107,255,0.10) 0%, transparent 60%),
+               radial-gradient(50% 60% at 15% 80%, rgba(124,58,237,0.08) 0%, transparent 60%);
 
   /* the single dark surface (embedded tool / one full-bleed moment) */
   --dark-bg:   #0b0b0d;
@@ -244,6 +251,12 @@ body.theme-dark {
   --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
   --shadow-md: 0 16px 40px rgba(0,0,0,.45);
   --bs-body-color-rgb: 242, 244, 248;
+  --accent-2:  #a78bfa;
+  --accent-3:  #22d3ee;
+  --grad-text: linear-gradient(115deg, #7cb0ff 0%, #8b8bff 50%, #c4a8ff 100%);
+  --grad-btn:  linear-gradient(120deg, #4f88ff 0%, #7c7cff 55%, #a78bfa 100%);
+  --grad-soft: radial-gradient(55% 60% at 80% 12%, rgba(79,136,255,0.18) 0%, transparent 62%),
+               radial-gradient(50% 55% at 12% 85%, rgba(167,139,250,0.14) 0%, transparent 62%);
   background: var(--bg);
   color: var(--ink);
 }
@@ -287,6 +300,68 @@ body.theme-dark .spotlight-tag { background: rgba(255,255,255,0.06); }
   user-select: none;
 }
 
+/* ---------------------------------------------------------------------------
+   6b. Gradient layer (one cohesive cool family, used tastefully)
+   ------------------------------------------------------------------------- */
+/* soft mesh wash behind the hero + page headers */
+.hero, .page-header { position: relative; isolation: isolate; }
+.hero::before, .page-header::before {
+  content: "";
+  position: absolute; inset: -10% -5% auto -5%; height: 150%;
+  z-index: -1;
+  background: var(--grad-soft);
+  pointer-events: none;
+}
+
+/* gradient display headlines */
+.hero h1, .page-header h1, .text-gradient {
+  background: var(--grad-text);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+/* keep the CJK name crisp inside a gradient headline (its glyphs are heavy) */
+.hero h1 .cjk, .page-header h1 .cjk { -webkit-text-fill-color: transparent; }
+
+/* gradient primary button */
+.btn-primary {
+  background-image: var(--grad-btn);
+  background-size: 140% 140%;
+  background-position: 0% 50%;
+  border: 0;
+  transition: transform .15s var(--ease), background-position .4s var(--ease), box-shadow .2s var(--ease);
+}
+.btn-primary:hover {
+  background-position: 100% 50%;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(45,107,255,0.28);
+}
+
+/* big stat numbers as gradient */
+.highlight-number {
+  background: var(--grad-text);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+
+/* gradient eyebrow rule + card hue edge */
+.eyebrow--rule::before { background: var(--grad-btn); }
+.card--hue::before { background: var(--grad-btn); opacity: 1; }
+
+/* a soft glow utility for sections */
+.glow { position: relative; isolation: isolate; }
+.glow::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: var(--grad-soft); pointer-events: none;
+}
+
+/* dark zones get a richer ambient gradient on the page bg */
+body.theme-dark { background-image: var(--grad-soft); background-repeat: no-repeat; }
+body.theme-dark .tracker-shell {
+  background:
+    radial-gradient(80% 120% at 0% 0%, rgba(79,136,255,0.12), transparent 55%),
+    var(--dark-bg);
+}
+
 /* page header (inner pages) */
 .page-header {
   padding-top: clamp(6.5rem, 14vh, 9rem);
@@ -308,8 +383,8 @@ body.theme-dark .spotlight-tag { background: rgba(255,255,255,0.06); }
   cursor: pointer;
   transition: transform .15s var(--ease), background .2s var(--ease), border-color .2s var(--ease), color .2s var(--ease);
 }
-.btn-primary { background: var(--accent); color: #fff !important; }
-.btn-primary:hover { background: var(--accent-press); color: #fff !important; transform: translateY(-1px); }
+.btn-primary { background-color: var(--accent); color: #fff !important; }
+.btn-primary:hover { color: #fff !important; transform: translateY(-1px); }
 .btn-ghost { background: transparent; color: var(--ink) !important; border-color: var(--line-2); }
 .btn-ghost:hover { border-color: var(--ink); transform: translateY(-1px); }
 .btn-sm { padding: 0.55rem 1rem; font-size: 0.9rem; }
