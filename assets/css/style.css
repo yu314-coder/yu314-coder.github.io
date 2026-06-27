@@ -300,6 +300,39 @@ body.theme-dark .spotlight-tag { background: rgba(255,255,255,0.06); }
   user-select: none;
 }
 
+/* Hero orb: luminous gradient sphere + orbiting rings, with light live motion */
+.hero-orb .orb-spin,
+.hero-orb .orb-glow,
+.hero-orb .orb-core { transform-box: view-box; transform-origin: 50% 50%; }
+.hero-orb .orb-spin--a { animation: orb-rot 20s linear infinite; }
+.hero-orb .orb-spin--b { animation: orb-rot-rev 26s linear infinite; }
+.hero-orb .orb-spin--c { animation: orb-rot 34s linear infinite; }
+.hero-orb .orb-glow { animation: orb-breathe 7s ease-in-out infinite; }
+.hero-orb .orb-core { animation: orb-corepulse 6s ease-in-out infinite; }
+.hero-orb .orb-node { animation: orb-twinkle 3.2s ease-in-out infinite; }
+.hero-orb .orb-node--b { animation-duration: 4s;   animation-delay: -1.2s; }
+.hero-orb .orb-node--c { animation-duration: 3.6s; animation-delay: -2.1s; }
+@keyframes orb-rot { to { transform: rotate(360deg); } }
+@keyframes orb-rot-rev { to { transform: rotate(-360deg); } }
+@keyframes orb-breathe {
+  0%, 100% { opacity: .82; transform: scale(1); }
+  50%      { opacity: 1;   transform: scale(1.06); }
+}
+@keyframes orb-corepulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.035); }
+}
+@keyframes orb-twinkle {
+  0%, 100% { opacity: .5; }
+  50%      { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-orb .orb-spin,
+  .hero-orb .orb-glow,
+  .hero-orb .orb-core,
+  .hero-orb .orb-node { animation: none; }
+}
+
 /* ---------------------------------------------------------------------------
    6b. Gradient layer (one cohesive cool family, used tastefully)
    ------------------------------------------------------------------------- */
