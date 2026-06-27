@@ -35,13 +35,13 @@
   <!-- Fonts: retire Roboto entirely. Load all four families in ONE request. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 
   <!-- Site stylesheet (single source of truth) -->
   <link rel="stylesheet" href="assets/css/style.css">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
-<body>
+<body class="theme-dark">
   <!-- Navigation -->
   <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
     <div class="container">
@@ -61,13 +61,10 @@
     </div>
   </nav>
 
-  <!-- DARK product zone: tokens flip to the dark shell for the whole page -->
-  <div class="zone-dark">
-
   <!-- Header Section -->
   <header class="page-header">
     <div class="container">
-      <p class="eyebrow eyebrow--rule reveal">// portfolio</p>
+      <p class="eyebrow eyebrow--rule reveal">Portfolio</p>
       <h1 class="reveal">Projects</h1>
       <p class="lead-2 reveal">Featured apps, libraries, and tools — organized by category.</p>
     </div>
@@ -79,19 +76,19 @@
     <!-- Tab Navigation -->
     <ul class="nav nav-pills justify-content-center flex-wrap mb-5 gap-2" id="projectTabs" role="tablist">
       <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="tab-manim-btn" data-bs-toggle="pill" data-bs-target="#tab-manim" type="button" role="tab" aria-controls="tab-manim" aria-selected="true">🎯 ManimStudio</button>
+        <button class="nav-link active" id="tab-manim-btn" data-bs-toggle="pill" data-bs-target="#tab-manim" type="button" role="tab" aria-controls="tab-manim" aria-selected="true">ManimStudio</button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-codebench-btn" data-bs-toggle="pill" data-bs-target="#tab-codebench" type="button" role="tab" aria-controls="tab-codebench" aria-selected="false">💻 CodeBench</button>
+        <button class="nav-link" id="tab-codebench-btn" data-bs-toggle="pill" data-bs-target="#tab-codebench" type="button" role="tab" aria-controls="tab-codebench" aria-selected="false">CodeBench</button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-gencov-btn" data-bs-toggle="pill" data-bs-target="#tab-gencov" type="button" role="tab" aria-controls="tab-gencov" aria-selected="false">📊 Generalized Covariance</button>
+        <button class="nav-link" id="tab-gencov-btn" data-bs-toggle="pill" data-bs-target="#tab-gencov" type="button" role="tab" aria-controls="tab-gencov" aria-selected="false">Generalized Covariance</button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-gps-btn" data-bs-toggle="pill" data-bs-target="#tab-gps" type="button" role="tab" aria-controls="tab-gps" aria-selected="false">📍 GPS-location-app</button>
+        <button class="nav-link" id="tab-gps-btn" data-bs-toggle="pill" data-bs-target="#tab-gps" type="button" role="tab" aria-controls="tab-gps" aria-selected="false">GPS-location-app</button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-other-btn" data-bs-toggle="pill" data-bs-target="#tab-other" type="button" role="tab" aria-controls="tab-other" aria-selected="false">🔧 Others</button>
+        <button class="nav-link" id="tab-other-btn" data-bs-toggle="pill" data-bs-target="#tab-other" type="button" role="tab" aria-controls="tab-other" aria-selected="false">Others</button>
       </li>
     </ul>
 
@@ -107,37 +104,37 @@
         <div class="row g-0 align-items-center justify-content-center">
           <div class="col-lg-10 col-xl-9 text-center">
             <header class="mb-4">
-              <div class="d-flex align-items-center justify-content-center mb-3">
-                <span class="card-icon display-6 me-3">🎯</span>
-                <div>
+              <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
+                <span class="app-icon"><img src="assets/img/app-icons/manimstudio-win.png" alt="ManimStudio icon" loading="lazy"></span>
+                <div class="text-start">
                   <h3 class="h2 mb-1 fw-bold">ManimStudio</h3>
                   <span class="badge-neutral mono version">v1.1.1.0</span>
                 </div>
               </div>
-              <p class="lead mb-0">Create stunning mathematical animations with a powerful GUI application. Microsoft Store compatible - no administrator rights required!</p>
+              <p class="lead mb-0">Create stunning mathematical animations with a powerful GUI application. Microsoft Store compatible — no administrator rights required.</p>
             </header>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
-              <span class="feature-badge">🎨 Visual Code Editor</span>
-              <span class="feature-badge">⚡ Live Preview</span>
-              <span class="feature-badge">🔓 No Admin Rights</span>
-              <span class="feature-badge">🤖 Auto Dependencies</span>
-              <span class="feature-badge">📁 Asset Management</span>
+              <span class="feature-badge">Visual Code Editor</span>
+              <span class="feature-badge">Live Preview</span>
+              <span class="feature-badge">No Admin Rights</span>
+              <span class="feature-badge">Auto Dependencies</span>
+              <span class="feature-badge">Asset Management</span>
             </div>
 
             <div class="mb-4">
               <h4 class="h5 fw-bold mb-3">What's Included</h4>
               <ul class="list-unstyled">
-                <li class="mb-2">✅ ManimStudio GUI Application</li>
-                <li class="mb-2">✅ Python 3.12.7 (bundled installer)</li>
-                <li class="mb-2">✅ MiKTeX Basic (officially recommended for Manim)</li>
+                <li class="mb-2">ManimStudio GUI Application</li>
+                <li class="mb-2">Python 3.12.7 (bundled installer)</li>
+                <li class="mb-2">MiKTeX Basic (officially recommended for Manim)</li>
               </ul>
             </div>
 
             <div class="row g-3 mb-4 justify-content-center">
               <div class="col-md-5">
                 <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">📋 Requirements</h5>
+                  <h5 class="h6 fw-bold mb-3">Requirements</h5>
                   <ul class="small mb-0 text-start">
                     <li>Windows 10+ (64-bit)</li>
                     <li>No admin privileges needed</li>
@@ -147,7 +144,7 @@
               </div>
               <div class="col-md-5">
                 <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">⚙️ Quick Install</h5>
+                  <h5 class="h6 fw-bold mb-3">Quick Install</h5>
                   <ol class="small mb-0 text-start">
                     <li>Run ManimStudio installer</li>
                     <li>Auto-installs dependencies</li>
@@ -174,10 +171,10 @@
                 <img src="assets/img/badges/microsoft-store.svg" alt="Get it from Microsoft">
               </a>
               <a href="privacy.html#manim-studio" class="badge-btn">
-                🔒 Privacy Policy
+                Privacy policy
               </a>
               <a href="mailto:euler.yu@gmail.com" class="badge-btn">
-                📧 Contact
+                Contact
               </a>
             </div>
           </div>
@@ -191,9 +188,9 @@
         <div class="row g-0 align-items-center justify-content-center">
           <div class="col-lg-10 col-xl-9 text-center">
             <header class="mb-4">
-              <div class="d-flex align-items-center justify-content-center mb-3">
-                <span class="card-icon display-6 me-3">📱</span>
-                <div>
+              <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
+                <span class="app-icon"><img src="assets/img/app-icons/manimstudio-ios.png" alt="ManimStudio iOS icon" loading="lazy"></span>
+                <div class="text-start">
                   <h3 class="h2 mb-1 fw-bold">ManimStudio <span style="opacity:0.85; font-weight:400;">(iOS / iPadOS)</span></h3>
                   <span class="badge-neutral mono">iOS 17+</span>
                   <span class="badge-accent mono ms-1">App Store</span>
@@ -204,31 +201,31 @@
             </header>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
-              <span class="feature-badge">📝 Monaco Editor</span>
-              <span class="feature-badge">⚡ VideoToolbox H.264</span>
-              <span class="feature-badge">🐚 offlinai_shell (~150 builtins)</span>
-              <span class="feature-badge">🧮 busytex LaTeX</span>
-              <span class="feature-badge">⌨️ SwiftTerm + PTY</span>
-              <span class="feature-badge">✈️ Fully Offline</span>
-              <span class="feature-badge">🌏 CJK-aware Text()</span>
+              <span class="feature-badge">Monaco Editor</span>
+              <span class="feature-badge">VideoToolbox H.264</span>
+              <span class="feature-badge">offlinai_shell (~150 builtins)</span>
+              <span class="feature-badge">busytex LaTeX</span>
+              <span class="feature-badge">SwiftTerm + PTY</span>
+              <span class="feature-badge">Fully Offline</span>
+              <span class="feature-badge">CJK-aware Text()</span>
             </div>
 
             <div class="mb-4">
               <h4 class="h5 fw-bold mb-3">What's Included</h4>
               <ul class="list-unstyled">
-                <li class="mb-2">✅ Bundled Python 3.14 stack via <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="lib-link">python-ios-lib</a> — manim, NumPy, SciPy, matplotlib, Plotly, PyAV, pycairo, pangocairo, busytex (all arm64-iphoneos)</li>
-                <li class="mb-2">✅ Monaco editor in WKWebView — full Python autocomplete, find/replace, multi-cursor, snippets, render-error gutter markers</li>
-                <li class="mb-2">✅ Live symbol-completion index built from introspection of the bundled Python packages</li>
-                <li class="mb-2">✅ Drag-drop image → auto-inserts <code>ImageMobject</code> snippet</li>
-                <li class="mb-2">✅ Pure-Swift Python formatter (⌥⌘L)</li>
-                <li class="mb-2">✅ Reuses the offlinai_shell from <a href="https://github.com/yu314-coder/CodeBench" target="_blank" rel="noopener noreferrer" class="lib-link">CodeBench / BenchCode</a> (rebranded as "ManimStudio shell" at install)</li>
+                <li class="mb-2">Bundled Python 3.14 stack via <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="lib-link">python-ios-lib</a> — manim, NumPy, SciPy, matplotlib, Plotly, PyAV, pycairo, pangocairo, busytex (all arm64-iphoneos)</li>
+                <li class="mb-2">Monaco editor in WKWebView — full Python autocomplete, find/replace, multi-cursor, snippets, render-error gutter markers</li>
+                <li class="mb-2">Live symbol-completion index built from introspection of the bundled Python packages</li>
+                <li class="mb-2">Drag-drop image → auto-inserts <code>ImageMobject</code> snippet</li>
+                <li class="mb-2">Pure-Swift Python formatter (⌥⌘L)</li>
+                <li class="mb-2">Reuses the offlinai_shell from <a href="https://github.com/yu314-coder/CodeBench" target="_blank" rel="noopener noreferrer" class="lib-link">CodeBench / BenchCode</a> (rebranded as "ManimStudio shell" at install)</li>
               </ul>
             </div>
 
             <div class="row g-3 mb-4 justify-content-center">
               <div class="col-md-5">
                 <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">📋 Requirements</h5>
+                  <h5 class="h6 fw-bold mb-3">Requirements</h5>
                   <ul class="small mb-0 text-start">
                     <li>iOS 17.0+ / iPadOS 17.0+</li>
                     <li>Apple Silicon (arm64-iphoneos)</li>
@@ -239,7 +236,7 @@
               </div>
               <div class="col-md-5">
                 <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">⚙️ Render Pipeline</h5>
+                  <h5 class="h6 fw-bold mb-3">Render Pipeline</h5>
                   <ul class="small mb-0 text-start">
                     <li>VideoToolbox H.264 (~5× faster than libx264)</li>
                     <li>Cairo via pycairo compat layer</li>
@@ -266,16 +263,16 @@
                 <img src="assets/img/badges/appstore.svg" alt="Download on the App Store">
               </a>
               <a href="https://github.com/yu314-coder/manim_app/tree/ios" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                🐙 GitHub (ios branch)
+                GitHub (ios branch)
               </a>
               <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                🐍 python-ios-lib
+                python-ios-lib
               </a>
               <a href="https://github.com/yu314-coder/CodeBench" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                💻 CodeBench
+                CodeBench
               </a>
               <a href="privacy.html#manim-studio-ios" class="badge-btn">
-                🔒 Privacy Policy
+                Privacy policy
               </a>
             </div>
           </div>
@@ -293,9 +290,9 @@
         <div class="row g-0 align-items-center justify-content-center">
           <div class="col-lg-11 col-xl-10 text-center">
             <header class="mb-4">
-              <div class="d-flex align-items-center justify-content-center mb-3">
-                <span class="card-icon display-6 me-3">🛠️</span>
-                <div>
+              <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
+                <span class="app-icon"><span class="mono" style="font-weight:600; color:var(--accent);">CB</span></span>
+                <div class="text-start">
                   <h3 class="h2 mb-1 fw-bold">CodeBench</h3>
                   <span class="badge-neutral mono">iPad · iPadOS · Mac Catalyst</span>
                   <span class="badge-accent mono ms-1">Local AI</span>
@@ -306,21 +303,21 @@
             </header>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
-              <span class="feature-badge">📝 Monaco Editor</span>
-              <span class="feature-badge">🧠 IntelliSense</span>
-              <span class="feature-badge">⌨️ SwiftTerm REPL</span>
-              <span class="feature-badge">📐 pdflatex</span>
-              <span class="feature-badge">🦙 llama.cpp</span>
-              <span class="feature-badge">⚡ Metal GPU PyTorch</span>
-              <span class="feature-badge">🎛️ LoRA Fine-tune</span>
-              <span class="feature-badge">🤖 AI Assist Chat</span>
-              <span class="feature-badge">🐞 Visual Debugger</span>
-              <span class="feature-badge">🟨 JS REPL</span>
-              <span class="feature-badge">🎨 Image Gen</span>
-              <span class="feature-badge">🔍 RAG Engine</span>
-              <span class="feature-badge">⌘ Command Palette</span>
-              <span class="feature-badge">📊 Live RAM Sparkline</span>
-              <span class="feature-badge">💾 Auto-save</span>
+              <span class="feature-badge">Monaco Editor</span>
+              <span class="feature-badge">IntelliSense</span>
+              <span class="feature-badge">SwiftTerm REPL</span>
+              <span class="feature-badge">pdflatex</span>
+              <span class="feature-badge">llama.cpp</span>
+              <span class="feature-badge">Metal GPU PyTorch</span>
+              <span class="feature-badge">LoRA Fine-tune</span>
+              <span class="feature-badge">AI Assist Chat</span>
+              <span class="feature-badge">Visual Debugger</span>
+              <span class="feature-badge">JS REPL</span>
+              <span class="feature-badge">Image Gen</span>
+              <span class="feature-badge">RAG Engine</span>
+              <span class="feature-badge">Command Palette</span>
+              <span class="feature-badge">Live RAM Sparkline</span>
+              <span class="feature-badge">Auto-save</span>
             </div>
 
             <!-- Capability Grid -->
@@ -328,98 +325,98 @@
 
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>📝 Code Editor <span class="lib-count-badge">VS Code</span></h5>
+                  <h5>Code Editor <span class="lib-count-badge">VS Code</span></h5>
                   <p class="mt-1 mb-0" style="text-align:left;">Real Monaco editor in WKWebView. Python IntelliSense with ~70-entry signature DB, hover docs, and live resolve from the embedded Python daemon for numpy / scipy / sklearn / matplotlib / sympy completions.</p>
                 </div>
               </div>
 
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>⌨️ Integrated Terminal <span class="lib-count-badge">PTY</span></h5>
+                  <h5>Integrated Terminal <span class="lib-count-badge">PTY</span></h5>
                   <p class="mt-1 mb-0" style="text-align:left;">SwiftTerm-backed terminal piped through a real PTY into the embedded CPython REPL. Type Python directly, or use POSIX-style builtins like <code>ls</code>, <code>grep</code>, <code>ncdu</code>, <code>top</code>, <code>git clone</code>.</p>
                 </div>
               </div>
 
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>📐 On-Device pdflatex <span class="lib-count-badge">WASM</span></h5>
+                  <h5>On-Device pdflatex <span class="lib-count-badge">WASM</span></h5>
                   <p class="mt-1 mb-0" style="text-align:left;">busytex (pdftex 1.40.25 + xetex + luatex + bibtex8) running in a hidden WKWebView. TeX Live 2023 preloaded into MEMFS plus a 23 MB overlay with PGF/TikZ/beamer, hyperref, mathtools, microtype, fontspec, CJK.</p>
                 </div>
               </div>
 
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>🦙 Local LLMs <span class="lib-count-badge">GGUF</span></h5>
+                  <h5>Local LLMs <span class="lib-count-badge">GGUF</span></h5>
                   <p class="mt-1 mb-0" style="text-align:left;">llama.cpp as an XCFramework — load any Llama / Mistral / Qwen / Phi GGUF model and chat with streaming tokens. ExecuTorch backends for Apple Core ML / XNNPACK kernel-optimized PyTorch inference.</p>
                 </div>
               </div>
 
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>🔍 RAG &amp; Image Gen <span class="lib-count-badge">offline</span></h5>
+                  <h5>RAG &amp; Image Gen <span class="lib-count-badge">offline</span></h5>
                   <p class="mt-1 mb-0" style="text-align:left;">In-process sentence-embedding + vector store over user-imported text / PDF / markdown. Offline image generation via ExecuTorch-runnable diffusion models. All models stay in the app sandbox — no tokens leave the device.</p>
                 </div>
               </div>
 
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>💾 Workspace System <span class="lib-count-badge">multi-tab</span></h5>
+                  <h5>Workspace System <span class="lib-count-badge">multi-tab</span></h5>
                   <p class="mt-1 mb-0" style="text-align:left;">iOS document browser with multiple concurrent workspaces. Auto-save debounced ~600 ms after every keystroke + on run, tab-switch, view-disappear, and app-backgrounding. Tombstone system records deleted files so seeders don't resurrect them.</p>
                 </div>
               </div>
 
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>⚡ Metal GPU PyTorch</h5>
+                  <h5>Metal GPU PyTorch</h5>
                   <p class="mt-1 mb-0" style="text-align:left;">Monkey-patched <code>torch.matmul / mm / bmm / addmm</code>, <code>F.linear</code>, and SDPA onto Apple's <code>MPSMatrixMultiplication</code> via ctypes → Swift <code>@_cdecl</code>. <strong>2–10× speedup</strong> at training sizes. fp32/fp16 native, bf16 via fp32 cast. Autograd-aware via <code>torch.autograd.Function</code>. Auto-installed via <code>sitecustomize.py</code> — zero user code changes.</p>
                 </div>
               </div>
 
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>⌘ UI Polish</h5>
+                  <h5>UI Polish</h5>
                   <p class="mt-1 mb-0" style="text-align:left;">Live RAM sparkline in the top-right tab bar, command palette (⌘P), editor status bar, tab slide animation, drag-to-select in the terminal (via SwiftTerm doubleTap), and a real Stop button that interrupts the running task.</p>
                 </div>
               </div>
 
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>🧪 Training Toolkit</h5>
+                  <h5>Training Toolkit</h5>
                   <p class="mt-1 mb-0" style="text-align:left;">Opt-in <code>_cb_training.py</code> (~12 KB pure Python) ships OOMGuard, MemoryProfiler, KVCache, and TrainingMonitor. Plus a pure-Python <code>safetensors</code> reader (mmap + struct + <code>torch.frombuffer</code>) so <code>transformers.from_pretrained()</code> works without Rust crates.</p>
                 </div>
               </div>
 
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>🎛️ LoRA Fine-tuning <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <h5>LoRA Fine-tuning <span class="lib-count-badge new-badge">NEW</span></h5>
                   <p class="mt-1 mb-0" style="text-align:left;">Train a LoRA adapter on a GGUF base model in-place via llama.cpp's Metal backward kernels (<code>LlamaFinetuner.swift</code>). Closes the train→deploy loop: fine-tune with PyTorch + HF Trainer (Metal bridge for speed), then convert the <code>.pt</code> to a GGUF adapter with a pure-Python writer for fast Metal inference.</p>
                 </div>
               </div>
 
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>🟨 JavaScript REPL <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <h5>JavaScript REPL <span class="lib-count-badge new-badge">NEW</span></h5>
                   <p class="mt-1 mb-0" style="text-align:left;"><code>js</code> shell builtin backed by Apple's JavaScriptCore (zero bundle cost) — persistent Node-style REPL globals, <code>js -e</code> one-liners, and <code>js script.js</code> file execution, sitting alongside the <code>python</code> builtin.</p>
                 </div>
               </div>
 
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>🏎️ Editor Performance <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <h5>Editor Performance <span class="lib-count-badge new-badge">NEW</span></h5>
                   <p class="mt-1 mb-0" style="text-align:left;">IntelliSense engine moved from a 3 s blocking loop to <code>DispatchSource</code> event watch (no held threads), Monaco file opens batched 3 JS round-trips → 1 (~100 ms saved per open), and C/C++/Fortran language providers lazy-register only on first non-Python file.</p>
                 </div>
               </div>
 
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>🤖 AI Assist Chat <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <h5>AI Assist Chat <span class="lib-count-badge new-badge">NEW</span></h5>
                   <p class="mt-1 mb-0" style="text-align:left;">ChatGPT-style chat panel wired to the local LLM — streaming replies that render <strong>compiled LaTeX</strong> inline, code-aware assists into the editor, and a one-tap scratch file when there's no target. All on-device; no tokens leave the iPad.</p>
                 </div>
               </div>
 
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>🐞 Visual Debugger <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <h5>Visual Debugger <span class="lib-count-badge new-badge">NEW</span></h5>
                   <p class="mt-1 mb-0" style="text-align:left;">Step through Python with a visual debugger wired into Monaco, <strong>data Quick Look</strong> for inspecting variables / arrays / frames, plus a redesigned Libraries tab, richer System Info, and a hidden debug panel with a native-lib test probe.</p>
                 </div>
               </div>
@@ -441,7 +438,7 @@
             <div class="row g-3 mb-4 justify-content-center">
               <div class="col-md-5">
                 <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">📋 Built On</h5>
+                  <h5 class="h6 fw-bold mb-3">Built On</h5>
                   <ul class="small mb-0 text-start">
                     <li><strong>python-ios-lib</strong> — runtime layer</li>
                     <li>SwiftTerm — xterm-compatible PTY</li>
@@ -453,7 +450,7 @@
               </div>
               <div class="col-md-5">
                 <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">📦 Bundle Composition</h5>
+                  <h5 class="h6 fw-bold mb-3">Bundle Composition</h5>
                   <ul class="small mb-0 text-start">
                     <li>~1 GB installed app size</li>
                     <li>791 MB Frameworks (Python, llama, ExecuTorch)</li>
@@ -477,16 +474,16 @@
 
             <div class="d-flex flex-wrap justify-content-center gap-3">
               <a href="https://github.com/yu314-coder/codebench" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                🐙 GitHub Repository
+                GitHub Repository
               </a>
               <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                🧱 Runtime Layer
+                Runtime Layer
               </a>
               <a href="privacy.html#benchcode" class="badge-btn">
-                🔒 Privacy Policy
+                Privacy policy
               </a>
               <a href="mailto:euler.yu@gmail.com" class="badge-btn">
-                📧 Contact Developer
+                Contact developer
               </a>
             </div>
           </div>
@@ -500,9 +497,9 @@
         <div class="row g-0 align-items-center justify-content-center">
           <div class="col-lg-11 col-xl-10 text-center">
             <header class="mb-4">
-              <div class="d-flex align-items-center justify-content-center mb-3">
-                <span class="card-icon display-6 me-3">🐍</span>
-                <div>
+              <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
+                <span class="app-icon"><span class="mono" style="font-weight:600; color:var(--accent);">py</span></span>
+                <div class="text-start">
                   <h3 class="h2 mb-1 fw-bold">python-ios-lib</h3>
                   <span class="badge-neutral mono">Python 3.14</span>
                   <span class="badge-accent mono ms-1">30+ Libraries</span>
@@ -512,20 +509,20 @@
             </header>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
-              <span class="feature-badge">📱 iOS 17+</span>
-              <span class="feature-badge">✈️ Fully Offline</span>
-              <span class="feature-badge">🛡️ App Store Safe</span>
-              <span class="feature-badge">🔥 PyTorch Native</span>
-              <span class="feature-badge">⚡ TorchMetal GPU</span>
-              <span class="feature-badge">🎨 CairoMetal GPU</span>
-              <span class="feature-badge">🤗 Transformers</span>
-              <span class="feature-badge">🦀 Rust Tokenizers</span>
-              <span class="feature-badge">🧮 NumPy Native</span>
-              <span class="feature-badge">🎬 Manim up to 8K</span>
-              <span class="feature-badge">🔧 C/C++/Fortran</span>
-              <span class="feature-badge">🟨 JavaScript REPL</span>
-              <span class="feature-badge">📂 dulwich Git</span>
-              <span class="feature-badge">🌐 Web Stack (Flask · Dash · Streamlit)</span>
+              <span class="feature-badge">iOS 17+</span>
+              <span class="feature-badge">Fully Offline</span>
+              <span class="feature-badge">App Store Safe</span>
+              <span class="feature-badge">PyTorch Native</span>
+              <span class="feature-badge">TorchMetal GPU</span>
+              <span class="feature-badge">CairoMetal GPU</span>
+              <span class="feature-badge">Transformers</span>
+              <span class="feature-badge">Rust Tokenizers</span>
+              <span class="feature-badge">NumPy Native</span>
+              <span class="feature-badge">Manim up to 8K</span>
+              <span class="feature-badge">C/C++/Fortran</span>
+              <span class="feature-badge">JavaScript REPL</span>
+              <span class="feature-badge">dulwich Git</span>
+              <span class="feature-badge">Web Stack (Flask · Dash · Streamlit)</span>
             </div>
 
             <!-- Library Categories Grid -->
@@ -534,7 +531,7 @@
               <!-- Scientific Computing -->
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>🔬 Scientific Computing <span class="lib-count-badge">6</span></h5>
+                  <h5>Scientific Computing <span class="lib-count-badge">6</span></h5>
                   <table>
                     <tr><th>Library</th><th>Ver</th></tr>
                     <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/numpy.md" target="_blank" rel="noopener noreferrer" class="lib-link">NumPy</a></td><td>2.3.5</td></tr>
@@ -550,7 +547,7 @@
               <!-- Machine Learning -->
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>🤖 Machine Learning <span class="lib-count-badge">4</span></h5>
+                  <h5>Machine Learning <span class="lib-count-badge">4</span></h5>
                   <table>
                     <tr><th>Library</th><th>Ver</th></tr>
                     <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/pytorch.md" target="_blank" rel="noopener noreferrer" class="lib-link">PyTorch</a> <span class="dev-badge">BETA</span></td><td>2.1.2</td></tr>
@@ -565,7 +562,7 @@
               <!-- Visualization -->
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>📊 Visualization <span class="lib-count-badge">3</span></h5>
+                  <h5>Visualization <span class="lib-count-badge">3</span></h5>
                   <table>
                     <tr><th>Library</th><th>Ver</th></tr>
                     <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/matplotlib.md" target="_blank" rel="noopener noreferrer" class="lib-link">matplotlib</a></td><td>3.9.0</td></tr>
@@ -579,7 +576,7 @@
               <!-- Media & Rendering -->
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>🎬 Media & Rendering <span class="lib-count-badge">5</span></h5>
+                  <h5>Media &amp; Rendering <span class="lib-count-badge">5</span></h5>
                   <table>
                     <tr><th>Library</th><th>Type</th></tr>
                     <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/ffmpeg-pyav.md" target="_blank" rel="noopener noreferrer" class="lib-link">PyAV</a></td><td>17 C exts</td></tr>
@@ -594,7 +591,7 @@
               <!-- Data & Web -->
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>🌐 Data & Web <span class="lib-count-badge">6</span></h5>
+                  <h5>Data &amp; Web <span class="lib-count-badge">6</span></h5>
                   <table>
                     <tr><th>Library</th><th>Purpose</th></tr>
                     <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/pywebview.md" target="_blank" rel="noopener noreferrer" class="lib-link">PyWebView</a> <span class="new-badge">NEW</span></td><td>v5.4.0 — iOS WKWebView</td></tr>
@@ -610,7 +607,7 @@
               <!-- Interpreters -->
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>💻 Interpreters <span class="lib-count-badge">3</span></h5>
+                  <h5>Interpreters <span class="lib-count-badge">3</span></h5>
                   <table>
                     <tr><th>Language</th><th>Details</th></tr>
                     <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/c-interpreter.md" target="_blank" rel="noopener noreferrer" class="lib-link">C</a></td><td>~3,661 lines</td></tr>
@@ -624,7 +621,7 @@
               <!-- Web Stack -->
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>🌐 Web Stack <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <h5>Web Stack <span class="lib-count-badge new-badge">NEW</span></h5>
                   <table>
                     <tr><th>Library</th><th>Purpose</th></tr>
                     <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/flask.md" target="_blank" rel="noopener noreferrer" class="lib-link">Flask</a></td><td>web framework</td></tr>
@@ -644,7 +641,7 @@
               <!-- Terminal & CLI Utilities -->
               <div class="col-md-6">
                 <div class="lib-category-card">
-                  <h5>🛠️ Terminal & CLI Utilities <span class="lib-count-badge">5</span></h5>
+                  <h5>Terminal &amp; CLI Utilities <span class="lib-count-badge">5</span></h5>
                   <table>
                     <tr><th>Library</th><th>Purpose</th></tr>
                     <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/rich.md" target="_blank" rel="noopener noreferrer" class="lib-link">rich</a></td><td>Tables, progress bars</td></tr>
@@ -658,7 +655,7 @@
               <!-- System & Graphics -->
               <div class="col-md-6">
                 <div class="lib-category-card">
-                  <h5>⚙️ System & Graphics <span class="lib-count-badge">7</span></h5>
+                  <h5>System &amp; Graphics <span class="lib-count-badge">7</span></h5>
                   <table>
                     <tr><th>Library</th><th>Ver</th></tr>
                     <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/psutil.md" target="_blank" rel="noopener noreferrer" class="lib-link">psutil</a></td><td>5.9.8</td></tr>
@@ -677,73 +674,73 @@
             <div class="row g-3 mb-4">
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>📝 Monaco IntelliSense <span class="lib-count-badge">~70 sigs</span></h5>
+                  <h5>Monaco IntelliSense <span class="lib-count-badge">~70 sigs</span></h5>
                   <p class="mt-1 mb-0" style="text-align:left;">Real VS Code editor in WKWebView with Python signature help, hover docs, and live resolve from Python for numpy / scipy / sklearn / matplotlib / sympy.</p>
                 </div>
               </div>
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>📐 Expanded LaTeX Bundle <span class="lib-count-badge">33 MB</span></h5>
+                  <h5>Expanded LaTeX Bundle <span class="lib-count-badge">33 MB</span></h5>
                   <p class="mt-1 mb-0" style="text-align:left;">Full Latin Modern Type 1 fonts, expl3 (1.3 MB), firstaid, hyphenation, unicode-data, pdftex.map. Math-mode rendering via SwiftMath is unlimited.</p>
                 </div>
               </div>
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>⌨️ Shell Builtins <span class="lib-count-badge">POSIX-y</span></h5>
+                  <h5>Shell Builtins <span class="lib-count-badge">POSIX-y</span></h5>
                   <p class="mt-1 mb-0" style="text-align:left;"><code>ncdu</code> with arrow-key navigation, <code>top</code> with Apple-chip detection, <code>git clone</code> via zipball fetch, universal <code>--help</code> interception.</p>
                 </div>
               </div>
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>💾 Auto-save <span class="lib-count-badge">~600 ms</span></h5>
+                  <h5>Auto-save <span class="lib-count-badge">~600 ms</span></h5>
                   <p class="mt-1 mb-0" style="text-align:left;">Edits persist to disk on every keystroke (debounced) plus on run, tab-switch, view-disappear, and app-backgrounding. No more lost edits on reopen.</p>
                 </div>
               </div>
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>🪦 Tombstone System <span class="lib-count-badge">.offlinai_deleted</span></h5>
+                  <h5>Tombstone System <span class="lib-count-badge">.offlinai_deleted</span></h5>
                   <p class="mt-1 mb-0" style="text-align:left;">Files deleted via UI / shell <code>rm</code> / ncdu's <code>d</code> are recorded so starter-script seeders (<code>pip_demo.py</code>, <code>torch_test_all.py</code>) won't re-create them.</p>
                 </div>
               </div>
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>🧪 Test Coverage <span class="lib-count-badge">24/24</span></h5>
+                  <h5>Test Coverage <span class="lib-count-badge">24/24</span></h5>
                   <p class="mt-1 mb-0" style="text-align:left;">Full integration test for the transformers stack passes 24/24. PyTorch ships 95/95 correctness asserts. First public iOS builds for PyTorch + tokenizers.</p>
                 </div>
               </div>
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>⚡ Metal GPU Bridge</h5>
+                  <h5>Metal GPU Bridge</h5>
                   <p class="mt-1 mb-0" style="text-align:left;"><code>_torch_metal_bridge.py</code> patches torch matmul / mm / bmm / addmm, <code>F.linear</code>, and SDPA onto Apple's <code>MPSMatrixMultiplication</code>. <strong>2–10× speedup</strong> at training sizes. fp32/fp16 native, bf16 via fp32 cast. Autograd-aware, auto-installed via <code>sitecustomize.py</code>.</p>
                 </div>
               </div>
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>📂 Git via dulwich</h5>
+                  <h5>Git via dulwich</h5>
                   <p class="mt-1 mb-0" style="text-align:left;">Real <code>git push</code> / <code>pull</code> / <code>commit</code> via auto-installed <a href="https://github.com/jelmer/dulwich" target="_blank" rel="noopener noreferrer" class="lib-link">dulwich</a>. Plus pywebview <code>FileDialog</code> enum and faulthandler that writes C-level crashes to <code>~/Documents/log.txt</code>.</p>
                 </div>
               </div>
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>🎨 CairoMetal <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <h5>CairoMetal <span class="lib-count-badge new-badge">NEW</span></h5>
                   <p class="mt-1 mb-0" style="text-align:left;">pycairo-compatible 2D vector graphics rendered on the Apple GPU — <strong>246 <code>cm_*</code> functions</strong>, stencil-then-cover fills, all 28 compositing operators, IOSurface-backed <code>MTLTexture</code>, pixel-diffed vs real cairo. Cairo has no other Metal backend — to our knowledge this is novel. Standalone repo: <a href="https://github.com/yu314-coder/cairometal" target="_blank" rel="noopener noreferrer" class="lib-link">cairometal</a> — now <code>pip install cairometal</code> on <a href="https://pypi.org/project/cairometal/" target="_blank" rel="noopener noreferrer" class="lib-link">PyPI</a> (macOS arm64 wheel).</p>
                 </div>
               </div>
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>🚀 TorchMetal <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <h5>TorchMetal <span class="lib-count-badge new-badge">NEW</span></h5>
                   <p class="mt-1 mb-0" style="text-align:left;">App-Store-safe per-op Metal/MPS routing for PyTorch inference — matmul, linear, softmax, layer_norm, gelu, attention — size + dtype gated with bit-exact CPU fallback. fp16 matmul is often <strong>hundreds of times faster</strong> than CPU. Public MPS only, no private symbols. Standalone repo: <a href="https://github.com/yu314-coder/torchmetal" target="_blank" rel="noopener noreferrer" class="lib-link">torchmetal</a>.</p>
                 </div>
               </div>
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>🎬 Manim 4K/8K <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <h5>Manim 4K/8K <span class="lib-count-badge new-badge">NEW</span></h5>
                   <p class="mt-1 mb-0" style="text-align:left;">Memory-safe high-res rendering up to <strong>8K (7680×4320)</strong> without tripping iOS jetsam — bounded GIF buffer, frames stream to mp4 instead of accumulating, resolution-tiered RAM pre-flight, <code>h264_videotoolbox</code> encode. Quality selectable 480p→8K.</p>
                 </div>
               </div>
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>🟨 JavaScript REPL <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <h5>JavaScript REPL <span class="lib-count-badge new-badge">NEW</span></h5>
                   <p class="mt-1 mb-0" style="text-align:left;"><code>js</code> shell builtin backed by Apple's JavaScriptCore — zero bundle cost. Persistent REPL globals (Node-style), <code>js -e "code"</code> one-liners, and <code>js script.js</code> file execution. See <a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/js-engine.md" target="_blank" rel="noopener noreferrer" class="lib-link">js-engine.md</a>.</p>
                 </div>
               </div>
@@ -753,7 +750,7 @@
             <div class="row g-3 mb-4 justify-content-center">
               <div class="col-md-5">
                 <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">📋 Requirements</h5>
+                  <h5 class="h6 fw-bold mb-3">Requirements</h5>
                   <ul class="small mb-0 text-start">
                     <li>iOS 17.0+ / iPadOS 17.0+</li>
                     <li>Python 3.14 (BeeWare)</li>
@@ -764,7 +761,7 @@
               </div>
               <div class="col-md-5">
                 <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">🚀 Quick Start</h5>
+                  <h5 class="h6 fw-bold mb-3">Quick Start</h5>
                   <ol class="small mb-0 text-start">
                     <li>Copy library folders into <code>site-packages/</code></li>
                     <li>Add interpreter .c/.h to Xcode</li>
@@ -788,10 +785,10 @@
 
             <div class="d-flex flex-wrap justify-content-center gap-3">
               <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                🐙 GitHub Repository
+                GitHub Repository
               </a>
               <a href="mailto:euler.yu@gmail.com" class="badge-btn">
-                📧 Contact Developer
+                Contact developer
               </a>
             </div>
           </div>
@@ -809,9 +806,9 @@
         <div class="row g-0 align-items-center justify-content-center">
           <div class="col-lg-10 col-xl-9 text-center">
             <header class="mb-4">
-              <div class="d-flex align-items-center justify-content-center mb-3">
-                <span class="card-icon display-6 me-3">📊</span>
-                <div>
+              <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
+                <span class="app-icon"><img src="assets/img/app-icons/generalized-covariance.png" alt="Generalized Covariance Matrix icon" loading="lazy"></span>
+                <div class="text-start">
                   <h3 class="h2 mb-1 fw-bold">Generalized Covariance Matrix</h3>
                   <span class="badge-neutral mono">ESD Analysis Tool</span>
                 </div>
@@ -820,20 +817,20 @@
             </header>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
-              <span class="feature-badge">📈 ESD Analysis</span>
-              <span class="feature-badge">🔢 Matrix Computation</span>
-              <span class="feature-badge">📴 Offline Mode</span>
-              <span class="feature-badge">⚡ Real-time Visualization</span>
-              <span class="feature-badge">💾 Export Results</span>
+              <span class="feature-badge">ESD Analysis</span>
+              <span class="feature-badge">Matrix Computation</span>
+              <span class="feature-badge">Offline Mode</span>
+              <span class="feature-badge">Real-time Visualization</span>
+              <span class="feature-badge">Export Results</span>
             </div>
 
             <div class="mb-4">
               <h4 class="h5 fw-bold mb-3">Key Capabilities</h4>
               <ul class="list-unstyled">
-                <li class="mb-2">✅ Analyze eigenvalue distributions</li>
-                <li class="mb-2">✅ Visualize spectral densities</li>
-                <li class="mb-2">✅ Explore random matrix theory</li>
-                <li class="mb-2">✅ Export data for further analysis</li>
+                <li class="mb-2">Analyze eigenvalue distributions</li>
+                <li class="mb-2">Visualize spectral densities</li>
+                <li class="mb-2">Explore random matrix theory</li>
+                <li class="mb-2">Export data for further analysis</li>
               </ul>
               <p class="small"><strong>Perfect for:</strong> Statistical analysis, ML research, quantum mechanics, and financial modeling</p>
             </div>
@@ -841,7 +838,7 @@
             <div class="row g-3 mb-4 justify-content-center">
               <div class="col-md-5">
                 <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">💻 System Requirements</h5>
+                  <h5 class="h6 fw-bold mb-3">System Requirements</h5>
                   <ul class="small mb-0 text-start">
                     <li>Windows 10+ (64-bit)</li>
                     <li>Works completely offline</li>
@@ -851,7 +848,7 @@
               </div>
               <div class="col-md-5">
                 <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">🚀 Get Started</h5>
+                  <h5 class="h6 fw-bold mb-3">Get Started</h5>
                   <ol class="small mb-0 text-start">
                     <li>Install from Microsoft Store</li>
                     <li>Launch the application</li>
@@ -878,13 +875,13 @@
                 <img src="assets/img/badges/microsoft-store.svg" alt="Get it from Microsoft">
               </a>
               <a href="privacy.html#random-matrix" class="badge-btn">
-                🔒 Privacy Policy
+                Privacy policy
               </a>
               <a href="assets/docs/yau-science-award-research-paper.pdf" class="badge-btn" download>
-                📄 Download Research Paper
+                Download research paper
               </a>
               <a href="mailto:euler.yu@gmail.com" class="badge-btn">
-                📧 Contact Developer
+                Contact developer
               </a>
             </div>
           </div>
@@ -898,9 +895,9 @@
         <div class="row g-0 align-items-center justify-content-center">
           <div class="col-lg-10 col-xl-9 text-center">
             <header class="mb-4">
-              <div class="d-flex align-items-center justify-content-center mb-3">
-                <span class="card-icon display-6 me-3">🎨</span>
-                <div>
+              <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
+                <span class="app-icon"><img src="assets/img/app-icons/eigendenoise.png" alt="EigenDenoise icon" loading="lazy"></span>
+                <div class="text-start">
                   <h3 class="h2 mb-1 fw-bold">EigenDenoise</h3>
                   <span class="badge-neutral mono">macOS 14+</span>
                   <span class="badge-accent mono ms-1">Metal GPU</span>
@@ -910,29 +907,29 @@
             </header>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
-              <span class="feature-badge">🔬 Marchenko–Pastur</span>
-              <span class="feature-badge">📈 Generalized-Cov Oracle</span>
-              <span class="feature-badge">⚡ Metal Acceleration</span>
-              <span class="feature-badge">🎲 5 Noise Models</span>
-              <span class="feature-badge">📊 Spectral Visualizations</span>
-              <span class="feature-badge">🛡️ App Sandbox</span>
+              <span class="feature-badge">Marchenko–Pastur</span>
+              <span class="feature-badge">Generalized-Cov Oracle</span>
+              <span class="feature-badge">Metal Acceleration</span>
+              <span class="feature-badge">5 Noise Models</span>
+              <span class="feature-badge">Spectral Visualizations</span>
+              <span class="feature-badge">App Sandbox</span>
             </div>
 
             <div class="mb-4">
               <h4 class="h5 fw-bold mb-3">Key Capabilities</h4>
               <ul class="list-unstyled">
-                <li class="mb-2">✅ Side-by-side RMT denoisers — MP thresholding + generalized-covariance oracle (β·δ_a + (1−β)·δ_1)</li>
-                <li class="mb-2">✅ Differential evolution to find best (a, β) against a clean reference</li>
-                <li class="mb-2">✅ Three interactive spectral tabs — Eigenvalue density, Im(s) vs z, Roots vs β</li>
-                <li class="mb-2">✅ Curated dataset gallery: ORL Faces (400 PGMs), CBSD68 (68 colour), Brain MRI (3,264 T1 slices)</li>
-                <li class="mb-2">✅ Custom URL lists with per-image checkboxes &amp; destination preview</li>
+                <li class="mb-2">Side-by-side RMT denoisers — MP thresholding + generalized-covariance oracle (β·δ_a + (1−β)·δ_1)</li>
+                <li class="mb-2">Differential evolution to find best (a, β) against a clean reference</li>
+                <li class="mb-2">Three interactive spectral tabs — Eigenvalue density, Im(s) vs z, Roots vs β</li>
+                <li class="mb-2">Curated dataset gallery: ORL Faces (400 PGMs), CBSD68 (68 colour), Brain MRI (3,264 T1 slices)</li>
+                <li class="mb-2">Custom URL lists with per-image checkboxes &amp; destination preview</li>
               </ul>
             </div>
 
             <div class="row g-3 mb-4 justify-content-center">
               <div class="col-md-5">
                 <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">💻 System Requirements</h5>
+                  <h5 class="h6 fw-bold mb-3">System Requirements</h5>
                   <ul class="small mb-0 text-start">
                     <li>macOS 14 (Sonoma) or later</li>
                     <li>Apple Silicon (arm64) — Rosetta supported</li>
@@ -943,7 +940,7 @@
               </div>
               <div class="col-md-5">
                 <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">⚙️ Tech Stack</h5>
+                  <h5 class="h6 fw-bold mb-3">Tech Stack</h5>
                   <ul class="small mb-0 text-start">
                     <li>Pure Swift 5.9+ / SwiftUI / Charts</li>
                     <li><code>MPSMatrixMultiplication</code> for Gram step</li>
@@ -977,16 +974,16 @@
                 <img src="assets/img/badges/macappstore.svg" alt="Download on the Mac App Store">
               </a>
               <a href="https://github.com/yu314-coder/EigenDenoise" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                🐙 GitHub Repository
+                GitHub Repository
               </a>
               <a href="privacy.html#eigendenoise" class="badge-btn">
-                🔒 Privacy Policy
+                Privacy policy
               </a>
               <a href="assets/docs/yau-science-award-research-paper.pdf" class="badge-btn" download>
-                📄 Research Paper
+                Research paper
               </a>
               <a href="mailto:euler.yu@gmail.com" class="badge-btn">
-                📧 Contact Developer
+                Contact developer
               </a>
             </div>
           </div>
@@ -1004,9 +1001,9 @@
         <div class="row g-0 align-items-center justify-content-center">
           <div class="col-lg-10 col-xl-9 text-center">
             <header class="mb-4">
-              <div class="d-flex align-items-center justify-content-center mb-3">
-                <span class="card-icon display-6 me-3">📍</span>
-                <div>
+              <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
+                <span class="app-icon"><img src="assets/img/app-icons/gps-location-app.png" alt="GPS-location-app icon" loading="lazy"></span>
+                <div class="text-start">
                   <h3 class="h2 mb-1 fw-bold">GPS-location-app</h3>
                   <span class="badge-neutral mono">iOS 17+</span>
                   <span class="badge-accent mono ms-1">App Store</span>
@@ -1018,33 +1015,33 @@
             </header>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
-              <span class="feature-badge">🛰️ Kalman-filtered GPS</span>
-              <span class="feature-badge">⌚ Apple Watch</span>
-              <span class="feature-badge">❤️ HealthKit Sync</span>
-              <span class="feature-badge">🚗 CarPlay</span>
-              <span class="feature-badge">📡 Live Activities</span>
-              <span class="feature-badge">🗺️ Route Analytics</span>
-              <span class="feature-badge">📊 Workout History</span>
-              <span class="feature-badge">🔒 Privacy-First</span>
+              <span class="feature-badge">Kalman-filtered GPS</span>
+              <span class="feature-badge">Apple Watch</span>
+              <span class="feature-badge">HealthKit Sync</span>
+              <span class="feature-badge">CarPlay</span>
+              <span class="feature-badge">Live Activities</span>
+              <span class="feature-badge">Route Analytics</span>
+              <span class="feature-badge">Workout History</span>
+              <span class="feature-badge">Privacy-First</span>
             </div>
 
             <div class="mb-4">
               <h4 class="h5 fw-bold mb-3">Key Capabilities</h4>
               <ul class="list-unstyled">
-                <li class="mb-2">✅ Record workouts with high-precision GPS, Kalman-filtered for noisy signals</li>
-                <li class="mb-2">✅ Continuous tracking from iPhone + Apple Watch — start one, finish on the other</li>
-                <li class="mb-2">✅ Two-way HealthKit sync — workouts appear in the iOS Fitness / Health apps</li>
-                <li class="mb-2">✅ Live Activity / Dynamic Island shows current distance, pace, and duration</li>
-                <li class="mb-2">✅ CarPlay support for in-car activity display</li>
-                <li class="mb-2">✅ Per-workout route map with split / pace / elevation analytics</li>
-                <li class="mb-2">✅ All workout data stays on your device — no servers, no telemetry</li>
+                <li class="mb-2">Record workouts with high-precision GPS, Kalman-filtered for noisy signals</li>
+                <li class="mb-2">Continuous tracking from iPhone + Apple Watch — start one, finish on the other</li>
+                <li class="mb-2">Two-way HealthKit sync — workouts appear in the iOS Fitness / Health apps</li>
+                <li class="mb-2">Live Activity / Dynamic Island shows current distance, pace, and duration</li>
+                <li class="mb-2">CarPlay support for in-car activity display</li>
+                <li class="mb-2">Per-workout route map with split / pace / elevation analytics</li>
+                <li class="mb-2">All workout data stays on your device — no servers, no telemetry</li>
               </ul>
             </div>
 
             <div class="row g-3 mb-4 justify-content-center">
               <div class="col-md-5">
                 <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">📋 Requirements</h5>
+                  <h5 class="h6 fw-bold mb-3">Requirements</h5>
                   <ul class="small mb-0 text-start">
                     <li>iOS 17.0+ / watchOS 10+</li>
                     <li>Magic Keyboard supported</li>
@@ -1055,7 +1052,7 @@
               </div>
               <div class="col-md-5">
                 <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">🚀 Get Started</h5>
+                  <h5 class="h6 fw-bold mb-3">Get Started</h5>
                   <ol class="small mb-0 text-start">
                     <li>Install from the App Store</li>
                     <li>Grant location & HealthKit permissions</li>
@@ -1082,13 +1079,13 @@
                 <img src="assets/img/badges/appstore.svg" alt="Download on the App Store">
               </a>
               <a href="https://github.com/yu314-coder/GPS-location-app" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                🐙 GitHub Repository
+                GitHub Repository
               </a>
               <a href="privacy.html#gps-location-app" class="badge-btn">
-                🔒 Privacy Policy
+                Privacy policy
               </a>
               <a href="mailto:euler.yu@gmail.com" class="badge-btn">
-                📧 Contact Developer
+                Contact developer
               </a>
             </div>
           </div>
@@ -1103,30 +1100,30 @@
     <!-- Category: Apps & Visualizations -->
     <div class="mb-5 reveal">
       <div class="category-header">
-        <span class="category-icon">📱</span>
-        <h3>Apps & Visualizations</h3>
+        <span class="mono" style="color:var(--accent); font-size:.8rem;">01</span>
+        <h3>Apps &amp; Visualizations</h3>
       </div>
       <div class="row justify-content-center">
         <div class="col-md-4 d-flex mb-4">
           <div class="card flex-fill">
             <div class="card-body d-flex flex-column">
-              <div class="d-flex align-items-center mb-3">
-                <span class="card-icon me-2" style="font-size: 2rem;">🎙️</span>
+              <div class="d-flex align-items-center gap-2 mb-3">
+                <span class="app-icon app-icon-sm"><img src="assets/img/app-icons/whisperkit.png" alt="WhisperKit icon" loading="lazy"></span>
                 <h5 class="card-title mb-0">WhisperKit <span class="badge-accent ms-1">NEW</span></h5>
               </div>
               <p class="card-text flex-grow-1">On-device speech transcription for iPhone &amp; iPad — Whisper models running entirely on Apple's Neural Engine. Record, import audio/video, or pick from Photos; transcripts never leave your device.</p>
               <a href="https://apps.apple.com/app/whisperkit/id6764759491" target="_blank" rel="noopener noreferrer" class="store-badge store-badge-sm mt-auto mb-2" aria-label="Download WhisperKit on the App Store">
                 <img src="assets/img/badges/appstore.svg" alt="Download on the App Store">
               </a>
-              <a href="privacy.html#whisper" class="btn btn-ghost btn-sm">🔒 Privacy Policy</a>
+              <a href="privacy.html#whisper" class="btn btn-ghost btn-sm">Privacy policy</a>
             </div>
           </div>
         </div>
         <div class="col-md-4 d-flex mb-4">
           <div class="card flex-fill">
             <div class="card-body d-flex flex-column">
-              <div class="d-flex align-items-center mb-3">
-                <span class="card-icon me-2" style="font-size: 2rem;">🔬</span>
+              <div class="d-flex align-items-center gap-2 mb-3">
+                <span class="app-icon app-icon-sm"><img src="assets/img/app-icons/t-sne.png" alt="t-SNE Visualization icon" loading="lazy"></span>
                 <h5 class="card-title mb-0">t-SNE Visualization</h5>
               </div>
               <p class="card-text flex-grow-1">Dimensionality reduction tool using t-SNE for high-dimensional data visualization and analysis.</p>
@@ -1134,8 +1131,8 @@
                 <img src="assets/img/badges/microsoft-store.svg" alt="Get it from Microsoft">
               </a>
               <div class="d-flex gap-2 align-items-center">
-                <a href="https://github.com/yu314-coder/t-sne" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm flex-fill">GitHub →</a>
-                <a href="privacy.html#tsne" class="btn btn-ghost btn-sm">🔒 Privacy</a>
+                <a href="https://github.com/yu314-coder/t-sne" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm flex-fill">GitHub</a>
+                <a href="privacy.html#tsne" class="btn btn-ghost btn-sm">Privacy</a>
               </div>
             </div>
           </div>
@@ -1143,12 +1140,12 @@
         <div class="col-md-4 d-flex mb-4">
           <div class="card flex-fill">
             <div class="card-body d-flex flex-column">
-              <div class="d-flex align-items-center mb-3">
-                <span class="card-icon me-2" style="font-size: 2rem;">✍️</span>
+              <div class="d-flex align-items-center gap-2 mb-3">
+                <span class="app-icon app-icon-sm"><span class="mono" style="font-weight:600; color:var(--accent);">ns</span></span>
                 <h5 class="card-title mb-0">NeonScribe</h5>
               </div>
               <p class="card-text flex-grow-1">A Python-based creative writing and text processing tool with a modern interface.</p>
-              <a href="https://github.com/yu314-coder/NeonScribe" target="_blank" rel="noopener noreferrer" class="btn btn-primary mt-auto">View Project →</a>
+              <a href="https://github.com/yu314-coder/NeonScribe" target="_blank" rel="noopener noreferrer" class="btn btn-primary mt-auto">View project</a>
             </div>
           </div>
         </div>
@@ -1158,31 +1155,31 @@
     <!-- Category: Utilities -->
     <div class="mb-5 reveal">
       <div class="category-header">
-        <span class="category-icon">🔧</span>
+        <span class="mono" style="color:var(--accent); font-size:.8rem;">02</span>
         <h3>Utilities</h3>
       </div>
       <div class="row justify-content-center">
         <div class="col-md-4 d-flex mb-4">
           <div class="card flex-fill">
             <div class="card-body d-flex flex-column">
-              <div class="d-flex align-items-center mb-3">
-                <span class="card-icon me-2" style="font-size: 2rem;">🔊</span>
+              <div class="d-flex align-items-center gap-2 mb-3">
+                <span class="app-icon app-icon-sm"><span class="mono" style="font-weight:600; color:var(--accent);">st</span></span>
                 <h5 class="card-title mb-0">Sound Transfer</h5>
               </div>
               <p class="card-text flex-grow-1">TCP-based sound transfer tool for streaming audio between devices over a network.</p>
-              <a href="https://github.com/yu314-coder/sound_transfer" target="_blank" rel="noopener noreferrer" class="btn btn-primary mt-auto">View Project →</a>
+              <a href="https://github.com/yu314-coder/sound_transfer" target="_blank" rel="noopener noreferrer" class="btn btn-primary mt-auto">View project</a>
             </div>
           </div>
         </div>
         <div class="col-md-4 d-flex mb-4">
           <div class="card flex-fill">
             <div class="card-body d-flex flex-column">
-              <div class="d-flex align-items-center mb-3">
-                <span class="card-icon me-2" style="font-size: 2rem;">📥</span>
+              <div class="d-flex align-items-center gap-2 mb-3">
+                <span class="app-icon app-icon-sm"><span class="mono" style="font-weight:600; color:var(--accent);">gd</span></span>
                 <h5 class="card-title mb-0">Google Drive Download</h5>
               </div>
               <p class="card-text flex-grow-1">A Python tool for downloading files from Google Drive with ease and automation.</p>
-              <a href="https://github.com/yu314-coder/google_drive_download" target="_blank" rel="noopener noreferrer" class="btn btn-primary mt-auto">View Project →</a>
+              <a href="https://github.com/yu314-coder/google_drive_download" target="_blank" rel="noopener noreferrer" class="btn btn-primary mt-auto">View project</a>
             </div>
           </div>
         </div>
@@ -1232,8 +1229,6 @@
     </div><!-- /tab-content -->
   </section>
 
-  </div><!-- /zone-dark -->
-
   <!-- Footer -->
   <footer class="site-footer text-center">
     <div class="container py-4">
@@ -1248,7 +1243,7 @@
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z"/></svg> Email
         </a>
       </div>
-      <p class="mb-0 footer-copy" title="🎮 psst… try typing 'easter'">&copy; 2026 Yu, Yao-Hsing 尤耀星. All rights reserved.</p>
+      <p class="mb-0 footer-copy" title="psst… try typing 'easter'">&copy; 2026 Yu, Yao-Hsing <span class="cjk">尤耀星</span>. All rights reserved.</p>
     </div>
   </footer>
 

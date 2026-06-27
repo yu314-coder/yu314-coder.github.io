@@ -39,7 +39,7 @@
   <!-- Fonts: retire Roboto entirely. Load all four families in ONE request. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 
   <!-- Site stylesheet (single source of truth) -->
   <link rel="stylesheet" href="assets/css/style.css">
@@ -68,7 +68,7 @@
   <!-- Header Section -->
   <header class="page-header">
     <div class="container">
-      <p class="eyebrow eyebrow--rule">// privacy</p>
+      <p class="eyebrow eyebrow--rule">Privacy</p>
       <h1>Privacy policies</h1>
       <p class="lead-2">Your privacy is important. Learn how each of my applications handles your data.</p>
     </div>
@@ -79,7 +79,7 @@
     <div class="row">
       <div class="col-lg-3 mb-4">
         <nav class="policy-nav sticky-top" style="top: 100px;" aria-label="Privacy policy quick navigation">
-          <p class="eyebrow">// jump to</p>
+          <p class="eyebrow">Jump to</p>
           <a href="#tsne">t-SNE Explorer</a>
           <a href="#manim-studio">Manim Studio (Windows)</a>
           <a href="#manim-studio-ios">ManimStudio (iOS)</a>
@@ -94,7 +94,10 @@
       <div class="col-lg-9">
         <!-- t-SNE Explorer Privacy Policy -->
         <div id="tsne" class="privacy-content reveal">
-          <h2>t-SNE Explorer Privacy Policy</h2>
+          <div class="d-flex align-items-center gap-3 mb-2">
+            <span class="app-icon"><img src="assets/img/app-icons/t-sne.png" alt="t-SNE Explorer icon" loading="lazy"></span>
+            <h2 class="mb-0">t-SNE Explorer Privacy Policy</h2>
+          </div>
           <p class="last-updated">Last Updated: January 14, 2026</p>
 
           <p><strong>Developer:</strong> Yu, Yao-hsing<br>
@@ -199,12 +202,12 @@
           <h3>15. SUMMARY</h3>
           <p>t-SNE Explorer is a privacy-focused application that:</p>
           <ul>
-            <li>✓ Processes all data locally</li>
-            <li>✓ Does NOT collect personal information</li>
-            <li>✓ Does NOT transmit user data</li>
-            <li>✓ Does NOT use analytics or tracking</li>
-            <li>✓ Gives users full control over their data</li>
-            <li>✓ Requires internet only for optional MNIST download</li>
+            <li>Processes all data locally</li>
+            <li>Does NOT collect personal information</li>
+            <li>Does NOT transmit user data</li>
+            <li>Does NOT use analytics or tracking</li>
+            <li>Gives users full control over their data</li>
+            <li>Requires internet only for optional MNIST download</li>
           </ul>
           <p>Your privacy is important to us. t-SNE Explorer is designed to be completely transparent and respect your data privacy at all times.</p>
         </div>
@@ -213,7 +216,10 @@
 
         <!-- Manim Studio Privacy Policy -->
         <div id="manim-studio" class="privacy-content reveal">
-          <h2>Manim Studio Privacy Policy</h2>
+          <div class="d-flex align-items-center gap-3 mb-2">
+            <span class="app-icon"><img src="assets/img/app-icons/manimstudio-win.png" alt="Manim Studio icon" loading="lazy"></span>
+            <h2 class="mb-0">Manim Studio Privacy Policy</h2>
+          </div>
           <p class="last-updated">Last Updated: January 2025</p>
 
           <h3>1. INTRODUCTION</h3>
@@ -271,7 +277,10 @@
 
         <!-- Generalized Covariance Matrix Privacy Policy -->
         <div id="random-matrix" class="privacy-content reveal">
-          <h2>Generalized Covariance Matrix Privacy Policy</h2>
+          <div class="d-flex align-items-center gap-3 mb-2">
+            <span class="app-icon"><img src="assets/img/app-icons/generalized-covariance.png" alt="Generalized Covariance Matrix icon" loading="lazy"></span>
+            <h2 class="mb-0">Generalized Covariance Matrix Privacy Policy</h2>
+          </div>
           <p class="last-updated">Last Updated: November 26, 2025</p>
 
           <h3>1. INTRODUCTION</h3>
@@ -355,7 +364,10 @@
 
         <!-- EigenDenoise Privacy Policy -->
         <div id="eigendenoise" class="privacy-content reveal">
-          <h2>EigenDenoise Privacy Policy</h2>
+          <div class="d-flex align-items-center gap-3 mb-2">
+            <span class="app-icon"><img src="assets/img/app-icons/eigendenoise.png" alt="EigenDenoise icon" loading="lazy"></span>
+            <h2 class="mb-0">EigenDenoise Privacy Policy</h2>
+          </div>
           <p class="last-updated">Last Updated: May 4, 2026</p>
 
           <p>EigenDenoise ("the App") is a native macOS application developed by Yao-Hsing Yu ("we", "I"). This policy explains, in plain language, exactly what the App does and does not do with your information.</p>
@@ -417,7 +429,10 @@
 
         <!-- ManimStudio iOS Privacy Policy -->
         <div id="manim-studio-ios" class="privacy-content reveal">
-          <h2>ManimStudio (iOS) Privacy Policy</h2>
+          <div class="d-flex align-items-center gap-3 mb-2">
+            <span class="app-icon"><img src="assets/img/app-icons/manimstudio-ios.png" alt="ManimStudio iOS icon" loading="lazy"></span>
+            <h2 class="mb-0">ManimStudio (iOS) Privacy Policy</h2>
+          </div>
           <p class="last-updated">Effective date: May 6, 2026</p>
 
           <p>ManimStudio is an offline iPad app for editing and rendering Python/manim animations.</p>
@@ -459,7 +474,10 @@
 
         <!-- GPS-location-app Privacy Policy -->
         <div id="gps-location-app" class="privacy-content reveal">
-          <h2>GPS-location-app Privacy Policy</h2>
+          <div class="d-flex align-items-center gap-3 mb-2">
+            <span class="app-icon"><img src="assets/img/app-icons/gps-location-app.png" alt="GPS-location-app icon" loading="lazy"></span>
+            <h2 class="mb-0">GPS-location-app Privacy Policy</h2>
+          </div>
           <p class="last-updated">Effective date: May 13, 2026</p>
 
           <p>GPS-location-app respects your privacy. This app is designed to record workout routes and related workout metrics on your device and, where you allow it, through Apple Health / HealthKit.</p>
@@ -522,7 +540,10 @@
 
         <!-- Whisper Privacy Policy -->
         <div id="whisper" class="privacy-content reveal">
-          <h2>Whisper Privacy Policy</h2>
+          <div class="d-flex align-items-center gap-3 mb-2">
+            <span class="app-icon"><img src="assets/img/app-icons/whisperkit.png" alt="WhisperKit icon" loading="lazy"></span>
+            <h2 class="mb-0">Whisper Privacy Policy</h2>
+          </div>
           <p class="last-updated">Last updated: May 16, 2026</p>
 
           <p>Whisper ("the app") is designed with privacy as a foundational principle. This policy explains, in plain language, what data the app handles and what it does not.</p>
@@ -594,7 +615,10 @@
 
         <!-- BenchCode Privacy Policy -->
         <div id="benchcode" class="privacy-content reveal">
-          <h2>BenchCode Privacy Policy</h2>
+          <div class="d-flex align-items-center gap-3 mb-2">
+            <span class="app-icon"><span class="mono" style="font-weight:600; color:var(--accent);">CB</span></span>
+            <h2 class="mb-0">BenchCode Privacy Policy</h2>
+          </div>
           <p class="last-updated">Effective date: June 8, 2026</p>
 
           <p>BenchCode ("the app") is a Python development environment that runs entirely on your device. This policy explains how the app handles your information. In short: BenchCode does not collect, store, or transmit your personal data.</p>
@@ -651,7 +675,7 @@
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z"/></svg> Email
         </a>
       </div>
-      <p class="mb-0 footer-copy" title="🎮 psst… try typing 'easter'">&copy; 2026 Yu, Yao-Hsing 尤耀星. All rights reserved.</p>
+      <p class="mb-0 footer-copy" title="psst… try typing 'easter'">&copy; 2026 Yu, Yao-Hsing <span class="cjk">尤耀星</span>. All rights reserved.</p>
     </div>
   </footer>
 

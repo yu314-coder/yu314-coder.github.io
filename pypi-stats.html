@@ -35,13 +35,13 @@
   <!-- Fonts: retire Roboto entirely. Load all four families in ONE request. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 
   <!-- Site stylesheet (single source of truth) -->
   <link rel="stylesheet" href="assets/css/style.css">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
-<body>
+<body class="theme-dark">
   <!-- Navigation -->
   <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
     <div class="container">
@@ -61,109 +61,100 @@
     </div>
   </nav>
 
-  <!-- Dark showcase zone wraps the whole page body -->
-  <div class="zone-dark">
+  <!-- Header Section -->
+  <header class="page-header">
+    <div class="container">
+      <p class="eyebrow eyebrow--rule">pypi analytics</p>
+      <h1>PyPI Stats</h1>
+      <p class="lead-2 mb-0">Live download analytics for my open-source Python packages across rmt-denoise, cairometal, narrate, and ollama-installer.<span data-live-downloads-wrap> — <span id="live-downloads"></span> downloads tracked.</span></p>
+    </div>
+  </header>
 
-    <!-- Header Section -->
-    <header class="page-header">
-      <div class="container">
-        <p class="eyebrow eyebrow--rule">// pypi analytics</p>
-        <h1>PyPI Stats</h1>
-        <p class="lead-2 mb-0">Live download analytics for my open-source Python packages across rmt-denoise, cairometal, narrate, and ollama-installer.<span data-live-downloads-wrap> — <span id="live-downloads"></span> downloads tracked.</span></p>
-      </div>
-    </header>
+  <!-- My Packages -->
+  <section class="container section">
+    <div class="mb-5 reveal">
+      <p class="eyebrow eyebrow--rule">packages on pypi</p>
+      <h2>My Python packages</h2>
+      <p class="lead-2 mb-0">Open-source packages published on PyPI — click through to GitHub or PyPI, or scroll down for live download stats.</p>
+    </div>
 
-    <!-- My Packages -->
-    <section class="container section">
-      <div class="text-center mb-5 reveal">
-        <h2 class="display-5 fw-bold mb-3">My Python Packages</h2>
-        <p class="lead-2">Open-source packages published on PyPI — click through to GitHub or PyPI, or scroll down for live download stats</p>
-      </div>
-
-      <div class="category-header reveal">
-        <span class="category-icon">📦</span>
-        <h3>Packages on PyPI</h3>
-      </div>
-      <div class="row justify-content-center">
-        <div class="col-md-4 d-flex mb-4 reveal reveal-delay-1">
-          <div class="card card--hue flex-fill" style="--hue:#f5576c">
-            <div class="card-body d-flex flex-column">
-              <div class="d-flex align-items-center mb-3">
-                <span class="card-icon" style="font-size: 2rem; margin-right: 10px;">🧮</span>
-                <h5 class="card-title mb-0">rmt-denoise <span class="badge-neutral version ms-1">v2.3.0</span></h5>
-              </div>
-              <p class="card-text flex-grow-1">Image denoising via Random Matrix Theory. Two denoisers — MP-Law thresholding (i.i.d. Gaussian) and GeneralizedCov (oracle search for (a, β) via differential evolution). The Python library counterpart to EigenDenoise.</p>
-              <div class="d-flex gap-2 mt-auto">
-                <a href="https://github.com/yu314-coder/rmt-denoise" target="_blank" rel="noopener noreferrer" class="btn btn-ghost flex-fill">GitHub →</a>
-                <a href="https://pypi.org/project/rmt-denoise/" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">PyPI →</a>
-              </div>
+    <div class="row">
+      <div class="col-md-6 col-lg-3 d-flex mb-4 reveal reveal-delay-1">
+        <div class="card flex-fill">
+          <div class="card-body d-flex flex-column">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <span class="app-icon"><span class="mono" style="font-weight:600; color:var(--accent);">rmt</span></span>
+              <h5 class="card-title mb-0">rmt-denoise <span class="badge-neutral mono ms-1">v2.3.0</span></h5>
             </div>
-          </div>
-        </div>
-        <div class="col-md-4 d-flex mb-4 reveal reveal-delay-2">
-          <div class="card card--hue flex-fill" style="--hue:#667eea">
-            <div class="card-body d-flex flex-column">
-              <div class="d-flex align-items-center mb-3">
-                <span class="card-icon" style="font-size: 2rem; margin-right: 10px;">🎨</span>
-                <h5 class="card-title mb-0">cairometal <span class="badge-accent ms-1">NEW</span></h5>
-              </div>
-              <p class="card-text flex-grow-1">pycairo-compatible 2D vector graphics rendered on the Apple GPU via Metal — 246 C functions, drop-in <code>import cairo_metal as cairo</code>, pixel-diffed against real cairo. Ships a macOS arm64 wheel (Python ≥3.10). The first GPU/Metal cairo on PyPI.</p>
-              <div class="d-flex gap-2 mt-auto">
-                <a href="https://github.com/yu314-coder/cairometal" target="_blank" rel="noopener noreferrer" class="btn btn-ghost flex-fill">GitHub →</a>
-                <a href="https://pypi.org/project/cairometal/" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">PyPI →</a>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4 d-flex mb-4 reveal reveal-delay-3">
-          <div class="card card--hue flex-fill" style="--hue:#71b280">
-            <div class="card-body d-flex flex-column">
-              <div class="d-flex align-items-center mb-3">
-                <span class="card-icon" style="font-size: 2rem; margin-right: 10px;">🗣️</span>
-                <h5 class="card-title mb-0">narrate</h5>
-              </div>
-              <p class="card-text flex-grow-1">Local text-to-speech with Kokoro and Chatterbox engines. High-quality voice synthesis running entirely on your machine.</p>
-              <div class="d-flex gap-2 mt-auto">
-                <a href="https://github.com/yu314-coder/narrate" target="_blank" rel="noopener noreferrer" class="btn btn-ghost flex-fill">GitHub →</a>
-                <a href="https://pypi.org/project/narrate/" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">PyPI →</a>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4 d-flex mb-4 reveal reveal-delay-4">
-          <div class="card card--hue flex-fill" style="--hue:#667eea">
-            <div class="card-body d-flex flex-column">
-              <div class="d-flex align-items-center mb-3">
-                <span class="card-icon" style="font-size: 2rem; margin-right: 10px;">🦙</span>
-                <h5 class="card-title mb-0">ollama-installer</h5>
-              </div>
-              <p class="card-text flex-grow-1">Install Ollama from a Python CLI. A convenient command-line tool for setting up Ollama on your system.</p>
-              <div class="d-flex gap-2 mt-auto">
-                <a href="https://github.com/yu314-coder/python-ollama" target="_blank" rel="noopener noreferrer" class="btn btn-ghost flex-fill">GitHub →</a>
-                <a href="https://pypi.org/project/ollama-installer/" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">PyPI →</a>
-              </div>
+            <p class="card-text flex-grow-1">Image denoising via Random Matrix Theory. Two denoisers — MP-Law thresholding (i.i.d. Gaussian) and GeneralizedCov (oracle search for (a, β) via differential evolution). The Python library counterpart to EigenDenoise.</p>
+            <div class="d-flex gap-2 mt-auto">
+              <a href="https://github.com/yu314-coder/rmt-denoise" target="_blank" rel="noopener noreferrer" class="btn btn-ghost flex-fill">GitHub</a>
+              <a href="https://pypi.org/project/rmt-denoise/" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">PyPI</a>
             </div>
           </div>
         </div>
       </div>
-    </section>
-
-    <!-- Live Download Stats -->
-    <section class="container section">
-      <div class="text-center mb-4 reveal">
-        <p class="eyebrow eyebrow--rule">// live data</p>
-        <h2 class="display-5 fw-bold mb-3">Live Download Statistics</h2>
-        <p class="lead-2">Pick one of my packages (or any PyPI project) to see downloads by country, version, and Python version</p>
-        <p class="tracker-note mb-0">Data pulled live from the public <a href="https://clickpy.clickhouse.com/" target="_blank" rel="noopener noreferrer">ClickPy</a> dataset (PyPI download logs on ClickHouse). Queries run entirely in your browser — nothing is sent to me.</p>
+      <div class="col-md-6 col-lg-3 d-flex mb-4 reveal reveal-delay-2">
+        <div class="card flex-fill">
+          <div class="card-body d-flex flex-column">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <span class="app-icon"><span class="mono" style="font-weight:600; color:var(--accent);">cm</span></span>
+              <h5 class="card-title mb-0">cairometal <span class="badge-accent ms-1">NEW</span></h5>
+            </div>
+            <p class="card-text flex-grow-1">pycairo-compatible 2D vector graphics rendered on the Apple GPU via Metal — 246 C functions, drop-in <code>import cairo_metal as cairo</code>, pixel-diffed against real cairo. Ships a macOS arm64 wheel (Python ≥3.10). The first GPU/Metal cairo on PyPI.</p>
+            <div class="d-flex gap-2 mt-auto">
+              <a href="https://github.com/yu314-coder/cairometal" target="_blank" rel="noopener noreferrer" class="btn btn-ghost flex-fill">GitHub</a>
+              <a href="https://pypi.org/project/cairometal/" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">PyPI</a>
+            </div>
+          </div>
+        </div>
       </div>
-
-      <div class="tracker-shell reveal">
-        <iframe id="pypi-frame" src="assets/pypi-tracker/index.html" title="PyPI Download Statistics" loading="lazy"></iframe>
+      <div class="col-md-6 col-lg-3 d-flex mb-4 reveal reveal-delay-3">
+        <div class="card flex-fill">
+          <div class="card-body d-flex flex-column">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <span class="app-icon"><span class="mono" style="font-weight:600; color:var(--accent);">na</span></span>
+              <h5 class="card-title mb-0">narrate</h5>
+            </div>
+            <p class="card-text flex-grow-1">Local text-to-speech with Kokoro and Chatterbox engines. High-quality voice synthesis running entirely on your machine.</p>
+            <div class="d-flex gap-2 mt-auto">
+              <a href="https://github.com/yu314-coder/narrate" target="_blank" rel="noopener noreferrer" class="btn btn-ghost flex-fill">GitHub</a>
+              <a href="https://pypi.org/project/narrate/" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">PyPI</a>
+            </div>
+          </div>
+        </div>
       </div>
-    </section>
+      <div class="col-md-6 col-lg-3 d-flex mb-4 reveal reveal-delay-4">
+        <div class="card flex-fill">
+          <div class="card-body d-flex flex-column">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <span class="app-icon"><span class="mono" style="font-weight:600; color:var(--accent);">ol</span></span>
+              <h5 class="card-title mb-0">ollama-installer</h5>
+            </div>
+            <p class="card-text flex-grow-1">Install Ollama from a Python CLI. A convenient command-line tool for setting up Ollama on your system.</p>
+            <div class="d-flex gap-2 mt-auto">
+              <a href="https://github.com/yu314-coder/python-ollama" target="_blank" rel="noopener noreferrer" class="btn btn-ghost flex-fill">GitHub</a>
+              <a href="https://pypi.org/project/ollama-installer/" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">PyPI</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  </div>
-  <!-- /zone-dark -->
+  <!-- Live Download Stats -->
+  <section class="container section">
+    <div class="mb-4 reveal">
+      <p class="eyebrow eyebrow--rule">live data</p>
+      <h2>Live download statistics</h2>
+      <p class="lead-2">Pick one of my packages (or any PyPI project) to see downloads by country, version, and Python version.</p>
+      <p class="tracker-note mb-0">Data pulled live from the public <a href="https://clickpy.clickhouse.com/" target="_blank" rel="noopener noreferrer">ClickPy</a> dataset (PyPI download logs on ClickHouse). Queries run entirely in your browser — nothing is sent to me.</p>
+    </div>
+
+    <div class="tracker-shell reveal">
+      <iframe id="pypi-frame" src="assets/pypi-tracker/index.html" title="PyPI Download Statistics" loading="lazy"></iframe>
+    </div>
+  </section>
 
   <!-- Footer -->
   <footer class="site-footer text-center">
@@ -179,7 +170,7 @@
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z"/></svg> Email
         </a>
       </div>
-      <p class="mb-0 footer-copy" title="🎮 psst… try typing 'easter'">&copy; 2026 Yu, Yao-Hsing 尤耀星. All rights reserved.</p>
+      <p class="mb-0 footer-copy" title="psst… try typing 'easter'">&copy; 2026 Yu, Yao-Hsing <span class="brand-cjk">尤耀星</span>. All rights reserved.</p>
     </div>
   </footer>
 

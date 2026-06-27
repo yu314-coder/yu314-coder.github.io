@@ -38,33 +38,10 @@
   <!-- Fonts: retire Roboto entirely. Load all four families in ONE request. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&family=Source+Serif+4:ital,wght@0,400;0,600;1,400;1,600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
   <!-- Custom CSS -->
   <link rel="stylesheet" href="assets/css/style.css">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
-
-  <style>
-    /* Page-specific only: faint accent dot-grid backdrop behind the hero. */
-    .hero {
-      overflow: hidden;
-    }
-    .hero::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      z-index: 0;
-      background-image: radial-gradient(var(--accent) 1px, transparent 1px);
-      background-size: 26px 26px;
-      opacity: 0.05;
-      -webkit-mask-image: radial-gradient(ellipse 80% 70% at 70% 30%, #000 0%, transparent 75%);
-      mask-image: radial-gradient(ellipse 80% 70% at 70% 30%, #000 0%, transparent 75%);
-      pointer-events: none;
-    }
-    .hero .container { position: relative; z-index: 1; }
-    @media (prefers-reduced-motion: reduce) {
-      .hero::before { opacity: 0.04; }
-    }
-  </style>
 </head>
 <body>
   <!-- Navigation -->
@@ -86,108 +63,88 @@
     </div>
   </nav>
 
-  <!-- Hero Section -->
+  <!-- Hero -->
   <header class="hero">
     <div class="container">
       <div class="row align-items-center g-5">
-        <div class="col-lg-8">
-          <p class="eyebrow eyebrow--rule reveal">// developer · researcher · mathematician</p>
-          <h1 class="reveal reveal-delay-1">Yu, Yao-Hsing <span class="brand-cjk">尤耀星</span></h1>
-          <p class="reveal reveal-delay-2">I build tools that bridge mathematics, AI, and real-world applications — from Microsoft Store desktop apps to full Python runtimes and on-device IDEs for iPad.</p>
-          <div class="reveal reveal-delay-2 my-4">
-            <span class="badge-accent">🥉 2025 S.T. Yau High School Science Award — Bronze Medal (Grand Finals)</span>
-          </div>
-          <div class="reveal reveal-delay-3 d-flex flex-wrap gap-2">
-            <a href="projects.html" class="btn btn-primary btn-lg">See my projects</a>
+        <div class="col-lg-7">
+          <p class="eyebrow eyebrow--rule reveal">Developer · Researcher · Mathematician</p>
+          <h1 class="reveal reveal-delay-1">Yu, Yao-Hsing <span class="cjk">尤耀星</span></h1>
+          <p class="lead hero-lead reveal reveal-delay-2">I build tools that bridge mathematics, AI, and real-world applications — Microsoft Store desktop apps, full Python runtimes for iOS, and on-device IDEs for iPad.</p>
+          <div class="reveal reveal-delay-3 d-flex flex-wrap gap-2 mt-4">
+            <a href="projects.html" class="btn btn-primary btn-lg">See my work</a>
             <a href="about.html" class="btn btn-ghost btn-lg">About me</a>
           </div>
+          <p class="reveal reveal-delay-4 mono mt-4 mb-0" style="font-size:.82rem; color:var(--ink-3); letter-spacing:.02em;">2025 S.T. Yau High School Science Award · Bronze, Grand Finals · Silver, Asia Regional</p>
+        </div>
+        <div class="col-lg-5">
+          <img class="hero-art reveal reveal-delay-2" src="assets/img/hero/spectrum.png" width="900" height="900" alt="Eigenvalues of a random matrix filling the unit disk — the circular law, from my research" style="display:block; width:min(100%, 360px); height:auto; aspect-ratio:1; margin-inline:auto;">
         </div>
       </div>
     </div>
   </header>
 
-  <!-- Award strip -->
-  <section class="section-sm">
+  <!-- Stats strip -->
+  <section class="bg-alt section-sm" style="border-block:1px solid var(--line);">
     <div class="container">
-      <div class="card reveal">
-        <div class="card-body d-flex flex-wrap align-items-center justify-content-center gap-3 text-center">
-          <p class="serif mb-0">🥈 Silver Medal — S.T. Yau Science Award (Asia Regional)</p>
-          <a href="assets/docs/yau-science-award-research-paper.pdf" download class="btn btn-ghost btn-sm">📄 Download research paper</a>
+      <div class="row g-4">
+        <div class="col-6 col-md-3">
+          <div class="highlight-item reveal">
+            <div class="highlight-number"><span class="count" data-count="7">0</span></div>
+            <div class="highlight-label">Apps shipped</div>
+          </div>
         </div>
+        <div class="col-6 col-md-3">
+          <div class="highlight-item reveal reveal-delay-1">
+            <div class="highlight-number"><span class="count" data-count="30" data-suffix="+">0</span></div>
+            <div class="highlight-label">iOS Python libraries</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="highlight-item reveal reveal-delay-2">
+            <div class="highlight-number"><span class="count" data-count="4">0</span></div>
+            <div class="highlight-label">PyPI packages</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="highlight-item reveal reveal-delay-3">
+            <div class="highlight-number"><span class="count" data-count="2">0</span></div>
+            <div class="highlight-label">Science awards</div>
+          </div>
+        </div>
+      </div>
+      <div class="text-center mt-4 reveal reveal-delay-4" data-live-downloads-wrap>
+        <span class="highlight-label">Live PyPI downloads&nbsp;·&nbsp;</span>
+        <span class="mono" id="live-downloads" style="color:var(--ink); font-weight:600;"></span>
       </div>
     </div>
   </section>
 
-  <!-- Highlights Banner (dark band for rhythm) -->
-  <div class="zone-dark">
-    <section class="highlights-banner">
-      <div class="container">
-        <div class="row">
-          <div class="col-6 col-md-3">
-            <div class="highlight-item reveal">
-              <div class="highlight-number"><span class="count" data-count="7">0</span></div>
-              <div class="highlight-label">Apps shipped</div>
-            </div>
-          </div>
-          <div class="col-6 col-md-3">
-            <div class="highlight-item reveal reveal-delay-1">
-              <div class="highlight-number"><span class="count" data-count="30" data-suffix="+">0</span></div>
-              <div class="highlight-label">iOS Python libraries</div>
-            </div>
-          </div>
-          <div class="col-6 col-md-3">
-            <div class="highlight-item reveal reveal-delay-2">
-              <div class="highlight-number"><span class="count" data-count="4">0</span></div>
-              <div class="highlight-label">PyPI packages</div>
-            </div>
-          </div>
-          <div class="col-6 col-md-3">
-            <div class="highlight-item reveal reveal-delay-3">
-              <div class="highlight-number"><span class="count" data-count="2">0</span></div>
-              <div class="highlight-label">Science awards</div>
-            </div>
-          </div>
-        </div>
-        <div class="text-center mt-4 reveal reveal-delay-4" data-live-downloads-wrap>
-          <span class="highlight-label">Live PyPI downloads · </span>
-          <span id="live-downloads"></span>
-        </div>
-      </div>
-    </section>
-  </div>
-
-  <!-- Project Spotlights -->
+  <!-- Selected work -->
   <section class="section">
     <div class="container">
-      <div class="text-center mb-5">
-        <p class="eyebrow eyebrow--rule reveal d-inline-block">// project spotlights</p>
-        <h2 class="reveal">Flagship projects</h2>
-        <p class="text-muted reveal">Across Windows, iPad, and iOS</p>
+      <p class="eyebrow eyebrow--rule reveal">Selected work</p>
+      <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-5">
+        <h2 class="reveal" style="max-width:16ch;">Flagship apps and frameworks</h2>
+        <a href="projects.html" class="btn btn-ghost reveal">All projects</a>
       </div>
 
       <div class="row g-4">
         <!-- ManimStudio -->
         <div class="col-lg-6">
-          <div class="card card--hue hue-manim-win spotlight-card h-100 reveal">
+          <div class="card h-100 reveal">
             <div class="card-body d-flex flex-column h-100">
-              <div class="card-icon" style="font-size: 2rem; margin-bottom: 0.75rem;">🎯</div>
-              <div class="mb-2 d-flex flex-wrap align-items-center gap-2">
-                <h3 class="mb-0 me-1">ManimStudio</h3>
-                <span class="badge-neutral">v1.1.1.0</span>
-                <span class="badge-neutral">Windows</span>
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <span class="app-icon"><img src="assets/img/app-icons/manimstudio-win.png" alt="ManimStudio app icon" loading="lazy"></span>
+                <div>
+                  <h3 class="h4 mb-1">ManimStudio</h3>
+                  <span class="mono" style="font-size:.76rem; color:var(--ink-3);">Windows · iOS · v1.1.1.0</span>
+                </div>
               </div>
-              <p class="spotlight-desc">Create stunning mathematical animations with a powerful GUI. Bundled with Python 3.12.7 and MiKTeX — no admin rights required. Available on the Microsoft Store.</p>
-              <div class="mb-3 d-flex flex-wrap gap-1">
-                <span class="spotlight-tag">Visual editor</span>
-                <span class="spotlight-tag">Live preview</span>
-                <span class="spotlight-tag">Auto dependencies</span>
-                <span class="spotlight-tag">MSIX package</span>
-              </div>
-              <div class="d-flex gap-3 mt-auto align-items-center flex-wrap">
-                <a href="https://apps.microsoft.com/detail/9NZFT55DVCBS" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Get ManimStudio from the Microsoft Store">
-                  <img src="assets/img/badges/microsoft-store.svg" alt="Get it from Microsoft">
-                </a>
-                <a href="projects.html" class="badge-btn">Learn more</a>
+              <p class="card-text flex-grow-1">A GUI for creating mathematical animations with Manim — bundled Python and MiKTeX, no admin rights. On the Microsoft Store and App Store.</p>
+              <div class="d-flex gap-2 mt-auto align-items-center flex-wrap">
+                <a class="store-badge store-badge-sm" href="https://apps.microsoft.com/detail/9NZFT55DVCBS" target="_blank" rel="noopener noreferrer" aria-label="Get ManimStudio from the Microsoft Store"><img src="assets/img/badges/microsoft-store.svg" alt="Get it from Microsoft"></a>
+                <a class="store-badge store-badge-sm" href="https://apps.apple.com/app/manimstudio/id6764472686" target="_blank" rel="noopener noreferrer" aria-label="Download ManimStudio on the App Store"><img src="assets/img/badges/appstore.svg" alt="Download on the App Store"></a>
               </div>
             </div>
           </div>
@@ -195,23 +152,18 @@
 
         <!-- CodeBench -->
         <div class="col-lg-6">
-          <div class="card card--hue hue-codebench spotlight-card h-100 reveal reveal-delay-1">
+          <div class="card h-100 reveal reveal-delay-1">
             <div class="card-body d-flex flex-column h-100">
-              <div class="card-icon" style="font-size: 2rem; margin-bottom: 0.75rem;">🛠️</div>
-              <div class="mb-2 d-flex flex-wrap align-items-center gap-2">
-                <h3 class="mb-0 me-1">CodeBench</h3>
-                <span class="badge-neutral">iPad · Mac</span>
-                <span class="badge-accent">Local AI</span>
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <span class="app-icon"><span class="mono" style="font-weight:600; color:var(--accent);">CB</span></span>
+                <div>
+                  <h3 class="h4 mb-1">CodeBench <span class="badge-accent ms-1">Local AI</span></h3>
+                  <span class="mono" style="font-size:.76rem; color:var(--ink-3);">iPad · Mac Catalyst</span>
+                </div>
               </div>
-              <p class="spotlight-desc">A self-contained dev / scientific / AI workstation. Monaco editor with IntelliSense, integrated terminal, Python 3.14 + C/C++/Fortran, on-device pdflatex, and local LLMs via llama.cpp + ExecuTorch — all offline.</p>
-              <div class="mb-3 d-flex flex-wrap gap-1">
-                <span class="spotlight-tag">Monaco IDE</span>
-                <span class="spotlight-tag">pdflatex</span>
-                <span class="spotlight-tag">llama.cpp</span>
-                <span class="spotlight-tag">RAG</span>
-              </div>
+              <p class="card-text flex-grow-1">A self-contained, offline dev / scientific / AI workstation — Monaco editor, integrated terminal, Python 3.14 + C/C++/Fortran, on-device pdflatex, and local LLMs via llama.cpp.</p>
               <div class="d-flex gap-2 mt-auto flex-wrap">
-                <a href="https://github.com/yu314-coder/codebench" target="_blank" rel="noopener noreferrer" class="badge-btn">🐙 GitHub</a>
+                <a href="https://github.com/yu314-coder/CodeBench" target="_blank" rel="noopener noreferrer" class="badge-btn">GitHub</a>
                 <a href="projects.html" class="badge-btn">Learn more</a>
               </div>
             </div>
@@ -220,24 +172,38 @@
 
         <!-- python-ios-lib -->
         <div class="col-lg-6">
-          <div class="card card--hue hue-python-ios spotlight-card h-100 reveal reveal-delay-2">
+          <div class="card h-100 reveal reveal-delay-1">
             <div class="card-body d-flex flex-column h-100">
-              <div class="card-icon" style="font-size: 2rem; margin-bottom: 0.75rem;">🐍</div>
-              <div class="mb-2 d-flex flex-wrap align-items-center gap-2">
-                <h3 class="mb-0 me-1">python-ios-lib</h3>
-                <span class="badge-neutral">Python 3.14</span>
-                <span class="badge-accent">30+ libs</span>
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <span class="app-icon"><span class="mono" style="font-weight:600; color:var(--accent);">py</span></span>
+                <div>
+                  <h3 class="h4 mb-1">python-ios-lib <span class="badge-accent ms-1">30+ libs</span></h3>
+                  <span class="mono" style="font-size:.76rem; color:var(--ink-3);">Python 3.14 · iOS arm64</span>
+                </div>
               </div>
-              <p class="spotlight-desc">Full Python runtime for iOS/iPadOS with native PyTorch 2.1, HuggingFace transformers, Rust tokenizers, NumPy, SciPy, scikit-learn, manim, PyAV/FFmpeg, plus C/C++/Fortran interpreters. Powers CodeBench. App Store safe.</p>
-              <div class="mb-3 d-flex flex-wrap gap-1">
-                <span class="spotlight-tag">iOS 17+</span>
-                <span class="spotlight-tag">PyTorch native</span>
-                <span class="spotlight-tag">Transformers</span>
-                <span class="spotlight-tag">Fully offline</span>
-              </div>
+              <p class="card-text flex-grow-1">A full Python runtime for iOS with the first public native PyTorch build, HuggingFace transformers, Rust tokenizers, NumPy/SciPy/scikit-learn, manim, and C/C++/Fortran interpreters. Powers CodeBench.</p>
               <div class="d-flex gap-2 mt-auto flex-wrap">
-                <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="badge-btn">🐙 GitHub</a>
+                <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="badge-btn">GitHub</a>
                 <a href="projects.html" class="badge-btn">Learn more</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- EigenDenoise -->
+        <div class="col-lg-6">
+          <div class="card h-100 reveal reveal-delay-2">
+            <div class="card-body d-flex flex-column h-100">
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <span class="app-icon"><img src="assets/img/app-icons/eigendenoise.png" alt="EigenDenoise app icon" loading="lazy"></span>
+                <div>
+                  <h3 class="h4 mb-1">EigenDenoise</h3>
+                  <span class="mono" style="font-size:.76rem; color:var(--ink-3);">macOS · Mac App Store</span>
+                </div>
+              </div>
+              <p class="card-text flex-grow-1">A native macOS image denoiser built on random matrix theory — the desktop companion to my Yau-award research, Metal-accelerated and fully on-device.</p>
+              <div class="d-flex gap-2 mt-auto align-items-center flex-wrap">
+                <a class="store-badge store-badge-sm" href="https://apps.apple.com/app/eigendenoise/id6764759636" target="_blank" rel="noopener noreferrer" aria-label="Download EigenDenoise on the Mac App Store"><img src="assets/img/badges/macappstore.svg" alt="Download on the Mac App Store"></a>
               </div>
             </div>
           </div>
@@ -246,59 +212,53 @@
     </div>
   </section>
 
-  <!-- What I Do Section -->
+  <!-- Research note (serif voice) -->
+  <section class="section-sm bg-alt" style="border-block:1px solid var(--line);">
+    <div class="container">
+      <div class="row align-items-center g-4">
+        <div class="col-lg-8 reveal">
+          <p class="eyebrow eyebrow--rule">Research</p>
+          <p class="pull-quote">Explicit support bounds for the limiting spectral distributions of products of sample covariance matrices.</p>
+        </div>
+        <div class="col-lg-4 text-lg-end reveal reveal-delay-1">
+          <a href="assets/docs/yau-science-award-research-paper.pdf" download class="btn btn-ghost">Download research paper</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- What I do -->
   <section class="section">
     <div class="container">
-      <div class="row">
-        <div class="col-lg-10 offset-lg-1 text-center">
-          <p class="eyebrow eyebrow--rule reveal d-inline-block">// what I do</p>
-          <h2 class="reveal">Mathematics, AI, and shipping</h2>
-          <p class="lead serif reveal" style="margin-bottom: 3rem;">I build tools that bridge mathematics, AI, and real-world applications — from desktop apps on the Microsoft Store to full Python runtimes on iOS, an on-device IDE with local LLMs for iPad, research in random matrix theory, and open-source packages on PyPI.</p>
+      <p class="eyebrow eyebrow--rule reveal">What I do</p>
+      <h2 class="reveal mb-5" style="max-width:18ch;">Mathematics, AI, and shipping real software</h2>
 
-          <div class="row g-4 text-start">
-            <div class="col-md-6 col-lg-3">
-              <div class="card h-100 reveal">
-                <div class="card-body">
-                  <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">🔬</div>
-                  <h4>Mathematical research</h4>
-                  <p class="mb-0">Random matrix theory, Stieltjes transform, spectral distributions, and statistical modeling.</p>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-6 col-lg-3">
-              <div class="card h-100 reveal reveal-delay-1">
-                <div class="card-body">
-                  <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">🤖</div>
-                  <h4>AI &amp; machine learning</h4>
-                  <p class="mb-0">scikit-learn implementations, data visualization, and intelligent system design.</p>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-6 col-lg-3">
-              <div class="card h-100 reveal reveal-delay-2">
-                <div class="card-body">
-                  <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">💻</div>
-                  <h4>Cross-platform apps</h4>
-                  <p class="mb-0">Windows Store apps, iOS frameworks, and Python packages published on PyPI.</p>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-6 col-lg-3">
-              <div class="card h-100 reveal reveal-delay-3">
-                <div class="card-body">
-                  <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">🎬</div>
-                  <h4>Media &amp; graphics</h4>
-                  <p class="mb-0">Math animations with Manim, video encoding with FFmpeg, and 2D graphics with Cairo.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="mt-5 reveal d-flex flex-wrap gap-2 justify-content-center">
-            <a href="projects.html" class="btn btn-primary btn-lg">Explore all projects</a>
-            <a href="about.html" class="btn btn-ghost btn-lg">More about me</a>
-          </div>
+      <div class="row g-5">
+        <div class="col-md-6 col-lg-3 reveal">
+          <p class="mono mb-2" style="color:var(--accent); font-size:.8rem;">01</p>
+          <h4 class="mb-2">Mathematical research</h4>
+          <p class="mb-0">Random matrix theory, the Stieltjes transform, limiting spectral distributions, and statistical modeling.</p>
         </div>
+        <div class="col-md-6 col-lg-3 reveal reveal-delay-1">
+          <p class="mono mb-2" style="color:var(--accent); font-size:.8rem;">02</p>
+          <h4 class="mb-2">AI and machine learning</h4>
+          <p class="mb-0">On-device PyTorch, HuggingFace transformers, scikit-learn, and local LLMs running fully offline.</p>
+        </div>
+        <div class="col-md-6 col-lg-3 reveal reveal-delay-2">
+          <p class="mono mb-2" style="color:var(--accent); font-size:.8rem;">03</p>
+          <h4 class="mb-2">Cross-platform apps</h4>
+          <p class="mb-0">Windows Store and App Store apps, native iOS frameworks, and open-source packages on PyPI.</p>
+        </div>
+        <div class="col-md-6 col-lg-3 reveal reveal-delay-3">
+          <p class="mono mb-2" style="color:var(--accent); font-size:.8rem;">04</p>
+          <h4 class="mb-2">Media and graphics</h4>
+          <p class="mb-0">Math animation with Manim, hardware video encoding with FFmpeg, and GPU 2D graphics with Cairo on Metal.</p>
+        </div>
+      </div>
+
+      <div class="mt-5 reveal d-flex flex-wrap gap-2">
+        <a href="projects.html" class="btn btn-primary btn-lg">Explore all projects</a>
+        <a href="about.html" class="btn btn-ghost btn-lg">More about me</a>
       </div>
     </div>
   </section>
@@ -317,7 +277,7 @@
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z"/></svg> Email
         </a>
       </div>
-      <p class="mb-0 footer-copy" title="🎮 psst… try typing 'easter'">&copy; 2026 Yu, Yao-Hsing 尤耀星. All rights reserved.</p>
+      <p class="mb-0 footer-copy" title="psst… try typing 'easter'">&copy; 2026 Yu, Yao-Hsing <span class="cjk">尤耀星</span>. All rights reserved.</p>
     </div>
   </footer>
 
