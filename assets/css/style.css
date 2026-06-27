@@ -433,6 +433,15 @@ body.theme-dark .tracker-shell {
 .app-icon img { width: 100%; height: 100%; object-fit: cover; }
 .app-icon-lg { width: 76px; height: 76px; border-radius: 18px; }
 .app-icon-sm { width: 40px; height: 40px; border-radius: 10px; }
+/* GitHub-mark icon for code projects (GitHub / PyPI only) — theme-aware */
+.app-icon--gh::before {
+  content: "";
+  display: block;
+  width: 56%; height: 56%;
+  background: var(--ink);
+  -webkit-mask: url(../img/app-icons/github.svg) center / contain no-repeat;
+  mask: url(../img/app-icons/github.svg) center / contain no-repeat;
+}
 /* legacy emoji-in-span fallbacks shrink gracefully */
 .card-icon, .category-icon { font-size: 1.5rem; line-height: 1; }
 
@@ -662,39 +671,38 @@ html.js .reveal:not(.is-visible) { opacity: 0; transform: translateY(16px); }
 }
 
 @keyframes neonPulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(124, 58, 237, 0.45), 0 0 60px rgba(6, 182, 212, 0.25); }
-  50%      { box-shadow: 0 0 35px rgba(34, 211, 238, 0.55), 0 0 80px rgba(168, 85, 247, 0.35); }
+  0%, 100% { box-shadow: 0 0 24px rgba(45, 107, 255, 0.35), 0 0 70px rgba(124, 58, 237, 0.22); }
+  50%      { box-shadow: 0 0 38px rgba(124, 58, 237, 0.45), 0 0 90px rgba(34, 211, 238, 0.28); }
 }
 
 #hidden-game {
   text-align: center;
-  color: #f0f6ff;
+  color: #eef2ff;
   overflow: auto;
-  padding-top: 30px;
+  padding-top: 36px;
   background:
-    radial-gradient(circle at 18% 22%, rgba(124, 58, 237, 0.45) 0%, transparent 55%),
-    radial-gradient(circle at 82% 78%, rgba(6, 182, 212, 0.40) 0%, transparent 55%),
-    radial-gradient(circle at 50% 50%, rgba(236, 72, 153, 0.20) 0%, transparent 60%),
-    linear-gradient(135deg, #050816 0%, #0d0b2e 35%, #1a0e3d 70%, #050816 100%);
+    radial-gradient(60% 60% at 18% 18%, rgba(45, 107, 255, 0.30) 0%, transparent 58%),
+    radial-gradient(55% 55% at 84% 82%, rgba(124, 58, 237, 0.28) 0%, transparent 58%),
+    radial-gradient(50% 50% at 50% 50%, rgba(34, 211, 238, 0.12) 0%, transparent 62%),
+    linear-gradient(150deg, #070912 0%, #0b0e1c 40%, #120b2a 75%, #070912 100%);
   background-size: 200% 200%, 200% 200%, 200% 200%, 200% 200%;
-  animation: auroraShift 18s ease-in-out infinite;
-  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  animation: auroraShift 20s ease-in-out infinite;
+  font-family: var(--font-body), 'Segoe UI', sans-serif;
 }
 
 #hidden-game::before {
-  content: "🎮 EASTER EGG · ARCADE";
+  content: "EASTER · ARCADE";
   display: block;
-  font-size: 0.85rem;
-  letter-spacing: 4px;
-  font-weight: 700;
-  color: rgba(255,255,255,0.85);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.35em;
+  font-weight: 600;
   text-transform: uppercase;
   margin-top: 8px;
-  background: linear-gradient(90deg, #22d3ee 0%, #a855f7 50%, #ec4899 100%);
+  background: linear-gradient(110deg, #7cb0ff 0%, #a78bfa 55%, #22d3ee 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.4));
 }
 
 #gameControls {
@@ -740,29 +748,29 @@ html.js .reveal:not(.is-visible) { opacity: 0; transform: translateY(16px); }
 }
 
 #gameControls button {
-  background: linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%);
+  background: linear-gradient(120deg, #2d6bff 0%, #5b5bf0 55%, #7c3aed 100%);
   color: #fff;
   border: none;
   padding: 9px 22px;
   font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
   border-radius: 10px;
   cursor: pointer;
   transition: var(--transition);
-  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);
+  box-shadow: 0 4px 14px rgba(45, 107, 255, 0.4);
 }
 
 #gameControls button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 22px rgba(34, 211, 238, 0.5);
+  box-shadow: 0 8px 22px rgba(124, 58, 237, 0.5);
 }
 
 #gameCanvas {
   background:
-    radial-gradient(circle at 50% 50%, #1a1240 0%, #0a0820 100%);
-  border: 2px solid rgba(168, 85, 247, 0.5);
-  border-radius: 14px;
+    radial-gradient(circle at 50% 50%, #12152b 0%, #080a16 100%);
+  border: 1px solid rgba(124, 138, 255, 0.45);
+  border-radius: 16px;
   margin: 20px auto;
   display: block;
   max-width: 95%;
@@ -774,37 +782,32 @@ html.js .reveal:not(.is-visible) { opacity: 0; transform: translateY(16px); }
   position: fixed;
   top: 20px;
   right: 20px;
-  background: linear-gradient(135deg, rgba(236, 72, 153, 0.85) 0%, rgba(124, 58, 237, 0.85) 100%);
-  color: #fff;
-  border: 1px solid rgba(255,255,255,0.25);
-  padding: 11px 22px;
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
+  background: rgba(255,255,255,0.08);
+  color: #eef2ff;
+  border: 1px solid rgba(255,255,255,0.22);
+  padding: 10px 20px;
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.2px;
   cursor: pointer;
-  border-radius: 10px;
+  border-radius: 999px;
   transition: var(--transition);
   z-index: 10000;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  box-shadow: 0 4px 20px rgba(236, 72, 153, 0.35);
 }
 
 #exitGame:hover,
 #exitAdmin:hover {
-  transform: translateY(-2px) scale(1.04);
-  box-shadow: 0 8px 28px rgba(236, 72, 153, 0.55);
+  transform: translateY(-2px);
+  border-color: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.14);
 }
 
 #exitAdmin {
   left: 20px;
   right: auto;
-  background: linear-gradient(135deg, rgba(34, 211, 238, 0.85) 0%, rgba(124, 58, 237, 0.85) 100%);
-  box-shadow: 0 4px 20px rgba(34, 211, 238, 0.35);
-}
-
-#exitAdmin:hover {
-  box-shadow: 0 8px 28px rgba(34, 211, 238, 0.55);
 }
 
 #hidden-admin {
@@ -818,15 +821,16 @@ html.js .reveal:not(.is-visible) { opacity: 0; transform: translateY(16px); }
 }
 
 #hidden-admin::before {
-  content: "🔒 ADMIN · VISITOR LOG";
+  content: "ADMIN · VISITOR LOG";
   display: block;
   text-align: center;
-  font-size: 0.8rem;
-  letter-spacing: 4px;
-  font-weight: 700;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.32em;
+  font-weight: 600;
   text-transform: uppercase;
   margin-bottom: 20px;
-  background: linear-gradient(90deg, #22d3ee 0%, #a855f7 100%);
+  background: linear-gradient(110deg, #7cb0ff 0%, #a78bfa 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -918,23 +922,23 @@ html.js .reveal:not(.is-visible) { opacity: 0; transform: translateY(16px); }
 }
 
 #scoreDisplay {
-  font-size: 1.6rem;
-  font-weight: 800;
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  font-weight: 600;
   margin-top: 24px;
-  letter-spacing: 1px;
-  background: linear-gradient(90deg, #22d3ee 0%, #a855f7 50%, #ec4899 100%);
+  letter-spacing: 0.5px;
+  background: linear-gradient(110deg, #7cb0ff 0%, #a78bfa 55%, #22d3ee 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.4));
 }
 
 #gameHint {
-  font-size: 0.92rem;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
   color: #a5b4fc;
-  margin: 4px auto 28px;
-  letter-spacing: 0.4px;
-  opacity: 0.85;
+  margin: 6px auto 28px;
+  letter-spacing: 0.2px;
 }
 
 /* Keep the arcade playable on touch — the canvas owns its gestures */
