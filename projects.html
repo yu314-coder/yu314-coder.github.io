@@ -82,6 +82,9 @@
         <button class="nav-link" id="tab-codebench-btn" data-bs-toggle="pill" data-bs-target="#tab-codebench" type="button" role="tab" aria-controls="tab-codebench" aria-selected="false">CodeBench</button>
       </li>
       <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-bootbox-btn" data-bs-toggle="pill" data-bs-target="#tab-bootbox" type="button" role="tab" aria-controls="tab-bootbox" aria-selected="false">Bootbox</button>
+      </li>
+      <li class="nav-item" role="presentation">
         <button class="nav-link" id="tab-gencov-btn" data-bs-toggle="pill" data-bs-target="#tab-gencov" type="button" role="tab" aria-controls="tab-gencov" aria-selected="false">Generalized Covariance</button>
       </li>
       <li class="nav-item" role="presentation">
@@ -796,6 +799,165 @@
       </div>
     </div>
     </div><!-- /tab-codebench -->
+
+    <!-- Featured Project: Bootbox -->
+    <div class="tab-pane fade" id="tab-bootbox" role="tabpanel" aria-labelledby="tab-bootbox-btn">
+
+    <div class="card card--hue hue-bootbox mb-5 reveal">
+      <div class="card-body p-4 p-md-5">
+        <div class="row g-0 align-items-center justify-content-center">
+          <div class="col-lg-10 col-xl-9 text-center">
+            <header class="mb-4">
+              <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
+                <span class="app-icon"><img src="assets/img/app-icons/bootbox.png" alt="Bootbox icon" loading="lazy"></span>
+                <div class="text-start">
+                  <h3 class="h2 mb-1 fw-bold">Bootbox</h3>
+                  <span class="badge-neutral mono">iPad · iPadOS</span>
+                  <span class="badge-accent mono ms-1">On-Device Emulation</span>
+                  <span class="badge-neutral mono ms-1">No Jailbreak</span>
+                </div>
+              </div>
+              <p class="lead mb-0">A boot manager for your iPad. Bootbox is a native iOS app that boots real operating systems — 64-bit Linux (x86-64 and ARM64), classic Windows, graphical desktops — inside a WebKit-hosted emulation stack, with real internet, real multi-core, files in the iOS Files app, and one-tap downloads for every guest image. Everything runs on-device: no servers, no streaming, no jailbreak.</p>
+            </header>
+
+            <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
+              <span class="feature-badge">64-bit Linux (x86-64)</span>
+              <span class="feature-badge">Genuine ARM64</span>
+              <span class="feature-badge">Windows 98 / 2000</span>
+              <span class="feature-badge">Wine 9.0</span>
+              <span class="feature-badge">Multi-core (up to 8)</span>
+              <span class="feature-badge">Real Internet (gVisor)</span>
+              <span class="feature-badge">Files App Integration</span>
+              <span class="feature-badge">Custom ISO/IMG Import</span>
+              <span class="feature-badge">noVNC GUI</span>
+              <span class="feature-badge">Boxedwine</span>
+            </div>
+
+            <!-- Capability Grid -->
+            <div class="row g-3 mb-4">
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>64-bit Linux &amp; ARM64 <span class="lib-count-badge">QEMU-Wasm</span></h5>
+                  <p class="mt-1 mb-0" style="text-align:left;">Genuine aarch64 Alpine (<code>uname -m</code> really reports <code>aarch64</code>) alongside a dual-core x86-64 console guest with Python 3.12, pip/uv, Wine, and real internet.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>Classic Windows <span class="lib-count-badge">v86</span></h5>
+                  <p class="mt-1 mb-0" style="text-align:left;">Windows 98 SE and Windows 2000 Pro boot natively to the desktop via v86, with working internet on Windows 2000 through the NDIS relay.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>Real Multi-core <span class="lib-count-badge">up to 8</span></h5>
+                  <p class="mt-1 mb-0" style="text-align:left;">The x86-64 guest boots dual-core by default with genuine parallel execution (measured 2.0× wall-clock speedup). A cores selector (1/2/4/6/8) sits in the toolbar and UEFI Setup.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>4× Lower Idle Power</h5>
+                  <p class="mt-1 mb-0" style="text-align:left;">A patched engine sleeps on a real futex between polls instead of busy-spinning. Measured: idle ~120% → ~32% host CPU, boot time 30s → ~20s, cooler iPad, longer battery.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>Python That Works <span class="lib-count-badge">uv</span></h5>
+                  <p class="mt-1 mb-0" style="text-align:left;"><code>pip install</code> backed by uv with ~24 packages pre-installed and 10-minute download timeouts for large wheels. A baked-in constraints file resolves NumPy to the 1.x line for correctness on the emulated CPU.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>Files App Integration <span class="lib-count-badge">iSH-style</span></h5>
+                  <p class="mt-1 mb-0" style="text-align:left;">A classic <code>NSFileProviderExtension</code> exposes the Bootbox folder in the iOS Files app. Materialized files are hard links — drop in <code>.iso</code>/<code>.img</code>, pull guest exports out, zero-copy.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>Real Internet <span class="lib-count-badge">gVisor</span></h5>
+                  <p class="mt-1 mb-0" style="text-align:left;"><code>Iosnet.xcframework</code> embeds a gVisor userspace TCP/IP stack — the guest's virtio NIC frames travel over a local WebSocket into native sockets. <code>pip</code>, <code>apk</code>, <code>wget</code>, DNS all work, fully on-device.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>Your Own Images</h5>
+                  <p class="mt-1 mb-0" style="text-align:left;">Import any <code>.iso</code>/<code>.img</code> via the Files app; paired save-states let a custom install resume in about a second instead of rebooting.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>A Boot Experience</h5>
+                  <p class="mt-1 mb-0" style="text-align:left;">GRUB-style boot menu with per-system notes, a classic Aptio-blue UEFI Setup screen, then serial console on the left and GUI on the right — keyboard routing follows your last tap.</p>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="row g-3 mb-4 justify-content-center">
+              <div class="col-md-5">
+                <div class="lib-category-card">
+                  <h5 class="h6 fw-bold mb-3">Built On</h5>
+                  <ul class="small mb-0 text-start">
+                    <li>QEMU-Wasm — x86-64 (SMP/ACPI) &amp; ARM64 engines</li>
+                    <li>v86 — fast 32-bit x86 (Win98 / 2000, i686)</li>
+                    <li>Boxedwine — Wine in the browser</li>
+                    <li>noVNC — graphical guest output</li>
+                    <li>Iosnet.xcframework — gVisor netstack (gomobile)</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="col-md-5">
+                <div class="lib-category-card">
+                  <h5 class="h6 fw-bold mb-3">What It Boots</h5>
+                  <ul class="small mb-0 text-start">
+                    <li>64-bit Linux + Python &amp; Wine (x86-64, 1–8 cores)</li>
+                    <li>64-bit Linux Desktop (twm + terminal + browser)</li>
+                    <li>64-bit Linux — genuine ARM64 Alpine</li>
+                    <li>Windows 98 SE &amp; Windows 2000 Pro</li>
+                    <li>Any imported <code>.iso</code> / <code>.img</code></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">Technical Specifications</h4>
+              <div class="d-inline-block text-start">
+                <p class="small mb-1"><strong>Created by:</strong> Yu Yao-Hsing</p>
+                <p class="small mb-1"><strong>Platform:</strong> iPad · iPadOS (Swift host app + WKWebView)</p>
+                <p class="small mb-1"><strong>Networking:</strong> gVisor userspace TCP/IP via Iosnet.xcframework</p>
+                <p class="small mb-1"><strong>App size:</strong> ~60 MB · guest images download on demand, once, and are cached</p>
+                <p class="small mb-0"><strong>Status:</strong> Active development — build from source (Xcode 16+, Apple developer team)</p>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap justify-content-center gap-3">
+              <a href="https://github.com/yu314-coder/Bootbox" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                GitHub Repository
+              </a>
+              <a href="https://github.com/yu314-coder/container2wasm" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                container2wasm Fork
+              </a>
+              <a href="https://github.com/yu314-coder/qemu-wasm" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                qemu-wasm Fork
+              </a>
+              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
+                Contact developer
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div><!-- /tab-bootbox -->
 
     <!-- Tab 3: Generalized Covariance + EigenDenoise -->
     <div class="tab-pane fade" id="tab-gencov" role="tabpanel" aria-labelledby="tab-gencov-btn">
