@@ -211,7 +211,7 @@
 
     // x' = Ax - By, y' = Bx + Ay  <=>  eigenvalues A +/- Bi of [[A,-B],[B,A]].
     // A < 0 (decay) + B != 0 (rotation) = a damped spiral into the origin.
-    var A = -0.5, B = 1.4;
+    var A = -0.5, B = -1.4; // B's sign sets screen rotation; negative = counterclockwise
 
     var N = 200;
     var particles = [];
