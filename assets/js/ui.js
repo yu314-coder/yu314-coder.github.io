@@ -9,10 +9,11 @@
      3. Live PyPI total    — if #live-downloads exists, query ClickHouse for the
                              summed downloads of a fixed project set and animate
                              the number in. Fails silently (blank), never throws.
-     4. Hero eigenvalue field — if .hero-eigen (a <canvas>) exists, animates
-                             ~200 points settling into the circular law (the
-                             limiting eigenvalue distribution of a random
-                             matrix), then drifts them gently forever.
+     4. Hero spiral flow — if .hero-flow (a <canvas>) exists, animates glowing
+                             particles spiraling into a bright core, tracing
+                             the phase portrait of a linear system with a
+                             complex-conjugate eigenvalue pair (the spiral a
+                             non-symmetric random matrix's spectrum produces).
      5. Navbar frosted-on-scroll — toggles .scrolled on .navbar
 
    All motion respects prefers-reduced-motion: when reduced, final values are
@@ -169,19 +170,21 @@
   }
 
   /* ---------------------------------------------------------------------------
-     4. Hero "circular law" — a canvas point field depicting the limiting
-     eigenvalue distribution of a random matrix (the author's own random
-     matrix theory research). Points settle from a scatter into the unit
-     disk, then drift with slow independent motion. Static (final frame
-     only) under prefers-reduced-motion.
+     4. Hero spiral flow — glowing particles spiraling into a bright core,
+     tracing the phase portrait of a linear system x' = Mx whose matrix M
+     has a complex-conjugate eigenvalue pair a +/- bi. That pair is exactly
+     what makes trajectories spiral instead of just scaling in place — a
+     real, direct link to the author's random matrix theory research (real
+     non-symmetric random matrices generically have complex eigenvalues).
+     Cursor/touch gently perturbs nearby flow. A few faint static spiral
+     guide-curves replace the animation under prefers-reduced-motion.
      ------------------------------------------------------------------------- */
-  function initHeroEigen() {
-    var canvas = document.querySelector(".hero-eigen");
+  function initHeroFlow() {
+    var canvas = document.querySelector(".hero-flow");
     if (!canvas || !canvas.getContext) return;
     var ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    var N = 200;
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
     var size = 360;
 
@@ -196,7 +199,7 @@
 
     var STOPS = [[45, 107, 255], [91, 91, 240], [124, 58, 237]]; // accent -> accent-2
     function colorFor(r) {
-      var t = Math.min(r, 1) * (STOPS.length - 1);
+      var t = Math.min(Math.max(r, 0), 1) * (STOPS.length - 1);
       var i = Math.min(Math.floor(t), STOPS.length - 2);
       var f = t - i, a = STOPS[i], b = STOPS[i + 1];
       return [
@@ -206,63 +209,40 @@
       ];
     }
 
-    var points = [];
+    // x' = Ax - By, y' = Bx + Ay  <=>  eigenvalues A +/- Bi of [[A,-B],[B,A]].
+    // A < 0 (decay) + B != 0 (rotation) = a damped spiral into the origin.
+    var A = -0.5, B = 1.4;
+
+    var N = 200;
+    var particles = [];
+    function spawn(p) {
+      var ang = rand() * Math.PI * 2, rad = 0.62 + rand() * 0.34;
+      p.x = rad * Math.cos(ang); p.y = rad * Math.sin(ang);
+      p.px = p.x; p.py = p.y;
+      p.age = 0;
+    }
     for (var i = 0; i < N; i++) {
-      // Circular law: uniform density in the unit disk.
-      var r0 = Math.sqrt(rand()), theta0 = rand() * Math.PI * 2;
-      var sr = 1.6 + rand() * 0.9, stheta = rand() * Math.PI * 2;
-      points.push({
-        tx: r0 * Math.cos(theta0), ty: r0 * Math.sin(theta0),
-        x: sr * Math.cos(stheta), y: sr * Math.sin(stheta),
-        phase: rand() * Math.PI * 2,
-        speed: 0.15 + rand() * 0.25,
-        wobble: 0.012 + rand() * 0.02
-      });
+      var p = {};
+      // First placement scatters across the whole disk (not just the outer
+      // band) so it doesn't read as an empty ring for the first few seconds.
+      var ang0 = rand() * Math.PI * 2, rad0 = Math.sqrt(rand()) * 0.95;
+      p.x = rad0 * Math.cos(ang0); p.y = rad0 * Math.sin(ang0);
+      p.px = p.x; p.py = p.y;
+      p.age = 0;
+      particles.push(p);
     }
 
-    // Real eigenvalues repel one another (a hallmark of random matrix
-    // theory) — relax the naive i.i.d. sample so it reads as an ordered
-    // field rather than clumpy noise, closer to a genuine spectrum.
-    var MIN_D = 1.9 / Math.sqrt(N);
-    for (var pass = 0; pass < 60; pass++) {
-      for (var a = 0; a < points.length; a++) {
-        for (var c = a + 1; c < points.length; c++) {
-          var dx = points[a].tx - points[c].tx, dy = points[a].ty - points[c].ty;
-          var d = Math.sqrt(dx * dx + dy * dy) || 0.0001;
-          if (d < MIN_D) {
-            var push = (MIN_D - d) / d * 0.5;
-            var ox = dx * push, oy = dy * push;
-            points[a].tx += ox; points[a].ty += oy;
-            points[c].tx -= ox; points[c].ty -= oy;
-          }
-        }
-      }
-      for (var i2 = 0; i2 < points.length; i2++) {
-        var rr = Math.sqrt(points[i2].tx * points[i2].tx + points[i2].ty * points[i2].ty);
-        if (rr > 0.97) { points[i2].tx = points[i2].tx / rr * 0.97; points[i2].ty = points[i2].ty / rr * 0.97; }
-      }
-    }
-    for (var i3 = 0; i3 < points.length; i3++) {
-      var p3 = points[i3];
-      p3.r = Math.sqrt(p3.tx * p3.tx + p3.ty * p3.ty);
-      p3.size = 1.4 + (1 - p3.r) * 2.0 + (rand() < 0.06 ? 1.8 : 0);
-    }
-
-    // Pre-baked glow sprites (a handful of color buckets) so the per-frame
-    // cost is a drawImage, not a fresh radial gradient for every point.
-    var glowSprites = [];
-    var GS = 96;
-    for (var b = 0; b < 6; b++) {
-      var col = colorFor(b / 5);
-      var off = document.createElement("canvas");
-      off.width = GS; off.height = GS;
-      var octx = off.getContext("2d");
-      var g = octx.createRadialGradient(GS / 2, GS / 2, 0, GS / 2, GS / 2, GS / 2);
-      g.addColorStop(0, "rgba(" + col.join(",") + ",0.55)");
-      g.addColorStop(1, "rgba(" + col.join(",") + ",0)");
-      octx.fillStyle = g;
-      octx.beginPath(); octx.arc(GS / 2, GS / 2, GS / 2, 0, Math.PI * 2); octx.fill();
-      glowSprites.push(off);
+    // A soft baseline glow at the fixed point the spiral falls into — so
+    // there's a bright core from frame one, before trails accumulate one
+    // of their own (particles genuinely slow down near the center, which
+    // naturally builds extra brightness there over the first few seconds).
+    function paintCore(cx, cy, R) {
+      var coreCol = colorFor(0);
+      var glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.11);
+      glow.addColorStop(0, "rgba(" + coreCol.join(",") + ",0.4)");
+      glow.addColorStop(1, "rgba(" + coreCol.join(",") + ",0)");
+      ctx.fillStyle = glow;
+      ctx.beginPath(); ctx.arc(cx, cy, R * 0.11, 0, Math.PI * 2); ctx.fill();
     }
 
     function resize() {
@@ -271,56 +251,110 @@
       canvas.width = Math.round(size * dpr);
       canvas.height = Math.round(size * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, size, size);
     }
 
-    function frame(cx, cy, R, eased, ts) {
-      ctx.clearRect(0, 0, size, size);
-      ctx.beginPath();
-      ctx.arc(cx, cy, R, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(124,58,237,0.20)";
-      ctx.lineWidth = 1;
-      ctx.stroke();
+    // Cursor tracking, canvas-local CSS px. Gently perturbs nearby flow.
+    var mouseX = null, mouseY = null;
+    function trackPointer(clientX, clientY) {
+      var rect = canvas.getBoundingClientRect();
+      mouseX = clientX - rect.left; mouseY = clientY - rect.top;
+    }
+    window.addEventListener("mousemove", function (e) { trackPointer(e.clientX, e.clientY); }, { passive: true });
+    window.addEventListener("touchmove", function (e) {
+      if (e.touches && e.touches[0]) trackPointer(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: true });
+    window.addEventListener("touchend", function () { mouseX = null; mouseY = null; }, { passive: true });
+    canvas.addEventListener("mouseleave", function () { mouseX = null; mouseY = null; });
 
-      for (var i = 0; i < points.length; i++) {
-        var p = points[i];
-        var curX = p.x + (p.tx - p.x) * eased;
-        var curY = p.y + (p.ty - p.y) * eased;
-        var wx = 0, wy = 0;
-        if (ts != null) {
-          wx = Math.cos(ts * 0.00035 * p.speed + p.phase) * p.wobble * eased;
-          wy = Math.sin(ts * 0.00042 * p.speed + p.phase * 1.3) * p.wobble * eased;
+    function step(dt, R, cx, cy) {
+      for (var i = 0; i < particles.length; i++) {
+        var p = particles[i];
+        p.px = p.x; p.py = p.y;
+        var vx = A * p.x - B * p.y;
+        var vy = B * p.x + A * p.y;
+
+        if (mouseX != null) {
+          var wx = cx + p.x * R, wy = cy + p.y * R;
+          var mdx = wx - mouseX, mdy = wy - mouseY;
+          var mdist = Math.sqrt(mdx * mdx + mdy * mdy);
+          if (mdist < 55) {
+            var push = (1 - mdist / 55) * 1.6;
+            vx += (mdx / (mdist || 1)) * push;
+            vy += (mdy / (mdist || 1)) * push;
+          }
         }
-        var px = cx + (curX + wx) * R, py = cy + (curY + wy) * R;
-        var bucket = Math.min(5, Math.round(p.r * 5));
-        var sp = p.size * 7.5;
-        ctx.drawImage(glowSprites[bucket], px - sp / 2, py - sp / 2, sp, sp);
-        ctx.beginPath();
-        ctx.arc(px, py, p.size, 0, Math.PI * 2);
-        var col = colorFor(p.r);
-        ctx.fillStyle = "rgba(" + col.join(",") + "," + (0.65 + (1 - p.r) * 0.35) + ")";
-        ctx.fill();
+
+        p.x += vx * dt; p.y += vy * dt;
+        p.age += dt;
+        var rr = Math.sqrt(p.x * p.x + p.y * p.y);
+        if (rr < 0.05 || p.age > 7.5) spawn(p);
       }
+    }
+
+    function draw(cx, cy, R) {
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      ctx.fillRect(0, 0, size, size);
+
+      for (var i = 0; i < particles.length; i++) {
+        var p = particles[i];
+        var rNow = Math.sqrt(p.x * p.x + p.y * p.y);
+        var col = colorFor(Math.min(rNow / 0.95, 1));
+        var rgb = "rgb(" + col.join(",") + ")";
+        ctx.shadowBlur = 4;
+        ctx.shadowColor = rgb;
+        ctx.strokeStyle = "rgba(" + col.join(",") + ",0.8)";
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(cx + p.px * R, cy + p.py * R);
+        ctx.lineTo(cx + p.x * R, cy + p.y * R);
+        ctx.stroke();
+      }
+      ctx.shadowBlur = 0;
+      paintCore(cx, cy, R);
+    }
+
+    function drawStatic() {
+      // Reduced motion: a few faint logarithmic spiral guide-curves, still.
+      var cx = size / 2, cy = size / 2, R = size * 0.46;
+      ctx.clearRect(0, 0, size, size);
+      for (var k = 0; k < 3; k++) {
+        ctx.beginPath();
+        for (var s = 0; s <= 220; s++) {
+          var t = s / 220 * 6.2;
+          var rr = 0.95 * Math.exp(A * t);
+          var th = B * t + k * (Math.PI * 2 / 3);
+          var x = cx + rr * Math.cos(th) * R, y = cy + rr * Math.sin(th) * R;
+          if (s === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = "rgba(91,91,240,0.30)";
+        ctx.lineWidth = 1.4;
+        ctx.stroke();
+      }
+      paintCore(cx, cy, R);
     }
 
     try {
       resize();
-      var SETTLE_MS = 2200;
       if (REDUCED) {
-        frame(size / 2, size / 2, size * 0.42, 1, null);
+        drawStatic();
       } else {
-        var start = null;
+        var lastTs = null;
         var raf = function (ts) {
-          if (start === null) start = ts;
-          var p = Math.min((ts - start) / SETTLE_MS, 1);
-          var eased = 1 - Math.pow(1 - p, 3);
-          frame(size / 2, size / 2, size * 0.42, eased, ts);
+          var dt = lastTs == null ? 1 / 60 : Math.min((ts - lastTs) / 1000, 0.05);
+          lastTs = ts;
+          var cx = size / 2, cy = size / 2, R = size * 0.46;
+          step(dt, R, cx, cy);
+          draw(cx, cy, R);
           requestAnimationFrame(raf);
         };
         requestAnimationFrame(raf);
       }
       window.addEventListener("resize", function () {
         resize();
-        if (REDUCED) frame(size / 2, size / 2, size * 0.42, 1, null);
+        if (REDUCED) drawStatic();
       }, { passive: true });
     } catch (e) {}
   }
@@ -344,6 +378,6 @@
     try { initReveal(); } catch (e) {}
     try { initNavScroll(); } catch (e) {}
     try { initLiveDownloads(); } catch (e) {}
-    try { initHeroEigen(); } catch (e) {}
+    try { initHeroFlow(); } catch (e) {}
   });
 })();
