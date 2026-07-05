@@ -301,7 +301,7 @@ body.theme-dark .spotlight-tag { background: rgba(255,255,255,0.06); }
 }
 
 /* Hero spiral flow: canvas-driven, see assets/js/ui.js (initHeroFlow) */
-.hero-flow { border-radius: 50%; }
+.hero-flow { border-radius: 50%; pointer-events: auto; cursor: pointer; }
 
 /* ---------------------------------------------------------------------------
    6b. Gradient layer (one cohesive cool family, used tastefully)

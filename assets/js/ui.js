@@ -14,6 +14,9 @@
                              the phase portrait of a linear system with a
                              complex-conjugate eigenvalue pair (the spiral a
                              non-symmetric random matrix's spectrum produces).
+                             The cursor/finger genuinely stirs the flow (drag
+                             velocity, not just proximity), and a click/tap
+                             bursts nearby particles outward from that point.
      5. Navbar frosted-on-scroll — toggles .scrolled on .navbar
 
    All motion respects prefers-reduced-motion: when reduced, final values are
@@ -220,9 +223,10 @@
       p.x = rad * Math.cos(ang); p.y = rad * Math.sin(ang);
       p.px = p.x; p.py = p.y;
       p.age = 0;
+      p.burstLife = 0;
     }
     for (var i = 0; i < N; i++) {
-      var p = {};
+      var p = { burstLife: 0 };
       // First placement scatters across the whole disk (not just the outer
       // band) so it doesn't read as an empty ring for the first few seconds.
       var ang0 = rand() * Math.PI * 2, rad0 = Math.sqrt(rand()) * 0.95;
@@ -230,6 +234,21 @@
       p.px = p.x; p.py = p.y;
       p.age = 0;
       particles.push(p);
+    }
+
+    // Click/tap: kick a handful of existing particles out from that point —
+    // they burst outward, then get swept back into the spiral naturally.
+    // Reuses particles (no array growth) so repeated clicking stays cheap.
+    function burst(nx, ny) {
+      var count = Math.min(24, particles.length);
+      for (var k = 0; k < count; k++) {
+        var p = particles[Math.floor(rand() * particles.length)];
+        var ang = rand() * Math.PI * 2, speed = 0.6 + rand() * 0.9;
+        p.x = nx; p.y = ny; p.px = nx; p.py = ny;
+        p.age = 0;
+        p.burstVX = Math.cos(ang) * speed; p.burstVY = Math.sin(ang) * speed;
+        p.burstLife = 0.7;
+      }
     }
 
     // A soft baseline glow at the fixed point the spiral falls into — so
@@ -255,11 +274,15 @@
       ctx.fillRect(0, 0, size, size);
     }
 
-    // Cursor tracking, canvas-local CSS px. Gently perturbs nearby flow.
-    var mouseX = null, mouseY = null;
+    // Cursor tracking, canvas-local CSS px, plus its recent velocity — so the
+    // flow can be genuinely stirred (pushed along the drag direction) rather
+    // than just nudged away from a fixed point.
+    var mouseX = null, mouseY = null, stirVX = 0, stirVY = 0;
     function trackPointer(clientX, clientY) {
       var rect = canvas.getBoundingClientRect();
-      mouseX = clientX - rect.left; mouseY = clientY - rect.top;
+      var nx = clientX - rect.left, ny = clientY - rect.top;
+      if (mouseX != null) { stirVX = nx - mouseX; stirVY = ny - mouseY; }
+      mouseX = nx; mouseY = ny;
     }
     window.addEventListener("mousemove", function (e) { trackPointer(e.clientX, e.clientY); }, { passive: true });
     window.addEventListener("touchmove", function (e) {
@@ -268,19 +291,47 @@
     window.addEventListener("touchend", function () { mouseX = null; mouseY = null; }, { passive: true });
     canvas.addEventListener("mouseleave", function () { mouseX = null; mouseY = null; });
 
+    // Click/tap anywhere on the piece to kick off a burst at that point.
+    function burstAt(clientX, clientY) {
+      var rect = canvas.getBoundingClientRect();
+      var R = size * 0.46;
+      burst((clientX - rect.left - size / 2) / R, (clientY - rect.top - size / 2) / R);
+    }
+    canvas.addEventListener("click", function (e) { burstAt(e.clientX, e.clientY); });
+    canvas.addEventListener("touchstart", function (e) {
+      if (e.touches && e.touches[0]) burstAt(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: true });
+
     function step(dt, R, cx, cy) {
+      // Stir decays on its own between mousemove events, so a moving cursor
+      // feels like a continuous drag and a stopped one fades out naturally.
+      stirVX *= 0.85; stirVY *= 0.85;
+
       for (var i = 0; i < particles.length; i++) {
         var p = particles[i];
         p.px = p.x; p.py = p.y;
         var vx = A * p.x - B * p.y;
         var vy = B * p.x + A * p.y;
 
+        if (p.burstLife > 0) {
+          var bf = p.burstLife / 0.7;
+          vx += p.burstVX * bf * 3;
+          vy += p.burstVY * bf * 3;
+          p.burstLife -= dt;
+        }
+
         if (mouseX != null) {
           var wx = cx + p.x * R, wy = cy + p.y * R;
           var mdx = wx - mouseX, mdy = wy - mouseY;
           var mdist = Math.sqrt(mdx * mdx + mdy * mdy);
-          if (mdist < 55) {
-            var push = (1 - mdist / 55) * 1.6;
+          if (mdist < 80) {
+            var falloff = 1 - mdist / 80;
+            // Stir: carry the cursor's own recent motion into the flow.
+            vx += (stirVX / R) * falloff * 18;
+            vy += (stirVY / R) * falloff * 18;
+            // A little direct push too, so particles don't sit under a
+            // motionless cursor.
+            var push = falloff * 0.8;
             vx += (mdx / (mdist || 1)) * push;
             vy += (mdy / (mdist || 1)) * push;
           }
@@ -303,10 +354,13 @@
         var rNow = Math.sqrt(p.x * p.x + p.y * p.y);
         var col = colorFor(Math.min(rNow / 0.95, 1));
         var rgb = "rgb(" + col.join(",") + ")";
-        ctx.shadowBlur = 4;
+        // Faster-moving particles (just stirred, or mid-burst) glow a little
+        // brighter and thicker — motion itself becomes visible, not just position.
+        var speed = Math.min(Math.hypot(p.x - p.px, p.y - p.py) * 45, 2.2);
+        ctx.shadowBlur = 4 + speed * 2.5;
         ctx.shadowColor = rgb;
-        ctx.strokeStyle = "rgba(" + col.join(",") + ",0.8)";
-        ctx.lineWidth = 1.8;
+        ctx.strokeStyle = "rgba(" + col.join(",") + "," + Math.min(0.8 + speed * 0.1, 1) + ")";
+        ctx.lineWidth = 1.8 + speed;
         ctx.beginPath();
         ctx.moveTo(cx + p.px * R, cy + p.py * R);
         ctx.lineTo(cx + p.x * R, cy + p.y * R);
