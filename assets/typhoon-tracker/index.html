@@ -15,15 +15,15 @@
       <label for="mode-select">Mode</label>
       <select id="mode-select">
         <option value="track">Track &mdash; history</option>
-        <option value="predict">Predict &mdash; outlook</option>
+        <option value="predict">Forecast &mdash; live (JMA)</option>
       </select>
     </div>
 
-    <div class="tt-field tt-storm-field">
+    <div class="tt-field tt-track-only">
       <label for="season-select">Season</label>
       <select id="season-select"></select>
     </div>
-    <div class="tt-field tt-field--grow tt-storm-field">
+    <div class="tt-field tt-field--grow tt-track-only">
       <label for="storm-select">Typhoon</label>
       <select id="storm-select"></select>
     </div>
@@ -46,25 +46,9 @@
       <span class="tt-enso-badge" id="tt-enso">&mdash;</span>
     </div>
 
-    <div class="tt-field tt-predict-only">
-      <label for="predict-by">Predict by</label>
-      <select id="predict-by">
-        <option value="monthly">Month outlook</option>
-        <option value="storm">Storm projection</option>
-      </select>
-    </div>
-    <div class="tt-field tt-month-field">
-      <label for="pred-month">Month</label>
-      <select id="pred-month"></select>
-    </div>
-    <div class="tt-field tt-month-field">
-      <label for="pred-year">Year (ENSO)</label>
-      <select id="pred-year"></select>
-    </div>
-    <div class="tt-field tt-month-field tt-month-field--check">
-      <label class="tt-check" title="Show only the years whose autumn ENSO phase matches the selected year">
-        <input type="checkbox" id="pred-match-phase"> Match ENSO phase
-      </label>
+    <div class="tt-field tt-field--grow tt-predict-only">
+      <label for="jma-typhoon">Active typhoon (JMA)</label>
+      <select id="jma-typhoon"></select>
     </div>
   </div>
 
@@ -117,11 +101,11 @@
       <div class="tt-radius-row"><span class="tt-swatch tt-swatch--r64"></span><span class="tt-radius-row-label">Level 12 &middot; 64kt</span><span id="td-r64">&mdash;</span></div>
     </aside>
 
-    <aside class="tt-predict-panel" id="tt-predict-panel" aria-label="Prediction details"></aside>
+    <aside class="tt-predict-panel" id="tt-predict-panel" aria-label="Forecast details"></aside>
   </div>
 
   <p class="tt-season-hint">Whole-season view — every storm's track at once, colored by peak intensity. Click any track to open that storm.</p>
-  <p class="tt-predict-hint" id="tt-predict-hint">Prediction mode. <b>Month outlook</b> shows where storms have historically formed &amp; tracked that month (dots colored by ENSO phase) — a climatological expectation, not a forecast of specific storms. <b>Storm projection</b> extends a chosen storm forward on a persistence baseline. Neither uses a live data feed, which a static site can't provide.</p>
+  <p class="tt-predict-hint" id="tt-predict-hint">Live forecast mode. The map shows the <a href="https://www.jma.go.jp/bosai/map.html#contents=typhoon&amp;lang=en" target="_blank" rel="noopener">Japan Meteorological Agency</a>'s official 5-day forecast for each active Western Pacific typhoon: the observed track so far (white), the current gale/storm wind areas, and the forecast track with its growing <b>probability circles</b> (violet) — the real cone of uncertainty, reissued every few hours. Fetched straight from JMA; nothing here is simulated.</p>
 
   <div class="tt-scrubber">
     <button id="tt-play" class="tt-play-btn" type="button" aria-label="Play track animation">&#9654;</button>
