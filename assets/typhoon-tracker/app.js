@@ -874,6 +874,11 @@
      data, not a homemade approximation — it reissues every few hours.
      ------------------------------------------------------------------------- */
   var JMA_BASE = "https://www.jma.go.jp/bosai/typhoon/data/";
+  // Digital Typhoon (NII / Kitamoto lab) archives JMA best-track PER OBSERVATION
+  // — including the wind radii JMA's own live JSON omits for past positions.
+  // CORS-open, so we can read it from the browser. Its "Detailed Best Track
+  // Wind" (k) page is an HTML table we parse. DT id = "20" + JMA number.
+  var DT_WIND = "https://agora.ex.nii.ac.jp/digital-typhoon/summary/wnp/k/";
   var jmaCache = {};   // tcId -> parsed forecast
   var jmaList = [];    // parsed forecasts for all currently-active TCs
   var fcAnim = null;   // requestAnimationFrame id for the forecast sweep
@@ -976,6 +981,54 @@
     };
   }
 
+  // Parse Digital Typhoon's "Detailed Best Track Wind" HTML table into past
+  // observations with real wind radii. Columns are matched by header text (not
+  // fixed index) so it survives layout tweaks; "-" cells become null.
+  function parseDTWind(html) {
+    var doc = new DOMParser().parseFromString(html, "text/html");
+    var trs = Array.prototype.slice.call(doc.querySelectorAll("tr"));
+    // Read only DIRECT-child cells: the k-page nests tables, so plain
+    // querySelectorAll("td") on a wrapper row would pull in every nested cell.
+    function cellsOf(tr) {
+      return Array.prototype.map.call(tr.querySelectorAll(":scope > th, :scope > td"),
+        function (c) { return c.textContent.trim(); });
+    }
+    // Map columns from the actual header row (has "Lat." + the radius labels).
+    var headerCells = null;
+    for (var r = 0; r < trs.length; r++) {
+      var cells = cellsOf(trs[r]);
+      if (cells.length >= 10 && cells.indexOf("Lat.") !== -1 && cells.join("|").indexOf("Radius of Major Storm Axis") !== -1) {
+        headerCells = cells; break;
+      }
+    }
+    if (!headerCells) return null;
+    function col(label) { for (var i = 0; i < headerCells.length; i++) { if (headerCells[i].indexOf(label) !== -1) return i; } return -1; }
+    var ci = {
+      y: col("Year"), mo: col("Month"), d: col("Day"), h: col("Hour"),
+      lat: col("Lat"), lon: col("Long"), wind: col("Wind"),
+      storm: col("Radius of Major Storm Axis"), gale: col("Radius of Major Gale Axis")
+    };
+    if (ci.y < 0 || ci.lat < 0) return null;
+    function n(v) { return (v && v !== "-" && v !== "—" && !isNaN(Number(v))) ? Number(v) : null; }
+    var out = [];
+    trs.forEach(function (tr) {
+      var c = cellsOf(tr);
+      if (c.length < 10 || c.length > 30 || !/^\d{4}$/.test(c[ci.y] || "")) return;
+      var lat = n(c[ci.lat]), lon = n(c[ci.lon]);
+      if (lat == null || lon == null) return;
+      var sr = ci.storm >= 0 ? n(c[ci.storm]) : null;  // 50kt storm radius, nm
+      var gr = ci.gale >= 0 ? n(c[ci.gale]) : null;    // 30kt gale radius, nm
+      out.push({
+        timeMs: Date.UTC(+c[ci.y], (+c[ci.mo] || 1) - 1, +c[ci.d] || 1, +c[ci.h] || 0, 0, 0),
+        lat: lat, lon: lon,
+        windKt: ci.wind >= 0 ? n(c[ci.wind]) : null,
+        stormKm: sr != null ? Math.round(sr * 1.852) : null,
+        galeKm: gr != null ? Math.round(gr * 1.852) : null
+      });
+    });
+    return out.length ? out : null;
+  }
+
   function fetchJmaTc(tcId) {
     if (jmaCache[tcId]) return Promise.resolve(jmaCache[tcId]);
     return Promise.all([
@@ -983,8 +1036,20 @@
       fetch(JMA_BASE + tcId + "/forecast.json").then(function (r) { return r.json(); })
     ]).then(function (res) {
       var p = parseJma(tcId, res[0], res[1]);
-      if (p) jmaCache[tcId] = p;
-      return p;
+      if (!p) return null;
+      // Enrich the past leg with real wind radii from JMA best-track (via
+      // Digital Typhoon). Best-effort: if it fails, the past falls back to
+      // JMA's position-only observed track.
+      var dtId = /^\d{4}$/.test(p.number) ? "20" + p.number : null;
+      var dtPromise = dtId
+        ? fetch(DT_WIND + dtId + ".html.en").then(function (r) { return r.text(); })
+            .then(function (html) { return parseDTWind(html); }).catch(function () { return null; })
+        : Promise.resolve(null);
+      return dtPromise.then(function (past) {
+        p.past = past;
+        jmaCache[tcId] = p;
+        return p;
+      });
     }).catch(function () { return null; });
   }
 
@@ -1108,19 +1173,30 @@
     startForecastAnim(d);
   }
 
-  // One continuous timeline: the observed track (past, positions only — JMA's
-  // public feed carries no per-past-point radius/strength) spliced onto the
-  // forecast points (present + future, which DO carry the storm-warning radius
-  // and expected intensity). Past points get synthetic 6-hourly negative hours
-  // so the sweep moves through them at a sensible pace.
+  // One continuous timeline. The PAST leg comes from JMA best-track (via
+  // Digital Typhoon) when available — real position, wind, and storm radius per
+  // observation — hours measured back from the JMA analysis time. If that isn't
+  // available we fall back to JMA's position-only observed track. The forecast
+  // leg is the JMA forecast points (radius + expected intensity).
   function buildTimeline(d) {
-    var tl = [], obs = d.observed || [], N = obs.length;
-    for (var i = 0; i < N - 1; i++) {
-      tl.push({ h: -6 * (N - 1 - i), lat: obs[i][0], lon: obs[i][1], stormKm: null, windKt: null, cat: null });
+    var tl = [];
+    var baseMs = (d.points[0] && d.points[0].valid) ? Date.parse(d.points[0].valid.UTC) : null;
+    if (d.past && d.past.length && baseMs != null) {
+      d.past.forEach(function (o) {
+        if (o.timeMs >= baseMs - 1800000) return; // strictly before "now"
+        tl.push({ h: (o.timeMs - baseMs) / 3600000, lat: o.lat, lon: o.lon,
+          stormKm: o.stormKm, windKt: o.windKt });
+      });
+    } else {
+      var obs = d.observed || [], N = obs.length;
+      for (var i = 0; i < N - 1; i++) {
+        tl.push({ h: -6 * (N - 1 - i), lat: obs[i][0], lon: obs[i][1], stormKm: null, windKt: null });
+      }
     }
     d.points.forEach(function (p) {
-      tl.push({ h: p.h, lat: p.lat, lon: p.lon, stormKm: p.stormKm, windKt: p.windKt, cat: p.catEn });
+      tl.push({ h: p.h, lat: p.lat, lon: p.lon, stormKm: p.stormKm, windKt: p.windKt });
     });
+    tl.sort(function (a, b) { return a.h - b.h; });
     return tl;
   }
   function lerpMaybe(x, y, f) {
@@ -1141,9 +1217,8 @@
           h: t,
           lat: a.lat + (b.lat - a.lat) * f,
           lon: a.lon + (b.lon - a.lon) * f,
-          stormKm: t < 0 ? null : lerpMaybe(a.stormKm, b.stormKm, f),
-          windKt: t < 0 ? null : lerpMaybe(a.windKt, b.windKt, f),
-          cat: t < 0 ? null : (a.cat || b.cat)
+          stormKm: lerpMaybe(a.stormKm, b.stormKm, f),
+          windKt: lerpMaybe(a.windKt, b.windKt, f)
         };
       }
     }
@@ -1159,15 +1234,15 @@
   function updateSweepLive(p) {
     var el = document.getElementById("tt-fc-live");
     if (!el) return;
-    if (!p || p.stormKm == null) {
+    if (!p || p.windKt == null) {   // truly no data (pre-classification / no best-track)
       el.innerHTML = '<span class="tt-fc-live-dot tt-fc-live-dot--past"></span><span class="tt-fc-live-past">replaying observed track…</span>';
       return;
     }
     var tnum = tLabel(p.windKt);
-    var when = p.h <= 0.5 ? "now" : "+" + Math.round(p.h) + " h";
+    var when = p.h == null || Math.abs(p.h) < 0.5 ? "now" : (p.h < 0 ? "−" + Math.round(-p.h) + " h" : "+" + Math.round(p.h) + " h");
+    var rad = p.stormKm != null ? " · storm radius " + Math.round(p.stormKm) + " km" : "";
     el.innerHTML = '<span class="tt-fc-live-dot"></span>' + when +
-      " · ~" + Math.round(p.windKt) + " kt" + (tnum ? " · " + tnum : "") +
-      " · storm radius " + Math.round(p.stormKm) + " km";
+      " · ~" + Math.round(p.windKt) + " kt" + (tnum ? " · " + tnum : "") + rad;
   }
 
   // Sweep the marker + wind-radius circle across the whole timeline, then hold
@@ -1307,8 +1382,9 @@
       '<div class="tt-fc-pos">' + fmtLatLon(a.lat, a.lon) + (a.location ? " · " + translateLocation(a.location) : "") + "</div>" +
       '<div class="tt-fc-subhead">5-day forecast · T = Dvorak (± = 70% circle)</div>' +
       '<div class="tt-fc-rows">' + (rows || '<div class="tt-fc-row">No forecast points issued.</div>') + "</div>" +
-      '<div class="tt-pred-foot">Live from the <a href="https://www.jma.go.jp/bosai/map.html#contents=typhoon&lang=en" target="_blank" rel="noopener">Japan Meteorological Agency</a>' +
-        (issued ? ", issued " + issued + " JST" : "") + ". Reissued every few hours while a storm is active.</div>";
+      '<div class="tt-pred-foot">Forecast &amp; current: <a href="https://www.jma.go.jp/bosai/map.html#contents=typhoon&lang=en" target="_blank" rel="noopener">JMA</a>' +
+        (issued ? ", issued " + issued + " JST" : "") +
+        '. Past best-track radii via <a href="https://agora.ex.nii.ac.jp/digital-typhoon/" target="_blank" rel="noopener">Digital Typhoon</a> (NII). Reissued every few hours while a storm is active.</div>';
   }
 
   function predItem(label, value, sub) {
