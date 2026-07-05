@@ -30,9 +30,9 @@
 
   <div class="tt-radius-controls">
     <span class="tt-radius-label">Wind radius</span>
-    <label class="tt-check"><input type="checkbox" id="show-r34" checked><span class="tt-swatch tt-swatch--r34"></span>Gale &middot; 34kt</label>
-    <label class="tt-check"><input type="checkbox" id="show-r50" checked><span class="tt-swatch tt-swatch--r50"></span>Storm &middot; 50kt</label>
-    <label class="tt-check"><input type="checkbox" id="show-r64" checked><span class="tt-swatch tt-swatch--r64"></span>Typhoon &middot; 64kt</label>
+    <label class="tt-check" title="Beaufort force 7 wind circle (七級風圈) — JTWC's 34kt radius"><input type="checkbox" id="show-r34" checked><span class="tt-swatch tt-swatch--r34"></span>Level 7 &middot; 34kt</label>
+    <label class="tt-check" title="Beaufort force 10 wind circle (十級風圈) — JTWC's 50kt radius"><input type="checkbox" id="show-r50" checked><span class="tt-swatch tt-swatch--r50"></span>Level 10 &middot; 50kt</label>
+    <label class="tt-check" title="Beaufort force 12 wind circle (十二級風圈) — JTWC's 64kt radius"><input type="checkbox" id="show-r64" checked><span class="tt-swatch tt-swatch--r64"></span>Level 12 &middot; 64kt</label>
   </div>
 
   <div class="tt-stats" id="tt-stats"></div>
@@ -71,10 +71,10 @@
           <span class="tt-details-value tt-details-value--sm" id="td-pos">&mdash;</span>
         </div>
       </div>
-      <div class="tt-details-subhead">Wind radius (km, avg. of reported quadrants)</div>
-      <div class="tt-radius-row"><span class="tt-swatch tt-swatch--r34"></span><span class="tt-radius-row-label">Gale &middot; 34kt</span><span id="td-r34">&mdash;</span></div>
-      <div class="tt-radius-row"><span class="tt-swatch tt-swatch--r50"></span><span class="tt-radius-row-label">Storm &middot; 50kt</span><span id="td-r50">&mdash;</span></div>
-      <div class="tt-radius-row"><span class="tt-swatch tt-swatch--r64"></span><span class="tt-radius-row-label">Typhoon &middot; 64kt</span><span id="td-r64">&mdash;</span></div>
+      <div class="tt-details-subhead">Wind circle radius (km, avg. of reported quadrants)</div>
+      <div class="tt-radius-row"><span class="tt-swatch tt-swatch--r34"></span><span class="tt-radius-row-label">Level 7 &middot; 34kt</span><span id="td-r34">&mdash;</span></div>
+      <div class="tt-radius-row"><span class="tt-swatch tt-swatch--r50"></span><span class="tt-radius-row-label">Level 10 &middot; 50kt</span><span id="td-r50">&mdash;</span></div>
+      <div class="tt-radius-row"><span class="tt-swatch tt-swatch--r64"></span><span class="tt-radius-row-label">Level 12 &middot; 64kt</span><span id="td-r64">&mdash;</span></div>
     </aside>
   </div>
 
@@ -88,7 +88,7 @@
 
   <div class="tt-legend" id="tt-legend"></div>
 
-  <p class="tt-source-note">Track, intensity, and wind-radius data: <a href="https://www.ncei.noaa.gov/products/international-best-track-archive" target="_blank" rel="noopener noreferrer">IBTrACS v04r01</a> (NOAA NCEI), Western Pacific basin. Wind radii (34/50/64kt, per quadrant) are JTWC (USA agency) reports, which is why coverage starts in 2000 &mdash; systematic quadrant reporting didn't exist before then. Radius shapes interpolate between the four reported quadrant extents; treat them as an approximation, not a precise wind-field boundary. The Dvorak T-number is estimated from each point's wind speed via the standard Dvorak CI-number/wind-speed table — a standard approximation, not an independent satellite reading.</p>
+  <p class="tt-source-note">Track, intensity, and wind-radius data: <a href="https://www.ncei.noaa.gov/products/international-best-track-archive" target="_blank" rel="noopener noreferrer">IBTrACS v04r01</a> (NOAA NCEI), Western Pacific basin. Wind circle radii (Beaufort level 7/10/12 &mdash; JTWC's 34/50/64kt, per quadrant) are JTWC (USA agency) reports, which is why coverage starts in 2001 &mdash; systematic quadrant reporting didn't exist before then, for any storm in this archive, so it can't be extended back to 1985. Radius shapes interpolate between the four reported quadrant extents; treat them as an approximation, not a precise wind-field boundary. The Dvorak T-number is estimated from each point's wind speed via the standard Dvorak CI-number/wind-speed table — a standard approximation, not an independent satellite reading.</p>
 
 </div>
 <script src="app.js"></script>
