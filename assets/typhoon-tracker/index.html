@@ -52,7 +52,10 @@
       <div class="tt-details-top">
         <span class="tt-details-name" id="td-name">&mdash;</span>
         <span class="tt-details-time" id="td-time">&mdash;</span>
-        <span class="tt-details-cat" id="td-cat">&mdash;</span>
+        <div class="tt-details-badges">
+          <span class="tt-details-cat" id="td-cat">&mdash;</span>
+          <span class="tt-details-dvorak" title="Dvorak T-number, estimated from this point's wind speed via the standard Dvorak CI-number/wind-speed table — not an independent satellite analysis">T<span id="td-dvorak">&mdash;</span></span>
+        </div>
       </div>
       <div class="tt-details-grid">
         <div class="tt-details-item">
@@ -85,7 +88,7 @@
 
   <div class="tt-legend" id="tt-legend"></div>
 
-  <p class="tt-source-note">Track, intensity, and wind-radius data: <a href="https://www.ncei.noaa.gov/products/international-best-track-archive" target="_blank" rel="noopener noreferrer">IBTrACS v04r01</a> (NOAA NCEI), Western Pacific basin. Wind radii (34/50/64kt, per quadrant) are JTWC (USA agency) reports, which is why coverage starts in 2000 &mdash; systematic quadrant reporting didn't exist before then. Radius shapes interpolate between the four reported quadrant extents; treat them as an approximation, not a precise wind-field boundary.</p>
+  <p class="tt-source-note">Track, intensity, and wind-radius data: <a href="https://www.ncei.noaa.gov/products/international-best-track-archive" target="_blank" rel="noopener noreferrer">IBTrACS v04r01</a> (NOAA NCEI), Western Pacific basin. Wind radii (34/50/64kt, per quadrant) are JTWC (USA agency) reports, which is why coverage starts in 2000 &mdash; systematic quadrant reporting didn't exist before then. Radius shapes interpolate between the four reported quadrant extents; treat them as an approximation, not a precise wind-field boundary. The Dvorak T-number is estimated from each point's wind speed via the standard Dvorak CI-number/wind-speed table — a standard approximation, not an independent satellite reading.</p>
 
 </div>
 <script src="app.js"></script>

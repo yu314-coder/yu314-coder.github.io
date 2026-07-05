@@ -44,6 +44,7 @@
     dWind: document.getElementById("td-wind"),
     dPres: document.getElementById("td-pres"),
     dPos: document.getElementById("td-pos"),
+    dDvorak: document.getElementById("td-dvorak"),
     dR34: document.getElementById("td-r34"),
     dR50: document.getElementById("td-r50"),
     dR64: document.getElementById("td-r64")
@@ -282,6 +283,32 @@
      ------------------------------------------------------------------------- */
   function catFields() {
     return standard === "taiwan" ? { label: "ta", color: "tc" } : { label: "ca", color: "cc" };
+  }
+
+  // Dvorak Current Intensity (CI) number -> 1-minute max sustained wind (kt),
+  // the standard published table (Dvorak 1984 / operational JTWC use). We
+  // only have archived best-track wind here, not satellite cloud imagery, so
+  // the "T-number" shown is this table read in reverse and snapped to the
+  // real convention's 0.5 steps -- a standard approximation, not an
+  // independent analysis.
+  var DVORAK_TABLE = [
+    [1.0, 25], [1.5, 25], [2.0, 30], [2.5, 35], [3.0, 45], [3.5, 55],
+    [4.0, 65], [4.5, 77], [5.0, 90], [5.5, 102], [6.0, 115], [6.5, 127],
+    [7.0, 140], [7.5, 155], [8.0, 170]
+  ];
+  function dvorakTNumber(windKt) {
+    if (windKt == null || isNaN(windKt)) return null;
+    var lo = DVORAK_TABLE[0], hi = DVORAK_TABLE[DVORAK_TABLE.length - 1];
+    if (windKt <= lo[1]) return lo[0];
+    if (windKt >= hi[1]) return hi[0];
+    for (var i = 0; i < DVORAK_TABLE.length - 1; i++) {
+      var a = DVORAK_TABLE[i], b = DVORAK_TABLE[i + 1];
+      if (windKt >= a[1] && windKt <= b[1]) {
+        var t = (windKt - a[1]) / (b[1] - a[1]);
+        return Math.round((a[0] + (b[0] - a[0]) * t) * 2) / 2;
+      }
+    }
+    return null;
   }
 
   function buildMap() {
@@ -528,6 +555,7 @@
 
     tweenNumber("wind", els.dWind, pt.w, 0, "", animate);
     tweenNumber("pres", els.dPres, pt.p, 0, "", animate);
+    tweenNumber("dvorak", els.dDvorak, dvorakTNumber(pt.w), 1, "", animate);
 
     els.dPos.textContent =
       (pt.la != null ? Math.abs(pt.la).toFixed(1) + "°" + (pt.la >= 0 ? "N" : "S") : "—") +

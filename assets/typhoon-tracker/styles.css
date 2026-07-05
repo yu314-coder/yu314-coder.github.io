@@ -121,6 +121,16 @@ body {
 }
 @keyframes tt-livedot { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
 
+.tt-details-badges { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tt-details-dvorak {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  padding: 5px 9px; border-radius: 999px;
+  border: 1px solid var(--line); background: rgba(255,255,255,0.04);
+  cursor: help;
+}
+
 .tt-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .tt-details-item { display: flex; flex-direction: column; gap: 2px; }
 .tt-details-item--wide { grid-column: 1 / -1; }
