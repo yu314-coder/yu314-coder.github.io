@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Typhoon Tracks</title>
+<script src="https://cdn.plot.ly/plotly-geo-2.35.2.min.js" charset="utf-8"></script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="tt-app">
+
+  <div class="tt-controls">
+    <div class="tt-field">
+      <label for="season-select">Season</label>
+      <select id="season-select"></select>
+    </div>
+    <div class="tt-field tt-field--grow">
+      <label for="storm-select">Typhoon</label>
+      <select id="storm-select"></select>
+    </div>
+    <div class="tt-field">
+      <label for="standard-select">Classification</label>
+      <select id="standard-select">
+        <option value="atlantic">Saffir&#8211;Simpson&#8211;style</option>
+        <option value="taiwan">Taiwan (CWA)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="tt-radius-controls">
+    <span class="tt-radius-label">Wind radius</span>
+    <label class="tt-check"><input type="checkbox" id="show-r34" checked><span class="tt-swatch tt-swatch--r34"></span>Gale &middot; 34kt</label>
+    <label class="tt-check"><input type="checkbox" id="show-r50" checked><span class="tt-swatch tt-swatch--r50"></span>Storm &middot; 50kt</label>
+    <label class="tt-check"><input type="checkbox" id="show-r64" checked><span class="tt-swatch tt-swatch--r64"></span>Typhoon &middot; 64kt</label>
+  </div>
+
+  <div class="tt-stats" id="tt-stats"></div>
+
+  <div id="tt-map" class="tt-map"></div>
+
+  <div class="tt-scrubber">
+    <button id="tt-play" class="tt-play-btn" type="button" aria-label="Play track animation">&#9654;</button>
+    <input type="range" id="tt-slider" min="0" max="0" value="0" step="1" aria-label="Track position">
+    <span id="tt-time-readout" class="tt-time-readout"></span>
+  </div>
+
+  <div id="tt-chart" class="tt-chart"></div>
+
+  <div class="tt-legend" id="tt-legend"></div>
+
+  <p class="tt-source-note">Track, intensity, and wind-radius data: <a href="https://www.ncei.noaa.gov/products/international-best-track-archive" target="_blank" rel="noopener noreferrer">IBTrACS v04r01</a> (NOAA NCEI), Western Pacific basin. Wind radii (34/50/64kt, per quadrant) are JTWC (USA agency) reports, which is why coverage starts in 2000 &mdash; systematic quadrant reporting didn't exist before then. Radius shapes interpolate between the four reported quadrant extents; treat them as an approximation, not a precise wind-field boundary.</p>
+
+</div>
+<script src="app.js"></script>
+</body>
+</html>

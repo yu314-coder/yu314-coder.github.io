@@ -591,6 +591,7 @@ body.theme-dark .tracker-shell {
   box-shadow: var(--shadow-md);
 }
 #pypi-frame { width: 100%; border: 0; border-radius: var(--r); display: block; min-height: 1200px; background: transparent; }
+#typhoon-frame { width: 100%; border: 0; border-radius: var(--r); display: block; min-height: 1500px; background: transparent; }
 .tracker-note { font-size: 0.85rem; color: var(--ink-3); }
 .tracker-note a { color: var(--accent); }
 

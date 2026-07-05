@@ -1,0 +1,116 @@
+:root {
+  color-scheme: dark;
+  --bg: transparent;
+  --panel: #131a2e;
+  --line: #2a3450;
+  --text: #e8ecf6;
+  --muted: #98a2bd;
+  --accent: #22d3ee;
+  --accent-2: #a855f7;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: transparent;
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.tt-app { padding: 4px 2px 8px; }
+
+/* Controls row */
+.tt-controls {
+  display: flex; flex-wrap: wrap; gap: 14px;
+  margin-bottom: 14px;
+}
+.tt-field { display: flex; flex-direction: column; gap: 4px; min-width: 140px; }
+.tt-field--grow { flex: 1 1 260px; }
+.tt-field label {
+  font-size: 11px; font-weight: 650; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--muted);
+}
+.tt-field select {
+  background: #0d1426; color: var(--text);
+  border: 1px solid var(--line); border-radius: 8px;
+  padding: 9px 10px; font-size: 13.5px; font-family: inherit;
+}
+.tt-field select:focus { outline: 2px solid rgba(34,211,238,0.3); outline-offset: 1px; }
+
+/* Radius toggle row */
+.tt-radius-controls {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 16px;
+  margin-bottom: 14px; padding: 10px 14px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+}
+.tt-radius-label { font-size: 11px; font-weight: 650; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.tt-check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; color: var(--text); }
+.tt-check input { accent-color: var(--accent); }
+.tt-swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.tt-swatch--r34 { background: rgba(0,220,220,0.6); border: 1px solid rgba(0,220,220,0.9); }
+.tt-swatch--r50 { background: rgba(255,180,0,0.6); border: 1px solid rgba(255,180,0,0.9); }
+.tt-swatch--r64 { background: rgba(255,60,60,0.6); border: 1px solid rgba(255,60,60,0.9); }
+
+/* Stats strip */
+.tt-stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px; margin-bottom: 14px;
+}
+.tt-stat {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 14px;
+}
+.tt-stat-label { font-size: 10.5px; font-weight: 650; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.tt-stat-value { font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
+
+/* Map */
+.tt-map {
+  width: 100%; min-height: 460px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  margin-bottom: 12px; overflow: hidden;
+}
+.tt-error { padding: 40px; text-align: center; color: var(--muted); }
+
+/* Scrubber */
+.tt-scrubber {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 16px; padding: 10px 14px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+}
+.tt-play-btn {
+  flex: none; width: 36px; height: 36px; border-radius: 999px;
+  background: linear-gradient(120deg, #22d3ee, #a855f7);
+  color: #06121c; border: none; font-size: 13px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.tt-play-btn:hover { filter: brightness(1.08); }
+#tt-slider { flex: 1; accent-color: var(--accent); }
+.tt-time-readout {
+  flex: none; font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px; color: var(--muted); white-space: nowrap;
+  min-width: 220px; text-align: right;
+}
+
+/* Chart */
+.tt-chart {
+  width: 100%; min-height: 220px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  margin-bottom: 14px;
+}
+
+/* Legend */
+.tt-legend { display: flex; flex-wrap: wrap; gap: 12px 18px; margin-bottom: 14px; }
+.tt-legend-item { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.tt-legend-swatch { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+
+.tt-source-note { font-size: 12px; color: var(--muted); line-height: 1.6; margin: 0; }
+.tt-source-note a { color: var(--accent); }
+
+@media (max-width: 640px) {
+  .tt-field { min-width: 100%; }
+  .tt-time-readout { min-width: 0; text-align: left; }
+  .tt-scrubber { flex-wrap: wrap; }
+}
