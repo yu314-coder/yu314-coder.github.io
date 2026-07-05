@@ -37,7 +37,34 @@
 
   <div class="tt-stats" id="tt-stats"></div>
 
-  <div id="tt-map" class="tt-map"></div>
+  <div class="tt-mapwrap">
+    <div id="tt-map" class="tt-map"></div>
+
+    <aside class="tt-details" id="tt-details" aria-label="Live track details">
+      <div class="tt-details-top">
+        <span class="tt-details-time" id="td-time">&mdash;</span>
+        <span class="tt-details-cat" id="td-cat">&mdash;</span>
+      </div>
+      <div class="tt-details-grid">
+        <div class="tt-details-item">
+          <span class="tt-details-label">Wind</span>
+          <span class="tt-details-value"><span id="td-wind">&mdash;</span><small>kt</small></span>
+        </div>
+        <div class="tt-details-item">
+          <span class="tt-details-label">Pressure</span>
+          <span class="tt-details-value"><span id="td-pres">&mdash;</span><small>mb</small></span>
+        </div>
+        <div class="tt-details-item tt-details-item--wide">
+          <span class="tt-details-label">Position</span>
+          <span class="tt-details-value tt-details-value--sm" id="td-pos">&mdash;</span>
+        </div>
+      </div>
+      <div class="tt-details-subhead">Wind radius (km, avg. of reported quadrants)</div>
+      <div class="tt-radius-row"><span class="tt-swatch tt-swatch--r34"></span><span class="tt-radius-row-label">Gale &middot; 34kt</span><span id="td-r34">&mdash;</span></div>
+      <div class="tt-radius-row"><span class="tt-swatch tt-swatch--r50"></span><span class="tt-radius-row-label">Storm &middot; 50kt</span><span id="td-r50">&mdash;</span></div>
+      <div class="tt-radius-row"><span class="tt-swatch tt-swatch--r64"></span><span class="tt-radius-row-label">Typhoon &middot; 64kt</span><span id="td-r64">&mdash;</span></div>
+    </aside>
+  </div>
 
   <div class="tt-scrubber">
     <button id="tt-play" class="tt-play-btn" type="button" aria-label="Play track animation">&#9654;</button>

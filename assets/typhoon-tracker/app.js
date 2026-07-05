@@ -29,7 +29,15 @@
     play: document.getElementById("tt-play"),
     slider: document.getElementById("tt-slider"),
     readout: document.getElementById("tt-time-readout"),
-    legend: document.getElementById("tt-legend")
+    legend: document.getElementById("tt-legend"),
+    dTime: document.getElementById("td-time"),
+    dCat: document.getElementById("td-cat"),
+    dWind: document.getElementById("td-wind"),
+    dPres: document.getElementById("td-pres"),
+    dPos: document.getElementById("td-pos"),
+    dR34: document.getElementById("td-r34"),
+    dR50: document.getElementById("td-r50"),
+    dR64: document.getElementById("td-r64")
   };
 
   var ATLANTIC_LEGEND = [
@@ -368,6 +376,79 @@
       "  ·  " + (pt.w != null ? pt.w + " kt" : "n/a") +
       (pt.p != null ? "  ·  " + pt.p + " mb" : "") +
       "  ·  " + (pt[f.label] || "unclassified");
+    updateDetailsPanel(pt, f);
+  }
+
+  /* ---------------------------------------------------------------------------
+     Live details panel — numbers tween to their new value instead of
+     snapping, so scrubbing/playing reads as motion, not a series of jumps.
+     Each tracked field keeps its own token; a new tween for the same field
+     invalidates the last one so rapid scrubbing doesn't stack animations.
+     ------------------------------------------------------------------------- */
+  var tweenState = {};
+  function tweenNumber(key, el, toVal, decimals, suffix) {
+    if (toVal == null || isNaN(toVal)) {
+      tweenState[key] = null;
+      el.textContent = "—";
+      return;
+    }
+    var prev = tweenState[key];
+    var fromVal = prev && prev.current != null ? prev.current : toVal;
+    var token = {};
+    tweenState[key] = { current: fromVal, token: token };
+    var duration = 320;
+
+    // Write the starting frame synchronously — the field must never depend
+    // on a rAF callback firing just to show *a* value (a backgrounded tab,
+    // or simply the very first paint, would otherwise leave it blank).
+    el.textContent = fromVal.toFixed(decimals) + (suffix || "");
+    if (fromVal === toVal) return;
+
+    var start = null;
+    function step(ts) {
+      if (!tweenState[key] || tweenState[key].token !== token) return;
+      if (start === null) start = ts;
+      var p = Math.min((ts - start) / duration, 1);
+      var eased = 1 - Math.pow(1 - p, 3);
+      var val = fromVal + (toVal - fromVal) * eased;
+      tweenState[key].current = val;
+      el.textContent = val.toFixed(decimals) + (suffix || "");
+      if (p < 1) {
+        requestAnimationFrame(step);
+      } else {
+        tweenState[key].current = toVal;
+        el.textContent = toVal.toFixed(decimals) + (suffix || "");
+      }
+    }
+    requestAnimationFrame(step);
+  }
+
+  function avgRadius(quads) {
+    if (!quads) return null;
+    var avail = quads.filter(function (v) { return v != null; });
+    return avail.length ? avail.reduce(function (a, b) { return a + b; }, 0) / avail.length : null;
+  }
+
+  function updateDetailsPanel(pt, f) {
+    els.dTime.textContent = pt.t ? pt.t.replace("T", " ") : "—";
+
+    var catLabel = pt[f.label] || "Unclassified";
+    var catColor = pt[f.color] || "rgb(150,190,215)";
+    els.dCat.textContent = catLabel;
+    els.dCat.style.color = catColor;
+    els.dCat.style.background = catColor.replace("rgb(", "rgba(").replace(")", ",0.16)");
+
+    tweenNumber("wind", els.dWind, pt.w, 0);
+    tweenNumber("pres", els.dPres, pt.p, 0);
+
+    els.dPos.textContent =
+      (pt.la != null ? Math.abs(pt.la).toFixed(1) + "°" + (pt.la >= 0 ? "N" : "S") : "—") +
+      "   " +
+      (pt.lo != null ? Math.abs(pt.lo).toFixed(1) + "°" + (pt.lo >= 0 ? "E" : "W") : "—");
+
+    tweenNumber("r34", els.dR34, avgRadius(pt.r3), 0, " km");
+    tweenNumber("r50", els.dR50, avgRadius(pt.r5), 0, " km");
+    tweenNumber("r64", els.dR64, avgRadius(pt.r6), 0, " km");
   }
 
   /* ---------------------------------------------------------------------------
