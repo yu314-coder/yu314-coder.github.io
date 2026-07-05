@@ -65,6 +65,57 @@ body {
 }
 .tt-stat-label { font-size: 10.5px; font-weight: 650; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
 .tt-stat-value { font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.tt-stat--hot { border-color: rgba(255,64,196,0.55); background: linear-gradient(180deg, rgba(255,64,196,0.13), var(--panel)); }
+.tt-stat--hot .tt-stat-value { color: #ff8fd8; }
+
+/* Storm | Season segmented toggle */
+.tt-segmented { display: inline-flex; background: #0d1426; border: 1px solid var(--line); border-radius: 8px; padding: 2px; }
+.tt-seg {
+  border: 0; background: transparent; color: var(--muted);
+  font: inherit; font-size: 13px; font-weight: 650; line-height: 1;
+  padding: 8px 14px; border-radius: 6px; cursor: pointer;
+}
+.tt-seg.is-active { background: var(--accent); color: #04121a; }
+.tt-seg:not(.is-active):hover { color: var(--text); }
+
+/* ENSO badge */
+.tt-enso-badge {
+  display: inline-flex; align-items: center; height: 38px; padding: 0 12px;
+  border-radius: 8px; font-size: 13px; font-weight: 650; white-space: nowrap;
+  background: #0d1426; border: 1px solid var(--line); color: var(--muted);
+}
+.tt-enso--nino { color: #ffb4a2; border-color: rgba(255,99,71,0.5); background: rgba(255,99,71,0.12); }
+.tt-enso--nina { color: #a2c8ff; border-color: rgba(56,152,255,0.5); background: rgba(56,152,255,0.12); }
+.tt-enso--neutral { color: #c7d0e0; background: rgba(150,170,200,0.1); }
+
+/* Forecast toggle bits in the radius row */
+.tt-radius-sep { width: 1px; height: 20px; background: var(--line); }
+.tt-swatch--fc { background: rgba(124,58,237,0.5); border: 1px solid rgba(196,181,253,0.9); }
+
+/* Season-overview mode: hide the per-storm chrome, show a hint */
+.tt-season-hint { display: none; margin: 0 0 12px; font-size: 12.5px; color: var(--muted); }
+.tt-app.is-season .tt-season-hint { display: block; }
+.tt-app.is-season .tt-radius-controls,
+.tt-app.is-season .tt-stats,
+.tt-app.is-season .tt-scrubber,
+.tt-app.is-season .tt-chart,
+.tt-app.is-season .tt-details { display: none; }
+
+/* Season climatology panel */
+.tt-clim { margin: 6px 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.tt-clim > summary {
+  cursor: pointer; padding: 12px 16px; font-size: 13px; font-weight: 650;
+  color: var(--accent); list-style: none;
+}
+.tt-clim > summary::-webkit-details-marker { display: none; }
+.tt-clim > summary::before { content: "\25B8\00A0"; }
+.tt-clim[open] > summary::before { content: "\25BE\00A0"; }
+.tt-clim-chart { width: 100%; min-height: 250px; padding: 0 8px; }
+.tt-clim-note { margin: 0; padding: 8px 16px 14px; font-size: 11.5px; color: var(--muted); }
+.tt-clim-key { font-weight: 700; padding: 0 1px; }
+.tt-clim-key--nino { color: #ff6347; }
+.tt-clim-key--nina { color: #3898ff; }
+.tt-clim-key--neutral { color: #9db0cc; }
 
 /* Map + live details, side by side */
 .tt-mapwrap { display: flex; gap: 12px; margin-bottom: 12px; align-items: stretch; }

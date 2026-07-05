@@ -26,6 +26,17 @@
         <option value="taiwan">Taiwan (CWA)</option>
       </select>
     </div>
+    <div class="tt-field">
+      <label>View</label>
+      <div class="tt-segmented" role="group" aria-label="Map view mode">
+        <button type="button" id="tt-view-storm" class="tt-seg is-active" aria-pressed="true">Storm</button>
+        <button type="button" id="tt-view-season" class="tt-seg" aria-pressed="false">Season</button>
+      </div>
+    </div>
+    <div class="tt-field">
+      <label>ENSO (autumn)</label>
+      <span class="tt-enso-badge" id="tt-enso">&mdash;</span>
+    </div>
   </div>
 
   <div class="tt-radius-controls">
@@ -33,6 +44,8 @@
     <label class="tt-check" title="Beaufort force 7 wind circle (七級風圈) — JTWC's 34kt radius"><input type="checkbox" id="show-r34" checked><span class="tt-swatch tt-swatch--r34"></span>Level 7 &middot; 34kt</label>
     <label class="tt-check" title="Beaufort force 10 wind circle (十級風圈) — JTWC's 50kt radius"><input type="checkbox" id="show-r50" checked><span class="tt-swatch tt-swatch--r50"></span>Level 10 &middot; 50kt</label>
     <label class="tt-check" title="Beaufort force 12 wind circle (十二級風圈) — JTWC's 64kt radius"><input type="checkbox" id="show-r64" checked><span class="tt-swatch tt-swatch--r64"></span>Level 12 &middot; 64kt</label>
+    <span class="tt-radius-sep" aria-hidden="true"></span>
+    <label class="tt-check" title="Persistence baseline: projects the storm forward at its current heading &amp; speed, with a cone sized to typical average track error. A naive reference forecast, not a skilful one."><input type="checkbox" id="show-forecast"><span class="tt-swatch tt-swatch--fc"></span>Forecast cone</label>
   </div>
 
   <div class="tt-stats" id="tt-stats"></div>
@@ -78,6 +91,8 @@
     </aside>
   </div>
 
+  <p class="tt-season-hint">Whole-season view — every storm's track at once, colored by peak intensity. Click any track to open that storm.</p>
+
   <div class="tt-scrubber">
     <button id="tt-play" class="tt-play-btn" type="button" aria-label="Play track animation">&#9654;</button>
     <input type="range" id="tt-slider" min="0" max="0" value="0" step="1" aria-label="Track position">
@@ -88,7 +103,13 @@
 
   <div class="tt-legend" id="tt-legend"></div>
 
-  <p class="tt-source-note">Track, intensity, and wind-radius data: <a href="https://www.ncei.noaa.gov/products/international-best-track-archive" target="_blank" rel="noopener noreferrer">IBTrACS v04r01</a> (NOAA NCEI), Western Pacific basin. Wind circle radii (Beaufort level 7/10/12 &mdash; JTWC's 34/50/64kt, per quadrant) are JTWC (USA agency) reports, which is why coverage starts in 2001 &mdash; systematic quadrant reporting didn't exist before then, for any storm in this archive, so it can't be extended back to 1985. Radius shapes interpolate between the four reported quadrant extents; treat them as an approximation, not a precise wind-field boundary. The Dvorak T-number is estimated from each point's wind speed via the standard Dvorak CI-number/wind-speed table — a standard approximation, not an independent satellite reading.</p>
+  <details class="tt-clim" id="tt-clim">
+    <summary>Season climatology &mdash; storms &amp; energy by year, 1985&ndash;present</summary>
+    <div id="tt-clim-chart" class="tt-clim-chart"></div>
+    <p class="tt-clim-note">Points = named storms per season, each colored by that autumn's ENSO phase (<span class="tt-clim-key tt-clim-key--nino">El Ni&ntilde;o</span> <span class="tt-clim-key tt-clim-key--nina">La Ni&ntilde;a</span> <span class="tt-clim-key tt-clim-key--neutral">Neutral</span>). Purple line = seasonal ACE (accumulated cyclone energy). Click a point to jump to that season.</p>
+  </details>
+
+  <p class="tt-source-note">Track, intensity, and wind-radius data: <a href="https://www.ncei.noaa.gov/products/international-best-track-archive" target="_blank" rel="noopener noreferrer">IBTrACS v04r01</a> (NOAA NCEI), Western Pacific basin. Wind circle radii (Beaufort level 7/10/12 &mdash; JTWC's 34/50/64kt, per quadrant) are JTWC (USA agency) reports, which is why coverage starts in 2001 &mdash; systematic quadrant reporting didn't exist before then, for any storm in this archive, so it can't be extended back to 1985. Radius shapes interpolate between the four reported quadrant extents; treat them as an approximation, not a precise wind-field boundary. The Dvorak T-number is estimated from each point's wind speed via the standard Dvorak CI-number/wind-speed table — a standard approximation, not an independent satellite reading. ACE, rapid intensification (&ge;30&nbsp;kt/24&nbsp;h), and the season climatology are all computed from this same best-track wind record. The <strong>forecast cone</strong> is a persistence baseline — it simply projects the storm's current heading and speed forward, with a cone sized to typical average track error; it is the naive benchmark real forecasts are measured against, shown to contrast with the actual track, not a skilful prediction. ENSO tags use real NOAA CPC ASO ONI values.</p>
 
 </div>
 <script src="app.js"></script>
