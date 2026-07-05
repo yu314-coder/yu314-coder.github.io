@@ -165,9 +165,8 @@ input {
   background: #fff;
 }
 
-/* Package field's little pixel companion — stands beside the input,
-   feet grounded on its baseline, like a small buddy rather than an
-   icon floating over the text. */
+/* Byte, the robot companion — stands beside the package field, watches your
+   cursor, and reacts. Click it for a little hop. */
 .package-field-row {
   display: flex;
   align-items: flex-end;
@@ -180,10 +179,11 @@ input {
 }
 #pypi-buddy {
   flex: 0 0 auto;
-  width: 48px;
-  height: 48px;
-  pointer-events: none;
-  filter: drop-shadow(0 2px 3px rgba(19, 26, 46, 0.25));
+  width: 54px;
+  height: 54px;
+  margin-bottom: -4px;
+  cursor: pointer;
+  pointer-events: auto;
 }
 
 input:focus {
