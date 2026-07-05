@@ -24,9 +24,12 @@
         </div>
 
         <form id="tracker-form" class="controls">
-          <label>
+          <label class="package-field">
             Package
-            <input id="package" name="package" value="rmt-denoise" autocomplete="off" />
+            <span class="package-field-row">
+              <input id="package" name="package" value="rmt-denoise" autocomplete="off" />
+              <canvas id="pypi-buddy" width="64" height="64" aria-hidden="true"></canvas>
+            </span>
           </label>
           <label>
             Start
@@ -165,6 +168,7 @@
     </main>
 
     <script src="app.js"></script>
+    <script src="creature.js"></script>
     <script>
       // Quick-pick chips: fill the package field and run the analysis
       document.querySelectorAll('.chip').forEach((chip) => {

@@ -165,6 +165,27 @@ input {
   background: #fff;
 }
 
+/* Package field's little pixel companion — stands beside the input,
+   feet grounded on its baseline, like a small buddy rather than an
+   icon floating over the text. */
+.package-field-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.package-field-row input {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+}
+#pypi-buddy {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 3px rgba(19, 26, 46, 0.25));
+}
+
 input:focus {
   border-color: var(--accent);
   outline: 3px solid rgba(23, 107, 135, 0.16);
