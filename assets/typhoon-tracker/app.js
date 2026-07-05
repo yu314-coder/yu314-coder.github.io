@@ -41,6 +41,8 @@
     fcPlay: document.getElementById("tt-fc-play"),
     fcReplay: document.getElementById("tt-fc-replay"),
     fcSpeed: document.getElementById("tt-fc-speed"),
+    fcSlider: document.getElementById("tt-fc-slider"),
+    fcTime: document.getElementById("tt-fc-time"),
     viewStorm: document.getElementById("tt-view-storm"),
     viewSeason: document.getElementById("tt-view-season"),
     enso: document.getElementById("tt-enso"),
@@ -572,14 +574,16 @@
   function geoLayout() {
     return {
       geo: {
+        resolution: 50,   // higher-detail coastlines (NCDR-like), vs default 110
         projection: { type: "natural earth", scale: DEFAULT_GEO.scale },
         center: { lon: DEFAULT_GEO.lon, lat: DEFAULT_GEO.lat },
         lonaxis: { range: DEFAULT_GEO.lonRange.slice() },
         lataxis: { range: DEFAULT_GEO.latRange.slice() },
-        showland: true, landcolor: "rgb(46,54,72)",
+        showland: true, landcolor: "rgb(44,52,70)",
         showocean: true, oceancolor: "rgb(9,12,19)",
-        showcountries: true, countrycolor: "rgba(255,255,255,0.14)",
-        coastlinecolor: "rgba(255,255,255,0.22)",
+        showcountries: true, countrycolor: "rgba(255,255,255,0.13)",
+        coastlinecolor: "rgba(150,180,220,0.35)", coastlinewidth: 0.8,
+        showlakes: true, lakecolor: "rgb(9,12,19)",
         showframe: false,
         bgcolor: "rgba(0,0,0,0)"
       },
@@ -1176,6 +1180,27 @@
   function cancelForecastAnim() {
     if (fcAnim) { cancelAnimationFrame(fcAnim); fcAnim = null; }
   }
+  function formatSweepTime(t) {
+    if (!fcState || fcState.baseMs == null) {
+      return Math.abs(t) < 0.5 ? "now" : (t > 0 ? "+" : "−") + Math.round(Math.abs(t)) + "h";
+    }
+    var d = new Date(fcState.baseMs + t * 3600000);
+    var mm = ("0" + (d.getUTCMonth() + 1)).slice(-2), dd = ("0" + d.getUTCDate()).slice(-2);
+    var hh = ("0" + d.getUTCHours()).slice(-2);
+    var rel = Math.abs(t) < 0.5 ? "now" : (t > 0 ? "+" : "−") + Math.round(Math.abs(t)) + "h";
+    return mm + "-" + dd + " " + hh + "Z · " + rel;
+  }
+  // Render the sweep (marker + wind-radius circle + live readout) at timeline
+  // hour t. syncSlider=false while the user is dragging the slider (so we don't
+  // fight their input). Shared by the animation loop and the scrubber.
+  function sweepTo(t, pulse, syncSlider) {
+    if (!fcState) return;
+    var p = tlInterp(fcState.tl, t);
+    restyleSweep(p.lat, p.lon, p.stormKm || 0, pulse);
+    updateSweepLive(p);
+    if (els.fcTime) els.fcTime.textContent = formatSweepTime(t);
+    if (syncSlider !== false && els.fcSlider) els.fcSlider.value = t;
+  }
   function fcFrame(ts) {
     var s = fcState;
     if (!s || appMode !== "predict" || s.paused) { fcAnim = null; return; }
@@ -1187,9 +1212,7 @@
       s.t += (s.t < 0 ? s.pastRate : s.futureRate) * s.speed * dt;
       if (s.t >= s.endH) { s.t = s.endH; s.holdUntil = ts + FC_HOLD_SECONDS * 1000; }
     }
-    var p = tlInterp(s.tl, s.t);
-    restyleSweep(p.lat, p.lon, p.stormKm || 0, 11 + Math.sin(ts / 180) * 2);
-    updateSweepLive(p);
+    sweepTo(s.t, 11 + Math.sin(ts / 180) * 2, true);
     fcAnim = requestAnimationFrame(fcFrame);
   }
   function startForecastAnim(d) {
@@ -1199,17 +1222,18 @@
     var startH = tl[0].h, endH = tl[tl.length - 1].h;
     var reduced = false;
     try { reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+    var baseMs = (d.points[0] && d.points[0].valid) ? Date.parse(d.points[0].valid.UTC) : null;
     fcState = {
-      tl: tl, startH: startH, endH: endH,
+      tl: tl, startH: startH, endH: endH, baseMs: baseMs,
       pastRate: Math.max(1, -startH) / FC_PAST_SECONDS,
       futureRate: (endH > 0 ? endH : 1) / FC_FUTURE_SECONDS,
       t: startH, holdUntil: 0, lastTs: null, speed: 1,
       paused: reduced || endH <= 0
     };
+    if (els.fcSlider) { els.fcSlider.min = startH; els.fcSlider.max = endH; els.fcSlider.value = fcState.t; }
     if (fcState.paused) {
-      var nowPt = tlInterp(tl, Math.max(0, endH));
-      restyleSweep(nowPt.lat, nowPt.lon, nowPt.stormKm || 0, 11);
-      updateSweepLive(nowPt);
+      fcState.t = Math.max(0, endH);
+      sweepTo(fcState.t, 11, true);
     } else {
       fcAnim = requestAnimationFrame(fcFrame);
     }
@@ -1346,6 +1370,14 @@
   if (els.fcPlay) els.fcPlay.addEventListener("click", toggleForecastPlay);
   if (els.fcReplay) els.fcReplay.addEventListener("click", replayForecastAnim);
   if (els.fcSpeed) els.fcSpeed.addEventListener("click", cycleForecastSpeed);
+  if (els.fcSlider) els.fcSlider.addEventListener("input", function () {
+    if (!fcState) return;
+    fcState.paused = true; fcState.holdUntil = 0; fcState.lastTs = null;
+    cancelForecastAnim();
+    syncPlayBtn();
+    fcState.t = Number(els.fcSlider.value);
+    sweepTo(fcState.t, 11, false); // false: don't write back to the slider being dragged
+  });
 
   /* ---- Track controls ---------------------------------------------------- */
   els.season.addEventListener("change", function () {

@@ -109,7 +109,8 @@
     <button type="button" id="tt-fc-play" aria-label="Pause forecast animation">&#9208;</button>
     <button type="button" id="tt-fc-replay" aria-label="Replay from start">&#8634;</button>
     <button type="button" id="tt-fc-speed" aria-label="Playback speed">1&times;</button>
-    <span class="tt-fc-controls-label">forecast replay</span>
+    <input type="range" id="tt-fc-slider" class="tt-fc-slider" min="0" max="1" value="0" step="any" aria-label="Scrub forecast timeline">
+    <span class="tt-fc-time" id="tt-fc-time"></span>
   </div>
 
   <p class="tt-predict-hint" id="tt-predict-hint">Live forecast mode, straight from the <a href="https://www.jma.go.jp/bosai/map.html#contents=typhoon&amp;lang=en" target="_blank" rel="noopener">Japan Meteorological Agency</a>. The gold marker replays the storm's whole life — first its <b>observed track</b> (white), then, from now on, its <b>forecast</b> track with the growing orange <b>storm-force wind radius</b> and a live strength readout (expected wind &amp; Dvorak number). Violet rings are the forecast <b>probability circles</b> (position uncertainty). Note: JMA's public feed carries wind radius &amp; intensity only for now and the forecast, not for past positions, so the observed leg replays as track only. Nothing here is simulated.</p>
