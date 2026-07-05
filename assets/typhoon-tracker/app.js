@@ -38,6 +38,9 @@
     typhoonSelect: document.getElementById("jma-typhoon"),
     predictPanel: document.getElementById("tt-predict-panel"),
     predictHint: document.getElementById("tt-predict-hint"),
+    fcPlay: document.getElementById("tt-fc-play"),
+    fcReplay: document.getElementById("tt-fc-replay"),
+    fcSpeed: document.getElementById("tt-fc-speed"),
     viewStorm: document.getElementById("tt-view-storm"),
     viewSeason: document.getElementById("tt-view-season"),
     enso: document.getElementById("tt-enso"),
@@ -887,6 +890,42 @@
 
   function num(v) { return (v == null || v === "" || isNaN(Number(v))) ? null : Number(v); }
 
+  // JMA reports the storm's location in Japanese (e.g. "沖縄の南東海上").
+  // Translate compositionally: a base place + an optional direction, so the
+  // English UI reads naturally; fall back to JMA's own string if unknown.
+  var LOC_PLACE = {
+    "マリアナ諸島": "the Mariana Islands", "沖縄": "Okinawa", "沖縄本島": "Okinawa",
+    "硫黄島": "Iwo To", "南大東島": "Minamidaito", "大東島": "the Daito Islands",
+    "台湾": "Taiwan", "フィリピン": "the Philippines", "ルソン島": "Luzon",
+    "小笠原諸島": "the Ogasawara Islands", "父島": "Chichijima", "母島": "Hahajima",
+    "宮古島": "Miyakojima", "石垣島": "Ishigaki", "与那国島": "Yonaguni",
+    "奄美大島": "Amami-Oshima", "奄美": "Amami", "種子島": "Tanegashima", "屋久島": "Yakushima",
+    "九州": "Kyushu", "四国": "Shikoku", "本州": "Honshu", "北海道": "Hokkaido", "日本": "Japan",
+    "朝鮮半島": "the Korean Peninsula", "済州島": "Jeju", "香港": "Hong Kong",
+    "海南島": "Hainan", "ベトナム": "Vietnam", "中国": "China",
+    "南シナ海": "the South China Sea", "東シナ海": "the East China Sea",
+    "黄海": "the Yellow Sea", "日本海": "the Sea of Japan", "太平洋": "the Pacific"
+  };
+  var LOC_DIR = {
+    "南": "south", "北": "north", "東": "east", "西": "west",
+    "南東": "southeast", "南西": "southwest", "北東": "northeast", "北西": "northwest",
+    "南南東": "south-southeast", "南南西": "south-southwest", "北北東": "north-northeast",
+    "北北西": "north-northwest", "東南東": "east-southeast", "西南西": "west-southwest",
+    "東北東": "east-northeast", "西北西": "west-northwest"
+  };
+  function translateLocation(jp) {
+    if (!jp) return "";
+    if (LOC_PLACE[jp]) return LOC_PLACE[jp];
+    var s = jp.replace(/海上$|海域$|付近$/g, function (m) { return m === "付近" ? "near" : ""; });
+    var near = s.indexOf("near") !== -1;
+    s = s.replace("near", "");
+    if (near && LOC_PLACE[s]) return "near " + LOC_PLACE[s];
+    if (LOC_PLACE[s]) return LOC_PLACE[s];
+    var m = s.match(/^(.+?)の(.+)$/);
+    if (m && LOC_PLACE[m[1]] && LOC_DIR[m[2]]) return LOC_DIR[m[2]] + " of " + LOC_PLACE[m[1]];
+    return jp; // unknown — show JMA's original rather than guess
+  }
+
   // Merge JMA's specifications.json (intensity/pressure/movement per point)
   // with forecast.json (the observed-track polyline) into one tidy object.
   function parseJma(tcId, spec, fc) {
@@ -1131,43 +1170,75 @@
   // and loop. The past portion plays quicker (it's context); the forecast
   // portion — the point of interest — plays slower. dt-based (frame-rate
   // independent); disabled under prefers-reduced-motion (rests at "now").
+  // State lives in fcState so the play/pause/replay/speed controls can drive it.
   var FC_PAST_SECONDS = 6, FC_FUTURE_SECONDS = 9, FC_HOLD_SECONDS = 1.6;
+  var fcState = null;
   function cancelForecastAnim() {
     if (fcAnim) { cancelAnimationFrame(fcAnim); fcAnim = null; }
+  }
+  function fcFrame(ts) {
+    var s = fcState;
+    if (!s || appMode !== "predict" || s.paused) { fcAnim = null; return; }
+    var dt = s.lastTs == null ? 0 : Math.min((ts - s.lastTs) / 1000, 0.25);
+    s.lastTs = ts;
+    if (s.holdUntil > 0) {
+      if (ts >= s.holdUntil) { s.holdUntil = 0; s.t = s.startH; }
+    } else {
+      s.t += (s.t < 0 ? s.pastRate : s.futureRate) * s.speed * dt;
+      if (s.t >= s.endH) { s.t = s.endH; s.holdUntil = ts + FC_HOLD_SECONDS * 1000; }
+    }
+    var p = tlInterp(s.tl, s.t);
+    restyleSweep(p.lat, p.lon, p.stormKm || 0, 11 + Math.sin(ts / 180) * 2);
+    updateSweepLive(p);
+    fcAnim = requestAnimationFrame(fcFrame);
   }
   function startForecastAnim(d) {
     cancelForecastAnim();
     var tl = buildTimeline(d);
-    if (!tl.length) return;
+    if (!tl.length) { fcState = null; return; }
     var startH = tl[0].h, endH = tl[tl.length - 1].h;
     var reduced = false;
     try { reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
-    if (reduced || endH <= 0) {
+    fcState = {
+      tl: tl, startH: startH, endH: endH,
+      pastRate: Math.max(1, -startH) / FC_PAST_SECONDS,
+      futureRate: (endH > 0 ? endH : 1) / FC_FUTURE_SECONDS,
+      t: startH, holdUntil: 0, lastTs: null, speed: 1,
+      paused: reduced || endH <= 0
+    };
+    if (fcState.paused) {
       var nowPt = tlInterp(tl, Math.max(0, endH));
       restyleSweep(nowPt.lat, nowPt.lon, nowPt.stormKm || 0, 11);
       updateSweepLive(nowPt);
-      return;
+    } else {
+      fcAnim = requestAnimationFrame(fcFrame);
     }
-    var pastRate = Math.max(1, -startH) / FC_PAST_SECONDS;
-    var futureRate = endH / FC_FUTURE_SECONDS;
-    var t = startH, holdUntil = 0, lastTs = null;
-    function frame(ts) {
-      if (appMode !== "predict") { fcAnim = null; return; }   // safety: stop if mode changed
-      var dt = lastTs == null ? 0 : Math.min((ts - lastTs) / 1000, 0.25);
-      lastTs = ts;
-      if (holdUntil > 0) {
-        if (ts >= holdUntil) { holdUntil = 0; t = startH; }
-      } else {
-        t += (t < 0 ? pastRate : futureRate) * dt;
-        if (t >= endH) { t = endH; holdUntil = ts + FC_HOLD_SECONDS * 1000; }
-      }
-      var p = tlInterp(tl, t);
-      var pulse = 11 + Math.sin(ts / 180) * 2;
-      restyleSweep(p.lat, p.lon, p.stormKm || 0, pulse);
-      updateSweepLive(p);
-      fcAnim = requestAnimationFrame(frame);
-    }
-    fcAnim = requestAnimationFrame(frame);
+    syncPlayBtn();
+    if (els.fcSpeed) els.fcSpeed.textContent = "1×";
+  }
+  function toggleForecastPlay() {
+    if (!fcState) return;
+    fcState.paused = !fcState.paused;
+    if (!fcState.paused) { fcState.lastTs = null; if (!fcAnim) fcAnim = requestAnimationFrame(fcFrame); }
+    else cancelForecastAnim();
+    syncPlayBtn();
+  }
+  function replayForecastAnim() {
+    if (!fcState) return;
+    fcState.t = fcState.startH; fcState.holdUntil = 0; fcState.lastTs = null; fcState.paused = false;
+    if (!fcAnim) fcAnim = requestAnimationFrame(fcFrame);
+    syncPlayBtn();
+  }
+  function cycleForecastSpeed() {
+    if (!fcState) return;
+    fcState.speed = fcState.speed >= 2 ? 0.5 : (fcState.speed >= 1 ? 2 : 1);
+    if (els.fcSpeed) els.fcSpeed.textContent = fcState.speed + "×";
+  }
+  function syncPlayBtn() {
+    if (!els.fcPlay) return;
+    var paused = !fcState || fcState.paused;
+    els.fcPlay.textContent = paused ? "▶" : "⏸";
+    els.fcPlay.setAttribute("aria-label", paused ? "Play forecast animation" : "Pause forecast animation");
   }
 
   function tLabel(windKt) {
@@ -1209,7 +1280,7 @@
         predItem("Gusts", a.gustKt != null ? a.gustKt + " kt" : "—") +
         predItem("Moving", move || "—") +
       "</div>" +
-      '<div class="tt-fc-pos">' + fmtLatLon(a.lat, a.lon) + (a.location ? " · " + a.location : "") + "</div>" +
+      '<div class="tt-fc-pos">' + fmtLatLon(a.lat, a.lon) + (a.location ? " · " + translateLocation(a.location) : "") + "</div>" +
       '<div class="tt-fc-subhead">5-day forecast · T = Dvorak (± = 70% circle)</div>' +
       '<div class="tt-fc-rows">' + (rows || '<div class="tt-fc-row">No forecast points issued.</div>') + "</div>" +
       '<div class="tt-pred-foot">Live from the <a href="https://www.jma.go.jp/bosai/map.html#contents=typhoon&lang=en" target="_blank" rel="noopener">Japan Meteorological Agency</a>' +
@@ -1272,6 +1343,9 @@
     var d = jmaCache[els.typhoonSelect.value];
     if (d) renderForecast(d);
   });
+  if (els.fcPlay) els.fcPlay.addEventListener("click", toggleForecastPlay);
+  if (els.fcReplay) els.fcReplay.addEventListener("click", replayForecastAnim);
+  if (els.fcSpeed) els.fcSpeed.addEventListener("click", cycleForecastSpeed);
 
   /* ---- Track controls ---------------------------------------------------- */
   els.season.addEventListener("change", function () {

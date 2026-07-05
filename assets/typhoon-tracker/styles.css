@@ -132,6 +132,23 @@ body {
 .tt-predict-hint b { color: var(--text); }
 .tt-predict-hint a { color: var(--accent); }
 
+/* Forecast animation controls (shown only in Forecast mode) */
+.tt-fc-controls { display: none; align-items: center; gap: 8px; margin: 0 0 10px; }
+.tt-app.mode-predict .tt-fc-controls { display: flex; }
+.tt-fc-controls button {
+  min-width: 40px; height: 34px; padding: 0 12px; border-radius: 8px;
+  background: var(--panel); border: 1px solid var(--line); color: var(--text);
+  font-size: 14px; font-weight: 700; line-height: 1; cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+.tt-fc-controls button:hover { background: rgba(255,213,74,0.14); border-color: #ffd54a; }
+.tt-fc-controls button:active { transform: scale(0.95); }
+#tt-fc-speed { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+.tt-fc-controls-label {
+  font-size: 10.5px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--muted);
+}
+
 /* Forecast side panel — mirrors the live-details panel */
 .tt-predict-panel {
   flex: 0 0 260px; min-width: 0;
