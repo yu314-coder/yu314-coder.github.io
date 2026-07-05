@@ -16,7 +16,6 @@
   var climatology = null;   // per-year {count, ace, oni, phase, strongest}
   var currentStorm = null;
   var currentSid = null;
-  var currentRI = null;     // last-computed rapid-intensification result
   var viewMode = "storm";   // TRACK sub-view: "storm" (one track) | "season" (all)
   var appMode = "track";    // "track" (history) | "predict" (live JMA forecast)
   var currentHour = 0;   // elapsed hours since the storm's first point — the
@@ -555,16 +554,6 @@
       }
     ];
 
-    // Static trace 2: rapid-intensification overlay (empty geometry if the
-    // storm never underwent RI), so the dynamic block below always begins at
-    // a fixed, known index.
-    currentRI = findRI(pts);
-    traces.push({
-      type: "scattergeo", mode: "lines", lat: currentRI.lat, lon: currentRI.lon,
-      line: { color: "rgba(255,64,196,0.95)", width: 4 },
-      hoverinfo: "skip", showlegend: false
-    });
-
     traces = traces.concat(dynamicTraces());
 
     Plotly.react(els.map, traces, geoLayout(), { displayModeBar: false, responsive: true, scrollZoom: true });
@@ -692,7 +681,7 @@
     return radiusTraces(pt).concat([currentPositionTrace(pt)]);
   }
 
-  var STATIC_TRACES = 3; // track line, intensity markers, RI overlay
+  var STATIC_TRACES = 2; // track line, intensity markers
   function updateDynamic() {
     if (!currentStorm || appMode !== "track" || viewMode !== "storm") return;
     var n = (els.map.data && els.map.data.length) || 0;
@@ -947,6 +936,13 @@
     var points = spec.slice(1).map(function (o) {
       var mw = o.maximumWind || {}, sus = mw.sustained || {}, gust = mw.gust || {};
       var pos = (o.position && o.position.deg) || [];
+      var probKm = o.probabilityCircleRadius ? o.probabilityCircleRadius.km : 0;
+      // JMA's "storm warning area" = actual storm-wind radius ⊕ the position
+      // probability circle. Subtract the probability circle so the drawn ring
+      // is the storm's ACTUAL expected wind radius (matching the past best-track
+      // radii), with the uncertainty shown separately as the violet ± circle.
+      var swKm = maxRange(o.stormWarning);
+      var gwKm = maxRange(o.galeWarning);
       return {
         h: o.advancedHours,
         lat: pos[0], lon: pos[1],
@@ -961,8 +957,8 @@
         speedKt: (o.speed && o.speed.kt) ? num(o.speed.kt) : null,
         location: o.location || "",
         valid: o.validtime || null,
-        galeKm: maxRange(o.galeWarning),
-        stormKm: maxRange(o.stormWarning)
+        galeKm: gwKm != null ? Math.max(0, Math.round(gwKm - probKm)) : null,
+        stormKm: swKm != null ? Math.max(0, Math.round(swKm - probKm)) : null
       };
     }).filter(function (p) { return p.lat != null && p.lon != null; });
 
