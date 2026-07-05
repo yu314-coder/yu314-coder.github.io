@@ -8,44 +8,71 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="tt-app">
+<div class="tt-app mode-track">
 
   <div class="tt-controls">
     <div class="tt-field">
+      <label for="mode-select">Mode</label>
+      <select id="mode-select">
+        <option value="track">Track &mdash; history</option>
+        <option value="predict">Predict &mdash; outlook</option>
+      </select>
+    </div>
+
+    <div class="tt-field tt-storm-field">
       <label for="season-select">Season</label>
       <select id="season-select"></select>
     </div>
-    <div class="tt-field tt-field--grow">
+    <div class="tt-field tt-field--grow tt-storm-field">
       <label for="storm-select">Typhoon</label>
       <select id="storm-select"></select>
     </div>
-    <div class="tt-field">
+    <div class="tt-field tt-track-only">
       <label for="standard-select">Classification</label>
       <select id="standard-select">
         <option value="atlantic">Saffir&#8211;Simpson&#8211;style</option>
         <option value="taiwan">Taiwan (CWA)</option>
       </select>
     </div>
-    <div class="tt-field">
+    <div class="tt-field tt-track-only">
       <label>View</label>
       <div class="tt-segmented" role="group" aria-label="Map view mode">
         <button type="button" id="tt-view-storm" class="tt-seg is-active" aria-pressed="true">Storm</button>
         <button type="button" id="tt-view-season" class="tt-seg" aria-pressed="false">Season</button>
       </div>
     </div>
-    <div class="tt-field">
+    <div class="tt-field tt-track-only">
       <label>ENSO (autumn)</label>
       <span class="tt-enso-badge" id="tt-enso">&mdash;</span>
     </div>
+
+    <div class="tt-field tt-predict-only">
+      <label for="predict-by">Predict by</label>
+      <select id="predict-by">
+        <option value="monthly">Month outlook</option>
+        <option value="storm">Storm projection</option>
+      </select>
+    </div>
+    <div class="tt-field tt-month-field">
+      <label for="pred-month">Month</label>
+      <select id="pred-month"></select>
+    </div>
+    <div class="tt-field tt-month-field">
+      <label for="pred-year">Year (ENSO)</label>
+      <select id="pred-year"></select>
+    </div>
+    <div class="tt-field tt-month-field tt-month-field--check">
+      <label class="tt-check" title="Show only the years whose autumn ENSO phase matches the selected year">
+        <input type="checkbox" id="pred-match-phase"> Match ENSO phase
+      </label>
+    </div>
   </div>
 
-  <div class="tt-radius-controls">
+  <div class="tt-radius-controls tt-track-only">
     <span class="tt-radius-label">Wind radius</span>
     <label class="tt-check" title="Beaufort force 7 wind circle (七級風圈) — JTWC's 34kt radius"><input type="checkbox" id="show-r34" checked><span class="tt-swatch tt-swatch--r34"></span>Level 7 &middot; 34kt</label>
     <label class="tt-check" title="Beaufort force 10 wind circle (十級風圈) — JTWC's 50kt radius"><input type="checkbox" id="show-r50" checked><span class="tt-swatch tt-swatch--r50"></span>Level 10 &middot; 50kt</label>
     <label class="tt-check" title="Beaufort force 12 wind circle (十二級風圈) — JTWC's 64kt radius"><input type="checkbox" id="show-r64" checked><span class="tt-swatch tt-swatch--r64"></span>Level 12 &middot; 64kt</label>
-    <span class="tt-radius-sep" aria-hidden="true"></span>
-    <label class="tt-check" title="Persistence baseline: projects the storm forward at its current heading &amp; speed, with a cone sized to typical average track error. A naive reference forecast, not a skilful one."><input type="checkbox" id="show-forecast"><span class="tt-swatch tt-swatch--fc"></span>Forecast cone</label>
   </div>
 
   <div class="tt-stats" id="tt-stats"></div>
@@ -89,9 +116,12 @@
       <div class="tt-radius-row"><span class="tt-swatch tt-swatch--r50"></span><span class="tt-radius-row-label">Level 10 &middot; 50kt</span><span id="td-r50">&mdash;</span></div>
       <div class="tt-radius-row"><span class="tt-swatch tt-swatch--r64"></span><span class="tt-radius-row-label">Level 12 &middot; 64kt</span><span id="td-r64">&mdash;</span></div>
     </aside>
+
+    <aside class="tt-predict-panel" id="tt-predict-panel" aria-label="Prediction details"></aside>
   </div>
 
   <p class="tt-season-hint">Whole-season view — every storm's track at once, colored by peak intensity. Click any track to open that storm.</p>
+  <p class="tt-predict-hint" id="tt-predict-hint">Prediction mode. <b>Month outlook</b> shows where storms have historically formed &amp; tracked that month (dots colored by ENSO phase) — a climatological expectation, not a forecast of specific storms. <b>Storm projection</b> extends a chosen storm forward on a persistence baseline. Neither uses a live data feed, which a static site can't provide.</p>
 
   <div class="tt-scrubber">
     <button id="tt-play" class="tt-play-btn" type="button" aria-label="Play track animation">&#9654;</button>

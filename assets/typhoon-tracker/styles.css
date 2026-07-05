@@ -117,6 +117,50 @@ body {
 .tt-clim-key--nina { color: #3898ff; }
 .tt-clim-key--neutral { color: #9db0cc; }
 
+/* Track / Predict mode visibility */
+.tt-predict-only, .tt-month-field, .tt-predict-panel, .tt-predict-hint { display: none; }
+.tt-app.mode-predict .tt-predict-only { display: flex; }
+.tt-app.mode-predict.pred-monthly .tt-month-field { display: flex; }
+.tt-app.mode-predict .tt-track-only { display: none; }
+.tt-app.mode-predict.pred-monthly .tt-storm-field { display: none; }
+.tt-app.mode-predict .tt-stats,
+.tt-app.mode-predict .tt-scrubber,
+.tt-app.mode-predict .tt-chart,
+.tt-app.mode-predict .tt-legend,
+.tt-app.mode-predict .tt-details { display: none; }
+.tt-app.mode-predict .tt-predict-panel { display: flex; }
+.tt-app.mode-predict .tt-predict-hint { display: block; }
+.tt-month-field--check { justify-content: flex-end; }
+.tt-month-field--check .tt-check { min-height: 38px; align-items: center; }
+.tt-predict-hint { margin: 0 0 12px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+.tt-predict-hint b { color: var(--text); }
+
+/* Predict side panel — mirrors the live-details panel */
+.tt-predict-panel {
+  flex: 0 0 250px; min-width: 0;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  padding: 14px; flex-direction: column; gap: 12px;
+}
+.tt-pred-head { display: flex; flex-direction: column; gap: 5px; }
+.tt-pred-big {
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 12px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+}
+.tt-pred-num {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 40px; font-weight: 800; line-height: 1; color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.tt-pred-unit { font-size: 12px; color: var(--muted); font-weight: 600; }
+.tt-pred-sub { font-size: 12.5px; color: var(--text); line-height: 1.45; }
+.tt-pred-sub b { color: var(--accent); }
+.tt-pred-big--sm { gap: 5px; }
+.tt-pred-proj {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 15px; font-weight: 700; color: #c4b5fd;
+}
+.tt-pred-foot { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
 /* Map + live details, side by side */
 .tt-mapwrap { display: flex; gap: 12px; margin-bottom: 12px; align-items: stretch; }
 .tt-map-shell { flex: 1 1 auto; min-width: 0; position: relative; }

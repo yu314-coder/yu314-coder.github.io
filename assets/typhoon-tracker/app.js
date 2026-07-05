@@ -14,10 +14,14 @@
   var indexData = [];
   var seasonCache = {};
   var climatology = null;   // per-year {count, ace, oni, phase, strongest}
+  var monthlyData = null;   // per-month genesis climatology (lazy-loaded)
   var currentStorm = null;
   var currentSid = null;
   var currentRI = null;     // last-computed rapid-intensification result
-  var viewMode = "storm";   // "storm" (one track + details) | "season" (all tracks)
+  var viewMode = "storm";   // TRACK sub-view: "storm" (one track) | "season" (all)
+  var appMode = "track";    // "track" (history) | "predict" (outlook)
+  var predictBy = "monthly"; // PREDICT sub-mode: "monthly" | "storm"
+  var predictStormChosen = false; // has the user picked a storm to project yet?
   var currentHour = 0;   // elapsed hours since the storm's first point — the
                           // scrubber's real unit, so equal drag distance always
                           // means equal TIME, regardless of how unevenly the
@@ -32,8 +36,14 @@
     r34: document.getElementById("show-r34"),
     r50: document.getElementById("show-r50"),
     r64: document.getElementById("show-r64"),
-    forecast: document.getElementById("show-forecast"),
     app: document.querySelector(".tt-app"),
+    mode: document.getElementById("mode-select"),
+    predictBy: document.getElementById("predict-by"),
+    predMonth: document.getElementById("pred-month"),
+    predYear: document.getElementById("pred-year"),
+    matchPhase: document.getElementById("pred-match-phase"),
+    predictPanel: document.getElementById("tt-predict-panel"),
+    predictHint: document.getElementById("tt-predict-hint"),
     viewStorm: document.getElementById("tt-view-storm"),
     viewSeason: document.getElementById("tt-view-season"),
     enso: document.getElementById("tt-enso"),
@@ -207,11 +217,14 @@
       els.map.innerHTML = '<p class="tt-error">Could not load typhoon track data.</p>';
     });
 
+  populatePredictControls();
+
   fetch(DATA_BASE + "climatology.json")
     .then(function (r) { return r.json(); })
     .then(function (data) {
       climatology = data;
       updateEnsoBadge();
+      fillPredictYears();
     })
     .catch(function () { /* climatology is optional — the tracker still works */ });
 
@@ -343,13 +356,28 @@
       els.dName.textContent = storm.name + (storm.nameZh ? "  " + storm.nameZh : "");
 
       buildStats();
-      buildMap();
       buildChart();
       buildLegend();
+      renderMap();
       updateReadout(true);
+      if (appMode === "predict" && predictBy === "storm") updateStormPredictPanel();
     }).catch(function () {
       els.map.innerHTML = '<p class="tt-error">Could not load that season’s track data.</p>';
     });
+  }
+
+  // Draw the map for whatever mode we're in. loadStorm and the mode switches
+  // all funnel through here so one storm-load can render as a track, a
+  // forecast projection, or (indirectly) feed the season/monthly views.
+  function renderMap() {
+    if (appMode === "predict") {
+      if (predictBy === "storm") buildStormPredictMap();
+      // predict-monthly draws from monthlyData, not a single storm
+    } else if (viewMode === "season") {
+      buildSeasonOverview();
+    } else {
+      buildMap();
+    }
   }
 
   /* ---------------------------------------------------------------------------
@@ -661,14 +689,29 @@
   function bindMapClick() {
     if (mapClickBound || !els.map.on) return;
     els.map.on("plotly_click", function (ev) {
-      if (viewMode !== "season" || !ev.points || !ev.points.length) return;
-      var sid = ev.points[0].data.meta;
+      if (!ev.points || !ev.points.length) return;
+      var p = ev.points[0];
+      var sid = p.customdata || (p.data && p.data.meta);
       if (!sid) return;
-      els.storm.value = sid;
-      setViewMode("storm");
-      loadStorm(els.season.value, sid);
+      var seasonClick = appMode === "track" && viewMode === "season";
+      var monthlyClick = appMode === "predict" && predictBy === "monthly";
+      if (seasonClick || monthlyClick) openStormBySid(sid);
     });
     mapClickBound = true;
+  }
+  // Open a storm in the Track view by its id, wherever it was clicked from
+  // (season overview or a monthly-outlook genesis dot).
+  function openStormBySid(sid) {
+    var entry = indexData.find(function (s) { return s.sid === sid; });
+    if (!entry) return;
+    if (els.mode) els.mode.value = "track";
+    setAppMode("track");
+    setViewMode("storm");
+    els.season.value = entry.season;
+    populateStorms(entry.season);
+    els.storm.value = sid;
+    updateEnsoBadge();
+    loadStorm(entry.season, sid);
   }
 
   function radiusTraces(pt) {
@@ -704,36 +747,37 @@
     };
   }
 
-  function forecastTraces() {
-    if (!els.forecast || !els.forecast.checked) return [];
-    var path = forecastPath(currentHour);
+  // The persistence forecast cone/track from a given path — shared by the
+  // Predict → storm-projection view (the forecast lives there now, not in the
+  // Track view, which stays focused purely on the observed path).
+  function coneTraces(path) {
     if (!path) return [];
-    var cone = conePolygon(path);
     var lat = path.map(function (p) { return p.la; });
     var lon = path.map(function (p) { return p.lo; });
+    var cone = conePolygon(path);
     return [
       { type: "scattergeo", mode: "lines", lat: cone.lat, lon: cone.lon,
-        fill: "toself", fillcolor: "rgba(124,58,237,0.13)",
-        line: { color: "rgba(124,58,237,0.45)", width: 1 },
+        fill: "toself", fillcolor: "rgba(124,58,237,0.15)",
+        line: { color: "rgba(124,58,237,0.5)", width: 1 },
         hoverinfo: "skip", showlegend: false },
       { type: "scattergeo", mode: "lines+markers", lat: lat, lon: lon,
-        line: { color: "rgba(196,181,253,0.9)", width: 1.8, dash: "dot" },
-        marker: { size: 5, color: "rgba(196,181,253,0.95)" },
-        text: path.map(function (p) { return p.h === 0 ? "now" : "+" + p.h + " h"; }),
+        line: { color: "rgba(196,181,253,0.95)", width: 2, dash: "dot" },
+        marker: { size: 6, color: "rgba(196,181,253,0.95)" },
+        text: path.map(function (p) { return p.h === 0 ? "last fix" : "+" + p.h + " h"; }),
         hoverinfo: "text", showlegend: false }
     ];
   }
 
-  // Everything that moves as the scrubber advances: wind-radius rings, the
-  // forecast cone/track, then the current-position marker last (on top).
+  // Everything that moves as the scrubber advances: wind-radius rings, then
+  // the current-position marker last (on top).
   function dynamicTraces() {
     var pt = interpAt(currentHour);
-    return radiusTraces(pt).concat(forecastTraces()).concat([currentPositionTrace(pt)]);
+    return radiusTraces(pt).concat([currentPositionTrace(pt)]);
   }
 
   var STATIC_TRACES = 3; // track line, intensity markers, RI overlay
   function updateDynamic() {
-    if (!currentStorm || viewMode !== "storm") return;
+    if (!currentStorm || appMode !== "track" || viewMode !== "storm") return;
     var n = (els.map.data && els.map.data.length) || 0;
     var idx = [];
     for (var i = STATIC_TRACES; i < n; i++) idx.push(i);
@@ -905,6 +949,178 @@
   }
 
   /* ---------------------------------------------------------------------------
+     PREDICT mode — a monthly climatological outlook, and a persistence
+     projection of a chosen storm. Both are explicitly climatology/baselines:
+     a static site has no live feed, so it can't forecast an active storm in
+     real time. What it can do is what a seasonal outlook actually is — 40
+     years of "what this month tends to bring" — plus the naive persistence
+     benchmark for any single storm.
+     ------------------------------------------------------------------------- */
+  var PHASE_MAP_COLOR = { nino: "rgb(255,99,71)", nina: "rgb(56,152,255)", neutral: "rgb(170,185,210)" };
+
+  function climSpan() {
+    if (!climatology) return "1985–present";
+    var ys = Object.keys(climatology).map(Number);
+    return Math.min.apply(null, ys) + "–" + Math.max.apply(null, ys);
+  }
+
+  function populatePredictControls() {
+    var mnames = ["January", "February", "March", "April", "May", "June",
+                  "July", "August", "September", "October", "November", "December"];
+    els.predMonth.innerHTML = mnames.map(function (n, i) {
+      return '<option value="' + ("0" + (i + 1)).slice(-2) + '">' + n + "</option>";
+    }).join("");
+    els.predMonth.value = ("0" + (new Date().getMonth() + 1)).slice(-2);
+  }
+
+  function fillPredictYears() {
+    if (!climatology) return;
+    var years = Object.keys(climatology).map(Number).sort(function (a, b) { return b - a; });
+    els.predYear.innerHTML = years.map(function (y) {
+      return '<option value="' + y + '">' + y + "</option>";
+    }).join("");
+    var cy = new Date().getFullYear();
+    els.predYear.value = els.predYear.querySelector('option[value="' + cy + '"]') ? String(cy) : String(years[0]);
+  }
+
+  function buildMonthlyMap() {
+    var data = monthlyData && monthlyData[els.predMonth.value];
+    if (!data) return;
+    currentGeoScale = DEFAULT_GEO.scale;
+    var matchOnly = els.matchPhase && els.matchPhase.checked;
+    var yphase = climatology && climatology[els.predYear.value] ? climatology[els.predYear.value].phase : null;
+
+    var tlat = [], tlon = [];
+    var gLat = [], gLon = [], gColor = [], gSize = [], gText = [], gMeta = [];
+    data.storms.forEach(function (s) {
+      if (matchOnly && yphase && s.ph !== yphase) return;
+      for (var i = 0; i < s.t.length; i++) { tlat.push(s.t[i][0]); tlon.push(s.t[i][1]); }
+      tlat.push(null); tlon.push(null);
+      gLat.push(s.g[0]); gLon.push(s.g[1]);
+      gColor.push(PHASE_MAP_COLOR[s.ph] || PHASE_MAP_COLOR.neutral);
+      gSize.push(6 + Math.min(13, (s.w || 0) / 14));
+      gText.push(s.name + (s.nameZh ? " " + s.nameZh : "") + " (" + s.y + ")<br>" +
+        Math.round(s.w) + " kt · " + (ENSO_LABEL[s.ph] || "—") + "<br><i>click to open</i>");
+      gMeta.push(s.sid);
+    });
+    var traces = [
+      { type: "scattergeo", mode: "lines", lat: tlat, lon: tlon,
+        line: { color: "rgba(255,255,255,0.12)", width: 1 }, hoverinfo: "skip", showlegend: false },
+      { type: "scattergeo", mode: "markers", lat: gLat, lon: gLon,
+        marker: { size: gSize, color: gColor, line: { color: "rgba(10,14,20,0.55)", width: 0.5 }, opacity: 0.9 },
+        text: gText, hoverinfo: "text", customdata: gMeta, showlegend: false }
+    ];
+    Plotly.react(els.map, traces, geoLayout(), { displayModeBar: false, responsive: true, scrollZoom: true });
+    bindMapClick();
+  }
+
+  function predItem(label, value, sub) {
+    return '<div class="tt-details-item"><span class="tt-details-label">' + label +
+      '</span><span class="tt-details-value tt-details-value--sm">' + value +
+      (sub ? " <small>" + sub + "</small>" : "") + "</span></div>";
+  }
+
+  function updateMonthlyPanel() {
+    var data = monthlyData && monthlyData[els.predMonth.value];
+    if (!data || !els.predictPanel) return;
+    var st = data.stats;
+    var yr = els.predYear.value;
+    var c = climatology && climatology[yr];
+    var yphase = c ? c.phase : null;
+    var yoni = c ? c.oni : null;
+    var conditioned = (yphase && st.phaseAvg[yphase] != null) ? st.phaseAvg[yphase] : st.avgPerYear;
+    var phaseLabel = ENSO_LABEL[yphase] || "—";
+    var strong = st.strongest;
+    var oniStr = yoni != null ? " (ONI " + (yoni > 0 ? "+" : "") + yoni.toFixed(1) + ")" : "";
+    var phaseNote = (yphase && st.phaseAvg[yphase] != null)
+      ? "In " + phaseLabel + " years, " + data.name + " averages <b>" + st.phaseAvg[yphase] +
+        "</b> (vs " + st.avgPerYear + " across all years)."
+      : "Historical average across all years.";
+
+    els.predictPanel.innerHTML =
+      '<div class="tt-pred-head">' +
+        '<span class="tt-details-name">' + data.name + " outlook</span>" +
+        '<span class="tt-details-time">Genesis climatology &middot; ' + climSpan() + "</span>" +
+      "</div>" +
+      '<div class="tt-pred-big"><span class="tt-pred-num">' + conditioned.toFixed(1) +
+        '</span><span class="tt-pred-unit">storms likely to form<br>in ' + data.name + " " + yr + "</span></div>" +
+      '<div class="tt-pred-sub">' + yr + " is <b>" + phaseLabel + "</b>" + oniStr + ". " + phaseNote + "</div>" +
+      '<div class="tt-details-grid">' +
+        predItem("On record", st.total + " storms") +
+        predItem("All-year avg", st.avgPerYear + " / yr") +
+        predItem("Typical peak", st.avgPeak != null ? st.avgPeak + " kt" : "—") +
+        predItem("Strongest", strong ? strong.name + " " + strong.w + "kt" : "—", strong ? String(strong.year) : "") +
+      "</div>" +
+      '<div class="tt-pred-foot">Dots = where storms have formed this month (colored by that year’s ENSO phase); lines = their tracks. A climatological expectation, not a forecast of specific storms.</div>';
+  }
+
+  function bearingToCompass(deg) {
+    var dirs = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+    return dirs[Math.round((deg % 360) / 22.5) % 16];
+  }
+
+  // Project from the storm's peak-intensity point rather than its final fix:
+  // at peak it's a healthy tropical cyclone moving at a normal speed (a dying
+  // storm's last fix is often an accelerating extratropical transition, which
+  // sends persistence absurdly far), and — crucially — the real track
+  // continues past the peak, so you can see the persistence forecast diverge
+  // from what the storm actually did. currentHour is already the peak hour
+  // (loadStorm sets it there).
+  function buildStormPredictMap() {
+    if (!currentStorm) return;
+    currentGeoScale = DEFAULT_GEO.scale;
+    var pts = currentStorm.pts;
+    var f = catFields();
+    var origin = interpAt(currentHour);
+    var path = forecastPath(currentHour);
+    var traces = [
+      { type: "scattergeo", mode: "lines",
+        lat: pts.map(function (p) { return p.la; }), lon: pts.map(function (p) { return p.lo; }),
+        line: { color: "rgba(255,255,255,0.4)", width: 1.6 }, hoverinfo: "skip", showlegend: false },
+      { type: "scattergeo", mode: "markers",
+        lat: pts.map(function (p) { return p.la; }), lon: pts.map(function (p) { return p.lo; }),
+        marker: { size: 5, color: pts.map(function (p) { return p[f.color] || "rgb(150,190,215)"; }),
+          line: { color: "rgba(10,14,20,0.6)", width: 0.5 } }, hoverinfo: "skip", showlegend: false }
+    ];
+    traces = traces.concat(coneTraces(path));
+    traces.push({
+      type: "scattergeo", mode: "markers", lat: [origin.la], lon: [origin.lo],
+      marker: { size: 15, symbol: "circle-open", color: origin[f.color] || "#fff",
+        line: { width: 2.5, color: origin[f.color] || "#fff" } },
+      hoverinfo: "skip", showlegend: false
+    });
+    Plotly.react(els.map, traces, geoLayout(), { displayModeBar: false, responsive: true, scrollZoom: true });
+  }
+
+  function updateStormPredictPanel() {
+    if (!currentStorm || !els.predictPanel) return;
+    var origin = interpAt(currentHour);
+    var motion = getMotion(currentHour);
+    var path = forecastPath(currentHour);
+    var end = path ? path[path.length - 1] : null;
+    var speedKt = motion ? motion.speed * 0.539957 : null;
+    function fmtPos(p) {
+      return Math.abs(p.la).toFixed(1) + "°" + (p.la >= 0 ? "N" : "S") + " " +
+             Math.abs(p.lo).toFixed(1) + "°" + (p.lo >= 0 ? "E" : "W");
+    }
+    els.predictPanel.innerHTML =
+      '<div class="tt-pred-head">' +
+        '<span class="tt-details-name">' + currentStorm.name + (currentStorm.nameZh ? " " + currentStorm.nameZh : "") + "</span>" +
+        '<span class="tt-details-time">Persistence projection from peak intensity</span>' +
+      "</div>" +
+      '<div class="tt-details-grid">' +
+        predItem("At peak", (origin.t || "").replace("T", " ").slice(0, 16)) +
+        predItem("Position", fmtPos(origin)) +
+        predItem("Intensity", origin.w != null ? Math.round(origin.w) + " kt" : "—") +
+        predItem("Moving", motion && speedKt != null ? bearingToCompass(motion.bearing) + " " + Math.round(speedKt) + " kt" : "—") +
+      "</div>" +
+      '<div class="tt-pred-big tt-pred-big--sm">' +
+        '<span class="tt-pred-unit">If it held course &amp; speed</span>' +
+        '<span class="tt-pred-proj">+72 h &rarr; ' + (end ? fmtPos(end) : "—") + "</span></div>" +
+      '<div class="tt-pred-foot">Persistence baseline (CLIPER-style): projected forward from peak at that moment’s heading and speed; cone = typical average track error. Compare the dotted line against the storm’s actual track &mdash; where they part ways is exactly why persistence isn’t a skilful forecast.</div>';
+  }
+
+  /* ---------------------------------------------------------------------------
      Controls
      ------------------------------------------------------------------------- */
   // Load a season's shard (if not cached) then run a callback — used by the
@@ -935,22 +1151,81 @@
   if (els.viewStorm) els.viewStorm.addEventListener("click", function () { setViewMode("storm"); });
   if (els.viewSeason) els.viewSeason.addEventListener("click", function () { setViewMode("season"); });
 
+  /* ---- Track / Predict mode plumbing ------------------------------------- */
+  function ensureMonthlyThen(cb) {
+    if (monthlyData) { cb(); return; }
+    fetch(DATA_BASE + "monthly.json")
+      .then(function (r) { return r.json(); })
+      .then(function (d) { monthlyData = d; cb(); })
+      .catch(function () {});
+  }
+
+  function loadLatestStorm() {
+    var latest = indexData.slice().sort(function (a, b) {
+      return (b.end || b.start || "").localeCompare(a.end || a.start || "");
+    })[0];
+    if (!latest) return;
+    predictStormChosen = true;
+    els.season.value = latest.season;
+    populateStorms(latest.season);
+    els.storm.value = latest.sid;
+    loadStorm(latest.season, latest.sid);
+  }
+
+  function setPredictBy(by) {
+    predictBy = by;
+    els.app.classList.toggle("pred-monthly", by === "monthly");
+    els.app.classList.toggle("pred-storm", by === "storm");
+    if (by === "monthly") {
+      ensureMonthlyThen(function () { buildMonthlyMap(); updateMonthlyPanel(); });
+    } else if (!predictStormChosen || !currentStorm) {
+      loadLatestStorm();
+    } else {
+      buildStormPredictMap();
+      updateStormPredictPanel();
+    }
+  }
+
+  function setAppMode(mode) {
+    appMode = mode;
+    els.app.classList.toggle("mode-track", mode === "track");
+    els.app.classList.toggle("mode-predict", mode === "predict");
+    // the season-view chrome (hint, hidden panels) must only apply inside Track
+    els.app.classList.toggle("is-season", mode === "track" && viewMode === "season");
+    stopPlay();
+    if (mode === "predict") { setPredictBy(predictBy); }
+    else if (viewMode === "season") { buildSeasonOverview(); }
+    else if (currentStorm) { buildMap(); }
+  }
+
+  els.mode.addEventListener("change", function () { setAppMode(els.mode.value); });
+  els.predictBy.addEventListener("change", function () { setPredictBy(els.predictBy.value); });
+  els.predMonth.addEventListener("change", function () { buildMonthlyMap(); updateMonthlyPanel(); });
+  els.predYear.addEventListener("change", function () {
+    updateMonthlyPanel();
+    if (els.matchPhase && els.matchPhase.checked) buildMonthlyMap();
+  });
+  if (els.matchPhase) els.matchPhase.addEventListener("change", function () { buildMonthlyMap(); });
+
+  /* ---- Track controls ---------------------------------------------------- */
   els.season.addEventListener("change", function () {
     populateStorms(els.season.value);
     updateEnsoBadge();
-    if (viewMode === "season") { ensureSeasonThen(buildSeasonOverview); return; }
+    if (appMode === "track" && viewMode === "season") { ensureSeasonThen(buildSeasonOverview); return; }
     if (els.storm.options.length) {
       els.storm.selectedIndex = 0;
+      if (appMode === "predict") predictStormChosen = true;
       loadStorm(els.season.value, els.storm.value);
     }
   });
   els.storm.addEventListener("change", function () {
-    if (viewMode === "season") setViewMode("storm");
+    if (appMode === "track" && viewMode === "season") setViewMode("storm");
+    if (appMode === "predict") predictStormChosen = true;
     loadStorm(els.season.value, els.storm.value);
   });
   els.standard.addEventListener("change", function () {
     standard = els.standard.value;
-    if (!currentStorm || viewMode !== "storm") return;
+    if (!currentStorm || appMode !== "track" || viewMode !== "storm") return;
     buildMap();
     buildChart();
     buildLegend();
@@ -959,7 +1234,6 @@
   [els.r34, els.r50, els.r64].forEach(function (cb) {
     cb.addEventListener("change", function () { if (currentStorm) updateDynamic(); });
   });
-  if (els.forecast) els.forecast.addEventListener("change", function () { if (currentStorm) updateDynamic(); });
   els.slider.addEventListener("input", function () {
     stopPlay();
     currentHour = Number(els.slider.value);
