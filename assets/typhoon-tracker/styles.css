@@ -142,10 +142,18 @@ body {
 .tt-pred-foot { font-size: 11px; color: var(--muted); line-height: 1.5; }
 .tt-pred-foot a { color: var(--accent); }
 
+.tt-fc-badgerow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .tt-fc-badge {
   font-size: 13px; font-weight: 750;
   padding: 5px 10px; border-radius: 999px; width: fit-content;
   background: rgba(255,255,255,0.06); border: 1px solid var(--line);
+}
+.tt-fc-tnum {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+  color: var(--muted); cursor: help;
+  padding: 5px 9px; border-radius: 999px;
+  border: 1px solid var(--line); background: rgba(255,255,255,0.04);
 }
 .tt-fc-pos {
   font-family: 'JetBrains Mono', ui-monospace, monospace;

@@ -313,7 +313,8 @@
     storms.sort(function (a, b) { return (b.maxWind || 0) - (a.maxWind || 0); });
     els.storm.innerHTML = storms.map(function (s) {
       return '<option value="' + s.sid + '">' + s.name + (s.nameZh ? " " + s.nameZh : "") +
-        " — " + s.cat + " (" + Math.round(s.maxWind || 0) + "kt)" +
+        " — " + s.cat + " (" + Math.round(s.maxWind || 0) + "kt" +
+        (s.ace != null ? " · ACE " + s.ace : "") + ")" +
         (s.hasRadius ? "" : " · no radius data") + "</option>";
     }).join("");
   }
@@ -412,8 +413,11 @@
   // the "T-number" shown is this table read in reverse and snapped to the
   // real convention's 0.5 steps -- a standard approximation, not an
   // independent analysis.
+  // Standard table starts at T1.0 = 25 kt; the [0.0, 0] anchor extends it
+  // linearly down to T0.0 so weak/nascent systems read on the full T0.0–8.0
+  // scale rather than clamping at T1.0.
   var DVORAK_TABLE = [
-    [1.0, 25], [1.5, 25], [2.0, 30], [2.5, 35], [3.0, 45], [3.5, 55],
+    [0.0, 0], [1.0, 25], [1.5, 25], [2.0, 30], [2.5, 35], [3.0, 45], [3.5, 55],
     [4.0, 65], [4.5, 77], [5.0, 90], [5.5, 102], [6.0, 115], [6.5, 127],
     [7.0, 140], [7.5, 155], [8.0, 170]
   ];
@@ -1119,18 +1123,25 @@
     fcAnim = requestAnimationFrame(frame);
   }
 
+  function tLabel(windKt) {
+    var t = dvorakTNumber(windKt);
+    return t == null ? null : "T" + t.toFixed(1);
+  }
+
   function updateForecastPanel(d) {
     if (!els.predictPanel) return;
     var a = d.points[0];
     var catFull = CAT_NAME[a.catEn] || a.catEn || "Tropical cyclone";
     var badge = catFull + (a.intensity ? " · " + a.intensity : "") + (a.scale ? " · " + a.scale : "");
     var move = (a.course || "") + (a.speedKt != null ? " " + a.speedKt + " kt" : "");
+    var curT = tLabel(a.windKt);
     var rows = d.points.slice(1).map(function (p) {
       var when = p.valid ? p.valid.UTC.slice(5, 16).replace("T", " ") + "Z" : "";
+      var ft = tLabel(p.windKt);
       return '<div class="tt-fc-row"><span class="tt-fc-h">+' + p.h + "h</span>" +
         '<span class="tt-fc-when">' + when + "</span>" +
         '<span class="tt-fc-val">' + (p.pressure != null ? p.pressure + " hPa" : "—") +
-        (p.windKt != null ? " · " + p.windKt + " kt" : "") + "</span>" +
+        (p.windKt != null ? " · " + p.windKt + " kt" : "") + (ft ? " · " + ft : "") + "</span>" +
         '<span class="tt-fc-circ">±' + (p.circleKm != null ? p.circleKm + " km" : "—") + "</span></div>";
     }).join("");
     var issued = d.issue ? d.issue.JST.replace("T", " ").slice(0, 16) : "";
@@ -1140,7 +1151,10 @@
         '<span class="tt-details-name">' + d.name.en + (d.name.jp ? " " + d.name.jp : "") + "</span>" +
         '<span class="tt-details-time">JMA official forecast' + (d.number ? " · Typhoon No." + d.number : "") + "</span>" +
       "</div>" +
-      '<div class="tt-fc-badge" style="color:' + (CAT_COLOR[a.catEn] || "#fff") + '">' + badge + "</div>" +
+      '<div class="tt-fc-badgerow">' +
+        '<span class="tt-fc-badge" style="color:' + (CAT_COLOR[a.catEn] || "#fff") + '">' + badge + "</span>" +
+        (curT ? '<span class="tt-fc-tnum" title="Dvorak T-number, from the current max wind via the standard CI-number/wind table">' + curT + "</span>" : "") +
+      "</div>" +
       '<div class="tt-details-grid">' +
         predItem("Pressure", a.pressure != null ? a.pressure + " hPa" : "—") +
         predItem("Max wind", a.windKt != null ? a.windKt + " kt" : "—") +
@@ -1148,7 +1162,7 @@
         predItem("Moving", move || "—") +
       "</div>" +
       '<div class="tt-fc-pos">' + fmtLatLon(a.lat, a.lon) + (a.location ? " · " + a.location : "") + "</div>" +
-      '<div class="tt-fc-subhead">5-day forecast (± = 70% probability circle)</div>' +
+      '<div class="tt-fc-subhead">5-day forecast · T = Dvorak (± = 70% circle)</div>' +
       '<div class="tt-fc-rows">' + (rows || '<div class="tt-fc-row">No forecast points issued.</div>') + "</div>" +
       '<div class="tt-pred-foot">Live from the <a href="https://www.jma.go.jp/bosai/map.html#contents=typhoon&lang=en" target="_blank" rel="noopener">Japan Meteorological Agency</a>' +
         (issued ? ", issued " + issued + " JST" : "") + ". Reissued every few hours while a storm is active.</div>";
