@@ -8,12 +8,17 @@
 
   var DATA_BASE = "../data/typhoons/";
   var DEFAULT_STORM = { name: "Haiyan", season: 2013 };
+  var DEFAULT_GEO = { lon: 150, lat: 20, lonRange: [95, 205], latRange: [-2, 55], scale: 1 };
+  var currentGeoScale = DEFAULT_GEO.scale;
 
   var indexData = [];
   var seasonCache = {};
   var currentStorm = null;
-  var currentIdx = 0;
-  var playTimer = null;
+  var currentHour = 0;   // elapsed hours since the storm's first point — the
+                          // scrubber's real unit, so equal drag distance always
+                          // means equal TIME, regardless of how unevenly the
+                          // underlying observations are spaced.
+  var playRaf = null;
   var standard = "atlantic";
 
   var els = {
@@ -25,11 +30,15 @@
     r64: document.getElementById("show-r64"),
     stats: document.getElementById("tt-stats"),
     map: document.getElementById("tt-map"),
+    zoomIn: document.getElementById("tt-zoom-in"),
+    zoomOut: document.getElementById("tt-zoom-out"),
+    zoomReset: document.getElementById("tt-zoom-reset"),
     chart: document.getElementById("tt-chart"),
     play: document.getElementById("tt-play"),
     slider: document.getElementById("tt-slider"),
     readout: document.getElementById("tt-time-readout"),
     legend: document.getElementById("tt-legend"),
+    dName: document.getElementById("td-name"),
     dTime: document.getElementById("td-time"),
     dCat: document.getElementById("td-cat"),
     dWind: document.getElementById("td-wind"),
@@ -107,6 +116,66 @@
   }
 
   /* ---------------------------------------------------------------------------
+     Time-based interpolation. Each stored point has "h" (hours elapsed since
+     the storm's first point) and "t" (its own real observation time), but
+     observations aren't evenly spaced — some gaps are 1h, some 6h. Querying
+     by elapsed hours and lerping between the two bracketing points is what
+     makes the scrubber behave like a real video timeline: a fixed drag
+     distance always covers a fixed amount of storm-time.
+     ------------------------------------------------------------------------- */
+  function lerp(a, b, t) { return (a == null || b == null) ? null : a + (b - a) * t; }
+
+  function lerpQuads(qa, qb, t) {
+    if (!qa || !qb) return null;
+    var out = [];
+    for (var i = 0; i < 4; i++) out.push(lerp(qa[i], qb[i], t));
+    return out.every(function (v) { return v == null; }) ? null : out;
+  }
+
+  function absTimeAt(hour) {
+    var t0 = new Date(currentStorm.pts[0].t + "Z");
+    return new Date(t0.getTime() + hour * 3600000);
+  }
+
+  function formatUTC(date) {
+    // ISO "T" form, matching the raw stored point format (and the chart's
+    // x-axis values) -- display code applies its own T->" " replace, same
+    // as it already does for real (non-interpolated) points.
+    return date.toISOString().slice(0, 19);
+  }
+
+  // Returns a virtual point at the given elapsed-hours position: numeric
+  // fields (position, wind, pressure, radius quadrants) linearly interpolate
+  // between the two bracketing real observations; categorical fields
+  // (classification label/color) snap to whichever is nearer in time —
+  // they can't be blended, and a jarring snap mid-transition would look
+  // like a bug, so the snap point is placed at the midpoint between the two
+  // real observations rather than always favoring one side.
+  function interpAt(hour) {
+    var pts = currentStorm.pts;
+    var n = pts.length;
+    if (hour <= pts[0].h) return pts[0];
+    if (hour >= pts[n - 1].h) return pts[n - 1];
+    var i = 0;
+    while (i < n - 2 && pts[i + 1].h < hour) i++;
+    var a = pts[i], b = pts[i + 1];
+    var span = b.h - a.h;
+    var t = span > 0 ? (hour - a.h) / span : 0;
+    var pick = t < 0.5 ? a : b;
+    return {
+      t: formatUTC(absTimeAt(hour)),
+      la: lerp(a.la, b.la, t),
+      lo: lerp(a.lo, b.lo, t),
+      w: lerp(a.w, b.w, t),
+      p: lerp(a.p, b.p, t),
+      ca: pick.ca, cc: pick.cc, ta: pick.ta, tc: pick.tc,
+      r3: lerpQuads(a.r3, b.r3, t),
+      r5: lerpQuads(a.r5, b.r5, t),
+      r6: lerpQuads(a.r6, b.r6, t)
+    };
+  }
+
+  /* ---------------------------------------------------------------------------
      Data loading
      ------------------------------------------------------------------------- */
   fetch(DATA_BASE + "index.json")
@@ -142,8 +211,9 @@
     var storms = indexData.filter(function (s) { return s.season === Number(season); });
     storms.sort(function (a, b) { return (b.maxWind || 0) - (a.maxWind || 0); });
     els.storm.innerHTML = storms.map(function (s) {
-      return '<option value="' + s.sid + '">' + s.name + " — " + s.cat +
-        " (" + Math.round(s.maxWind || 0) + "kt)" + (s.hasRadius ? "" : " · no radius data") + "</option>";
+      return '<option value="' + s.sid + '">' + s.name + (s.nameZh ? " " + s.nameZh : "") +
+        " — " + s.cat + " (" + Math.round(s.maxWind || 0) + "kt)" +
+        (s.hasRadius ? "" : " · no radius data") + "</option>";
     }).join("");
   }
 
@@ -160,14 +230,18 @@
       if (!storm) return;
       currentStorm = storm;
 
-      var maxI = 0, maxW = -1;
-      storm.pts.forEach(function (pt, i) {
+      var maxH = 0, maxW = -1;
+      storm.pts.forEach(function (pt) {
         var w = pt.w || 0;
-        if (w > maxW) { maxW = w; maxI = i; }
+        if (w > maxW) { maxW = w; maxH = pt.h; }
       });
-      currentIdx = maxI;
-      els.slider.max = storm.pts.length - 1;
-      els.slider.value = currentIdx;
+      currentHour = maxH;
+      els.slider.min = 0;
+      els.slider.max = storm.pts[storm.pts.length - 1].h;
+      els.slider.step = "any";
+      els.slider.value = currentHour;
+
+      els.dName.textContent = storm.name + (storm.nameZh ? "  " + storm.nameZh : "");
 
       buildStats();
       buildMap();
@@ -211,6 +285,7 @@
   }
 
   function buildMap() {
+    currentGeoScale = DEFAULT_GEO.scale;
     var pts = currentStorm.pts;
     var f = catFields();
 
@@ -235,18 +310,16 @@
       }
     ];
 
-    traces = traces.concat(radiusTraces());
-    traces.push(currentPositionTrace());
-
-    var lonRange = [95, 205];
-    var latRange = [-2, 55];
+    var curPt = interpAt(currentHour);
+    traces = traces.concat(radiusTraces(curPt));
+    traces.push(currentPositionTrace(curPt));
 
     var layout = {
       geo: {
-        projection: { type: "natural earth" },
-        center: { lon: 150, lat: 20 },
-        lonaxis: { range: lonRange },
-        lataxis: { range: latRange },
+        projection: { type: "natural earth", scale: DEFAULT_GEO.scale },
+        center: { lon: DEFAULT_GEO.lon, lat: DEFAULT_GEO.lat },
+        lonaxis: { range: DEFAULT_GEO.lonRange.slice() },
+        lataxis: { range: DEFAULT_GEO.latRange.slice() },
         showland: true, landcolor: "rgb(46,54,72)",
         showocean: true, oceancolor: "rgb(9,12,19)",
         showcountries: true, countrycolor: "rgba(255,255,255,0.14)",
@@ -260,11 +333,10 @@
       height: 460
     };
 
-    Plotly.react(els.map, traces, layout, { displayModeBar: false, responsive: true });
+    Plotly.react(els.map, traces, layout, { displayModeBar: false, responsive: true, scrollZoom: true });
   }
 
-  function radiusTraces() {
-    var pt = currentStorm.pts[currentIdx];
+  function radiusTraces(pt) {
     var out = [];
     var bands = [
       { key: "r3", show: els.r34.checked, fill: "rgba(0,220,220,0.10)", line: "rgba(0,220,220,0.55)" },
@@ -288,8 +360,7 @@
     return { type: "scattergeo", mode: "lines", lat: [], lon: [], hoverinfo: "skip", showlegend: false };
   }
 
-  function currentPositionTrace() {
-    var pt = currentStorm.pts[currentIdx];
+  function currentPositionTrace(pt) {
     var f = catFields();
     return {
       type: "scattergeo", mode: "markers", lat: [pt.la], lon: [pt.lo],
@@ -300,7 +371,8 @@
 
   function updateRadiusShapes() {
     if (!currentStorm) return;
-    var traces = radiusTraces().concat([currentPositionTrace()]);
+    var pt = interpAt(currentHour);
+    var traces = radiusTraces(pt).concat([currentPositionTrace(pt)]);
     Plotly.deleteTraces(els.map, [2, 3, 4, 5]);
     Plotly.addTraces(els.map, traces);
   }
@@ -347,7 +419,7 @@
   }
 
   function currentTimeLine() {
-    var t = currentStorm.pts[currentIdx].t;
+    var t = formatUTC(absTimeAt(currentHour));
     return {
       type: "line", x0: t, x1: t, y0: 0, y1: 1, yref: "paper",
       line: { color: "rgba(255,255,255,0.55)", width: 1, dash: "dash" }
@@ -370,11 +442,11 @@
   }
 
   function updateReadout() {
-    var pt = currentStorm.pts[currentIdx];
+    var pt = interpAt(currentHour);
     var f = catFields();
     els.readout.textContent = (pt.t || "").replace("T", " ") +
-      "  ·  " + (pt.w != null ? pt.w + " kt" : "n/a") +
-      (pt.p != null ? "  ·  " + pt.p + " mb" : "") +
+      "  ·  " + (pt.w != null ? Math.round(pt.w) + " kt" : "n/a") +
+      (pt.p != null ? "  ·  " + Math.round(pt.p) + " mb" : "") +
       "  ·  " + (pt[f.label] || "unclassified");
     updateDetailsPanel(pt, f);
   }
@@ -474,29 +546,63 @@
     cb.addEventListener("change", function () { if (currentStorm) updateRadiusShapes(); });
   });
   els.slider.addEventListener("input", function () {
-    currentIdx = Number(els.slider.value);
+    stopPlay();
+    currentHour = Number(els.slider.value);
     updateRadiusShapes();
     updateChartMarker();
     updateReadout();
   });
   els.play.addEventListener("click", togglePlay);
 
+  /* ---------------------------------------------------------------------------
+     Map zoom — scroll/pinch already works (scrollZoom is on), these buttons
+     make it discoverable and give touch/trackpad users an explicit control.
+     ------------------------------------------------------------------------- */
+  function zoomBy(factor) {
+    currentGeoScale = Math.max(0.5, Math.min(currentGeoScale * factor, 20));
+    Plotly.relayout(els.map, { "geo.projection.scale": currentGeoScale });
+  }
+  els.zoomIn.addEventListener("click", function () { zoomBy(1.5); });
+  els.zoomOut.addEventListener("click", function () { zoomBy(1 / 1.5); });
+  els.zoomReset.addEventListener("click", function () {
+    currentGeoScale = DEFAULT_GEO.scale;
+    Plotly.relayout(els.map, {
+      "geo.projection.scale": DEFAULT_GEO.scale,
+      "geo.center": { lon: DEFAULT_GEO.lon, lat: DEFAULT_GEO.lat },
+      "geo.lonaxis.range": DEFAULT_GEO.lonRange.slice(),
+      "geo.lataxis.range": DEFAULT_GEO.latRange.slice()
+    });
+  });
+
+  // Every storm plays out in the same real-world duration (~18s) regardless
+  // of how many days it actually lasted, so short and long-lived storms
+  // both feel like a normal-length clip rather than a rushed or endless one.
+  var PLAYBACK_SECONDS = 18;
+
   function togglePlay() {
-    if (playTimer) { stopPlay(); return; }
+    if (playRaf) { stopPlay(); return; }
+    if (currentHour >= Number(els.slider.max)) currentHour = 0;
     els.play.textContent = "⏸";
     els.play.setAttribute("aria-label", "Pause track animation");
-    playTimer = setInterval(function () {
-      var max = Number(els.slider.max);
-      if (currentIdx >= max) { stopPlay(); return; }
-      currentIdx++;
-      els.slider.value = currentIdx;
+    var lastTs = null;
+    var totalHours = Number(els.slider.max);
+    var rate = totalHours / PLAYBACK_SECONDS;
+    function tick(ts) {
+      var dt = lastTs == null ? 0 : Math.min((ts - lastTs) / 1000, 0.25);
+      lastTs = ts;
+      currentHour += rate * dt;
+      if (currentHour >= totalHours) { currentHour = totalHours; }
+      els.slider.value = currentHour;
       updateRadiusShapes();
       updateChartMarker();
       updateReadout();
-    }, 260);
+      if (currentHour >= totalHours) { stopPlay(); return; }
+      playRaf = requestAnimationFrame(tick);
+    }
+    playRaf = requestAnimationFrame(tick);
   }
   function stopPlay() {
-    if (playTimer) { clearInterval(playTimer); playTimer = null; }
+    if (playRaf) { cancelAnimationFrame(playRaf); playRaf = null; }
     els.play.textContent = "▶";
     els.play.setAttribute("aria-label", "Play track animation");
   }

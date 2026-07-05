@@ -38,10 +38,19 @@
   <div class="tt-stats" id="tt-stats"></div>
 
   <div class="tt-mapwrap">
-    <div id="tt-map" class="tt-map"></div>
+    <div class="tt-map-shell">
+      <div id="tt-map" class="tt-map"></div>
+      <div class="tt-zoom-controls" role="group" aria-label="Map zoom">
+        <button type="button" id="tt-zoom-in" aria-label="Zoom in">+</button>
+        <button type="button" id="tt-zoom-out" aria-label="Zoom out">&minus;</button>
+        <button type="button" id="tt-zoom-reset" aria-label="Reset map view">&#8634;</button>
+      </div>
+      <p class="tt-zoom-hint">Scroll or pinch to zoom &middot; drag to pan</p>
+    </div>
 
     <aside class="tt-details" id="tt-details" aria-label="Live track details">
       <div class="tt-details-top">
+        <span class="tt-details-name" id="td-name">&mdash;</span>
         <span class="tt-details-time" id="td-time">&mdash;</span>
         <span class="tt-details-cat" id="td-cat">&mdash;</span>
       </div>
