@@ -984,8 +984,8 @@
 
   function renderForecast(d) {
     if (!d) return;
+    updateForecastPanel(d);   // builds #tt-fc-live before the animation starts
     buildForecastMap(d);
-    updateForecastPanel(d);
   }
 
   function renderNoActive() {
@@ -1048,47 +1048,63 @@
         line: { width: 3, color: CAT_COLOR[a.catEn] || "#fff" } },
       hoverinfo: "skip", showlegend: false });
 
-    // Sweep overlay (animated): a brighter probability circle + a marker that
-    // travel along the forecast track, replayed on a loop. Added last so their
+    // Sweep overlay (animated): a marker that travels the whole timeline
+    // (past observed track → future forecast) with the storm-force wind-radius
+    // circle around it once it reaches "now" and beyond. Added last so their
     // indices are known and stable for per-frame Plotly.restyle().
     fcSweepCircleIdx = traces.length;
     traces.push({ type: "scattergeo", mode: "lines", lat: [a.lat], lon: [a.lon],
-      fill: "toself", fillcolor: "rgba(196,181,253,0.16)", line: { color: "rgba(196,181,253,0.85)", width: 1.4 },
+      fill: "toself", fillcolor: "rgba(255,140,0,0.12)", line: { color: "rgba(255,150,0,0.8)", width: 1.4 },
       hoverinfo: "skip", showlegend: false });
     fcSweepMarkerIdx = traces.length;
     traces.push({ type: "scattergeo", mode: "markers", lat: [a.lat], lon: [a.lon],
-      marker: { size: 11, color: "#ffffff", line: { width: 2, color: "rgba(124,58,237,0.9)" } },
+      marker: { size: 11, color: "#ffd54a", line: { width: 2, color: "rgba(20,26,46,0.9)" } },
       hoverinfo: "skip", showlegend: false });
 
     Plotly.react(els.map, traces, geoLayout(), { displayModeBar: false, responsive: true, scrollZoom: true });
     startForecastAnim(d);
   }
 
-  // Animate the sweep marker/circle along the forecast track from now (h=0) to
-  // the last forecast hour, then hold briefly and loop. Only the two overlay
-  // traces are restyled per frame; the full static forecast stays put behind
-  // it. dt-based so the pace is the same regardless of frame rate; disabled
-  // under prefers-reduced-motion (marker just rests at the current position).
-  var FC_SWEEP_SECONDS = 11, FC_HOLD_SECONDS = 1.4;
-  function cancelForecastAnim() {
-    if (fcAnim) { cancelAnimationFrame(fcAnim); fcAnim = null; }
+  // One continuous timeline: the observed track (past, positions only — JMA's
+  // public feed carries no per-past-point radius/strength) spliced onto the
+  // forecast points (present + future, which DO carry the storm-warning radius
+  // and expected intensity). Past points get synthetic 6-hourly negative hours
+  // so the sweep moves through them at a sensible pace.
+  function buildTimeline(d) {
+    var tl = [], obs = d.observed || [], N = obs.length;
+    for (var i = 0; i < N - 1; i++) {
+      tl.push({ h: -6 * (N - 1 - i), lat: obs[i][0], lon: obs[i][1], stormKm: null, windKt: null, cat: null });
+    }
+    d.points.forEach(function (p) {
+      tl.push({ h: p.h, lat: p.lat, lon: p.lon, stormKm: p.stormKm, windKt: p.windKt, cat: p.catEn });
+    });
+    return tl;
   }
-  function fcInterp(pts, t) {
-    if (t <= 0) return { lat: pts[0].lat, lon: pts[0].lon, r: 0 };
-    var last = pts[pts.length - 1];
-    if (t >= last.h) return { lat: last.lat, lon: last.lon, r: last.circleKm || 0 };
-    for (var i = 0; i < pts.length - 1; i++) {
-      var pa = pts[i], pb = pts[i + 1];
-      if (t >= pa.h && t <= pb.h) {
-        var f = (pb.h - pa.h) > 0 ? (t - pa.h) / (pb.h - pa.h) : 0;
+  function lerpMaybe(x, y, f) {
+    if (x == null && y == null) return null;
+    if (x == null) return y;
+    if (y == null) return x;
+    return x + (y - x) * f;
+  }
+  function tlInterp(tl, t) {
+    if (t <= tl[0].h) return tl[0];
+    var last = tl[tl.length - 1];
+    if (t >= last.h) return last;
+    for (var i = 0; i < tl.length - 1; i++) {
+      var a = tl[i], b = tl[i + 1];
+      if (t >= a.h && t <= b.h) {
+        var f = (b.h - a.h) > 0 ? (t - a.h) / (b.h - a.h) : 0;
         return {
-          lat: pa.lat + (pb.lat - pa.lat) * f,
-          lon: pa.lon + (pb.lon - pa.lon) * f,
-          r: (pa.circleKm || 0) + ((pb.circleKm || 0) - (pa.circleKm || 0)) * f
+          h: t,
+          lat: a.lat + (b.lat - a.lat) * f,
+          lon: a.lon + (b.lon - a.lon) * f,
+          stormKm: t < 0 ? null : lerpMaybe(a.stormKm, b.stormKm, f),
+          windKt: t < 0 ? null : lerpMaybe(a.windKt, b.windKt, f),
+          cat: t < 0 ? null : (a.cat || b.cat)
         };
       }
     }
-    return { lat: last.lat, lon: last.lon, r: last.circleKm || 0 };
+    return last;
   }
   function restyleSweep(lat, lon, r, pulse) {
     if (fcSweepCircleIdx < 0) return;
@@ -1096,28 +1112,59 @@
     Plotly.restyle(els.map, { lat: [c.lat], lon: [c.lon] }, [fcSweepCircleIdx]);
     Plotly.restyle(els.map, { lat: [[lat]], lon: [[lon]], "marker.size": [pulse] }, [fcSweepMarkerIdx]);
   }
+  // Live readout element (updated per frame; not a full innerHTML rebuild).
+  function updateSweepLive(p) {
+    var el = document.getElementById("tt-fc-live");
+    if (!el) return;
+    if (!p || p.stormKm == null) {
+      el.innerHTML = '<span class="tt-fc-live-dot tt-fc-live-dot--past"></span><span class="tt-fc-live-past">replaying observed track…</span>';
+      return;
+    }
+    var tnum = tLabel(p.windKt);
+    var when = p.h <= 0.5 ? "now" : "+" + Math.round(p.h) + " h";
+    el.innerHTML = '<span class="tt-fc-live-dot"></span>' + when +
+      " · ~" + Math.round(p.windKt) + " kt" + (tnum ? " · " + tnum : "") +
+      " · storm radius " + Math.round(p.stormKm) + " km";
+  }
+
+  // Sweep the marker + wind-radius circle across the whole timeline, then hold
+  // and loop. The past portion plays quicker (it's context); the forecast
+  // portion — the point of interest — plays slower. dt-based (frame-rate
+  // independent); disabled under prefers-reduced-motion (rests at "now").
+  var FC_PAST_SECONDS = 6, FC_FUTURE_SECONDS = 9, FC_HOLD_SECONDS = 1.6;
+  function cancelForecastAnim() {
+    if (fcAnim) { cancelAnimationFrame(fcAnim); fcAnim = null; }
+  }
   function startForecastAnim(d) {
     cancelForecastAnim();
-    var pts = d.points, maxH = pts[pts.length - 1].h;
+    var tl = buildTimeline(d);
+    if (!tl.length) return;
+    var startH = tl[0].h, endH = tl[tl.length - 1].h;
     var reduced = false;
     try { reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
-    if (reduced || !maxH) { restyleSweep(pts[0].lat, pts[0].lon, 0, 11); return; }
-
-    var rate = maxH / FC_SWEEP_SECONDS;   // forecast-hours per real second
-    var t = 0, holdUntil = 0, lastTs = null;
+    if (reduced || endH <= 0) {
+      var nowPt = tlInterp(tl, Math.max(0, endH));
+      restyleSweep(nowPt.lat, nowPt.lon, nowPt.stormKm || 0, 11);
+      updateSweepLive(nowPt);
+      return;
+    }
+    var pastRate = Math.max(1, -startH) / FC_PAST_SECONDS;
+    var futureRate = endH / FC_FUTURE_SECONDS;
+    var t = startH, holdUntil = 0, lastTs = null;
     function frame(ts) {
       if (appMode !== "predict") { fcAnim = null; return; }   // safety: stop if mode changed
       var dt = lastTs == null ? 0 : Math.min((ts - lastTs) / 1000, 0.25);
       lastTs = ts;
       if (holdUntil > 0) {
-        if (ts >= holdUntil) { holdUntil = 0; t = 0; }
+        if (ts >= holdUntil) { holdUntil = 0; t = startH; }
       } else {
-        t += rate * dt;
-        if (t >= maxH) { t = maxH; holdUntil = ts + FC_HOLD_SECONDS * 1000; }
+        t += (t < 0 ? pastRate : futureRate) * dt;
+        if (t >= endH) { t = endH; holdUntil = ts + FC_HOLD_SECONDS * 1000; }
       }
-      var p = fcInterp(pts, t);
+      var p = tlInterp(tl, t);
       var pulse = 11 + Math.sin(ts / 180) * 2;
-      restyleSweep(p.lat, p.lon, p.r, pulse);
+      restyleSweep(p.lat, p.lon, p.stormKm || 0, pulse);
+      updateSweepLive(p);
       fcAnim = requestAnimationFrame(frame);
     }
     fcAnim = requestAnimationFrame(frame);
@@ -1155,6 +1202,7 @@
         '<span class="tt-fc-badge" style="color:' + (CAT_COLOR[a.catEn] || "#fff") + '">' + badge + "</span>" +
         (curT ? '<span class="tt-fc-tnum" title="Dvorak T-number, from the current max wind via the standard CI-number/wind table">' + curT + "</span>" : "") +
       "</div>" +
+      '<div class="tt-fc-live" id="tt-fc-live" aria-live="off"></div>' +
       '<div class="tt-details-grid">' +
         predItem("Pressure", a.pressure != null ? a.pressure + " hPa" : "—") +
         predItem("Max wind", a.windKt != null ? a.windKt + " kt" : "—") +
