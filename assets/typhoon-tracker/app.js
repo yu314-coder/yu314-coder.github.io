@@ -865,6 +865,8 @@
   var JMA_BASE = "https://www.jma.go.jp/bosai/typhoon/data/";
   var jmaCache = {};   // tcId -> parsed forecast
   var jmaList = [];    // parsed forecasts for all currently-active TCs
+  var fcAnim = null;   // requestAnimationFrame id for the forecast sweep
+  var fcSweepCircleIdx = -1, fcSweepMarkerIdx = -1; // trace indices of the sweep overlay
 
   var CAT_NAME = { TD: "Tropical Depression", TS: "Tropical Storm",
     STS: "Severe Tropical Storm", TY: "Typhoon", L: "Low", LO: "Low" };
@@ -958,6 +960,8 @@
           });
       })
       .catch(function () {
+        cancelForecastAnim();
+        fcSweepCircleIdx = -1;
         setForecastMessage("Couldn’t reach JMA’s forecast service. It may be briefly unavailable — switch back to Track, or try Forecast again shortly.");
         if (els.typhoonSelect) els.typhoonSelect.innerHTML = "<option>—</option>";
         Plotly.react(els.map, [], geoLayout(), { displayModeBar: false, responsive: true, scrollZoom: true });
@@ -981,6 +985,8 @@
   }
 
   function renderNoActive() {
+    cancelForecastAnim();
+    fcSweepCircleIdx = -1;
     if (els.typhoonSelect) els.typhoonSelect.innerHTML = "<option>None active</option>";
     Plotly.react(els.map, [], geoLayout(), { displayModeBar: false, responsive: true, scrollZoom: true });
     setForecastMessage("No active tropical cyclones. JMA isn’t tracking any storms in the Western Pacific right now — check back during a storm.");
@@ -1038,7 +1044,79 @@
         line: { width: 3, color: CAT_COLOR[a.catEn] || "#fff" } },
       hoverinfo: "skip", showlegend: false });
 
+    // Sweep overlay (animated): a brighter probability circle + a marker that
+    // travel along the forecast track, replayed on a loop. Added last so their
+    // indices are known and stable for per-frame Plotly.restyle().
+    fcSweepCircleIdx = traces.length;
+    traces.push({ type: "scattergeo", mode: "lines", lat: [a.lat], lon: [a.lon],
+      fill: "toself", fillcolor: "rgba(196,181,253,0.16)", line: { color: "rgba(196,181,253,0.85)", width: 1.4 },
+      hoverinfo: "skip", showlegend: false });
+    fcSweepMarkerIdx = traces.length;
+    traces.push({ type: "scattergeo", mode: "markers", lat: [a.lat], lon: [a.lon],
+      marker: { size: 11, color: "#ffffff", line: { width: 2, color: "rgba(124,58,237,0.9)" } },
+      hoverinfo: "skip", showlegend: false });
+
     Plotly.react(els.map, traces, geoLayout(), { displayModeBar: false, responsive: true, scrollZoom: true });
+    startForecastAnim(d);
+  }
+
+  // Animate the sweep marker/circle along the forecast track from now (h=0) to
+  // the last forecast hour, then hold briefly and loop. Only the two overlay
+  // traces are restyled per frame; the full static forecast stays put behind
+  // it. dt-based so the pace is the same regardless of frame rate; disabled
+  // under prefers-reduced-motion (marker just rests at the current position).
+  var FC_SWEEP_SECONDS = 11, FC_HOLD_SECONDS = 1.4;
+  function cancelForecastAnim() {
+    if (fcAnim) { cancelAnimationFrame(fcAnim); fcAnim = null; }
+  }
+  function fcInterp(pts, t) {
+    if (t <= 0) return { lat: pts[0].lat, lon: pts[0].lon, r: 0 };
+    var last = pts[pts.length - 1];
+    if (t >= last.h) return { lat: last.lat, lon: last.lon, r: last.circleKm || 0 };
+    for (var i = 0; i < pts.length - 1; i++) {
+      var pa = pts[i], pb = pts[i + 1];
+      if (t >= pa.h && t <= pb.h) {
+        var f = (pb.h - pa.h) > 0 ? (t - pa.h) / (pb.h - pa.h) : 0;
+        return {
+          lat: pa.lat + (pb.lat - pa.lat) * f,
+          lon: pa.lon + (pb.lon - pa.lon) * f,
+          r: (pa.circleKm || 0) + ((pb.circleKm || 0) - (pa.circleKm || 0)) * f
+        };
+      }
+    }
+    return { lat: last.lat, lon: last.lon, r: last.circleKm || 0 };
+  }
+  function restyleSweep(lat, lon, r, pulse) {
+    if (fcSweepCircleIdx < 0) return;
+    var c = r > 0 ? circlePolygon(lat, lon, r) : { lat: [lat], lon: [lon] };
+    Plotly.restyle(els.map, { lat: [c.lat], lon: [c.lon] }, [fcSweepCircleIdx]);
+    Plotly.restyle(els.map, { lat: [[lat]], lon: [[lon]], "marker.size": [pulse] }, [fcSweepMarkerIdx]);
+  }
+  function startForecastAnim(d) {
+    cancelForecastAnim();
+    var pts = d.points, maxH = pts[pts.length - 1].h;
+    var reduced = false;
+    try { reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+    if (reduced || !maxH) { restyleSweep(pts[0].lat, pts[0].lon, 0, 11); return; }
+
+    var rate = maxH / FC_SWEEP_SECONDS;   // forecast-hours per real second
+    var t = 0, holdUntil = 0, lastTs = null;
+    function frame(ts) {
+      if (appMode !== "predict") { fcAnim = null; return; }   // safety: stop if mode changed
+      var dt = lastTs == null ? 0 : Math.min((ts - lastTs) / 1000, 0.25);
+      lastTs = ts;
+      if (holdUntil > 0) {
+        if (ts >= holdUntil) { holdUntil = 0; t = 0; }
+      } else {
+        t += rate * dt;
+        if (t >= maxH) { t = maxH; holdUntil = ts + FC_HOLD_SECONDS * 1000; }
+      }
+      var p = fcInterp(pts, t);
+      var pulse = 11 + Math.sin(ts / 180) * 2;
+      restyleSweep(p.lat, p.lon, p.r, pulse);
+      fcAnim = requestAnimationFrame(frame);
+    }
+    fcAnim = requestAnimationFrame(frame);
   }
 
   function updateForecastPanel(d) {
@@ -1121,6 +1199,7 @@
     // the season-view chrome (hint, hidden panels) must only apply inside Track
     els.app.classList.toggle("is-season", mode === "track" && viewMode === "season");
     stopPlay();
+    cancelForecastAnim();   // rebuilt/ restarted by loadForecastMode when entering Forecast
     if (mode === "predict") { loadForecastMode(); }
     else if (viewMode === "season") { buildSeasonOverview(); }
     else if (currentStorm) { buildMap(); }
