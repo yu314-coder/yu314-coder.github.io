@@ -247,7 +247,7 @@
       buildMap();
       buildChart();
       buildLegend();
-      updateReadout();
+      updateReadout(true);
     }).catch(function () {
       els.map.innerHTML = '<p class="tt-error">Could not load that season’s track data.</p>';
     });
@@ -441,27 +441,43 @@
     }).join("");
   }
 
-  function updateReadout() {
+  // animate=true only for a genuine jump (loading a different storm) — see
+  // the note above tweenNumber for why continuous scrub/play must NOT animate.
+  function updateReadout(animate) {
     var pt = interpAt(currentHour);
     var f = catFields();
     els.readout.textContent = (pt.t || "").replace("T", " ") +
       "  ·  " + (pt.w != null ? Math.round(pt.w) + " kt" : "n/a") +
       (pt.p != null ? "  ·  " + Math.round(pt.p) + " mb" : "") +
       "  ·  " + (pt[f.label] || "unclassified");
-    updateDetailsPanel(pt, f);
+    updateDetailsPanel(pt, f, !!animate);
   }
 
   /* ---------------------------------------------------------------------------
-     Live details panel — numbers tween to their new value instead of
-     snapping, so scrubbing/playing reads as motion, not a series of jumps.
-     Each tracked field keeps its own token; a new tween for the same field
-     invalidates the last one so rapid scrubbing doesn't stack animations.
+     Live details panel. Numbers tween on a genuine jump (picking a different
+     storm snaps straight to its peak) but update INSTANTLY during scrubbing
+     or playback. That split matters: during continuous scrub/play this is
+     called on every slider "input" event or every animation frame, far
+     faster than a 320ms tween can finish. Each call was cancelling the
+     previous tween before it ever rendered a frame — the field only ever
+     showed its very first synchronous write, appearing completely frozen
+     until the movement stopped and one call finally survived long enough to
+     animate. Since interpAt() already makes the underlying value change
+     smoothly as currentHour advances, instant updates during scrub/play
+     look exactly as smooth as the motion driving them — no easing needed
+     on top. Each field keeps its own token so a new tween for the same key
+     still invalidates the last one, for the jump case.
      ------------------------------------------------------------------------- */
   var tweenState = {};
-  function tweenNumber(key, el, toVal, decimals, suffix) {
+  function tweenNumber(key, el, toVal, decimals, suffix, animate) {
     if (toVal == null || isNaN(toVal)) {
       tweenState[key] = null;
       el.textContent = "—";
+      return;
+    }
+    if (!animate) {
+      tweenState[key] = { current: toVal, token: null };
+      el.textContent = toVal.toFixed(decimals) + (suffix || "");
       return;
     }
     var prev = tweenState[key];
@@ -501,7 +517,7 @@
     return avail.length ? avail.reduce(function (a, b) { return a + b; }, 0) / avail.length : null;
   }
 
-  function updateDetailsPanel(pt, f) {
+  function updateDetailsPanel(pt, f, animate) {
     els.dTime.textContent = pt.t ? pt.t.replace("T", " ") : "—";
 
     var catLabel = pt[f.label] || "Unclassified";
@@ -510,17 +526,17 @@
     els.dCat.style.color = catColor;
     els.dCat.style.background = catColor.replace("rgb(", "rgba(").replace(")", ",0.16)");
 
-    tweenNumber("wind", els.dWind, pt.w, 0);
-    tweenNumber("pres", els.dPres, pt.p, 0);
+    tweenNumber("wind", els.dWind, pt.w, 0, "", animate);
+    tweenNumber("pres", els.dPres, pt.p, 0, "", animate);
 
     els.dPos.textContent =
       (pt.la != null ? Math.abs(pt.la).toFixed(1) + "°" + (pt.la >= 0 ? "N" : "S") : "—") +
       "   " +
       (pt.lo != null ? Math.abs(pt.lo).toFixed(1) + "°" + (pt.lo >= 0 ? "E" : "W") : "—");
 
-    tweenNumber("r34", els.dR34, avgRadius(pt.r3), 0, " km");
-    tweenNumber("r50", els.dR50, avgRadius(pt.r5), 0, " km");
-    tweenNumber("r64", els.dR64, avgRadius(pt.r6), 0, " km");
+    tweenNumber("r34", els.dR34, avgRadius(pt.r3), 0, " km", animate);
+    tweenNumber("r50", els.dR50, avgRadius(pt.r5), 0, " km", animate);
+    tweenNumber("r64", els.dR64, avgRadius(pt.r6), 0, " km", animate);
   }
 
   /* ---------------------------------------------------------------------------
