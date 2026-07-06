@@ -1182,8 +1182,16 @@
         tl.push({ h: -6 * (N - 1 - i), lat: obs[i][0], lon: obs[i][1], stormKm: null, galeKm: null, windKt: null });
       }
     }
+    // JMA forecasts the storm-force area but not a gale radius, so the outer
+    // ring would vanish over the forecast leg. Estimate it by keeping the
+    // gale−storm gap measured at "now" (analysis, where both are real), so the
+    // two-ring wind field stays continuous. Flagged as estimated in the footer.
+    var a0 = d.points[0];
+    var galeGap = (a0 && a0.galeKm != null && a0.stormKm != null) ? (a0.galeKm - a0.stormKm) : null;
     d.points.forEach(function (p) {
-      tl.push({ h: p.h, lat: p.lat, lon: p.lon, stormKm: p.stormKm, galeKm: p.galeKm, windKt: p.windKt });
+      var gk = p.galeKm;
+      if (gk == null && p.h > 0 && p.stormKm != null && galeGap != null) gk = Math.round(p.stormKm + galeGap);
+      tl.push({ h: p.h, lat: p.lat, lon: p.lon, stormKm: p.stormKm, galeKm: gk, windKt: p.windKt });
     });
     tl.sort(function (a, b) { return a.h - b.h; });
     return tl;
@@ -1380,7 +1388,7 @@
       '<div class="tt-fc-rows">' + (rows || '<div class="tt-fc-row">No forecast points issued.</div>') + "</div>" +
       '<div class="tt-pred-foot">Forecast &amp; current: <a href="https://www.jma.go.jp/bosai/map.html#contents=typhoon&lang=en" target="_blank" rel="noopener">JMA</a>' +
         (issued ? ", issued " + issued + " JST" : "") +
-        '. Past best-track radii via <a href="https://agora.ex.nii.ac.jp/digital-typhoon/" target="_blank" rel="noopener">Digital Typhoon</a> (NII). Reissued every few hours while a storm is active.</div>';
+        '. Past best-track radii via <a href="https://agora.ex.nii.ac.jp/digital-typhoon/" target="_blank" rel="noopener">Digital Typhoon</a> (NII). The forecast outer (gale) ring is estimated — JMA forecasts the storm-force area only. Reissued every few hours.</div>';
   }
 
   function predItem(label, value, sub) {
