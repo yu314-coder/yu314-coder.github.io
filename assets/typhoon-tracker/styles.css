@@ -184,11 +184,15 @@ body {
 }
 .tt-fc-tnum {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
-  color: var(--muted); cursor: help;
-  padding: 5px 9px; border-radius: 999px;
-  border: 1px solid var(--line); background: rgba(255,255,255,0.04);
+  font-size: 12.5px; font-weight: 750; font-variant-numeric: tabular-nums;
+  color: var(--text); cursor: help; white-space: nowrap;
+  padding: 5px 10px; border-radius: 999px;
+  border: 1px solid var(--line); background: rgba(255,255,255,0.05);
+  transition: color .2s ease, border-color .2s ease, background-color .2s ease;
 }
+.tt-fc-tnum--past { color: #7dd3fc; border-color: rgba(56,189,248,0.45); background: rgba(56,189,248,0.1); }
+.tt-fc-tnum--now  { color: #fde68a; border-color: rgba(253,224,138,0.5); background: rgba(253,224,138,0.12); }
+.tt-fc-tnum--fcst { color: #c4b5fd; border-color: rgba(196,181,253,0.5); background: rgba(196,181,253,0.12); }
 /* Live sweep readout — updated each animation frame */
 .tt-fc-live {
   display: flex; align-items: center; gap: 7px; min-height: 16px;

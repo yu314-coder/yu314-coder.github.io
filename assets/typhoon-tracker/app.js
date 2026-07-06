@@ -1235,18 +1235,26 @@
   // Live readout element (updated per frame; not a full innerHTML rebuild).
   function updateSweepLive(p) {
     var el = document.getElementById("tt-fc-live");
+    var chip = document.getElementById("tt-fc-tnum");
     if (!el) return;
     if (!p || p.windKt == null) {   // truly no data (pre-classification / no best-track)
       el.innerHTML = '<span class="tt-fc-live-dot tt-fc-live-dot--past"></span><span class="tt-fc-live-past">replaying observed track…</span>';
+      if (chip) { chip.textContent = "T—"; chip.className = "tt-fc-tnum"; }
       return;
     }
     var tnum = tLabel(p.windKt);
-    var when = p.h == null || Math.abs(p.h) < 0.5 ? "now" : (p.h < 0 ? "−" + Math.round(-p.h) + " h" : "+" + Math.round(p.h) + " h");
+    var phase = p.h == null || Math.abs(p.h) < 0.5 ? "now" : (p.h < 0 ? "past" : "fcst");
+    var when = phase === "now" ? "now" : (p.h < 0 ? "−" + Math.round(-p.h) + " h" : "+" + Math.round(p.h) + " h");
     var rad = "";
     if (p.stormKm != null && p.galeKm != null) rad = " · storm " + Math.round(p.stormKm) + " / gale " + Math.round(p.galeKm) + " km";
     else if (p.stormKm != null) rad = " · storm radius " + Math.round(p.stormKm) + " km";
     el.innerHTML = '<span class="tt-fc-live-dot"></span>' + when +
       " · ~" + Math.round(p.windKt) + " kt" + (tnum ? " · " + tnum : "") + rad;
+    // live Dvorak T chip — past / now / expected, changing with the sweep
+    if (chip && tnum) {
+      chip.textContent = tnum + (phase === "fcst" ? " exp." : phase === "past" ? " past" : "");
+      chip.className = "tt-fc-tnum tt-fc-tnum--" + phase;
+    }
   }
 
   // Sweep the marker + wind-radius circle across the whole timeline, then hold
@@ -1374,7 +1382,7 @@
       "</div>" +
       '<div class="tt-fc-badgerow">' +
         '<span class="tt-fc-badge" style="color:' + (CAT_COLOR[a.catEn] || "#fff") + '">' + badge + "</span>" +
-        (curT ? '<span class="tt-fc-tnum" title="Dvorak T-number, from the current max wind via the standard CI-number/wind table">' + curT + "</span>" : "") +
+        '<span class="tt-fc-tnum" id="tt-fc-tnum" title="Dvorak T-number at the current animation time — past &amp; expected, from best-track / forecast wind via the standard CI-number/wind table">' + (curT || "T—") + "</span>" +
       "</div>" +
       '<div class="tt-fc-live" id="tt-fc-live" aria-live="off"></div>' +
       '<div class="tt-details-grid">' +
