@@ -434,6 +434,9 @@ body.theme-dark .tracker-shell {
   flex: none;
 }
 .app-icon img { width: 100%; height: 100%; object-fit: cover; }
+/* WebP-with-PNG-fallback wrapper stays layout-transparent, so the <img> keeps
+   behaving as the icon's direct flex child exactly as before. */
+.app-icon picture { display: contents; }
 .app-icon-lg { width: 76px; height: 76px; border-radius: 18px; }
 .app-icon-sm { width: 40px; height: 40px; border-radius: 10px; }
 /* GitHub-mark icon for code projects (GitHub / PyPI only) — theme-aware */
