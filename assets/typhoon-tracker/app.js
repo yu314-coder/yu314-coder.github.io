@@ -556,6 +556,7 @@
 
     traces = traces.concat(dynamicTraces());
 
+    lastMarkerColor = null; // force the next scrub frame to sync the marker color
     Plotly.react(els.map, traces, geoLayout(), { displayModeBar: false, responsive: true, scrollZoom: true });
     bindMapClick();
   }
@@ -682,13 +683,42 @@
   }
 
   var STATIC_TRACES = 2; // track line, intensity markers
-  function updateDynamic() {
+  // buildMap appends exactly four dynamic traces — the three wind-radius rings
+  // then the current-position marker — and they persist for the storm's whole
+  // life. So the scrubber updates them IN PLACE with Plotly.restyle instead of
+  // deleting every dynamic trace and re-adding it each frame (which reallocated
+  // SVG groups and janked playback). Same approach the forecast sweep uses.
+  var DYN_IDX = [STATIC_TRACES, STATIC_TRACES + 1, STATIC_TRACES + 2, STATIC_TRACES + 3];
+  var lastMarkerColor = null;
+  function ringLatLon(pt, key, show) {
+    if (!show || !pt[key]) return { lat: [], lon: [] };
+    var poly = radiusPolygon(pt.la, pt.lo, pt[key]);
+    return poly ? { lat: poly.lat, lon: poly.lon } : { lat: [], lon: [] };
+  }
+  function updateDynamic(pt) {
     if (!currentStorm || appMode !== "track" || viewMode !== "storm") return;
-    var n = (els.map.data && els.map.data.length) || 0;
-    var idx = [];
-    for (var i = STATIC_TRACES; i < n; i++) idx.push(i);
-    if (idx.length) Plotly.deleteTraces(els.map, idx);
-    Plotly.addTraces(els.map, dynamicTraces());
+    // Slots not built yet (defensive — buildMap always creates them): add once.
+    if (!els.map.data || els.map.data.length <= STATIC_TRACES) {
+      if (els.map.data) Plotly.addTraces(els.map, dynamicTraces());
+      return;
+    }
+    if (!pt) pt = interpAt(currentHour);
+    var r3 = ringLatLon(pt, "r3", els.r34.checked);
+    var r5 = ringLatLon(pt, "r5", els.r50.checked);
+    var r6 = ringLatLon(pt, "r6", els.r64.checked);
+    // One restyle → one redraw of the data layer, no trace churn.
+    Plotly.restyle(els.map, {
+      lat: [r3.lat, r5.lat, r6.lat, [pt.la]],
+      lon: [r3.lon, r5.lon, r6.lon, [pt.lo]]
+    }, DYN_IDX);
+    // Marker color tracks the category, which only changes at discrete wind
+    // thresholds — so restyle it only when it actually changes, keeping the
+    // common frame down to the single restyle above.
+    var color = pt[catFields().color] || "#fff";
+    if (color !== lastMarkerColor) {
+      lastMarkerColor = color;
+      Plotly.restyle(els.map, { "marker.color": color, "marker.line.color": color }, [DYN_IDX[3]]);
+    }
   }
 
   /* ---------------------------------------------------------------------------
@@ -744,6 +774,16 @@
     Plotly.relayout(els.chart, { shapes: [currentTimeLine()] });
   }
 
+  // One scrub/play frame: interpolate the storm state ONCE and feed the same
+  // point to the map rings+marker, the intensity-chart cursor, and the readout
+  // (each used to re-interpolate independently, doubling the per-frame work).
+  function renderScrub() {
+    var pt = interpAt(currentHour);
+    updateDynamic(pt);
+    updateChartMarker();
+    updateReadout(false, pt);
+  }
+
   /* ---------------------------------------------------------------------------
      Legend + readout
      ------------------------------------------------------------------------- */
@@ -757,8 +797,8 @@
 
   // animate=true only for a genuine jump (loading a different storm) — see
   // the note above tweenNumber for why continuous scrub/play must NOT animate.
-  function updateReadout(animate) {
-    var pt = interpAt(currentHour);
+  function updateReadout(animate, pt) {
+    if (!pt) pt = interpAt(currentHour);
     var f = catFields();
     els.readout.textContent = (pt.t || "").replace("T", " ") +
       "  ·  " + (pt.w != null ? Math.round(pt.w) + " kt" : "n/a") +
@@ -1551,9 +1591,7 @@
   els.slider.addEventListener("input", function () {
     stopPlay();
     currentHour = Number(els.slider.value);
-    updateDynamic();
-    updateChartMarker();
-    updateReadout();
+    renderScrub();
   });
   els.play.addEventListener("click", togglePlay);
 
@@ -1604,9 +1642,7 @@
       currentHour += rate * dt;
       if (currentHour >= totalHours) { currentHour = totalHours; }
       els.slider.value = currentHour;
-      updateDynamic();
-      updateChartMarker();
-      updateReadout();
+      renderScrub();
       if (currentHour >= totalHours) { stopPlay(); return; }
       playRaf = requestAnimationFrame(tick);
     }
