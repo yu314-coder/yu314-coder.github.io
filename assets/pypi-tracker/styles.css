@@ -165,12 +165,13 @@ input {
   background: #fff;
 }
 
-/* Byte, the robot companion — stands beside the package field, watches your
-   cursor, and reacts. Click it for a little hop. */
+/* Byte, the robot companion — sits beside the package field, watches your
+   cursor, and reacts. Click it for a little hop. Vertically centered on the
+   input (rather than poking up above it) so it reads as a tidy sidekick. */
 .package-field-row {
   display: flex;
-  align-items: flex-end;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
 }
 .package-field-row input {
   flex: 1 1 auto;
@@ -181,7 +182,6 @@ input {
   flex: 0 0 auto;
   width: 54px;
   height: 54px;
-  margin-bottom: -4px;
   cursor: pointer;
   pointer-events: auto;
 }

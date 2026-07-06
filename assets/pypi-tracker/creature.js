@@ -14,10 +14,9 @@
   var ctx = canvas.getContext("2d");
   if (!ctx) return;
 
-  var REDUCED = false;
-  try { REDUCED = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches; }
-  catch (e) { REDUCED = false; }
-
+  // Byte always animates (like the hero spiral) so it stays visible even when
+  // the OS requests reduced motion — a Windows machine with "animation effects"
+  // off would otherwise only get a single static frame that can read as blank.
   var dpr = Math.min(window.devicePixelRatio || 1, 2);
   var S = 56; // logical size in px (updated from layout on resize)
   function resize() {
@@ -61,7 +60,7 @@
     }
   }
 
-  function now() { return REDUCED ? 0 : (window.performance && performance.now ? performance.now() : Date.now()); }
+  function now() { return (window.performance && performance.now) ? performance.now() : Date.now(); }
 
   /* ---- drawing helpers --------------------------------------------------- */
   function rr(x, y, w, h, r) {
@@ -103,8 +102,8 @@
     gaze.x += (gx - gaze.x) * 0.12;
     gaze.y += (gy - gaze.y) * 0.12;
 
-    var bob = REDUCED ? 0 : Math.sin(ts * cur.bobRate) * cur.bobAmp;
-    var sway = REDUCED ? 0 : Math.sin(ts * 0.006) * 1.4 * cur.wiggle;
+    var bob = Math.sin(ts * cur.bobRate) * cur.bobAmp;
+    var sway = Math.sin(ts * 0.006) * 1.4 * cur.wiggle;
     var hopY = 0, squash = 0;
     if (hop) {
       var hp = (ts - hop.start) / hop.dur;
@@ -185,10 +184,8 @@
 
     // eyes — glowing, track gaze, blink
     var blink = 1;
-    if (!REDUCED) {
-      var bt = ts % 4200;
-      if (bt > blinkT && bt < blinkT + 130) blink = 0.12;
-    }
+    var bt = ts % 4200;
+    if (bt > blinkT && bt < blinkT + 130) blink = 0.12;
     var eyeR = S * 0.055 * cur.eyeOpen;
     var eyeMidY = vy + vh * 0.44;
     var eyeDX = vw * 0.22, shiftX = gaze.x * vw * 0.12, shiftY = gaze.y * vh * 0.14;
@@ -252,7 +249,7 @@
   function loop(ts) {
     if (state === "excited" && ts > excitedUntil) setState(document.activeElement === input ? "alert" : "idle");
     draw(ts);
-    if (!REDUCED) requestAnimationFrame(loop);
+    requestAnimationFrame(loop);
   }
 
   /* ---- interactions ------------------------------------------------------ */
@@ -267,21 +264,27 @@
     input.addEventListener("input", function () { setState("excited"); excitedUntil = now() + 500; });
   }
 
-  canvas.addEventListener("click", function () { if (!REDUCED) celebrate(1); });
+  canvas.addEventListener("click", function () { celebrate(1); });
 
   // Celebrate when the stats land (total downloads becomes non-zero).
   var total = document.getElementById("total-downloads");
   if (total && window.MutationObserver) {
     new MutationObserver(function () {
       var v = (total.textContent || "").replace(/[^0-9]/g, "");
-      if (v && v !== "0" && !REDUCED) celebrate(1.4);
+      if (v && v !== "0") celebrate(1.4);
     }).observe(total, { childList: true, characterData: true, subtree: true });
   }
 
   try {
     resize();
-    window.addEventListener("resize", resize, { passive: true });
-    if (REDUCED) draw(0);
-    else requestAnimationFrame(loop);
+    draw(0); // paint one frame immediately so Byte is never blank while rAF spins up
+    // resize() clears the canvas, so repaint right after it — otherwise a resize
+    // between animation frames (or while the loop is paused) leaves Byte blank.
+    window.addEventListener("resize", function () { resize(); draw(now()); }, { passive: true });
+    // Re-measure once after layout has settled (the canvas may report 0 width at
+    // first paint inside the lazy iframe). resize() clears the canvas, so redraw
+    // right after — this way a frame is always on screen even if the loop is
+    // momentarily paused (e.g. a backgrounded tab), then run it continuously.
+    requestAnimationFrame(function () { resize(); draw(0); requestAnimationFrame(loop); });
   } catch (e) {}
 })();
