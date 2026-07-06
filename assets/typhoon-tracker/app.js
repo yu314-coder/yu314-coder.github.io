@@ -871,7 +871,7 @@
   var jmaCache = {};   // tcId -> parsed forecast
   var jmaList = [];    // parsed forecasts for all currently-active TCs
   var fcAnim = null;   // requestAnimationFrame id for the forecast sweep
-  var fcSweepCircleIdx = -1, fcSweepMarkerIdx = -1; // trace indices of the sweep overlay
+  var fcSweepGaleIdx = -1, fcSweepCircleIdx = -1, fcSweepMarkerIdx = -1; // sweep overlay trace indices
 
   var CAT_NAME = { TD: "Tropical Depression", TS: "Tropical Storm",
     STS: "Severe Tropical Storm", TY: "Typhoon", L: "Low", LO: "Low" };
@@ -1122,18 +1122,6 @@
         lon: d.observed.map(function (p) { return p[1]; }),
         line: { color: "rgba(255,255,255,0.45)", width: 1.6 }, hoverinfo: "skip", showlegend: false });
     }
-    if (a.galeKm) {
-      var g = circlePolygon(a.lat, a.lon, a.galeKm);
-      traces.push({ type: "scattergeo", mode: "lines", lat: g.lat, lon: g.lon,
-        fill: "toself", fillcolor: "rgba(255,200,0,0.07)", line: { color: "rgba(255,200,0,0.5)", width: 1 },
-        hoverinfo: "skip", showlegend: false });
-    }
-    if (a.stormKm) {
-      var s = circlePolygon(a.lat, a.lon, a.stormKm);
-      traces.push({ type: "scattergeo", mode: "lines", lat: s.lat, lon: s.lon,
-        fill: "toself", fillcolor: "rgba(255,60,60,0.13)", line: { color: "rgba(255,60,60,0.6)", width: 1 },
-        hoverinfo: "skip", showlegend: false });
-    }
     pts.slice(1).forEach(function (p) {
       if (!p.circleKm) return;
       var c = circlePolygon(p.lat, p.lon, p.circleKm);
@@ -1152,13 +1140,18 @@
         line: { width: 3, color: CAT_COLOR[a.catEn] || "#fff" } },
       hoverinfo: "skip", showlegend: false });
 
-    // Sweep overlay (animated): a marker that travels the whole timeline
-    // (past observed track → future forecast) with the storm-force wind-radius
-    // circle around it once it reaches "now" and beyond. Added last so their
-    // indices are known and stable for per-frame Plotly.restyle().
+    // Sweep overlay (animated): a marker that travels the whole timeline (past
+    // observed track → future forecast) carrying the storm's TWO wind-field
+    // boundaries — the outer gale ring (30kt, thin yellow) and the inner
+    // storm ring (50kt, orange). Added last so their indices are stable for
+    // per-frame Plotly.restyle().
+    fcSweepGaleIdx = traces.length;
+    traces.push({ type: "scattergeo", mode: "lines", lat: [a.lat], lon: [a.lon],
+      fill: "toself", fillcolor: "rgba(255,205,60,0.06)", line: { color: "rgba(255,210,80,0.65)", width: 1 },
+      hoverinfo: "skip", showlegend: false });
     fcSweepCircleIdx = traces.length;
     traces.push({ type: "scattergeo", mode: "lines", lat: [a.lat], lon: [a.lon],
-      fill: "toself", fillcolor: "rgba(255,140,0,0.12)", line: { color: "rgba(255,150,0,0.8)", width: 1.4 },
+      fill: "toself", fillcolor: "rgba(255,120,0,0.14)", line: { color: "rgba(255,150,0,0.85)", width: 1.6 },
       hoverinfo: "skip", showlegend: false });
     fcSweepMarkerIdx = traces.length;
     traces.push({ type: "scattergeo", mode: "markers", lat: [a.lat], lon: [a.lon],
@@ -1181,16 +1174,16 @@
       d.past.forEach(function (o) {
         if (o.timeMs >= baseMs - 1800000) return; // strictly before "now"
         tl.push({ h: (o.timeMs - baseMs) / 3600000, lat: o.lat, lon: o.lon,
-          stormKm: o.stormKm, windKt: o.windKt });
+          stormKm: o.stormKm, galeKm: o.galeKm, windKt: o.windKt });
       });
     } else {
       var obs = d.observed || [], N = obs.length;
       for (var i = 0; i < N - 1; i++) {
-        tl.push({ h: -6 * (N - 1 - i), lat: obs[i][0], lon: obs[i][1], stormKm: null, windKt: null });
+        tl.push({ h: -6 * (N - 1 - i), lat: obs[i][0], lon: obs[i][1], stormKm: null, galeKm: null, windKt: null });
       }
     }
     d.points.forEach(function (p) {
-      tl.push({ h: p.h, lat: p.lat, lon: p.lon, stormKm: p.stormKm, windKt: p.windKt });
+      tl.push({ h: p.h, lat: p.lat, lon: p.lon, stormKm: p.stormKm, galeKm: p.galeKm, windKt: p.windKt });
     });
     tl.sort(function (a, b) { return a.h - b.h; });
     return tl;
@@ -1214,17 +1207,22 @@
           lat: a.lat + (b.lat - a.lat) * f,
           lon: a.lon + (b.lon - a.lon) * f,
           stormKm: lerpMaybe(a.stormKm, b.stormKm, f),
+          galeKm: lerpMaybe(a.galeKm, b.galeKm, f),
           windKt: lerpMaybe(a.windKt, b.windKt, f)
         };
       }
     }
     return last;
   }
-  function restyleSweep(lat, lon, r, pulse) {
+  // Draw both wind rings (gale outer, storm inner) + the marker at point p.
+  // A ring with no radius (weak storm / no forecast data) collapses to a point.
+  function restyleSweep(p, pulse) {
     if (fcSweepCircleIdx < 0) return;
-    var c = r > 0 ? circlePolygon(lat, lon, r) : { lat: [lat], lon: [lon] };
-    Plotly.restyle(els.map, { lat: [c.lat], lon: [c.lon] }, [fcSweepCircleIdx]);
-    Plotly.restyle(els.map, { lat: [[lat]], lon: [[lon]], "marker.size": [pulse] }, [fcSweepMarkerIdx]);
+    var gale = (p.galeKm > 0) ? circlePolygon(p.lat, p.lon, p.galeKm) : { lat: [p.lat], lon: [p.lon] };
+    var storm = (p.stormKm > 0) ? circlePolygon(p.lat, p.lon, p.stormKm) : { lat: [p.lat], lon: [p.lon] };
+    Plotly.restyle(els.map, { lat: [gale.lat], lon: [gale.lon] }, [fcSweepGaleIdx]);
+    Plotly.restyle(els.map, { lat: [storm.lat], lon: [storm.lon] }, [fcSweepCircleIdx]);
+    Plotly.restyle(els.map, { lat: [[p.lat]], lon: [[p.lon]], "marker.size": [pulse] }, [fcSweepMarkerIdx]);
   }
   // Live readout element (updated per frame; not a full innerHTML rebuild).
   function updateSweepLive(p) {
@@ -1236,7 +1234,9 @@
     }
     var tnum = tLabel(p.windKt);
     var when = p.h == null || Math.abs(p.h) < 0.5 ? "now" : (p.h < 0 ? "−" + Math.round(-p.h) + " h" : "+" + Math.round(p.h) + " h");
-    var rad = p.stormKm != null ? " · storm radius " + Math.round(p.stormKm) + " km" : "";
+    var rad = "";
+    if (p.stormKm != null && p.galeKm != null) rad = " · storm " + Math.round(p.stormKm) + " / gale " + Math.round(p.galeKm) + " km";
+    else if (p.stormKm != null) rad = " · storm radius " + Math.round(p.stormKm) + " km";
     el.innerHTML = '<span class="tt-fc-live-dot"></span>' + when +
       " · ~" + Math.round(p.windKt) + " kt" + (tnum ? " · " + tnum : "") + rad;
   }
@@ -1267,7 +1267,7 @@
   function sweepTo(t, pulse, syncSlider) {
     if (!fcState) return;
     var p = tlInterp(fcState.tl, t);
-    restyleSweep(p.lat, p.lon, p.stormKm || 0, pulse);
+    restyleSweep(p, pulse);
     updateSweepLive(p);
     if (els.fcTime) els.fcTime.textContent = formatSweepTime(t);
     if (syncSlider !== false && els.fcSlider) els.fcSlider.value = t;
