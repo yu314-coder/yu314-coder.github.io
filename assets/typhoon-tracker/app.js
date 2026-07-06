@@ -1025,6 +1025,63 @@
     return out.length ? out : null;
   }
 
+  // Real satellite Dvorak T-numbers from UW-CIMSS ADT (the objective Dvorak
+  // technique). CIMSS is CORS-blocked, so route through a public CORS proxy
+  // (best-effort; falls back to wind-derived T). The history file gives the
+  // CI# every ~30 min for the storm's whole life.
+  var CIMSS_PROXY = "https://corsproxy.io/?url=";
+  var CIMSS_BASE = "https://tropic.ssec.wisc.edu/real-time/adt/";
+  var CIMSS_MON = { JAN: 0, FEB: 1, MAR: 2, APR: 3, MAY: 4, JUN: 5, JUL: 6, AUG: 7, SEP: 8, OCT: 9, NOV: 10, DEC: 11 };
+
+  function parseCimss(text, id) {
+    if (!text || text.indexOf(id) === -1) return null;   // empty / wrong storm
+    var out = [];
+    text.split("\n").forEach(function (line) {
+      var m = line.match(/^(\d{4})([A-Z]{3})(\d{2})\s+(\d{6})\s+([\d.]+)\s+[\d.]+\s+[\d.]+/);
+      if (!m) return;
+      var mo = CIMSS_MON[m[2]], ciNum = parseFloat(m[5]);
+      if (mo == null || isNaN(ciNum)) return;
+      out.push({ timeMs: Date.UTC(+m[1], mo, +m[3], +m[4].slice(0, 2), +m[4].slice(2, 4), 0), ci: ciNum });
+    });
+    return out.length ? out : null;
+  }
+  function fetchCimss(jmaNumber, analysisMs) {
+    var id = /^\d{3,4}$/.test(jmaNumber || "") ? jmaNumber.slice(-2) + "W" : null;
+    if (!id) return Promise.resolve(null);
+    return fetch(CIMSS_PROXY + encodeURIComponent(CIMSS_BASE + id + "-list.txt"))
+      .then(function (r) { return r.ok ? r.text() : ""; })
+      .then(function (text) {
+        var list = parseCimss(text, id);
+        if (!list) return null;
+        // reject a stale / mismatched storm: latest CIMSS fix must be near "now"
+        if (analysisMs && Math.abs(list[list.length - 1].timeMs - analysisMs) > 2 * 86400000) return null;
+        return list;
+      }).catch(function () { return null; });
+  }
+  function cimssNowT(d) { return (d && d.cimss && d.cimss.length) ? d.cimss[d.cimss.length - 1].ci : null; }
+  function nearestCimssCi(list, timeMs) {
+    var best = null, bd = Infinity;
+    for (var i = 0; i < list.length; i++) { var dd = Math.abs(list[i].timeMs - timeMs); if (dd < bd) { bd = dd; best = list[i]; } }
+    return (best && bd <= 3 * 3600000) ? best.ci : null;   // within 3h
+  }
+  // No agency forecasts a Dvorak number, so anchor to CIMSS's current real T
+  // and add the JMA forecast intensity change on top (continuous with the real
+  // value). Falls back to plain wind-derived T when CIMSS is unavailable.
+  function anchoredT(d, windKt) {
+    if (windKt == null) return null;
+    var dt = dvorakTNumber(windKt); if (dt == null) return null;
+    var nowT = cimssNowT(d), nowW = d.points[0] && d.points[0].windKt;
+    if (nowT != null && nowW != null && dvorakTNumber(nowW) != null) {
+      return Math.max(0, Math.round((nowT + (dt - dvorakTNumber(nowW))) * 10) / 10);
+    }
+    return dt;
+  }
+  function pointT(d, windKt, timeMs, isPast) {
+    if (isPast && d.cimss && timeMs != null) { var ci = nearestCimssCi(d.cimss, timeMs); if (ci != null) return ci; }
+    return anchoredT(d, windKt);
+  }
+  function fmtT(t) { return t != null ? "T" + t.toFixed(1) : null; }
+
   function fetchJmaTc(tcId) {
     if (jmaCache[tcId]) return Promise.resolve(jmaCache[tcId]);
     return Promise.all([
@@ -1033,16 +1090,17 @@
     ]).then(function (res) {
       var p = parseJma(tcId, res[0], res[1]);
       if (!p) return null;
-      // Enrich the past leg with real wind radii from JMA best-track (via
-      // Digital Typhoon). Best-effort: if it fails, the past falls back to
-      // JMA's position-only observed track.
+      // Past wind radii from JMA best-track (via Digital Typhoon), and real
+      // past Dvorak T-numbers from CIMSS ADT (via CORS proxy). Both best-effort.
       var dtId = /^\d{4}$/.test(p.number) ? "20" + p.number : null;
       var dtPromise = dtId
         ? fetch(DT_WIND + dtId + ".html.en").then(function (r) { return r.text(); })
             .then(function (html) { return parseDTWind(html); }).catch(function () { return null; })
         : Promise.resolve(null);
-      return dtPromise.then(function (past) {
-        p.past = past;
+      var analysisMs = (p.points[0] && p.points[0].valid) ? Date.parse(p.points[0].valid.UTC) : null;
+      return Promise.all([dtPromise, fetchCimss(p.number, analysisMs)]).then(function (r2) {
+        p.past = r2[0];
+        p.cimss = r2[1];
         jmaCache[tcId] = p;
         return p;
       });
@@ -1174,12 +1232,13 @@
       d.past.forEach(function (o) {
         if (o.timeMs >= baseMs - 1800000) return; // strictly before "now"
         tl.push({ h: (o.timeMs - baseMs) / 3600000, lat: o.lat, lon: o.lon,
-          stormKm: o.stormKm, galeKm: o.galeKm, windKt: o.windKt });
+          stormKm: o.stormKm, galeKm: o.galeKm, windKt: o.windKt,
+          tNum: pointT(d, o.windKt, o.timeMs, true) });   // real CIMSS T for the past
       });
     } else {
       var obs = d.observed || [], N = obs.length;
       for (var i = 0; i < N - 1; i++) {
-        tl.push({ h: -6 * (N - 1 - i), lat: obs[i][0], lon: obs[i][1], stormKm: null, galeKm: null, windKt: null });
+        tl.push({ h: -6 * (N - 1 - i), lat: obs[i][0], lon: obs[i][1], stormKm: null, galeKm: null, windKt: null, tNum: null });
       }
     }
     // JMA forecasts the storm-force area but not a gale radius, so the outer
@@ -1191,7 +1250,8 @@
     d.points.forEach(function (p) {
       var gk = p.galeKm;
       if (gk == null && p.h > 0 && p.stormKm != null && galeGap != null) gk = Math.round(p.stormKm + galeGap);
-      tl.push({ h: p.h, lat: p.lat, lon: p.lon, stormKm: p.stormKm, galeKm: gk, windKt: p.windKt });
+      tl.push({ h: p.h, lat: p.lat, lon: p.lon, stormKm: p.stormKm, galeKm: gk, windKt: p.windKt,
+        tNum: anchoredT(d, p.windKt) });   // CIMSS-anchored expected T
     });
     tl.sort(function (a, b) { return a.h - b.h; });
     return tl;
@@ -1216,7 +1276,8 @@
           lon: a.lon + (b.lon - a.lon) * f,
           stormKm: lerpMaybe(a.stormKm, b.stormKm, f),
           galeKm: lerpMaybe(a.galeKm, b.galeKm, f),
-          windKt: lerpMaybe(a.windKt, b.windKt, f)
+          windKt: lerpMaybe(a.windKt, b.windKt, f),
+          tNum: lerpMaybe(a.tNum, b.tNum, f)
         };
       }
     }
@@ -1242,7 +1303,7 @@
       if (chip) { chip.textContent = "T—"; chip.className = "tt-fc-tnum"; }
       return;
     }
-    var tnum = tLabel(p.windKt);
+    var tnum = fmtT(p.tNum);
     var phase = p.h == null || Math.abs(p.h) < 0.5 ? "now" : (p.h < 0 ? "past" : "fcst");
     var when = phase === "now" ? "now" : (p.h < 0 ? "−" + Math.round(-p.h) + " h" : "+" + Math.round(p.h) + " h");
     var rad = "";
@@ -1352,21 +1413,16 @@
     els.fcPlay.setAttribute("aria-label", paused ? "Play forecast animation" : "Pause forecast animation");
   }
 
-  function tLabel(windKt) {
-    var t = dvorakTNumber(windKt);
-    return t == null ? null : "T" + t.toFixed(1);
-  }
-
   function updateForecastPanel(d) {
     if (!els.predictPanel) return;
     var a = d.points[0];
     var catFull = CAT_NAME[a.catEn] || a.catEn || "Tropical cyclone";
     var badge = catFull + (a.intensity ? " · " + a.intensity : "") + (a.scale ? " · " + a.scale : "");
     var move = (a.course || "") + (a.speedKt != null ? " " + a.speedKt + " kt" : "");
-    var curT = tLabel(a.windKt);
+    var curT = fmtT(anchoredT(d, a.windKt));   // CIMSS current real T
     var rows = d.points.slice(1).map(function (p) {
       var when = p.valid ? p.valid.UTC.slice(5, 16).replace("T", " ") + "Z" : "";
-      var ft = tLabel(p.windKt);
+      var ft = fmtT(anchoredT(d, p.windKt));
       return '<div class="tt-fc-row"><span class="tt-fc-h">+' + p.h + "h</span>" +
         '<span class="tt-fc-when">' + when + "</span>" +
         '<span class="tt-fc-val">' + (p.pressure != null ? p.pressure + " hPa" : "—") +
@@ -1396,7 +1452,7 @@
       '<div class="tt-fc-rows">' + (rows || '<div class="tt-fc-row">No forecast points issued.</div>') + "</div>" +
       '<div class="tt-pred-foot">Forecast &amp; current: <a href="https://www.jma.go.jp/bosai/map.html#contents=typhoon&lang=en" target="_blank" rel="noopener">JMA</a>' +
         (issued ? ", issued " + issued + " JST" : "") +
-        '. Past best-track radii via <a href="https://agora.ex.nii.ac.jp/digital-typhoon/" target="_blank" rel="noopener">Digital Typhoon</a> (NII). The forecast outer (gale) ring is estimated — JMA forecasts the storm-force area only. Reissued every few hours.</div>';
+        '. Past radii via <a href="https://agora.ex.nii.ac.jp/digital-typhoon/" target="_blank" rel="noopener">Digital Typhoon</a> (NII); past Dvorak <b>T</b>-numbers are real satellite ADT from <a href="https://tropic.ssec.wisc.edu/real-time/adt/adt.html" target="_blank" rel="noopener">UW-CIMSS</a>' + (cimssNowT(d) != null ? "" : " (unavailable — T shown from wind)") + '. Forecast T is anchored to that and carried by JMA\'s intensity trend; the forecast outer (gale) ring is estimated. Reissued every few hours.</div>';
   }
 
   function predItem(label, value, sub) {
