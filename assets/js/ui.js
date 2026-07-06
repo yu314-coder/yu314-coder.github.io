@@ -19,8 +19,9 @@
                              bursts nearby particles outward from that point.
      5. Navbar frosted-on-scroll — toggles .scrolled on .navbar
 
-   All motion respects prefers-reduced-motion: when reduced, final values are
-   set instantly with no animation.
+   The scroll-reveal and count-up respect prefers-reduced-motion (final values
+   set instantly, no animation). The hero spiral is the deliberate exception —
+   it always animates by the site owner's choice (slow, smooth, non-flashing).
    ============================================================================= */
 (function () {
   "use strict";
@@ -179,8 +180,8 @@
      what makes trajectories spiral instead of just scaling in place — a
      real, direct link to the author's random matrix theory research (real
      non-symmetric random matrices generically have complex eigenvalues).
-     Cursor/touch gently perturbs nearby flow. A few faint static spiral
-     guide-curves replace the animation under prefers-reduced-motion.
+     Cursor/touch gently perturbs nearby flow. This hero always animates —
+     even when the OS requests reduced motion — by the site owner's choice.
      ------------------------------------------------------------------------- */
   function initHeroFlow() {
     var canvas = document.querySelector(".hero-flow");
@@ -370,73 +371,41 @@
       paintCore(cx, cy, R);
     }
 
-    function drawStatic() {
-      // Reduced motion (e.g. Windows "animation effects" off -> prefers-reduced-
-      // motion): don't animate, but still render the FULL spiral so the piece
-      // clearly shows instead of looking blank — a soft luminous disk plus
-      // several gradient arms and the bright core, a frozen version of the flow.
-      var cx = size / 2, cy = size / 2, R = size * 0.46;
-      ctx.clearRect(0, 0, size, size);
-      var bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
-      bg.addColorStop(0, "rgba(124,58,237,0.22)");
-      bg.addColorStop(1, "rgba(124,58,237,0)");
-      ctx.fillStyle = bg;
-      ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
-      for (var k = 0; k < 5; k++) {
-        ctx.beginPath();
-        for (var s = 0; s <= 240; s++) {
-          var t = s / 240 * 6.6;
-          var rr = 0.96 * Math.exp(A * t);
-          var th = B * t + k * (Math.PI * 2 / 5);
-          var x = cx + rr * Math.cos(th) * R, y = cy + rr * Math.sin(th) * R;
-          if (s === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        }
-        var col = colorFor(k / 4);
-        ctx.strokeStyle = "rgba(" + col.join(",") + ",0.6)";
-        ctx.lineWidth = 1.6;
-        ctx.stroke();
-      }
-      paintCore(cx, cy, R);
-    }
-
+    // The hero flow ALWAYS animates: the site owner opts this one decorative
+    // spiral in even under prefers-reduced-motion (the scroll-reveal and the
+    // count-up numbers elsewhere still honor it). It's a slow, smooth, non-
+    // flashing loop, and it still pauses whenever it scrolls off-screen.
     try {
       resize();
-      if (REDUCED) {
-        drawStatic();
-      } else {
-        var lastTs = null, rafId = null, running = false;
-        var raf = function (ts) {
-          var dt = lastTs == null ? 1 / 60 : Math.min((ts - lastTs) / 1000, 0.05);
-          lastTs = ts;
-          var cx = size / 2, cy = size / 2, R = size * 0.46;
-          step(dt, R, cx, cy);
-          draw(cx, cy, R);
-          rafId = requestAnimationFrame(raf);
-        };
-        var startFlow = function () {
-          if (running) return;
-          running = true; lastTs = null; // reset dt so the resume frame doesn't jump
-          rafId = requestAnimationFrame(raf);
-        };
-        var stopFlow = function () {
-          running = false;
-          if (rafId != null) { cancelAnimationFrame(rafId); rafId = null; }
-        };
-        startFlow(); // paint immediately (hero is above the fold)
-        // Only run the 200-particle loop while the canvas is actually on-screen;
-        // scrolling the hero away stops it instead of burning CPU on an
-        // invisible canvas. (rAF already pauses when the whole tab is hidden.)
-        if ("IntersectionObserver" in window) {
-          new IntersectionObserver(function (entries) {
-            if (entries[entries.length - 1].isIntersecting) startFlow();
-            else stopFlow();
-          }, { threshold: 0, rootMargin: "200px" }).observe(canvas);
-        }
+      var lastTs = null, rafId = null, running = false;
+      var raf = function (ts) {
+        var dt = lastTs == null ? 1 / 60 : Math.min((ts - lastTs) / 1000, 0.05);
+        lastTs = ts;
+        var cx = size / 2, cy = size / 2, R = size * 0.46;
+        step(dt, R, cx, cy);
+        draw(cx, cy, R);
+        rafId = requestAnimationFrame(raf);
+      };
+      var startFlow = function () {
+        if (running) return;
+        running = true; lastTs = null; // reset dt so the resume frame doesn't jump
+        rafId = requestAnimationFrame(raf);
+      };
+      var stopFlow = function () {
+        running = false;
+        if (rafId != null) { cancelAnimationFrame(rafId); rafId = null; }
+      };
+      startFlow();
+      // Only run the 200-particle loop while the canvas is actually on-screen;
+      // scrolling the hero away stops it instead of burning CPU on an invisible
+      // canvas. (rAF already pauses when the whole tab is hidden.)
+      if ("IntersectionObserver" in window) {
+        new IntersectionObserver(function (entries) {
+          if (entries[entries.length - 1].isIntersecting) startFlow();
+          else stopFlow();
+        }, { threshold: 0, rootMargin: "200px" }).observe(canvas);
       }
-      window.addEventListener("resize", function () {
-        resize();
-        if (REDUCED) drawStatic();
-      }, { passive: true });
+      window.addEventListener("resize", resize, { passive: true });
     } catch (e) {}
   }
 
