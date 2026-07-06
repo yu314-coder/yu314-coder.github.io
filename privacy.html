@@ -10,10 +10,11 @@
   <meta name="author" content="Yu, Yao-Hsing 尤耀星">
   <meta name="robots" content="index, follow">
 
-  <!-- Security Headers -->
-  <meta http-equiv="X-Content-Type-Options" content="nosniff">
-  <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
-  <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+  <!-- Referrer policy is the only one of these that works as a <meta>.
+       X-Content-Type-Options / X-Frame-Options / X-XSS-Protection are
+       HTTP-header-only directives: as <meta http-equiv> they are ignored
+       (X-Frame-Options even errors in the console), and GitHub Pages
+       can't send custom headers, so they were inert. -->
   <meta name="referrer" content="strict-origin-when-cross-origin">
 
   <!-- Open Graph / Social Media -->

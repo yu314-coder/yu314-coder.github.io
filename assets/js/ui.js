@@ -371,20 +371,29 @@
     }
 
     function drawStatic() {
-      // Reduced motion: a few faint logarithmic spiral guide-curves, still.
+      // Reduced motion (e.g. Windows "animation effects" off -> prefers-reduced-
+      // motion): don't animate, but still render the FULL spiral so the piece
+      // clearly shows instead of looking blank — a soft luminous disk plus
+      // several gradient arms and the bright core, a frozen version of the flow.
       var cx = size / 2, cy = size / 2, R = size * 0.46;
       ctx.clearRect(0, 0, size, size);
-      for (var k = 0; k < 3; k++) {
+      var bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+      bg.addColorStop(0, "rgba(124,58,237,0.22)");
+      bg.addColorStop(1, "rgba(124,58,237,0)");
+      ctx.fillStyle = bg;
+      ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
+      for (var k = 0; k < 5; k++) {
         ctx.beginPath();
-        for (var s = 0; s <= 220; s++) {
-          var t = s / 220 * 6.2;
-          var rr = 0.95 * Math.exp(A * t);
-          var th = B * t + k * (Math.PI * 2 / 3);
+        for (var s = 0; s <= 240; s++) {
+          var t = s / 240 * 6.6;
+          var rr = 0.96 * Math.exp(A * t);
+          var th = B * t + k * (Math.PI * 2 / 5);
           var x = cx + rr * Math.cos(th) * R, y = cy + rr * Math.sin(th) * R;
           if (s === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         }
-        ctx.strokeStyle = "rgba(91,91,240,0.30)";
-        ctx.lineWidth = 1.4;
+        var col = colorFor(k / 4);
+        ctx.strokeStyle = "rgba(" + col.join(",") + ",0.6)";
+        ctx.lineWidth = 1.6;
         ctx.stroke();
       }
       paintCore(cx, cy, R);
@@ -421,7 +430,7 @@
           new IntersectionObserver(function (entries) {
             if (entries[entries.length - 1].isIntersecting) startFlow();
             else stopFlow();
-          }, { threshold: 0 }).observe(canvas);
+          }, { threshold: 0, rootMargin: "200px" }).observe(canvas);
         }
       }
       window.addEventListener("resize", function () {
