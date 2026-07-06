@@ -181,7 +181,11 @@ input {
 #pypi-buddy {
   flex: 0 0 auto;
   width: 54px;
-  height: 54px;
+  height: 80px;
+  /* Taller than the input on purpose: the extra height is transparent headroom
+     so Byte's hop (antenna + its glow) isn't clipped at the top. Negative margins
+     keep it from growing the row — the overflow just shows; no ancestor clips it. */
+  margin: -21px 0;
   cursor: pointer;
   pointer-events: auto;
 }

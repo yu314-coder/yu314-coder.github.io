@@ -18,12 +18,14 @@
   // the OS requests reduced motion — a Windows machine with "animation effects"
   // off would otherwise only get a single static frame that can read as blank.
   var dpr = Math.min(window.devicePixelRatio || 1, 2);
-  var S = 56; // logical size in px (updated from layout on resize)
+  var S = 56; // Byte's logical SIZE in px (its width; sets all its proportions)
+  var H = 56; // canvas logical HEIGHT — taller than S, the extra is hop headroom
   function resize() {
     var rect = canvas.getBoundingClientRect();
     S = rect.width || 56;
+    H = rect.height || S;
     canvas.width = Math.round(S * dpr);
-    canvas.height = Math.round(S * dpr);
+    canvas.height = Math.round(H * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
@@ -54,7 +56,7 @@
     for (var i = 0; i < n; i++) {
       var a = Math.PI * (0.15 + Math.random() * 0.7); // fan upward
       var sp = 26 + Math.random() * 34;
-      sparks.push({ x: S / 2 + (Math.random() - 0.5) * S * 0.4, y: S * 0.5,
+      sparks.push({ x: S / 2 + (Math.random() - 0.5) * S * 0.4, y: H * 0.5,
         vx: Math.cos(a) * sp * (Math.random() < 0.5 ? -1 : 1), vy: -Math.sin(a) * sp,
         life: 1, born: now(), hue: Math.random() < 0.5 ? "#22d3ee" : "#c084fc" });
     }
@@ -75,7 +77,7 @@
   }
 
   function draw(ts) {
-    ctx.clearRect(0, 0, S, S);
+    ctx.clearRect(0, 0, S, H);
 
     // ease drawn params toward the active state's target
     var tgt = STATES[state];
@@ -90,7 +92,7 @@
     var gx, gy;
     if (ts - lastMove < 2600) {
       var rect = canvas.getBoundingClientRect();
-      var cx = rect.left + rect.width / 2, cy = rect.top + rect.height * 0.42;
+      var cx = rect.left + rect.width / 2, cy = rect.top + rect.height * 0.35;
       var dx = mouse.x - cx, dy = mouse.y - cy;
       var d = Math.sqrt(dx * dx + dy * dy) || 1;
       var mag = Math.min(1, d / 220);
@@ -117,7 +119,11 @@
     happy = Math.max(0, happy - 0.006);
 
     var cX = S / 2 + sway;
-    var baseY = S * 0.56 + bob + hopY;
+    // Anchor Byte around the canvas's vertical centre so it lines up with the
+    // input, with the taller canvas leaving room above for the hop. groundY is
+    // the fixed shadow line (Byte bobs/hops relative to it).
+    var groundY = H * 0.5 + S * 0.375;
+    var baseY = groundY - S * 0.28 + bob + hopY;
 
     // ground shadow (shrinks as it lifts)
     var lift = (-bob - hopY);
@@ -125,7 +131,7 @@
     ctx.globalAlpha = 0.28 - Math.min(0.16, lift * 0.02);
     ctx.fillStyle = "#0b1020";
     ctx.beginPath();
-    ctx.ellipse(S / 2, S * 0.84, S * 0.24 - lift * 0.15, S * 0.055, 0, 0, Math.PI * 2);
+    ctx.ellipse(S / 2, groundY, S * 0.24 - lift * 0.15, S * 0.055, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
