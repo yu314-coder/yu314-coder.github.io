@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>PyPI Download Stats</title>
     <link rel="stylesheet" href="styles.css" />
-    <script src="https://cdn.plot.ly/plotly-basic-2.35.2.min.js" charset="utf-8"></script>
+    <!-- defer so the query controls + Byte paint without waiting on the large
+         Plotly bundle; deferred scripts still run in order, so Plotly is
+         defined before app.js's loadDefaults() runs. -->
+    <script src="https://cdn.plot.ly/plotly-basic-2.35.2.min.js" charset="utf-8" defer></script>
   </head>
   <body>
     <main class="app-shell">
@@ -167,14 +170,18 @@
       </details>
     </main>
 
-    <script src="app.js"></script>
-    <script src="creature.js"></script>
+    <script src="app.js" defer></script>
+    <script src="creature.js" defer></script>
     <script>
-      // Quick-pick chips: fill the package field and run the analysis
-      document.querySelectorAll('.chip').forEach((chip) => {
-        chip.addEventListener('click', () => {
-          document.querySelector('#package').value = chip.dataset.pkg;
-          document.querySelector('#tracker-form').requestSubmit();
+      // Quick-pick chips: fill the package field and run the analysis. Runs on
+      // DOMContentLoaded so it fires after the deferred app.js has wired the
+      // form's submit handler (deferred scripts run before DOMContentLoaded).
+      addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.chip').forEach((chip) => {
+          chip.addEventListener('click', () => {
+            document.querySelector('#package').value = chip.dataset.pkg;
+            document.querySelector('#tracker-form').requestSubmit();
+          });
         });
       });
     </script>

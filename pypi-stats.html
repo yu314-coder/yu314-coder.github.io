@@ -191,8 +191,20 @@
       }
       frame.addEventListener('load', function () {
         sizeFrame();
-        // Re-measure as the app renders results / expands the author panel
-        setInterval(sizeFrame, 800);
+        // Re-measure only when the app's content actually changes size (results
+        // render, author panel expands) via a ResizeObserver on the same-origin
+        // iframe body — instead of polling on a timer forever. Falls back to a
+        // slow interval only where ResizeObserver is unavailable.
+        try {
+          var doc = frame.contentDocument || frame.contentWindow.document;
+          if (doc && doc.body && 'ResizeObserver' in window) {
+            new ResizeObserver(sizeFrame).observe(doc.body);
+          } else {
+            setInterval(sizeFrame, 800);
+          }
+        } catch (e) {
+          setInterval(sizeFrame, 800);
+        }
       });
     })();
   </script>

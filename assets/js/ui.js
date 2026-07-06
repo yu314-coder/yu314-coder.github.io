@@ -395,16 +395,34 @@
       if (REDUCED) {
         drawStatic();
       } else {
-        var lastTs = null;
+        var lastTs = null, rafId = null, running = false;
         var raf = function (ts) {
           var dt = lastTs == null ? 1 / 60 : Math.min((ts - lastTs) / 1000, 0.05);
           lastTs = ts;
           var cx = size / 2, cy = size / 2, R = size * 0.46;
           step(dt, R, cx, cy);
           draw(cx, cy, R);
-          requestAnimationFrame(raf);
+          rafId = requestAnimationFrame(raf);
         };
-        requestAnimationFrame(raf);
+        var startFlow = function () {
+          if (running) return;
+          running = true; lastTs = null; // reset dt so the resume frame doesn't jump
+          rafId = requestAnimationFrame(raf);
+        };
+        var stopFlow = function () {
+          running = false;
+          if (rafId != null) { cancelAnimationFrame(rafId); rafId = null; }
+        };
+        startFlow(); // paint immediately (hero is above the fold)
+        // Only run the 200-particle loop while the canvas is actually on-screen;
+        // scrolling the hero away stops it instead of burning CPU on an
+        // invisible canvas. (rAF already pauses when the whole tab is hidden.)
+        if ("IntersectionObserver" in window) {
+          new IntersectionObserver(function (entries) {
+            if (entries[entries.length - 1].isIntersecting) startFlow();
+            else stopFlow();
+          }, { threshold: 0 }).observe(canvas);
+        }
       }
       window.addEventListener("resize", function () {
         resize();
@@ -419,9 +437,12 @@
   function initNavScroll() {
     var nav = document.querySelector(".navbar");
     if (!nav) return;
+    var scrolled = null;
     var onScroll = function () {
-      if (window.scrollY > 24) { nav.classList.add("scrolled"); }
-      else { nav.classList.remove("scrolled"); }
+      var now = window.scrollY > 24;
+      if (now === scrolled) return; // skip redundant DOM writes on every scroll tick
+      scrolled = now;
+      nav.classList.toggle("scrolled", now);
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
