@@ -135,6 +135,16 @@
     ctx.fill();
     ctx.restore();
 
+    // hover-jet glow — a soft cyan bloom under the feet as Byte lifts / hops
+    if (lift > 0.6) {
+      var jetY = baseY + S * 0.05, jetA = Math.min(0.42, lift * 0.05);
+      var jg = ctx.createRadialGradient(cX, jetY, 0, cX, jetY, S * 0.22);
+      jg.addColorStop(0, "rgba(56,230,255," + jetA + ")");
+      jg.addColorStop(1, "rgba(56,230,255,0)");
+      ctx.fillStyle = jg;
+      ctx.beginPath(); ctx.ellipse(cX, jetY, S * 0.2, S * 0.09, 0, 0, Math.PI * 2); ctx.fill();
+    }
+
     // antenna
     var antX = cX + gaze.x * 1.2;
     var topY = baseY - S * (0.30 + squash);
@@ -154,6 +164,18 @@
     ctx.arc(antX, tipY, S * 0.055, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
+    // signal ping — a faint ring pulses outward from the antenna tip
+    var ping = (ts % 2600) / 2600;
+    if (ping < 0.55) {
+      ctx.save();
+      ctx.globalAlpha = (1 - ping / 0.55) * 0.38;
+      ctx.strokeStyle = "#5eead4";
+      ctx.lineWidth = Math.max(0.6, S * 0.013);
+      ctx.beginPath();
+      ctx.arc(antX, tipY, S * 0.06 + ping * S * 0.14, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
 
     // body — rounded capsule with a cyan→violet gradient + soft glow
     var bw = S * 0.60, bh = S * (0.56 - squash), bx = cX - bw / 2, by = baseY - bh + S * 0.02;
@@ -171,6 +193,14 @@
     ctx.lineWidth = 1;
     rr(bx + 1, by + 1, bw - 2, bh - 2, S * 0.19);
     ctx.stroke();
+    // glossy catch-light on the rounded top-left of the shell
+    ctx.save();
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.ellipse(bx + bw * 0.32, by + bh * 0.12, bw * 0.19, bh * 0.06, -0.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
 
     // feet
     ctx.fillStyle = "#4b3ea8";
@@ -187,6 +217,18 @@
     ctx.lineWidth = 1;
     rr(vx + 0.5, vy + 0.5, vw - 1, vh - 1, S * 0.10);
     ctx.stroke();
+
+    // chest status LED — softly breathes; warms to pink when celebrating
+    var ledPulse = 0.55 + 0.45 * Math.sin(ts * 0.005);
+    ctx.save();
+    ctx.shadowBlur = 6 * ledPulse;
+    ctx.shadowColor = happy > 0.2 ? "#f0abfc" : "#22d3ee";
+    ctx.globalAlpha = 0.7 + 0.3 * ledPulse;
+    ctx.fillStyle = happy > 0.2 ? "#f5d0fe" : "#67e8f9";
+    ctx.beginPath();
+    ctx.arc(cX, by + bh * 0.83, S * 0.033, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
 
     // eyes — glowing, track gaze, blink
     var blink = 1;
@@ -208,6 +250,15 @@
         ctx.beginPath();
         ctx.ellipse(ex, ey, eyeR, eyeR * blink, 0, 0, Math.PI * 2);
         ctx.fill();
+        if (blink > 0.5) { // glossy catch-light in the eye (not mid-blink)
+          ctx.save();
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = "rgba(255,255,255,0.92)";
+          ctx.beginPath();
+          ctx.arc(ex - eyeR * 0.32, ey - eyeR * 0.4, eyeR * 0.34, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
       }
     });
     ctx.restore();
