@@ -732,6 +732,7 @@
     var pres = pts.map(function (p) { return p.p; });
     var colors = pts.map(function (p) { return p[f.color] || "rgb(150,190,215)"; });
 
+    var t0 = formatUTC(absTimeAt(currentHour));
     var traces = [
       {
         x: times, y: winds, type: "scatter", mode: "lines+markers", name: "Wind (kt)",
@@ -743,6 +744,14 @@
         x: times, y: pres, type: "scatter", mode: "lines", name: "Pressure (mb)",
         line: { color: "rgba(168,85,247,0.85)", width: 1.5, dash: "dot" },
         yaxis: "y2"
+      },
+      { // time cursor — a 2-point trace on a hidden full-height axis. As a
+        // TRACE it scrubs via a cheap data-only Plotly.restyle each frame; as
+        // a layout shape (the old way) every frame forced a full relayout
+        // pass, the single heaviest per-frame cost while playing.
+        x: [t0, t0], y: [0, 1], yaxis: "y3", type: "scatter", mode: "lines",
+        line: { color: "rgba(255,255,255,0.55)", width: 1, dash: "dash" },
+        hoverinfo: "skip", showlegend: false
       }
     ];
 
@@ -754,24 +763,21 @@
       xaxis: { gridcolor: "rgba(255,255,255,0.06)", showline: false },
       yaxis: { title: "Wind (kt)", gridcolor: "rgba(255,255,255,0.06)", zeroline: false },
       yaxis2: { title: "Pressure (mb)", overlaying: "y", side: "right", showgrid: false },
+      // invisible fixed [0,1] axis that the time cursor spans
+      yaxis3: { overlaying: "y", range: [0, 1], visible: false, fixedrange: true },
       legend: { orientation: "h", y: 1.12, font: { color: "#98a2bd" } },
-      height: 220,
-      shapes: [currentTimeLine()]
+      height: 220
     };
 
     Plotly.react(els.chart, traces, layout, { displayModeBar: false, responsive: true });
   }
 
-  function currentTimeLine() {
-    var t = formatUTC(absTimeAt(currentHour));
-    return {
-      type: "line", x0: t, x1: t, y0: 0, y1: 1, yref: "paper",
-      line: { color: "rgba(255,255,255,0.55)", width: 1, dash: "dash" }
-    };
-  }
+  var CHART_CURSOR_IDX = 2; // the time-cursor trace buildChart appends last
 
   function updateChartMarker() {
-    Plotly.relayout(els.chart, { shapes: [currentTimeLine()] });
+    if (!els.chart.data || els.chart.data.length <= CHART_CURSOR_IDX) return;
+    var t = formatUTC(absTimeAt(currentHour));
+    Plotly.restyle(els.chart, { x: [[t, t]] }, [CHART_CURSOR_IDX]);
   }
 
   // One scrub/play frame: interpolate the storm state ONCE and feed the same
@@ -1325,13 +1331,17 @@
   }
   // Draw both wind rings (gale outer, storm inner) + the marker at point p.
   // A ring with no radius (weak storm / no forecast data) collapses to a point.
+  // ONE combined restyle → one map redraw per frame instead of three (the
+  // marker.size entries for the two line-mode ring traces are inert).
   function restyleSweep(p, pulse) {
     if (fcSweepCircleIdx < 0) return;
     var gale = (p.galeKm > 0) ? circlePolygon(p.lat, p.lon, p.galeKm) : { lat: [p.lat], lon: [p.lon] };
     var storm = (p.stormKm > 0) ? circlePolygon(p.lat, p.lon, p.stormKm) : { lat: [p.lat], lon: [p.lon] };
-    Plotly.restyle(els.map, { lat: [gale.lat], lon: [gale.lon] }, [fcSweepGaleIdx]);
-    Plotly.restyle(els.map, { lat: [storm.lat], lon: [storm.lon] }, [fcSweepCircleIdx]);
-    Plotly.restyle(els.map, { lat: [[p.lat]], lon: [[p.lon]], "marker.size": [pulse] }, [fcSweepMarkerIdx]);
+    Plotly.restyle(els.map, {
+      lat: [gale.lat, storm.lat, [p.lat]],
+      lon: [gale.lon, storm.lon, [p.lon]],
+      "marker.size": [1, 1, pulse]
+    }, [fcSweepGaleIdx, fcSweepCircleIdx, fcSweepMarkerIdx]);
   }
   // Live readout element (updated per frame; not a full innerHTML rebuild).
   function updateSweepLive(p) {
