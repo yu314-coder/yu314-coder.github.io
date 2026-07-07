@@ -250,30 +250,53 @@
     return ["C5 Super Typhoon", "rgb(255,0,0)"];
   }
   // CWA (Taiwan) thresholds are defined on 10-MINUTE mean winds: 輕度 17.2,
-  // 中度 32.7, 強烈 51.0 m/s. Best-track winds here are USA/JTWC 1-minute, so
-  // convert with the standard 0.88 agency factor first — the old baked data
-  // skipped this and over-classified (e.g. a 105 kt 1-min storm showed as
-  // Strong when CWA's own 10-min analysis would call it Medium).
+  // 中度 32.7, 強烈 51.0 m/s. Classifying converted 1-minute winds is only an
+  // approximation (agencies' analyses genuinely differ — Doksuri 2023 reads
+  // Strong for ~36h that way, while CWA's own calls were mostly Medium), so
+  // the shards now carry JMA's REAL 10-minute analysis per point (wj, kt) —
+  // the same averaging convention CWA uses — and the Taiwan standard is
+  // classified on that. The 0.88-converted 1-min wind is only the fallback
+  // for storms with no 10-minute record at all.
   var KT_TO_MS = 0.514444, ONE_MIN_TO_TEN_MIN = 0.88;
-  function taiwanCat(w) {
-    if (w == null) return [null, null];
-    var ms10 = w * ONE_MIN_TO_TEN_MIN * KT_TO_MS;   // kt (1-min) -> m/s (10-min)
+  function taiwanCatMs10(ms10) {
+    if (ms10 == null) return [null, null];
     if (ms10 < 17.2) return ["Tropical Depression", "rgb(150,190,215)"];
     if (ms10 < 32.7) return ["Mild Typhoon 輕度颱風", "rgb(255,255,0)"];
     if (ms10 < 51.0) return ["Medium Typhoon 中度颱風", "rgb(255,127,0)"];
     return ["Strong Typhoon 強烈颱風", "rgb(255,0,0)"];
   }
-  // Re-class a baked shard's points in place — the shards carry the old
-  // unconverted Taiwan labels, so fix them as each season loads.
-  function fixTaiwanCats(shard) {
-    Object.keys(shard).forEach(function (sid) {
-      var pts = shard[sid].pts || [];
-      for (var i = 0; i < pts.length; i++) {
-        if (pts[i].w == null) continue;
-        var tc = taiwanCat(pts[i].w);
-        pts[i].ta = tc[0]; pts[i].tc = tc[1];
+  function taiwanCat(w) {   // fallback: converted 1-min wind
+    return taiwanCatMs10(w == null ? null : w * ONE_MIN_TO_TEN_MIN * KT_TO_MS);
+  }
+  // Re-class one storm's points on 10-min winds. JMA reports 6-hourly while
+  // the track has 3-hourly points, so gaps interpolate linearly on elapsed
+  // hours (tails carry the nearest analysis).
+  function reclassTaiwanStorm(stm) {
+    var pts = stm.pts || [], known = [];
+    for (var i = 0; i < pts.length; i++) if (pts[i].wj != null) known.push(i);
+    for (var j = 0; j < pts.length; j++) {
+      var pt = pts[j], cat;
+      if (!known.length) {
+        if (pt.w == null) continue;
+        cat = taiwanCat(pt.w);
+      } else if (pt.wj != null) {
+        cat = taiwanCatMs10(pt.wj * KT_TO_MS);
+      } else {
+        var lo = -1, hi = -1;
+        for (var k = 0; k < known.length; k++) {
+          if (known[k] < j) lo = known[k];
+          else { hi = known[k]; break; }
+        }
+        var wjv = lo < 0 ? pts[hi].wj
+          : hi < 0 ? pts[lo].wj
+          : pts[lo].wj + (pts[hi].wj - pts[lo].wj) * ((pt.h - pts[lo].h) / ((pts[hi].h - pts[lo].h) || 1));
+        cat = taiwanCatMs10(wjv * KT_TO_MS);
       }
-    });
+      pt.ta = cat[0]; pt.tc = cat[1];
+    }
+  }
+  function fixTaiwanCats(shard) {
+    Object.keys(shard).forEach(function (sid) { reclassTaiwanStorm(shard[sid]); });
     return shard;
   }
   function csvNum(v) {
@@ -316,6 +339,9 @@
       var w = csvNum(c[col.USA_WIND]), p = csvNum(c[col.USA_PRES]);
       var ac = atlanticCat(w), tc = taiwanCat(w);
       var pt = { t: t, h: 0, la: la, lo: lo, w: w, p: p, ca: ac[0], cc: ac[1], ta: tc[0], tc: tc[1] };
+      // JMA 10-min analysis when present — drives the Taiwan classification
+      var wj = col.TOKYO_WIND != null ? csvNum(c[col.TOKYO_WIND]) : null;
+      if (wj != null && wj > 0) pt.wj = wj;
       var r3 = csvQuadKm(c, col, "USA_R34"), r5 = csvQuadKm(c, col, "USA_R50"), r6 = csvQuadKm(c, col, "USA_R64");
       if (r3) pt.r3 = r3;
       if (r5) pt.r5 = r5;
@@ -357,6 +383,8 @@
     Object.keys(storms).forEach(function (sid) {
       var st = storms[sid];
       if (!st.pts.length) return;
+      reclassTaiwanStorm(st);   // Taiwan classes from JMA 10-min winds (b-deck
+                                // appended points interpolate / carry nearest)
       liveStorms[sid] = { season: st.season, storm: st };
       affected[st.season] = true;
       var entry = liveIndexEntry(sid, st);
