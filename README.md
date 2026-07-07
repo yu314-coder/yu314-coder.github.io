@@ -37,7 +37,7 @@ Live download analytics for any PyPI package (mine pre-listed), by country / pac
 
 ### ManimStudio
 GUI application for creating mathematical animations with Manim.
-- **Windows** (v1.1.1.0) — bundled with Python 3.12.7 + MiKTeX, no admin rights. [Microsoft Store](https://apps.microsoft.com/detail/9NZFT55DVCBS)
+- **Windows** (v1.1.3.0) — bundled with Python 3.12.7 + MiKTeX, no admin rights. [Microsoft Store](https://apps.microsoft.com/detail/9NZFT55DVCBS)
 - **iOS / iPadOS** — fully offline studio with Monaco editor + VideoToolbox H.264 render. [App Store](https://apps.apple.com/app/manimstudio/id6764472686) · [GitHub (ios)](https://github.com/yu314-coder/manim_app/tree/ios)
 
 ### CodeBench
