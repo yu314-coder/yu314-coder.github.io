@@ -30,7 +30,6 @@ function applyFullHistoryState() {
 
 function renderBars(targetId, rows) {
   const target = document.querySelector(targetId);
-  target.innerHTML = "";
   const visible = rows.slice(0, 12);
   const max = visible.length ? visible[0].downloads : 0;
 
@@ -39,35 +38,28 @@ function renderBars(targetId, rows) {
     return;
   }
 
-  for (const row of visible) {
+  // build the markup once and write it in a single DOM mutation
+  target.innerHTML = visible.map((row) => {
     const percent = max ? Math.max((row.downloads / max) * 100, 2) : 0;
-    const item = document.createElement("div");
-    item.className = "bar-row";
-    item.innerHTML = `
+    return `<div class="bar-row">
       <div class="bar-meta">
         <span title="${escapeHtml(row.name)}">${escapeHtml(row.name)}</span>
         <span>${formatNumber.format(row.downloads)}</span>
       </div>
       <div class="bar"><i style="width:${percent}%"></i></div>
-    `;
-    target.appendChild(item);
-  }
+    </div>`;
+  }).join("");
 }
 
 function renderTable(rows) {
-  const target = document.querySelector("#matrix");
-  target.innerHTML = "";
-
-  for (const row of rows) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
+  // up to 1000 rows — one innerHTML write instead of a per-row append to the
+  // live table (each of which is a separate DOM mutation the browser tracks)
+  document.querySelector("#matrix").innerHTML = rows.map((row) => `<tr>
       <td>${escapeHtml(row.country)}</td>
       <td>${escapeHtml(row.packageVersion)}</td>
       <td>${escapeHtml(row.pythonVersion)}</td>
       <td>${formatNumber.format(row.downloads)}</td>
-    `;
-    target.appendChild(tr);
-  }
+    </tr>`).join("");
 }
 
 function renderAuthors(rows) {
@@ -78,6 +70,9 @@ function renderAuthors(rows) {
     return;
   }
 
+  // assemble off-DOM in a fragment (keeps per-button listeners), then attach
+  // the whole list in one mutation
+  const frag = document.createDocumentFragment();
   for (const row of rows) {
     const button = document.createElement("button");
     button.type = "button";
@@ -88,33 +83,32 @@ function renderAuthors(rows) {
       <span>Latest upload ${escapeHtml(row.latestUpload || "Unknown")}</span>
     `;
     button.addEventListener("click", () => loadAuthorDetails(row.name, button));
-    target.appendChild(button);
+    frag.appendChild(button);
   }
+  target.appendChild(frag);
 }
 
 function renderAuthorProjects(author, rows) {
   document.querySelector("#author-title").textContent = `${author} Packages`;
   const target = document.querySelector("#author-projects");
-  target.innerHTML = "";
   if (!rows.length) {
     target.innerHTML = '<tr><td colspan="6">No packages found for this author</td></tr>';
     return;
   }
 
-  for (const row of rows) {
-    const tr = document.createElement("tr");
+  // up to 1000 rows — single innerHTML write, not a per-row live-table append
+  target.innerHTML = rows.map((row) => {
     const packageName = escapeHtml(row.name || "");
     const homePage = row.homePage ? escapeHtml(row.homePage) : "";
-    tr.innerHTML = `
+    return `<tr>
       <td>${homePage ? `<a href="${homePage}">${packageName}</a>` : packageName}</td>
       <td class="muted-cell">${escapeHtml(row.summary || "")}</td>
       <td>${escapeHtml(row.latestVersion || "")}<br><span class="small">${escapeHtml(row.latestUpload || "")}</span></td>
       <td>${escapeHtml(row.requiresPython || "")}</td>
       <td>${formatNumber.format(Number(row.downloads || 0))}</td>
       <td>${formatNumber.format(Number(row.fileCount || 0))}</td>
-    `;
-    target.appendChild(tr);
-  }
+    </tr>`;
+  }).join("");
 }
 
 async function callNative(name, ...args) {

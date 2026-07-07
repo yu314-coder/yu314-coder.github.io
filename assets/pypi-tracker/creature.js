@@ -303,10 +303,21 @@
   }
 
   /* ---- loop -------------------------------------------------------------- */
+  var loopRaf = null, loopRunning = false;
   function loop(ts) {
     if (state === "excited" && ts > excitedUntil) setState(document.activeElement === input ? "alert" : "idle");
     draw(ts);
-    requestAnimationFrame(loop);
+    loopRaf = requestAnimationFrame(loop);
+  }
+  function startLoop() {
+    if (loopRunning) return;
+    loopRunning = true;
+    draw(now()); // paint instantly on resume, don't wait a frame
+    loopRaf = requestAnimationFrame(loop);
+  }
+  function stopLoop() {
+    loopRunning = false;
+    if (loopRaf != null) { cancelAnimationFrame(loopRaf); loopRaf = null; }
   }
 
   /* ---- interactions ------------------------------------------------------ */
@@ -342,6 +353,16 @@
     // first paint inside the lazy iframe). resize() clears the canvas, so redraw
     // right after — this way a frame is always on screen even if the loop is
     // momentarily paused (e.g. a backgrounded tab), then run it continuously.
-    requestAnimationFrame(function () { resize(); draw(0); requestAnimationFrame(loop); });
+    requestAnimationFrame(function () { resize(); draw(0); startLoop(); });
+    // Only animate while Byte is actually on screen — scrolling the stats page
+    // (or the parent page hosting the iframe; same-origin IO accounts for it)
+    // away pauses the loop instead of drawing an invisible robot at 60 fps.
+    // The static frame painted above stays visible; resume repaints instantly.
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(function (entries) {
+        if (entries[entries.length - 1].isIntersecting) startLoop();
+        else stopLoop();
+      }, { threshold: 0 }).observe(canvas);
+    }
   } catch (e) {}
 })();
