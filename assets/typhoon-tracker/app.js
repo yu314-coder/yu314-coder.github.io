@@ -249,12 +249,32 @@
     if (w < 137) return ["C4 Very Strong Typhoon", "rgb(255,63,0)"];
     return ["C5 Super Typhoon", "rgb(255,0,0)"];
   }
+  // CWA (Taiwan) thresholds are defined on 10-MINUTE mean winds: 輕度 17.2,
+  // 中度 32.7, 強烈 51.0 m/s. Best-track winds here are USA/JTWC 1-minute, so
+  // convert with the standard 0.88 agency factor first — the old baked data
+  // skipped this and over-classified (e.g. a 105 kt 1-min storm showed as
+  // Strong when CWA's own 10-min analysis would call it Medium).
+  var KT_TO_MS = 0.514444, ONE_MIN_TO_TEN_MIN = 0.88;
   function taiwanCat(w) {
     if (w == null) return [null, null];
-    if (w < 34) return ["Tropical Depression", "rgb(150,190,215)"];
-    if (w < 66) return ["Mild Typhoon 輕度颱風", "rgb(255,255,0)"];
-    if (w < 100) return ["Medium Typhoon 中度颱風", "rgb(255,127,0)"];
+    var ms10 = w * ONE_MIN_TO_TEN_MIN * KT_TO_MS;   // kt (1-min) -> m/s (10-min)
+    if (ms10 < 17.2) return ["Tropical Depression", "rgb(150,190,215)"];
+    if (ms10 < 32.7) return ["Mild Typhoon 輕度颱風", "rgb(255,255,0)"];
+    if (ms10 < 51.0) return ["Medium Typhoon 中度颱風", "rgb(255,127,0)"];
     return ["Strong Typhoon 強烈颱風", "rgb(255,0,0)"];
+  }
+  // Re-class a baked shard's points in place — the shards carry the old
+  // unconverted Taiwan labels, so fix them as each season loads.
+  function fixTaiwanCats(shard) {
+    Object.keys(shard).forEach(function (sid) {
+      var pts = shard[sid].pts || [];
+      for (var i = 0; i < pts.length; i++) {
+        if (pts[i].w == null) continue;
+        var tc = taiwanCat(pts[i].w);
+        pts[i].ta = tc[0]; pts[i].tc = tc[1];
+      }
+    });
+    return shard;
   }
   function csvNum(v) {
     v = (v || "").trim();
@@ -289,6 +309,7 @@
         storms[sid] = {
           name: raw && raw !== "NOT_NAMED" ? raw.charAt(0) + raw.slice(1).toLowerCase() : "Unnamed",
           season: csvNum(c[col.SEASON]) || Number(sid.slice(0, 4)),
+          atcf: (c[col.USA_ATCF_ID] || "").trim(),   // e.g. WP092026 — keys the JTWC b-deck
           pts: []
         };
       }
@@ -369,9 +390,100 @@
       .then(function (r) { if (!r.ok) throw new Error("noaa " + r.status); return r.text(); })
       .then(function (text) {
         var storms = parseActiveCsv(text);
-        if (storms) mergeLiveStorms(storms);
+        if (storms) { mergeLiveStorms(storms); fetchBdecks(storms); }
       })
       .catch(function () { /* live top-up is best-effort; static data stands */ });
+  }
+
+  // Second freshness layer: the ATCF b-deck (JTWC working best track, mirrored
+  // openly by UCAR/RAL) updates several times a DAY — usually a day or two
+  // ahead of the IBTrACS ACTIVE csv — and is the primary source for the
+  // 34/50/64 kt quadrant radii. CORS-blocked, so it rides the same public
+  // proxy the CIMSS Dvorak feed uses. When JTWC starts publishing R50/R64
+  // for a storm, they appear here first. Best-effort, per storm.
+  var BDECK_BASE = "https://hurricanes.ral.ucar.edu/repository/data/bdecks_open/";
+  function parseATCFCoord(s) {
+    var m = /^(\d+)([NSEW])$/.exec((s || "").trim());
+    if (!m) return null;
+    var v = Number(m[1]) / 10;
+    return (m[2] === "S" || m[2] === "W") ? -v : v;
+  }
+  function parseBdeck(text) {
+    var byTime = {};
+    text.split(/\r?\n/).forEach(function (line) {
+      var f = line.split(",").map(function (s) { return s.trim(); });
+      if (f.length < 17 || f[4] !== "BEST" || !/^\d{10}$/.test(f[2])) return;
+      var ts = f[2];
+      var t = ts.slice(0, 4) + "-" + ts.slice(4, 6) + "-" + ts.slice(6, 8) + "T" + ts.slice(8, 10) + ":00:00";
+      var la = parseATCFCoord(f[6]), lo = parseATCFCoord(f[7]);
+      if (la == null || lo == null) return;
+      var pt = byTime[t];
+      if (!pt) {
+        var w = csvNum(f[8]), p = csvNum(f[9]);
+        if (w != null && w <= 0) w = null;
+        if (p != null && p <= 0) p = null;
+        var ac = atlanticCat(w), tw = taiwanCat(w);
+        pt = byTime[t] = { t: t, h: 0, la: la, lo: lo, w: w, p: p, ca: ac[0], cc: ac[1], ta: tw[0], tc: tw[1] };
+      }
+      // one line per wind-radius threshold: RAD column 34 / 50 / 64
+      var key = f[11] === "34" ? "r3" : f[11] === "50" ? "r5" : f[11] === "64" ? "r6" : null;
+      if (key) {
+        var q = [13, 14, 15, 16].map(function (i) {
+          var nm = Number(f[i]);
+          return isFinite(nm) && nm > 0 ? Math.round(nm * 1.852) : null;
+        });
+        if (q.some(function (v) { return v != null; })) pt[key] = q;
+      }
+    });
+    var pts = Object.keys(byTime).sort().map(function (k) { return byTime[k]; });
+    if (!pts.length) return null;
+    var t0 = Date.parse(pts[0].t + "Z");
+    pts.forEach(function (pt) { pt.h = (Date.parse(pt.t + "Z") - t0) / 3600000; });
+    return pts;
+  }
+  // Fold b-deck fixes into an ACTIVE-csv storm. The csv is 3-hourly but lags;
+  // the b-deck is 6-hourly but current. So keep the dense csv track, graft the
+  // b-deck's (fresher) radii onto matching times, and append the newer fixes
+  // the csv doesn't have yet. Returns true if anything changed.
+  function mergeBdeckPts(st, bpts) {
+    var byT = {};
+    bpts.forEach(function (bp) { byT[bp.t] = bp; });
+    var changed = false;
+    st.pts.forEach(function (pt) {
+      var bp = byT[pt.t];
+      if (!bp) return;
+      ["r3", "r5", "r6"].forEach(function (k) {
+        if (bp[k] && JSON.stringify(bp[k]) !== JSON.stringify(pt[k])) { pt[k] = bp[k]; changed = true; }
+      });
+    });
+    var lastT = st.pts.length ? st.pts[st.pts.length - 1].t : "";
+    bpts.forEach(function (bp) {
+      if (bp.t > lastT) { st.pts.push(bp); changed = true; }
+    });
+    if (changed) {
+      st.pts.sort(function (a, b) { return a.t < b.t ? -1 : a.t > b.t ? 1 : 0; });
+      var t0 = Date.parse(st.pts[0].t + "Z");
+      st.pts.forEach(function (pt) { pt.h = (Date.parse(pt.t + "Z") - t0) / 3600000; });
+    }
+    return changed;
+  }
+  function fetchBdecks(storms) {
+    Object.keys(storms).forEach(function (sid) {
+      var st = storms[sid];
+      if (!/^WP\d{6}$/.test(st.atcf || "")) return;
+      var url = BDECK_BASE + st.atcf.slice(4) + "/b" + st.atcf.toLowerCase() + ".dat";
+      fetch(CIMSS_PROXY + encodeURIComponent(url))
+        .then(function (r) { if (!r.ok) throw new Error("bdeck " + r.status); return r.text(); })
+        .then(function (text) {
+          var bpts = parseBdeck(text);
+          if (!bpts || !mergeBdeckPts(st, bpts)) return;
+          var single = {}; single[sid] = st;
+          mergeLiveStorms(single);   // refresh index entry, shard patch, pickers
+          // if that storm is on screen, redraw it with the fresher track
+          if (appMode === "track" && viewMode === "storm" && currentSid === sid) loadStorm(st.season, sid);
+        })
+        .catch(function () { /* best-effort */ });
+    });
   }
 
   /* ---------------------------------------------------------------------------
@@ -482,7 +594,7 @@
       : fetch(DATA_BASE + "seasons/" + season + ".json")
           .then(function (r) { return r.json(); })
           .catch(function () { return {}; })   // a season may exist only via live NOAA storms
-          .then(function (d) { seasonCache[season] = applyLiveToShard(season, d); return seasonCache[season]; });
+          .then(function (d) { seasonCache[season] = applyLiveToShard(season, fixTaiwanCats(d)); return seasonCache[season]; });
 
     p.then(function (seasonStorms) {
       var storm = seasonStorms[sid];
@@ -1675,7 +1787,7 @@
     fetch(DATA_BASE + "seasons/" + season + ".json")
       .then(function (r) { return r.json(); })
       .catch(function () { return {}; })   // a season may exist only via live NOAA storms
-      .then(function (d) { seasonCache[season] = applyLiveToShard(season, d); cb(); });
+      .then(function (d) { seasonCache[season] = applyLiveToShard(season, fixTaiwanCats(d)); cb(); });
   }
 
   function setViewMode(mode) {

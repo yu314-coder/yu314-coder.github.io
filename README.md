@@ -6,6 +6,33 @@ Personal portfolio website showcasing apps, libraries, research, and achievement
 
 ---
 
+## Interactive Data Pages
+
+### 🌀 Typhoon Tracks — [/typhoon-tracks.html](https://yu314-coder.github.io/typhoon-tracks.html)
+A Western Pacific typhoon explorer that runs entirely in the browser on real agency data — nothing simulated.
+
+**Track mode (history, 1985–present)**
+- Base archive: **IBTrACS v04r01 (NOAA NCEI)**, pre-sharded per season for instant loads
+- **Live top-up straight from NOAA**: currently-active storms are fetched from NCEI's IBTrACS *active-storms* feed, then extended with the **JTWC working best track** (ATCF b-deck via UCAR/RAL, updated several times a day) — an active typhoon's history runs to the latest fix, marked `LIVE` in the picker
+- Per-point **wind radii** (Beaufort level 7/10/12 — JTWC's 34/50/64 kt quadrants) drawn as rings on a zoomable Plotly map
+- Time scrubber with per-frame interpolation: position, wind, pressure, Dvorak T-number, radii, and the intensity chart cursor all animate together
+- **Two classification standards**: Saffir–Simpson-style, and Taiwan **CWA** computed correctly on CWA's own 10-minute thresholds (1-min best-track winds converted with the standard 0.88 factor)
+- Season overview (every track at once, colored by peak intensity), ACE, rapid-intensification detection, ENSO badges (real NOAA CPC ONI), and a 1985-present season climatology chart
+
+**Forecast mode (live JMA)**
+- Official **JMA** 5-day forecasts fetched in-browser (CORS-open JSON), reissued every few hours
+- Past leg enriched with per-observation wind radii from **Digital Typhoon** (NII) best track
+- Real satellite **Dvorak T-numbers from UW-CIMSS ADT** for the past; forecast T anchored to the current real value and carried by JMA's intensity trend
+- One-timeline sweep animation: past (real radii) → now → +120 h (forecast radii + probability circles), with play/pause/speed/scrub controls
+
+### 📦 PyPI Stats — [/pypi-stats.html](https://yu314-coder.github.io/pypi-stats.html)
+Live download analytics for any PyPI package (mine pre-listed), by country / package version / Python version.
+- Queries the public **ClickPy ClickHouse** dataset directly from the browser — no backend, nothing sent to me
+- Downloads-over-time chart, country/version breakdowns, full country×version matrix, and an author explorer
+- Guarded by **Byte**, a hand-drawn canvas robot companion who watches your cursor, reacts while you type, and celebrates when the stats land
+
+---
+
 ## Featured Projects
 
 ### ManimStudio
@@ -83,21 +110,32 @@ Precision GPS workout tracker for iPhone & Apple Watch — Kalman-filtered locat
 yu314-coder.github.io/
 ├── assets/
 │   ├── css/
-│   │   └── style.css              # Custom styles + shared footer
+│   │   └── style.css              # Site styles (design tokens, dark zones)
 │   ├── js/
-│   │   ├── main.js                # Home page scripts (games, admin panel)
-│   │   └── script.js              # Shared scripts
+│   │   ├── ui.js                  # Scroll-reveal, counters, hero spiral canvas, live PyPI total
+│   │   ├── main.js                # Home page scripts (arcade, admin panel)
+│   │   └── script.js              # Shared page scripts
+│   ├── typhoon-tracker/           # Typhoon Tracks app (iframe): Plotly geo map,
+│   │   │                          #   track/forecast modes, live NOAA/JMA/CIMSS feeds
+│   │   ├── index.html · app.js · styles.css
+│   ├── pypi-tracker/              # PyPI stats app (iframe): ClickHouse queries,
+│   │   │                          #   Plotly chart, Byte the robot companion
+│   │   ├── index.html · app.js · creature.js · styles.css
+│   ├── data/typhoons/             # IBTrACS v04r01 baked data: index.json,
+│   │   │                          #   per-season shards, climatology.json (ONI/ACE)
 │   ├── img/
-│   │   ├── badges/                # Official Microsoft / App Store badges
+│   │   ├── app-icons/             # App icons (WebP + PNG fallback)
+│   │   ├── badges/                # Official store badges
 │   │   └── og-image.png           # Social share preview image
 │   └── docs/
 │       └── yau-science-award-research-paper.pdf
-├── index.html                     # Home — hero, highlights, project spotlights
+├── index.html                     # Home — hero (animated eigenvalue spiral), spotlights
 ├── about.html                     # About — education, skills, interests, timeline
 ├── projects.html                  # Projects — tabbed (per flagship + PyPI + others)
+├── pypi-stats.html                # PyPI download analytics (live ClickPy data)
+├── typhoon-tracks.html            # Typhoon track explorer (live NOAA/JMA data)
 ├── privacy.html                   # Privacy policies for all published apps
-├── sitemap.xml                    # SEO sitemap
-├── robots.txt                     # Crawler directives
+├── 404.html · sitemap.xml · robots.txt
 └── README.md
 ```
 
@@ -105,10 +143,12 @@ yu314-coder.github.io/
 
 ## Tech Stack
 
-- **HTML5 / CSS3 / JavaScript**
+- **HTML5 / CSS3 / JavaScript (ES5-compatible)** — no build step, no framework
 - **Bootstrap 5.3.3** — responsive layout, pills/tabs, components
-- **Google Fonts** — Roboto typeface
-- **GitHub Pages** — static hosting
+- **Plotly.js** (geo + basic bundles, deferred) — typhoon map, intensity charts, download charts
+- **Google Fonts** — Inter, JetBrains Mono, Source Serif 4
+- **GitHub Pages** — static hosting; every data feed is fetched client-side
+- **Live data sources** — NOAA NCEI IBTrACS (archive + active-storms feed), JTWC ATCF b-deck (via UCAR/RAL), JMA bosai forecasts, Digital Typhoon (NII) best-track radii, UW-CIMSS ADT Dvorak analyses, NOAA CPC ONI, ClickPy ClickHouse (PyPI)
 
 ---
 
