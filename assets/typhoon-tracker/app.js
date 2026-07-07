@@ -210,6 +210,7 @@
       populateStorms(def.season);
       els.storm.value = def.sid;
       loadStorm(def.season, def.sid);
+      fetchNoaaActive();   // live NOAA top-up of currently-active storms
     })
     .catch(function () {
       els.map.innerHTML = '<p class="tt-error">Could not load typhoon track data.</p>';
@@ -222,6 +223,156 @@
       updateEnsoBadge();
     })
     .catch(function () { /* climatology is optional — the tracker still works */ });
+
+  /* ---------------------------------------------------------------------------
+     LIVE top-up straight from NOAA. The baked season shards only know storms
+     up to when they were generated — NOAA NCEI's IBTrACS "ACTIVE storms" CSV
+     (CORS-open, ~48 KB, refreshed with the provisional working best track
+     several times a week) carries every currently-active storm's full track.
+     We fetch it in the browser, convert WP storms to the exact shard format,
+     and overlay them: new storms appear in the pickers, already-known ones
+     get their freshest points. Best-effort — if the fetch fails, the static
+     data behaves exactly as before.
+     ------------------------------------------------------------------------- */
+  var NOAA_ACTIVE = "https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/ibtracs.ACTIVE.list.v04r01.csv";
+  var liveStorms = {};   // sid -> { season, storm } in shard format
+
+  // Category boundaries reproduced from the shard generator (verified against
+  // every wind/category pair in the baked data).
+  function atlanticCat(w) {
+    if (w == null) return [null, null];
+    if (w < 34) return ["Tropical Depression", "rgb(150,190,215)"];
+    if (w < 64) return ["Tropical Storm", "rgb(0,220,220)"];
+    if (w < 83) return ["C1 Typhoon", "rgb(255,255,0)"];
+    if (w < 96) return ["C2 Typhoon", "rgb(255,191,0)"];
+    if (w < 113) return ["C3 Strong Typhoon", "rgb(255,127,0)"];
+    if (w < 137) return ["C4 Very Strong Typhoon", "rgb(255,63,0)"];
+    return ["C5 Super Typhoon", "rgb(255,0,0)"];
+  }
+  function taiwanCat(w) {
+    if (w == null) return [null, null];
+    if (w < 34) return ["Tropical Depression", "rgb(150,190,215)"];
+    if (w < 66) return ["Mild Typhoon 輕度颱風", "rgb(255,255,0)"];
+    if (w < 100) return ["Medium Typhoon 中度颱風", "rgb(255,127,0)"];
+    return ["Strong Typhoon 強烈颱風", "rgb(255,0,0)"];
+  }
+  function csvNum(v) {
+    v = (v || "").trim();
+    if (!v) return null;
+    var n = Number(v);
+    return isNaN(n) ? null : n;
+  }
+  function csvQuadKm(c, col, base) {
+    var q = ["_NE", "_SE", "_SW", "_NW"].map(function (s) {
+      var nm = csvNum(c[col[base + s]]);
+      return nm != null && nm >= 0 ? Math.round(nm * 1.852) : null;
+    });
+    return q.some(function (v) { return v != null; }) ? q : null;
+  }
+  function parseActiveCsv(text) {
+    var lines = text.split(/\r?\n/);
+    if (lines.length < 3) return null;
+    var col = {};
+    lines[0].split(",").forEach(function (h, i) { col[h.trim()] = i; });
+    if (col.SID == null || col.BASIN == null || col.ISO_TIME == null) return null;
+    var storms = {};
+    for (var i = 2; i < lines.length; i++) {           // rows 0-1 are headers
+      var c = lines[i].split(",");
+      if (c.length < 40 || (c[col.BASIN] || "").trim() !== "WP") continue;
+      var sid = (c[col.SID] || "").trim();
+      var t = (c[col.ISO_TIME] || "").trim().replace(" ", "T");
+      var la = csvNum(c[col.USA_LAT]); if (la == null) la = csvNum(c[col.LAT]);
+      var lo = csvNum(c[col.USA_LON]); if (lo == null) lo = csvNum(c[col.LON]);
+      if (!sid || !t || la == null || lo == null) continue;
+      if (!storms[sid]) {
+        var raw = (c[col.NAME] || "").trim();
+        storms[sid] = {
+          name: raw && raw !== "NOT_NAMED" ? raw.charAt(0) + raw.slice(1).toLowerCase() : "Unnamed",
+          season: csvNum(c[col.SEASON]) || Number(sid.slice(0, 4)),
+          pts: []
+        };
+      }
+      var w = csvNum(c[col.USA_WIND]), p = csvNum(c[col.USA_PRES]);
+      var ac = atlanticCat(w), tc = taiwanCat(w);
+      var pt = { t: t, h: 0, la: la, lo: lo, w: w, p: p, ca: ac[0], cc: ac[1], ta: tc[0], tc: tc[1] };
+      var r3 = csvQuadKm(c, col, "USA_R34"), r5 = csvQuadKm(c, col, "USA_R50"), r6 = csvQuadKm(c, col, "USA_R64");
+      if (r3) pt.r3 = r3;
+      if (r5) pt.r5 = r5;
+      if (r6) pt.r6 = r6;
+      storms[sid].pts.push(pt);
+    }
+    Object.keys(storms).forEach(function (sid) {
+      var pts = storms[sid].pts;
+      pts.sort(function (a, b) { return a.t < b.t ? -1 : a.t > b.t ? 1 : 0; });
+      var t0 = Date.parse(pts[0].t + "Z");
+      pts.forEach(function (pt) { pt.h = (Date.parse(pt.t + "Z") - t0) / 3600000; });
+    });
+    return storms;
+  }
+  function liveIndexEntry(sid, st) {
+    var maxWind = 0, hasRadius = false;
+    st.pts.forEach(function (pt) {
+      if (pt.w != null && pt.w > maxWind) maxWind = pt.w;
+      if (pt.r3 || pt.r5 || pt.r6) hasRadius = true;
+    });
+    var ac = atlanticCat(maxWind);
+    return {
+      sid: sid, name: st.name, season: st.season,
+      start: st.pts[0].t, end: st.pts[st.pts.length - 1].t,
+      maxWind: maxWind, cat: ac[0] || "Tropical Depression", color: ac[1] || "rgb(150,190,215)",
+      hasRadius: hasRadius, ace: Math.round(computeACE(st.pts) * 10) / 10, live: true
+    };
+  }
+  // Overlay live storms onto a fetched shard (also used when a shard has no
+  // static file yet — e.g. the first storm of a brand-new season).
+  function applyLiveToShard(season, shard) {
+    Object.keys(liveStorms).forEach(function (sid) {
+      if (liveStorms[sid].season === Number(season)) shard[sid] = liveStorms[sid].storm;
+    });
+    return shard;
+  }
+  function mergeLiveStorms(storms) {
+    var affected = {};
+    Object.keys(storms).forEach(function (sid) {
+      var st = storms[sid];
+      if (!st.pts.length) return;
+      liveStorms[sid] = { season: st.season, storm: st };
+      affected[st.season] = true;
+      var entry = liveIndexEntry(sid, st);
+      var existing = null;
+      for (var i = 0; i < indexData.length; i++) { if (indexData[i].sid === sid) { existing = indexData[i]; break; } }
+      if (existing) {
+        st.nameZh = existing.nameZh;   // keep the baked Chinese name
+        ["start", "end", "maxWind", "cat", "color", "hasRadius", "ace"].forEach(function (k) { existing[k] = entry[k]; });
+        existing.live = true;
+      } else {
+        indexData.push(entry);
+      }
+      if (seasonCache[st.season]) seasonCache[st.season][sid] = st;   // patch already-loaded shards
+    });
+    // refresh the pickers without yanking the user's current view
+    var curSeason = Number(els.season.value), curStorm = els.storm.value;
+    var seasonsKnown = {};
+    for (var j = 0; j < els.season.options.length; j++) seasonsKnown[els.season.options[j].value] = true;
+    var newSeason = Object.keys(affected).some(function (s) { return !seasonsKnown[s]; });
+    if (newSeason) { populateSeasons(); els.season.value = curSeason; }
+    if (affected[curSeason]) {
+      populateStorms(curSeason);
+      for (var k = 0; k < els.storm.options.length; k++) {
+        if (els.storm.options[k].value === curStorm) { els.storm.value = curStorm; break; }
+      }
+      if (appMode === "track" && viewMode === "season") ensureSeasonThen(buildSeasonOverview);
+    }
+  }
+  function fetchNoaaActive() {
+    fetch(NOAA_ACTIVE)
+      .then(function (r) { if (!r.ok) throw new Error("noaa " + r.status); return r.text(); })
+      .then(function (text) {
+        var storms = parseActiveCsv(text);
+        if (storms) mergeLiveStorms(storms);
+      })
+      .catch(function () { /* live top-up is best-effort; static data stands */ });
+  }
 
   /* ---------------------------------------------------------------------------
      ENSO context + season climatology. ONI values are real NOAA CPC ASO
@@ -319,6 +470,7 @@
       return '<option value="' + s.sid + '">' + s.name + (s.nameZh ? " " + s.nameZh : "") +
         " — " + s.cat + " (" + Math.round(s.maxWind || 0) + "kt" +
         (s.ace != null ? " · ACE " + s.ace : "") + ")" +
+        (s.live ? " · LIVE" : "") +
         (s.hasRadius ? "" : " · no radius data") + "</option>";
     }).join("");
   }
@@ -329,7 +481,8 @@
       ? Promise.resolve(seasonCache[season])
       : fetch(DATA_BASE + "seasons/" + season + ".json")
           .then(function (r) { return r.json(); })
-          .then(function (d) { seasonCache[season] = d; return d; });
+          .catch(function () { return {}; })   // a season may exist only via live NOAA storms
+          .then(function (d) { seasonCache[season] = applyLiveToShard(season, d); return seasonCache[season]; });
 
     p.then(function (seasonStorms) {
       var storm = seasonStorms[sid];
@@ -1521,8 +1674,8 @@
     if (seasonCache[season]) { cb(); return; }
     fetch(DATA_BASE + "seasons/" + season + ".json")
       .then(function (r) { return r.json(); })
-      .then(function (d) { seasonCache[season] = d; cb(); })
-      .catch(function () {});
+      .catch(function () { return {}; })   // a season may exist only via live NOAA storms
+      .then(function (d) { seasonCache[season] = applyLiveToShard(season, d); cb(); });
   }
 
   function setViewMode(mode) {
