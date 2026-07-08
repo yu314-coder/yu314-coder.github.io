@@ -13,10 +13,11 @@ A Western Pacific typhoon explorer that runs entirely in the browser on real age
 
 **Track mode (history, 1985–present)**
 - Base archive: **IBTrACS v04r01 (NOAA NCEI)**, pre-sharded per season for instant loads
-- **Live top-up straight from NOAA**: currently-active storms are fetched from NCEI's IBTrACS *active-storms* feed, then extended with the **JTWC working best track** (ATCF b-deck via UCAR/RAL, updated several times a day) — an active typhoon's history runs to the latest fix, marked `LIVE` in the picker
-- Per-point **wind radii** (Beaufort level 7/10/12 — JTWC's 34/50/64 kt quadrants) drawn as rings on a zoomable Plotly map
-- Time scrubber with per-frame interpolation: position, wind, pressure, Dvorak T-number, radii, and the intensity chart cursor all animate together
-- **Two classification standards**: Saffir–Simpson-style, and Taiwan **CWA** computed correctly on CWA's own 10-minute thresholds (1-min best-track winds converted with the standard 0.88 factor)
+- **Two-layer live top-up straight from NOAA/JTWC**: active storms come from NCEI's IBTrACS *active-storms* feed (3-hourly), then are extended with the **JTWC working best track** (ATCF b-deck via UCAR/RAL, updated several times a day) so a storm's history runs to the very latest fix — marked `LIVE` in the picker; falls back cleanly to the static archive if a feed is down
+- Per-point **wind radii** — Beaufort **force 8 / 10 / 12** (JTWC's 34 / 50 / 64 kt quadrant radii; gale / storm / hurricane-force) — drawn as rings on a zoomable Plotly map
+- Intensity color scale from Tropical Depression → **C5 Super Typhoon** (C5 in magenta so the top category reads clearly apart from C4)
+- Time scrubber with per-frame interpolation: position, wind, pressure, Dvorak T-number, radii, and the intensity-chart cursor all animate together (in-place Plotly restyles, no per-frame trace churn)
+- **Two classification standards**: Saffir–Simpson-style (on 1-minute winds), and Taiwan **CWA** on CWA's official 10-minute thresholds (17.2 / 32.7 / 51.0 m/s) applied to **JMA's real 10-minute wind analysis** per point (IBTrACS `TOKYO_WIND`), interpolated between JMA's 6-hourly records — so storms class the way CWA's own record does (e.g. Doksuri 2023 as mostly 中度), not inflated by a converted 1-minute wind
 - Season overview (every track at once, colored by peak intensity), ACE, rapid-intensification detection, ENSO badges (real NOAA CPC ONI), and a 1985-present season climatology chart
 
 **Forecast mode (live JMA)**
@@ -143,12 +144,15 @@ yu314-coder.github.io/
 
 ## Tech Stack
 
-- **HTML5 / CSS3 / JavaScript (ES5-compatible)** — no build step, no framework
+- **HTML5 / CSS3 / JavaScript (ES5-compatible)** — no build step, no framework, no bundler
 - **Bootstrap 5.3.3** — responsive layout, pills/tabs, components
 - **Plotly.js** (geo + basic bundles, deferred) — typhoon map, intensity charts, download charts
 - **Google Fonts** — Inter, JetBrains Mono, Source Serif 4
-- **GitHub Pages** — static hosting; every data feed is fetched client-side
-- **Live data sources** — NOAA NCEI IBTrACS (archive + active-storms feed), JTWC ATCF b-deck (via UCAR/RAL), JMA bosai forecasts, Digital Typhoon (NII) best-track radii, UW-CIMSS ADT Dvorak analyses, NOAA CPC ONI, ClickPy ClickHouse (PyPI)
+- **GitHub Pages** — static hosting; every data feed is fetched **client-side**, no server of my own
+- **Cross-platform parity** — identical behaviour on Windows and macOS across Chrome / Edge / Firefox / Safari (ES5 syntax, `-webkit-` + `-moz-` slider styling, motion that renders on every engine)
+- **Live data sources** — NOAA NCEI IBTrACS (archive, active-storms feed, and JMA `TOKYO_WIND` 10-min analysis), JTWC ATCF b-deck (via UCAR/RAL), JMA *bosai* forecasts + storm/gale radii, Digital Typhoon (NII) best-track radii, UW-CIMSS ADT Dvorak analyses, NOAA CPC ONI, ClickPy ClickHouse (PyPI)
+
+Every figure on both data pages traces to a named public agency — nothing is invented, simulated, or filled in when a source hasn't published it yet.
 
 ---
 
