@@ -70,7 +70,7 @@
   };
 
   var ATLANTIC_LEGEND = [
-    ["C5 Super Typhoon", "rgb(255,0,0)"],
+    ["C5 Super Typhoon", "rgb(240,0,150)"],
     ["C4 Very Strong Typhoon", "rgb(255,63,0)"],
     ["C3 Strong Typhoon", "rgb(255,127,0)"],
     ["C2 Typhoon", "rgb(255,191,0)"],
@@ -247,7 +247,7 @@
     if (w < 96) return ["C2 Typhoon", "rgb(255,191,0)"];
     if (w < 113) return ["C3 Strong Typhoon", "rgb(255,127,0)"];
     if (w < 137) return ["C4 Very Strong Typhoon", "rgb(255,63,0)"];
-    return ["C5 Super Typhoon", "rgb(255,0,0)"];
+    return ["C5 Super Typhoon", "rgb(240,0,150)"];   // magenta — distinct from C4 orange-red
   }
   // CWA (Taiwan) thresholds are defined on 10-MINUTE mean winds: 輕度 17.2,
   // 中度 32.7, 強烈 51.0 m/s. Classifying converted 1-minute winds is only an
