@@ -204,6 +204,13 @@
     .then(function (r) { return r.json(); })
     .then(function (data) {
       indexData = data;
+      // index ships only maxWind; derive each storm's peak category/color here
+      // (same rule buildStormEntry uses) so the file stays small.
+      for (var ii = 0; ii < indexData.length; ii++) {
+        var iac = atlanticCat(indexData[ii].maxWind);
+        indexData[ii].cat = iac[0] || "Tropical Depression";
+        indexData[ii].color = iac[1] || "rgb(150,190,215)";
+      }
       populateSeasons();
       var def = indexData.find(function (s) {
         return s.name === DEFAULT_STORM.name && s.season === DEFAULT_STORM.season;
@@ -270,14 +277,18 @@
   function taiwanCat(w) {   // fallback: converted 1-min wind
     return taiwanCatMs10(w == null ? null : w * ONE_MIN_TO_TEN_MIN * KT_TO_MS);
   }
-  // Re-class one storm's points on 10-min winds. JMA reports 6-hourly while
-  // the track has 3-hourly points, so gaps interpolate linearly on elapsed
-  // hours (tails carry the nearest analysis).
+  // Reconstruct BOTH classification standards per point (the shards ship only
+  // wind — ca/cc/ta/tc are all derived here to keep the files small). Atlantic
+  // (ca/cc) comes straight from the 1-min wind; Taiwan (ta/tc) from JMA's 10-min
+  // winds — JMA is 6-hourly while the track is 3-hourly, so gaps interpolate
+  // linearly on elapsed hours (tails carry the nearest analysis).
   function reclassTaiwanStorm(stm) {
     var pts = stm.pts || [], known = [];
     for (var i = 0; i < pts.length; i++) if (pts[i].wj != null) known.push(i);
     for (var j = 0; j < pts.length; j++) {
       var pt = pts[j], cat;
+      var ac = atlanticCat(pt.w);           // Saffir–Simpson-style, from 1-min wind
+      pt.ca = ac[0]; pt.cc = ac[1];
       if (!known.length) {
         if (pt.w == null) continue;
         cat = taiwanCat(pt.w);
