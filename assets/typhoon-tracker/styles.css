@@ -395,14 +395,15 @@ body {
 }
 
 /* Desktop, Forecast mode: the info panel lists a full 5-day forecast and so runs
-   much taller than the map. Left as-is that leaves a big blank strip under the
-   map before the timebar. Cap the pair to one tidy height: the map grows to fill
-   it (a bigger hero map) and the panel scrolls its own overflow. */
+   much taller than the map. Side by side, that stretched the row to the panel's
+   height and left a big blank strip under the map before the timebar. The map is
+   a Plotly geo plot with a fixed height (its min-height) — it can't be grown to
+   fill space without letterboxing — so instead cap the PANEL to the map's height
+   and let it scroll its own overflow. Both columns end up the same height. */
 @media (min-width: 781px) {
   .tt-app.mode-predict .tt-predict-panel {
-    max-height: clamp(460px, 66vh, 680px); overflow-y: auto;
+    max-height: 460px; overflow-y: auto;   /* == .tt-map min-height */
   }
-  .tt-app.mode-predict .tt-map { height: 100%; min-height: 0; }
 }
 
 @media (max-width: 640px) {
