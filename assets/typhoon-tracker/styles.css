@@ -394,6 +394,17 @@ body {
   .tt-map { min-height: 360px; }
 }
 
+/* Desktop, Forecast mode: the info panel lists a full 5-day forecast and so runs
+   much taller than the map. Left as-is that leaves a big blank strip under the
+   map before the timebar. Cap the pair to one tidy height: the map grows to fill
+   it (a bigger hero map) and the panel scrolls its own overflow. */
+@media (min-width: 781px) {
+  .tt-app.mode-predict .tt-predict-panel {
+    max-height: clamp(460px, 66vh, 680px); overflow-y: auto;
+  }
+  .tt-app.mode-predict .tt-map { height: 100%; min-height: 0; }
+}
+
 @media (max-width: 640px) {
   .tt-field { min-width: 100%; }
   .tt-time-readout { min-width: 0; text-align: left; }

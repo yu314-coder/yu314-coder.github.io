@@ -1568,8 +1568,8 @@
       marker: { size: 11, color: "#ffd54a", line: { width: 2, color: "rgba(20,26,46,0.9)" } },
       hoverinfo: "skip", showlegend: false });
 
-    aiClearState();   // a rebuilt map wipes any AI overlay traces
     Plotly.react(els.map, traces, geoLayout(), { displayModeBar: false, responsive: true, scrollZoom: true });
+    aiRestoreOrClear(d);   // re-draw the AI overlay if it was on for this same storm
     startForecastAnim(d);
   }
 
@@ -1589,6 +1589,8 @@
   var AI_META_URL = "model/typhoon-predict-meta.json";
   var aiRT = { ort: null, session: null, meta: null };   // lazily-loaded runtime
   var aiTraceCount = 0, aiLoading = false;
+  var aiLastFc = null;   // last drawn AI forecast (tagged with .tcId) — lets the
+                         // overlay survive a map rebuild for the same storm
 
   function aiPmod(a, n) { return ((a % n) + n) % n; }     // Python-style positive modulo
   function aiMean(a) { var s = 0; for (var i = 0; i < a.length; i++) s += a[i]; return s / a.length; }
@@ -1698,7 +1700,16 @@
       for (var i = n - aiTraceCount; i < n; i++) idx.push(i);   // AI traces are the last ones
       Plotly.deleteTraces(els.map, idx);
     }
+    aiLastFc = null;   // explicit toggle-off: don't restore it on the next rebuild
     aiClearState();
+  }
+  // Called after buildForecastMap's Plotly.react (which drops every trace,
+  // including the AI overlay). If the overlay was on for the SAME storm, put it
+  // straight back — no need to re-run the model — so it survives the rebuild.
+  function aiRestoreOrClear(d) {
+    aiTraceCount = 0;   // react() just cleared the map; the old AI traces are gone
+    if (aiLastFc && d && aiLastFc.tcId != null && aiLastFc.tcId === d.tcId) aiDrawForecast(aiLastFc);
+    else aiClearState();
   }
   function aiDrawForecast(fc) {
     var pts = fc.points || [];
@@ -1720,6 +1731,7 @@
       text: txt, hoverinfo: "text", showlegend: false };
     Plotly.addTraces(els.map, [cone, mean]);   // appended after the sweep — sweep indices unaffected
     aiTraceCount = 2;
+    aiLastFc = fc;   // remember it so a same-storm map rebuild can restore it
     if (els.aiBtn) { els.aiBtn.setAttribute("aria-pressed", "true"); els.aiBtn.classList.add("is-on"); }
     aiSetStatus("🧪 " + (fc.storm || "AI") + " — experimental ensemble mean + 10–90% spread (not an official forecast)", "on");
   }
@@ -1763,6 +1775,7 @@
       .then(function (fc) {
         aiLoading = false;
         fc.storm = (d.name && d.name.en) || "storm";
+        fc.tcId = d.tcId;   // tag so a same-storm rebuild can restore this overlay
         aiDrawForecast(fc);
       })
       .catch(function (e) {
