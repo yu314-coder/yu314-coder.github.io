@@ -26,11 +26,26 @@ A Western Pacific typhoon explorer that runs entirely in the browser on real age
 - Real satellite **Dvorak T-numbers from UW-CIMSS ADT** for the past; forecast T anchored to the current real value and carried by JMA's intensity trend
 - One-timeline sweep animation: past (real radii) → now → +120 h (forecast radii + probability circles), with play/pause/speed/scrub controls
 
+**Experimental AI overlay — my own track model, running in your browser**
+- An optional **"🧪 Overlay Yu's AI model track"** button runs my own ERA5-conditioned tropical-cyclone model ([typhoon-predict](https://github.com/yu314-coder/typhoon-predict)) — a CNN field encoder + bi-GRU track encoder + probabilistic ensemble head
+- Runs **entirely client-side via [onnxruntime-web](https://onnxruntime.ai/docs/tutorials/web/)** — the 1.4 MB checkpoint is exported to ONNX (verified numerically identical to PyTorch, max diff 1.4e-6) and executes in the browser (~1 s first run, ~0.5 s cached). **No backend, no server, no cold start** — the whole 50-member ensemble runs locally
+- Draws the ensemble-mean track (dashed emerald) + a **10–90 % spread cone** over the JMA forecast, started from the same "now" position the JMA panel shows; clearly flagged **experimental — not an operational forecast**
+- The atmospheric branch is fed the climatological mean: ERA5 reanalysis has a multi-day latency, so no field exists for a *live* storm's init time (see [Phase 2](#phase-2--offline-era5-hindcasts) below). The live track-history branch drives the forecast
+
 ### 📦 PyPI Stats — [/pypi-stats.html](https://yu314-coder.github.io/pypi-stats.html)
 Live download analytics for any PyPI package (mine pre-listed), by country / package version / Python version.
 - Queries the public **ClickPy ClickHouse** dataset directly from the browser — no backend, nothing sent to me
 - Downloads-over-time chart, country/version breakdowns, full country×version matrix, and an author explorer
 - Guarded by **Byte**, a hand-drawn canvas robot companion who watches your cursor, reacts while you type, and celebrates when the stats land
+
+### Phase 2 — offline ERA5 hindcasts
+
+The AI overlay above currently runs its **track-history branch** live and feeds the **atmospheric branch** the climatological mean. That's a deliberate, honest limitation, not a shortcut:
+
+- The model was trained on **ERA5 reanalysis**, which is published with a **~5-day latency**. The model needs the atmospheric field at the *forecast-initialisation time*, so for a **currently-active** storm ("now" is within hours) **no ERA5 field exists yet** — the atmospheric branch simply cannot be activated live. (It *does* matter: swapping the mean field for a real field shifts the 120 h track by ~200 km.)
+- Copernicus **CDS** retrieval is also queued (minutes–hours), so ERA5 can't be fetched per web-request anyway.
+
+So real-ERA5 inference is inherently an **offline / historical hindcast** capability, not a live one. Phase 2 (planned) is a batch pipeline — retrieve the 10 ERA5 channels (MSL, 10 m + 850/500 hPa winds, 850/500 hPa geopotential, 850 hPa humidity) over the 8° / 0.5° storm-centred patch via the CDS API, cache the normalised patches, and run the **full** model on past storms to compare against what actually happened. Live prediction stays mean-field by physics.
 
 ---
 
@@ -119,6 +134,7 @@ yu314-coder.github.io/
 │   ├── typhoon-tracker/           # Typhoon Tracks app (iframe): Plotly geo map,
 │   │   │                          #   track/forecast modes, live NOAA/JMA/CIMSS feeds
 │   │   ├── index.html · app.js · styles.css
+│   │   └── model/                 #   typhoon-predict ONNX + meta (in-browser AI overlay)
 │   ├── pypi-tracker/              # PyPI stats app (iframe): ClickHouse queries,
 │   │   │                          #   Plotly chart, Byte the robot companion
 │   │   ├── index.html · app.js · creature.js · styles.css
@@ -147,6 +163,7 @@ yu314-coder.github.io/
 - **HTML5 / CSS3 / JavaScript (ES5-compatible)** — no build step, no framework, no bundler
 - **Bootstrap 5.3.3** — responsive layout, pills/tabs, components
 - **Plotly.js** (geo + basic bundles, deferred) — typhoon map, intensity charts, download charts
+- **onnxruntime-web** — runs my ERA5-conditioned typhoon-track model (ONNX) *in the browser*, no backend
 - **Google Fonts** — Inter, JetBrains Mono, Source Serif 4
 - **GitHub Pages** — static hosting; every data feed is fetched **client-side**, no server of my own
 - **Cross-platform parity** — identical behaviour on Windows and macOS across Chrome / Edge / Firefox / Safari (ES5 syntax, `-webkit-` + `-moz-` slider styling, motion that renders on every engine)
