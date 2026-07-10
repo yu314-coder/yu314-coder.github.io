@@ -40,6 +40,8 @@
     fcPlay: document.getElementById("tt-fc-play"),
     fcReplay: document.getElementById("tt-fc-replay"),
     fcSpeed: document.getElementById("tt-fc-speed"),
+    aiBtn: document.getElementById("tt-ai-btn"),
+    aiStatus: document.getElementById("tt-ai-status"),
     fcSlider: document.getElementById("tt-fc-slider"),
     fcTime: document.getElementById("tt-fc-time"),
     viewStorm: document.getElementById("tt-view-storm"),
@@ -1555,8 +1557,207 @@
       marker: { size: 11, color: "#ffd54a", line: { width: 2, color: "rgba(20,26,46,0.9)" } },
       hoverinfo: "skip", showlegend: false });
 
+    aiClearState();   // a rebuilt map wipes any AI overlay traces
     Plotly.react(els.map, traces, geoLayout(), { displayModeBar: false, responsive: true, scrollZoom: true });
     startForecastAnim(d);
+  }
+
+  /* ---------------------------------------------------------------------------
+     Experimental AI overlay — Yu's own ERA5-conditioned track model, run
+     ENTIRELY IN THE BROWSER via onnxruntime-web (no backend). On demand it
+     loads the 1.4 MB ONNX checkpoint, runs the full 50-member probabilistic
+     ensemble on the viewed storm's track, and draws the ensemble-mean track +
+     10–90% spread over the JMA forecast — clearly flagged experimental. The
+     atmospheric branch is fed the climatological mean (ERA5 isn't available
+     for a live storm's init time); the track-history branch drives it.
+     ------------------------------------------------------------------------- */
+  var ORT_VER = "1.20.1";
+  var ORT_URL = "https://cdn.jsdelivr.net/npm/onnxruntime-web@" + ORT_VER + "/dist/ort.min.js";
+  var ORT_WASM = "https://cdn.jsdelivr.net/npm/onnxruntime-web@" + ORT_VER + "/dist/";
+  var AI_MODEL_URL = "model/typhoon-predict.onnx";     // relative to this page's dir
+  var AI_META_URL = "model/typhoon-predict-meta.json";
+  var aiRT = { ort: null, session: null, meta: null };   // lazily-loaded runtime
+  var aiTraceCount = 0, aiLoading = false;
+
+  function aiPmod(a, n) { return ((a % n) + n) % n; }     // Python-style positive modulo
+  function aiMean(a) { var s = 0; for (var i = 0; i < a.length; i++) s += a[i]; return s / a.length; }
+  function aiQuantile(a, q) {                             // numpy 'linear' quantile
+    var b = Array.prototype.slice.call(a).sort(function (x, y) { return x - y; });
+    var idx = q * (b.length - 1), lo = Math.floor(idx), f = idx - lo;
+    return lo + 1 < b.length ? b[lo] + (b[lo + 1] - b[lo]) * f : b[lo];
+  }
+  function aiRandn(n) {                                   // N(0,1) via Box–Muller
+    var out = new Float32Array(n);
+    for (var i = 0; i < n; i += 2) {
+      var u1 = Math.random() || 1e-9, u2 = Math.random();
+      var r = Math.sqrt(-2 * Math.log(u1)), th = 2 * Math.PI * u2;
+      out[i] = r * Math.cos(th); if (i + 1 < n) out[i + 1] = r * Math.sin(th);
+    }
+    return out;
+  }
+  function aiLoadScript(src) {
+    return new Promise(function (res, rej) {
+      var s = document.createElement("script");
+      s.src = src; s.onload = res; s.onerror = function () { rej(new Error("load " + src)); };
+      document.head.appendChild(s);
+    });
+  }
+  function aiEnsureModel() {                              // load ort + meta + session once
+    if (aiRT.session) return Promise.resolve();
+    return (window.ort ? Promise.resolve() : aiLoadScript(ORT_URL)).then(function () {
+      aiRT.ort = window.ort;
+      try { aiRT.ort.env.wasm.wasmPaths = ORT_WASM; } catch (e) {}
+      return Promise.all([
+        fetch(AI_META_URL).then(function (r) { return r.json(); }),
+        aiRT.ort.InferenceSession.create(AI_MODEL_URL)
+      ]);
+    }).then(function (r) { aiRT.meta = r[0]; aiRT.session = r[1]; });
+  }
+  // Replicates the model's preprocessing (verified bit-identical to the sklearn
+  // pipeline) using the exported scaler arrays — returns Float32Array [1,steps,9].
+  function aiPreprocess(fixes, meta) {
+    var S = meta.steps;
+    fixes = fixes.slice();
+    while (fixes.length < S) fixes.unshift(fixes[0]);
+    fixes = fixes.slice(-S);
+    var doy = 191, t = fixes[S - 1].time;
+    if (t) { var dd = new Date(t); if (!isNaN(dd)) doy = Math.floor((dd - Date.UTC(dd.getUTCFullYear(), 0, 0)) / 86400000); }
+    var sd = Math.sin(2 * Math.PI * doy / 366), cd = Math.cos(2 * Math.PI * doy / 366);
+    var rows = [], prev = null;
+    fixes.forEach(function (f) {
+      var dlat = prev ? f.lat - prev[0] : 0, dlon = prev ? aiPmod(f.lon - prev[1] + 180, 360) - 180 : 0;
+      rows.push([f.lat, f.lon, f.wind, f.pres, dlat, dlon, Math.hypot(dlat, dlon), sd, cd]);
+      prev = [f.lat, f.lon];
+    });
+    var lastLat = rows[S - 1][0], lastLon = rows[S - 1][1], m = meta.track_scaler_mean, sc = meta.track_scaler_scale;
+    var out = new Float32Array(S * 9);
+    for (var i = 0; i < S; i++) {
+      var r = rows[i].slice();
+      r[0] -= lastLat;
+      r[1] = aiPmod(r[1] - lastLon + 180, 360) - 180;
+      r[2] /= 100.0;
+      r[3] = (r[3] - 950.0) / 50.0;
+      for (var j = 0; j < 9; j++) out[i * 9 + j] = (r[j] - m[j]) / sc[j];
+    }
+    return out;
+  }
+  function aiRunModel(fixes) {
+    var meta = aiRT.meta, ort = aiRT.ort, S = meta.steps, N = meta.ensemble_members, L = meta.latent, O = meta.output_dim;
+    var feeds = {
+      track_x: new ort.Tensor("float32", aiPreprocess(fixes, meta), [1, S, 9]),
+      field_x: new ort.Tensor("float32", new Float32Array(10 * 33 * 33), [1, 1, 10, 33, 33]),  // climatological mean
+      eps: new ort.Tensor("float32", aiRandn(N * L), [N, 1, L]),
+      indep: new ort.Tensor("float32", aiRandn(N * O), [N, 1, O])
+    };
+    return aiRT.session.run(feeds).then(function (res) {
+      var ens = (res.ensemble || res[Object.keys(res)[0]]).data;   // Float32Array [N*O]
+      var ensMean = new Float64Array(O);
+      for (var mm = 0; mm < N; mm++) for (var o = 0; o < O; o++) ensMean[o] += ens[mm * O + o];
+      for (var o2 = 0; o2 < O; o2++) ensMean[o2] /= N;
+      var base = fixes[fixes.length - 1], leads = meta.lead_hours, ym = meta.y_scaler_mean, ys = meta.y_scaler_scale;
+      var points = [];
+      for (var k = 0; k < leads.length; k++) {
+        var j = 4 * k, lats = new Float64Array(N), lons = new Float64Array(N);
+        for (var m2 = 0; m2 < N; m2++) {
+          var vlat = (ensMean[j] + (ens[m2 * O + j] - ensMean[j]) * meta.spread) * ys[j] + ym[j];
+          var vlon = (ensMean[j + 1] + (ens[m2 * O + j + 1] - ensMean[j + 1]) * meta.spread) * ys[j + 1] + ym[j + 1];
+          lats[m2] = base.lat + vlat;
+          lons[m2] = aiPmod(base.lon + vlon, 360);
+        }
+        points.push({ lead_hours: leads[k], lat: aiMean(lats), lon: aiMean(lons),
+          p10_lat: aiQuantile(lats, .1), p90_lat: aiQuantile(lats, .9),
+          p10_lon: aiQuantile(lons, .1), p90_lon: aiQuantile(lons, .9) });
+      }
+      return { initial_lat: base.lat, initial_lon: base.lon, points: points };
+    });
+  }
+  function aiSetStatus(msg, cls) {
+    if (!els.aiStatus) return;
+    els.aiStatus.textContent = msg || "";
+    els.aiStatus.className = "tt-ai-status" + (cls ? " tt-ai-status--" + cls : "");
+  }
+  function aiClearState() {
+    aiTraceCount = 0;
+    if (els.aiBtn) { els.aiBtn.setAttribute("aria-pressed", "false"); els.aiBtn.classList.remove("is-on"); }
+    aiSetStatus("");
+  }
+  function aiRemoveTraces() {
+    if (aiTraceCount > 0 && els.map.data && els.map.data.length >= aiTraceCount) {
+      var n = els.map.data.length, idx = [];
+      for (var i = n - aiTraceCount; i < n; i++) idx.push(i);   // AI traces are the last ones
+      Plotly.deleteTraces(els.map, idx);
+    }
+    aiClearState();
+  }
+  function aiDrawForecast(fc) {
+    var pts = fc.points || [];
+    if (!pts.length) throw new Error("empty forecast");
+    var meanLat = [fc.initial_lat], meanLon = [fc.initial_lon], txt = ["now"];
+    pts.forEach(function (p) { meanLat.push(p.lat); meanLon.push(p.lon); txt.push("AI +" + p.lead_hours + " h"); });
+    // spread cone: apex at now, out along the p90 corners, back along the p10 corners
+    var rev = pts.slice().reverse();
+    var coneLat = [fc.initial_lat].concat(pts.map(function (p) { return p.p90_lat; }))
+      .concat(rev.map(function (p) { return p.p10_lat; }));
+    var coneLon = [fc.initial_lon].concat(pts.map(function (p) { return p.p90_lon; }))
+      .concat(rev.map(function (p) { return p.p10_lon; }));
+    var cone = { type: "scattergeo", mode: "lines", lat: coneLat, lon: coneLon,
+      fill: "toself", fillcolor: "rgba(52,211,153,0.12)", line: { color: "rgba(52,211,153,0.35)", width: 1 },
+      hoverinfo: "skip", showlegend: false };
+    var mean = { type: "scattergeo", mode: "lines+markers", lat: meanLat, lon: meanLon,
+      line: { color: "rgba(52,211,153,0.95)", width: 2.2, dash: "dash" },
+      marker: { size: 6, color: "rgba(52,211,153,0.95)" },
+      text: txt, hoverinfo: "text", showlegend: false };
+    Plotly.addTraces(els.map, [cone, mean]);   // appended after the sweep — sweep indices unaffected
+    aiTraceCount = 2;
+    if (els.aiBtn) { els.aiBtn.setAttribute("aria-pressed", "true"); els.aiBtn.classList.add("is-on"); }
+    aiSetStatus("🧪 " + (fc.storm || "AI") + " — experimental ensemble mean + 10–90% spread (not an official forecast)", "on");
+  }
+  // Build the model's history fixes from the storm the user is viewing, so the
+  // AI track starts at the SAME "now" position as the JMA forecast (rather than
+  // the Space self-fetching a possibly-laggier NOAA position). Prefers the
+  // Digital Typhoon best-track (real time/lat/lon/wind); the analysis point
+  // carries real pressure. Pressure for older fixes is a light wind estimate
+  // (a secondary feature — the position history drives the track).
+  function aiEstPres(w) { return w == null ? 1005 : Math.round(1006 - w * w / 230); }
+  function aiFixesFromForecast(d) {
+    if (!d || !d.points || !d.points.length) return null;
+    var a = d.points[0], fixes = [];
+    if (d.past && d.past.length) {
+      d.past.forEach(function (o) {
+        if (o.lat == null || o.lon == null) return;
+        fixes.push({ time: new Date(o.timeMs).toISOString(), lat: o.lat, lon: o.lon,
+          wind: o.windKt != null ? o.windKt : (a.windKt || 35), pres: aiEstPres(o.windKt) });
+      });
+    } else if (d.observed && d.observed.length) {
+      d.observed.forEach(function (p) {
+        fixes.push({ lat: p[0], lon: p[1], wind: a.windKt || 35, pres: a.pressure || 1000 });
+      });
+    }
+    fixes.push({ time: (a.valid && a.valid.UTC) || new Date().toISOString(),
+      lat: a.lat, lon: a.lon, wind: a.windKt || 35, pres: a.pressure || aiEstPres(a.windKt) });
+    return fixes.length >= 1 ? fixes.slice(-8) : null;
+  }
+  function aiToggle() {
+    if (appMode !== "predict") return;
+    if (aiTraceCount > 0) { aiRemoveTraces(); return; }   // toggle off
+    if (aiLoading) return;
+    var d = els.typhoonSelect ? jmaCache[els.typhoonSelect.value] : null;
+    var fixes = aiFixesFromForecast(d);
+    if (!fixes) { aiSetStatus("No storm loaded to run the model on.", "err"); return; }
+    aiLoading = true;
+    aiSetStatus(aiRT.session ? "Running the model…"
+      : "Loading the AI model in your browser (~one-time download)…", "loading");
+    aiEnsureModel()
+      .then(function () { return aiRunModel(fixes); })
+      .then(function (fc) {
+        aiLoading = false;
+        fc.storm = (d.name && d.name.en) || "storm";
+        aiDrawForecast(fc);
+      })
+      .catch(function (e) {
+        aiLoading = false;
+        aiSetStatus("Couldn't run the AI model: " + ((e && e.message) || e), "err");
+      });
   }
 
   // One continuous timeline. The PAST leg comes from JMA best-track (via
@@ -1857,6 +2058,7 @@
   if (els.fcPlay) els.fcPlay.addEventListener("click", toggleForecastPlay);
   if (els.fcReplay) els.fcReplay.addEventListener("click", replayForecastAnim);
   if (els.fcSpeed) els.fcSpeed.addEventListener("click", cycleForecastSpeed);
+  if (els.aiBtn) els.aiBtn.addEventListener("click", aiToggle);
   if (els.fcSlider) els.fcSlider.addEventListener("input", function () {
     if (!fcState) return;
     fcState.paused = true; fcState.holdUntil = 0; fcState.lastTs = null;
