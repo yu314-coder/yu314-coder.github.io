@@ -1879,7 +1879,9 @@
   // independent); disabled under prefers-reduced-motion (rests at "now").
   // State lives in fcState so the play/pause/replay/speed controls can drive it.
   var FC_PAST_SECONDS = 6, FC_FUTURE_SECONDS = 9, FC_HOLD_SECONDS = 1.6;
+  var FC_DRAW_MS = 33;          // cap sweep redraws at ~30fps — a Plotly geo restyle is the cost, not the math
   var fcState = null;
+  var fcMapVisible = true;      // false while the forecast map is scrolled out of view (animation rests)
   function cancelForecastAnim() {
     if (fcAnim) { cancelAnimationFrame(fcAnim); fcAnim = null; }
   }
@@ -1906,16 +1908,22 @@
   }
   function fcFrame(ts) {
     var s = fcState;
-    if (!s || appMode !== "predict" || s.paused) { fcAnim = null; return; }
+    if (!s || appMode !== "predict" || s.paused || !fcMapVisible) { fcAnim = null; return; }
     var dt = s.lastTs == null ? 0 : Math.min((ts - s.lastTs) / 1000, 0.25);
     s.lastTs = ts;
-    if (s.holdUntil > 0) {
-      if (ts >= s.holdUntil) { s.holdUntil = 0; s.t = s.startH; }
+    var holding = s.holdUntil > 0;
+    if (holding) {
+      if (ts >= s.holdUntil) { s.holdUntil = 0; holding = false; s.t = s.startH; s.lastDrawTs = 0; }
     } else {
       s.t += (s.t < 0 ? s.pastRate : s.futureRate) * s.speed * dt;
       if (s.t >= s.endH) { s.t = s.endH; s.holdUntil = ts + FC_HOLD_SECONDS * 1000; }
     }
-    sweepTo(s.t, 11 + Math.sin(ts / 180) * 2, true);
+    // The position math above runs every rAF (cheap); the redraw is throttled to
+    // ~30fps and frozen entirely during the end-of-loop hold — that's the win.
+    if (!holding && ts - (s.lastDrawTs || 0) >= FC_DRAW_MS) {
+      s.lastDrawTs = ts;
+      sweepTo(s.t, 11 + Math.sin(ts / 180) * 2, true);
+    }
     fcAnim = requestAnimationFrame(fcFrame);
   }
   function startForecastAnim(d) {
@@ -1968,6 +1976,17 @@
     els.fcPlay.setAttribute("aria-label", paused ? "Play forecast animation" : "Pause forecast animation");
   }
 
+  // Intensity color for a JMA 10-min wind (kt), on JMA's own scale — the same
+  // TD/TS/STS/TY palette the category badge uses, so the forecast timeline reads
+  // in one visual language. Null wind (pre-classification) → muted.
+  function fcWindColor(kt) {
+    if (kt == null) return "rgba(152,162,189,0.5)";
+    if (kt < 34) return CAT_COLOR.TD;
+    if (kt < 48) return CAT_COLOR.TS;
+    if (kt < 64) return CAT_COLOR.STS;
+    return CAT_COLOR.TY;
+  }
+
   function updateForecastPanel(d) {
     if (!els.predictPanel) return;
     var a = d.points[0];
@@ -1978,7 +1997,7 @@
     var rows = d.points.slice(1).map(function (p) {
       var when = p.valid ? p.valid.UTC.slice(5, 16).replace("T", " ") + "Z" : "";
       var ft = fmtT(anchoredT(d, p.windKt));
-      return '<div class="tt-fc-row"><span class="tt-fc-h">+' + p.h + "h</span>" +
+      return '<div class="tt-fc-row" style="--fc-row:' + fcWindColor(p.windKt) + '"><span class="tt-fc-h">+' + p.h + "h</span>" +
         '<span class="tt-fc-when">' + when + "</span>" +
         '<span class="tt-fc-val">' + (p.pressure != null ? p.pressure + " hPa" : "—") +
         (p.windKt != null ? " · " + p.windKt + " kt" : "") + (ft ? " · " + ft : "") + "</span>" +
@@ -2070,6 +2089,20 @@
   if (els.fcReplay) els.fcReplay.addEventListener("click", replayForecastAnim);
   if (els.fcSpeed) els.fcSpeed.addEventListener("click", cycleForecastSpeed);
   if (els.aiBtn) els.aiBtn.addEventListener("click", aiToggle);
+
+  // Rest the forecast sweep when its map isn't on screen: no point spending
+  // frames (and Plotly redraws) animating a map the user has scrolled past.
+  // rAF already idles on a hidden tab; this covers scrolled-out-of-view.
+  if (window.IntersectionObserver && els.map) {
+    new IntersectionObserver(function (entries) {
+      var vis = entries[entries.length - 1].isIntersecting;
+      if (vis === fcMapVisible) return;
+      fcMapVisible = vis;
+      if (appMode !== "predict" || !fcState) return;
+      if (vis && !fcState.paused && !fcAnim) { fcState.lastTs = null; fcAnim = requestAnimationFrame(fcFrame); }
+      else if (!vis) cancelForecastAnim();
+    }, { threshold: 0.04 }).observe(els.map);
+  }
   if (els.fcSlider) els.fcSlider.addEventListener("input", function () {
     if (!fcState) return;
     fcState.paused = true; fcState.holdUntil = 0; fcState.lastTs = null;
