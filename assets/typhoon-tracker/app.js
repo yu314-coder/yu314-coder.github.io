@@ -1434,11 +1434,12 @@
   }
   function fmtT(t) { return t != null ? "T" + t.toFixed(1) : null; }
 
-  function fetchJmaTc(tcId) {
-    if (jmaCache[tcId]) return Promise.resolve(jmaCache[tcId]);
+  function fetchJmaTc(tcId, force) {
+    if (!force && jmaCache[tcId]) return Promise.resolve(jmaCache[tcId]);
+    var bust = force ? "?_=" + Date.now() : "";   // dodge the browser HTTP cache on a live refresh
     return Promise.all([
-      fetch(JMA_BASE + tcId + "/specifications.json").then(function (r) { return r.json(); }),
-      fetch(JMA_BASE + tcId + "/forecast.json").then(function (r) { return r.json(); })
+      fetch(JMA_BASE + tcId + "/specifications.json" + bust).then(function (r) { return r.json(); }),
+      fetch(JMA_BASE + tcId + "/forecast.json" + bust).then(function (r) { return r.json(); })
     ]).then(function (res) {
       var p = parseJma(tcId, res[0], res[1]);
       if (!p) return null;
@@ -1484,6 +1485,49 @@
         if (els.typhoonSelect) els.typhoonSelect.innerHTML = "<option>—</option>";
         Plotly.react(els.map, [], geoLayout(), { displayModeBar: false, responsive: true, scrollZoom: true });
       });
+  }
+
+  /* ---------------------------------------------------------------------------
+     Live refresh — JMA reissues typhoon forecasts every few hours. While the
+     page is open we re-fetch the viewed storm on a timer and, ONLY when JMA has
+     actually published a newer forecast, re-render it and re-run the AI model on
+     the fresh track — so the route genuinely updates as the storm evolves rather
+     than staying frozen at the position it had when the page first loaded.
+     Unchanged data → no work (no needless recompute, no flicker).
+     ------------------------------------------------------------------------- */
+  var FC_REFRESH_MS = 30 * 60 * 1000;   // 30 min
+  var fcRefreshTimer = null;
+  function jmaIssueKey(d) {             // identifies a forecast issuance
+    if (!d) return null;
+    var a = (d.points && d.points[0] && d.points[0].valid) ? d.points[0].valid.UTC : "";
+    return JSON.stringify(d.issue || "") + "|" + a;
+  }
+  function startForecastRefresh() {
+    stopForecastRefresh();
+    fcRefreshTimer = setInterval(refreshForecast, FC_REFRESH_MS);
+  }
+  function stopForecastRefresh() {
+    if (fcRefreshTimer) { clearInterval(fcRefreshTimer); fcRefreshTimer = null; }
+  }
+  function refreshForecast() {
+    if (appMode !== "predict") return;
+    if (typeof document !== "undefined" && document.hidden) return;   // don't poll a backgrounded tab
+    var sel = els.typhoonSelect, tcId = sel && sel.value;
+    if (!tcId || !jmaCache[tcId]) return;
+    var oldKey = jmaIssueKey(jmaCache[tcId]);
+    var prev = jmaCache[tcId];
+    fetchJmaTc(tcId, true).then(function (fresh) {
+      if (!fresh || !fresh.points || !fresh.points.length) return;
+      // a transient Digital Typhoon / CIMSS miss shouldn't drop the past leg
+      if (!fresh.past && prev && prev.past) fresh.past = prev.past;
+      if (!fresh.cimss && prev && prev.cimss) fresh.cimss = prev.cimss;
+      if (oldKey && jmaIssueKey(fresh) === oldKey) return;   // JMA hasn't reissued — nothing new
+      if (appMode !== "predict" || sel.value !== tcId) return; // user moved on while it loaded
+      var aiWasOn = aiTraceCount > 0 || (aiLastFc && aiLastFc.tcId === tcId);
+      aiLastFc = null;             // force a real re-run on the new track, not a redraw of the stale route
+      renderForecast(fresh);       // fresh map + panel (clears the AI overlay)
+      if (aiWasOn) aiRun(fresh);   // recompute the AI route from the updated track
+    }).catch(function () { /* transient network error — try again next tick */ });
   }
 
   function populateTyphoonSelect(list) {
@@ -1773,11 +1817,10 @@
       lat: a.lat, lon: a.lon, wind: a.windKt || 35, pres: a.pressure || aiEstPres(a.windKt) });
     return fixes.length >= 1 ? fixes.slice(-8) : null;
   }
-  function aiToggle() {
-    if (appMode !== "predict") return;
-    if (aiTraceCount > 0) { aiRemoveTraces(); return; }   // toggle off
-    if (aiLoading) return;
-    var d = els.typhoonSelect ? jmaCache[els.typhoonSelect.value] : null;
+  // Run the model on storm d's current track and draw the overlay. Shared by the
+  // toggle button and the live refresh (which re-runs it on freshly-fetched data
+  // so the route reflects the new forecast — genuinely recomputed, not redrawn).
+  function aiRun(d) {
     var fixes = aiFixesFromForecast(d);
     if (!fixes) { aiSetStatus("No storm loaded to run the model on.", "err"); return; }
     aiLoading = true;
@@ -1795,6 +1838,12 @@
         aiLoading = false;
         aiSetStatus("Couldn't run the AI model: " + ((e && e.message) || e), "err");
       });
+  }
+  function aiToggle() {
+    if (appMode !== "predict") return;
+    if (aiTraceCount > 0) { aiRemoveTraces(); return; }   // toggle off
+    if (aiLoading) return;
+    aiRun(els.typhoonSelect ? jmaCache[els.typhoonSelect.value] : null);
   }
 
   // One continuous timeline. The PAST leg comes from JMA best-track (via
@@ -2101,12 +2150,20 @@
     els.app.classList.toggle("is-season", mode === "track" && viewMode === "season");
     stopPlay();
     cancelForecastAnim();   // rebuilt/ restarted by loadForecastMode when entering Forecast
-    if (mode === "predict") { loadForecastMode(); }
+    stopForecastRefresh();  // only runs while Forecast mode is active
+    if (mode === "predict") { loadForecastMode(); startForecastRefresh(); }
     else if (viewMode === "season") { buildSeasonOverview(); }
     else if (currentStorm) { buildMap(); }
   }
 
   els.mode.addEventListener("change", function () { setAppMode(els.mode.value); });
+  // Coming back to the tab after a while? Pull a fresh forecast right away
+  // (no-op unless JMA has actually reissued) instead of waiting for the timer.
+  if (typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", function () {
+      if (!document.hidden && appMode === "predict") refreshForecast();
+    });
+  }
   if (els.typhoonSelect) els.typhoonSelect.addEventListener("change", function () {
     var d = jmaCache[els.typhoonSelect.value];
     if (d) renderForecast(d);

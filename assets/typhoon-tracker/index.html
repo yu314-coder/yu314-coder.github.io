@@ -7,7 +7,7 @@
 <!-- defer both scripts (Plotly first in DOM order) so the controls/stats shell
      paints without waiting on the large Plotly bundle to download and parse. -->
 <script src="https://cdn.plot.ly/plotly-geo-2.35.2.min.js" charset="utf-8" defer></script>
-<link rel="stylesheet" href="styles.css?v=20260711c">
+<link rel="stylesheet" href="styles.css?v=20260711d">
 </head>
 <body>
 <div class="tt-app mode-track">
@@ -141,6 +141,6 @@
   <p class="tt-source-note">Track, intensity, and wind-radius data: <a href="https://www.ncei.noaa.gov/products/international-best-track-archive" target="_blank" rel="noopener noreferrer">IBTrACS v04r01</a> (NOAA NCEI), Western Pacific basin. Storms marked <strong>LIVE</strong> are fetched straight from NOAA NCEI's IBTrACS <em>active-storms</em> feed in your browser, then topped up from the JTWC working best track itself (the ATCF b-deck, openly mirrored by <a href="https://hurricanes.ral.ucar.edu/" target="_blank" rel="noopener noreferrer">UCAR/RAL</a>, updated several times a day) — so an active typhoon's history runs to the latest fix, and its 50/64&nbsp;kt radii appear the moment JTWC publishes them (the working best track reports the 34&nbsp;kt radii first; 50/64&nbsp;kt usually arrive in post-analysis, which is also why 2025-onward storms show only Level&nbsp;8 (34&nbsp;kt) circles for now). Taiwan (CWA) classes use CWA's official <em>10-minute</em> thresholds (17.2 / 32.7 / 51.0&nbsp;m/s) applied to <strong>JMA's real 10-minute wind analysis</strong> for each point (carried in IBTrACS as TOKYO_WIND — the same averaging convention CWA uses, so storms class the way CWA's own record does, e.g. Doksuri&nbsp;2023 as mostly 中度 rather than the inflated 強烈 a converted 1-minute wind gives); points between JMA's 6-hourly analyses interpolate, and only storms with no 10-minute record at all fall back to 0.88-converted 1-minute winds. CWA's and JMA's own analyses can still differ slightly — both are real agency data. Wind circle radii (Beaufort force 8/10/12 &mdash; gale/storm/hurricane-force, JTWC's 34/50/64kt radii, per quadrant) are JTWC (USA agency) reports, which is why coverage starts in 2001 &mdash; systematic quadrant reporting didn't exist before then, for any storm in this archive, so it can't be extended back to 1985. Radius shapes interpolate between the four reported quadrant extents; treat them as an approximation, not a precise wind-field boundary. The Dvorak T-number is estimated from each point's wind speed via the standard Dvorak CI-number/wind-speed table — a standard approximation, not an independent satellite reading. ACE, rapid intensification (&ge;30&nbsp;kt/24&nbsp;h), and the season climatology are all computed from this same best-track wind record. The <strong>forecast cone</strong> is a persistence baseline — it simply projects the storm's current heading and speed forward, with a cone sized to typical average track error; it is the naive benchmark real forecasts are measured against, shown to contrast with the actual track, not a skilful prediction. ENSO tags use real NOAA CPC ASO ONI values.</p>
 
 </div>
-<script src="app.js?v=20260711c" defer></script>
+<script src="app.js?v=20260711d" defer></script>
 </body>
 </html>
