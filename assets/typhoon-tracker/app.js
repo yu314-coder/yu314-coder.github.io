@@ -1489,11 +1489,13 @@
 
   /* ---------------------------------------------------------------------------
      Live refresh — JMA reissues typhoon forecasts every few hours. While the
-     page is open we re-fetch the viewed storm on a timer and, ONLY when JMA has
-     actually published a newer forecast, re-render it and re-run the AI model on
-     the fresh track — so the route genuinely updates as the storm evolves rather
-     than staying frozen at the position it had when the page first loaded.
-     Unchanged data → no work (no needless recompute, no flicker).
+     page is open we re-scan the active-storm list AND re-fetch the viewed storm
+     on a timer: new storms are added to the picker and dissipated ones removed
+     (keeping your current selection when it survives), and ONLY when JMA has
+     actually published a newer forecast for the viewed storm do we re-render it
+     and re-run the AI model on the fresh track — so the route genuinely updates
+     as the storm evolves rather than staying frozen at page-load. Unchanged data
+     → no work (no needless recompute, no flicker).
      ------------------------------------------------------------------------- */
   var FC_REFRESH_MS = 30 * 60 * 1000;   // 30 min
   var fcRefreshTimer = null;
@@ -1512,22 +1514,51 @@
   function refreshForecast() {
     if (appMode !== "predict") return;
     if (typeof document !== "undefined" && document.hidden) return;   // don't poll a backgrounded tab
-    var sel = els.typhoonSelect, tcId = sel && sel.value;
-    if (!tcId || !jmaCache[tcId]) return;
-    var oldKey = jmaIssueKey(jmaCache[tcId]);
-    var prev = jmaCache[tcId];
-    fetchJmaTc(tcId, true).then(function (fresh) {
-      if (!fresh || !fresh.points || !fresh.points.length) return;
-      // a transient Digital Typhoon / CIMSS miss shouldn't drop the past leg
-      if (!fresh.past && prev && prev.past) fresh.past = prev.past;
-      if (!fresh.cimss && prev && prev.cimss) fresh.cimss = prev.cimss;
-      if (oldKey && jmaIssueKey(fresh) === oldKey) return;   // JMA hasn't reissued — nothing new
-      if (appMode !== "predict" || sel.value !== tcId) return; // user moved on while it loaded
-      var aiWasOn = aiTraceCount > 0 || (aiLastFc && aiLastFc.tcId === tcId);
-      aiLastFc = null;             // force a real re-run on the new track, not a redraw of the stale route
-      renderForecast(fresh);       // fresh map + panel (clears the AI overlay)
-      if (aiWasOn) aiRun(fresh);   // recompute the AI route from the updated track
-    }).catch(function () { /* transient network error — try again next tick */ });
+    var sel = els.typhoonSelect, curId = sel && sel.value;
+    var prevCur = curId ? jmaCache[curId] : null;
+    var oldCurKey = prevCur ? jmaIssueKey(prevCur) : null;
+    // Re-scan the active-storm LIST (new storms appear, others dissipate)…
+    fetch(JMA_BASE + "targetTc.json?_=" + Date.now())
+      .then(function (r) { return r.json(); })
+      .then(function (list) {
+        if (appMode !== "predict") return;
+        var ids = (list || []).map(function (t) { return t.tropicalCyclone; }).filter(Boolean);
+        if (!ids.length) { jmaList = []; aiLastFc = null; aiClearState(); renderNoActive(); return; }
+        var prevIds = jmaList.map(function (d) { return d.tcId; });
+        // force-fetch storms new to us + the one being viewed (fresh route); reuse cache for the rest
+        return Promise.all(ids.map(function (id) {
+          return fetchJmaTc(id, prevIds.indexOf(id) < 0 || id === curId);
+        })).then(function (parsed) {
+          if (appMode !== "predict") return;
+          var fresh = parsed.filter(Boolean);
+          if (!fresh.length) { jmaList = []; aiLastFc = null; aiClearState(); renderNoActive(); return; }
+          var listChanged = fresh.length !== prevIds.length ||
+            fresh.some(function (d) { return prevIds.indexOf(d.tcId) < 0; });
+          jmaList = fresh;
+          var cur = fresh.filter(function (d) { return d.tcId === curId; })[0];
+          if (listChanged) {                     // rebuild the dropdown, keep the current pick if it survived
+            populateTyphoonSelect(fresh);
+            if (cur) sel.value = curId;
+          }
+          if (cur) {
+            if (!cur.past && prevCur && prevCur.past) cur.past = prevCur.past;         // keep history on a
+            if (!cur.cimss && prevCur && prevCur.cimss) cur.cimss = prevCur.cimss;     // transient proxy miss
+            if (oldCurKey && jmaIssueKey(cur) === oldCurKey) return;   // viewed storm unchanged — dropdown was enough
+            var aiWasOn = aiTraceCount > 0 || (aiLastFc && aiLastFc.tcId === curId);
+            aiLastFc = null;             // force a real re-run on the new track, not a redraw of the stale route
+            renderForecast(cur);
+            if (aiWasOn) aiRun(cur);     // recompute the AI route from the updated track
+          } else {                       // the viewed storm dissipated — show the strongest remaining one
+            var def = fresh.slice().sort(function (a, b) {
+              return (a.points[0].pressure || 9999) - (b.points[0].pressure || 9999);
+            })[0];
+            sel.value = def.tcId;
+            aiLastFc = null;             // the old overlay belonged to the storm that's gone
+            renderForecast(def);
+          }
+        });
+      })
+      .catch(function () { /* transient network error — try again next tick */ });
   }
 
   function populateTyphoonSelect(list) {
