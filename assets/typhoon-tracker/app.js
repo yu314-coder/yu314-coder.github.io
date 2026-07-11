@@ -1711,6 +1711,19 @@
     if (aiLastFc && d && aiLastFc.tcId != null && aiLastFc.tcId === d.tcId) aiDrawForecast(aiLastFc);
     else aiClearState();
   }
+  // Belt-and-suspenders: if the AI overlay should be on for the storm on screen
+  // but its emerald traces aren't actually on the map any more, put them back.
+  // Cheap (a couple of property reads) and idempotent — a no-op when the overlay
+  // is already present or was deliberately toggled off. Called once per play
+  // cycle so the AI track can never silently vanish when the animation ends.
+  function aiEnsureOverlay() {
+    if (appMode !== "predict" || !aiLastFc || aiLoading) return;
+    var d = els.typhoonSelect ? jmaCache[els.typhoonSelect.value] : null;
+    if (!d || d.tcId !== aiLastFc.tcId) return;               // different / no storm on screen
+    var data = els.map.data || [], last = data[data.length - 1];
+    var present = last && last.line && String(last.line.color).indexOf("52,211,153") >= 0;
+    if (!present) aiDrawForecast(aiLastFc);                   // it went missing — redraw it
+  }
   function aiDrawForecast(fc) {
     var pts = fc.points || [];
     if (!pts.length) throw new Error("empty forecast");
@@ -1926,10 +1939,10 @@
     s.lastTs = ts;
     var holding = s.holdUntil > 0;
     if (holding) {
-      if (ts >= s.holdUntil) { s.holdUntil = 0; holding = false; s.t = s.startH; s.lastDrawTs = 0; }
+      if (ts >= s.holdUntil) { s.holdUntil = 0; holding = false; s.t = s.startH; s.lastDrawTs = 0; aiEnsureOverlay(); }
     } else {
       s.t += (s.t < 0 ? s.pastRate : s.futureRate) * s.speed * dt;
-      if (s.t >= s.endH) { s.t = s.endH; s.holdUntil = ts + FC_HOLD_SECONDS * 1000; }
+      if (s.t >= s.endH) { s.t = s.endH; s.holdUntil = ts + FC_HOLD_SECONDS * 1000; aiEnsureOverlay(); }
     }
     // The position math above runs every rAF (cheap); the redraw is throttled to
     // ~30fps and frozen entirely during the end-of-loop hold — that's the win.

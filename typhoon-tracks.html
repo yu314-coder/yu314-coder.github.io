@@ -107,7 +107,7 @@
     </div>
 
     <div class="tracker-shell reveal">
-      <iframe id="typhoon-frame" src="assets/typhoon-tracker/index.html?v=20260711b" title="Typhoon Track and Wind Radius Explorer" loading="lazy"></iframe>
+      <iframe id="typhoon-frame" src="assets/typhoon-tracker/index.html?v=20260711c" title="Typhoon Track and Wind Radius Explorer" loading="lazy"></iframe>
     </div>
   </section>
 
@@ -135,17 +135,31 @@
   <!-- Auto-size the same-origin tracker iframe to its content -->
   <script>
     (function () {
-      var frame = document.getElementById('typhoon-frame');
+      var frame = document.getElementById('typhoon-frame'), lastH = 0;
+      // Measure the CONTENT element (.tt-app), not body.scrollHeight: scrollHeight
+      // is max(content, viewport), so once the iframe is sized to it the viewport
+      // matches and any +padding makes it grow every tick — a runaway. .tt-app's
+      // height is content-driven, so sizing to it is stable.
+      function contentEl(doc) { return doc.querySelector('.tt-app') || doc.body; }
       function sizeFrame() {
         try {
           var doc = frame.contentDocument || frame.contentWindow.document;
-          var h = doc.body ? doc.body.scrollHeight : 0;
-          if (h > 0) frame.style.height = (h + 24) + 'px';
+          var el = contentEl(doc);
+          var h = el ? Math.ceil(el.getBoundingClientRect().height) : 0;
+          if (h > 0 && Math.abs(h - lastH) > 1) { lastH = h; frame.style.height = (h + 16) + 'px'; }
         } catch (e) { /* cross-origin fallback: keep min-height */ }
       }
       frame.addEventListener('load', function () {
         sizeFrame();
-        setInterval(sizeFrame, 800);
+        // A ResizeObserver on the tracker's content is the ideal (event-driven)
+        // signal; keep a slow poll as a reliable fallback. Both only WRITE the
+        // height when it actually changed, so idle costs nothing but a cheap read.
+        try {
+          var win = frame.contentWindow, doc = frame.contentDocument || win.document;
+          var RO = win.ResizeObserver || window.ResizeObserver, el = contentEl(doc);
+          if (RO && el) new RO(sizeFrame).observe(el);
+        } catch (e) { /* fall back to the poll below */ }
+        setInterval(sizeFrame, 1000);
       });
     })();
   </script>
