@@ -1661,7 +1661,7 @@
   var ORT_URL = "https://cdn.jsdelivr.net/npm/onnxruntime-web@" + ORT_VER + "/dist/ort.min.js";
   var ORT_WASM = "https://cdn.jsdelivr.net/npm/onnxruntime-web@" + ORT_VER + "/dist/";
   var AI_MODEL_URL = "model/typhoon-predict.onnx";     // relative to this page's dir
-  var AI_META_URL = "model/typhoon-predict-meta.json";
+  var AI_META_URL = "model/typhoon-predict-meta.json?v=20260712a";   // bump when the meta changes (e.g. field scaler added)
   var aiRT = { ort: null, session: null, meta: null };   // lazily-loaded runtime
   var aiTraceCount = 0, aiLoading = false;
   var aiLastFc = null;   // last drawn AI forecast (tagged with .tcId) — lets the
@@ -1701,6 +1701,67 @@
       ]);
     }).then(function (r) { aiRT.meta = r[0]; aiRT.session = r[1]; });
   }
+  /* --- live steering field ------------------------------------------------
+     The model steers with a 10-channel 33x33 ERA5 patch. ERA5 isn't available
+     live, so instead of the old zeros (which made every prediction ignore the
+     storm's location) we build the patch from Open-Meteo's operational analysis
+     — a close ERA5 substitute, CORS-open. Coarse 9x9 @2deg fetch -> unit-convert
+     to the model's channels -> bilinear to 33x33 -> normalize with the exported
+     field_mean/std. Falls back to zeros on any failure, so it never breaks. */
+  var OM_URL = "https://api.open-meteo.com/v1/forecast";
+  function aiUV(ws, wd) { var a = wd * Math.PI / 180; return [-ws * Math.sin(a), -ws * Math.cos(a)]; }
+  function aiSpecHum(rh, T, p) {   // specific humidity kg/kg from RH %, T degC, p hPa
+    var es = 6.112 * Math.exp(17.67 * T / (T + 243.5)), e = (rh / 100) * es;
+    return 0.622 * e / (p - 0.378 * e);
+  }
+  function aiInterp1(arr, x) {     // 1-D linear interpolation at fractional index x
+    var i0 = Math.floor(x), i1 = Math.min(i0 + 1, arr.length - 1), f = x - i0;
+    return arr[i0] * (1 - f) + arr[i1] * f;
+  }
+  function aiFetchField(clat, clon) {
+    var meta = aiRT.meta;
+    if (!meta || !meta.field_mean) return Promise.resolve(null);
+    var P = 9, step = 2, half = (P - 1) / 2 * step, lats = [], lons = [];
+    for (var i = 0; i < P; i++) for (var j = 0; j < P; j++) {
+      lats.push((clat - half + i * step).toFixed(3));
+      lons.push((clon - half + j * step).toFixed(3));
+    }
+    var url = OM_URL + "?latitude=" + lats.join(",") + "&longitude=" + lons.join(",") +
+      "&wind_speed_unit=ms&current=pressure_msl,wind_speed_10m,wind_direction_10m" +
+      "&hourly=geopotential_height_850hPa,wind_speed_850hPa,wind_direction_850hPa,relative_humidity_850hPa," +
+      "temperature_850hPa,geopotential_height_500hPa,wind_speed_500hPa,wind_direction_500hPa&forecast_days=1";
+    return fetch(url).then(function (r) { if (!r.ok) throw new Error("open-meteo " + r.status); return r.json(); })
+      .then(function (data) {
+        if (!Array.isArray(data) || data.length !== P * P) throw new Error("open-meteo shape");
+        var coarse = [];   // coarse[c][row][col]
+        for (var c = 0; c < 10; c++) { coarse[c] = []; for (var rr = 0; rr < P; rr++) coarse[c][rr] = new Float64Array(P); }
+        for (var idx = 0; idx < data.length; idx++) {
+          var pt = data[idx], cur = pt.current, h = pt.hourly, ri = Math.floor(idx / P), ci = idx % P;
+          var k = h.time.indexOf(cur.time.slice(0, 13) + ":00"); if (k < 0) k = 0;
+          var w10 = aiUV(cur.wind_speed_10m, cur.wind_direction_10m);
+          var w85 = aiUV(h.wind_speed_850hPa[k], h.wind_direction_850hPa[k]);
+          var w50 = aiUV(h.wind_speed_500hPa[k], h.wind_direction_500hPa[k]);
+          var v = [cur.pressure_msl * 100, w10[0], w10[1],
+            h.geopotential_height_850hPa[k] * 9.80665, w85[0], w85[1],
+            aiSpecHum(h.relative_humidity_850hPa[k], h.temperature_850hPa[k], 850),
+            h.geopotential_height_500hPa[k] * 9.80665, w50[0], w50[1]];
+          for (var cc = 0; cc < 10; cc++) coarse[cc][ri][ci] = v[cc];
+        }
+        var G = meta.patch || 33, fm = meta.field_mean, fs = meta.field_std;
+        var xi = new Float64Array(G); for (var g = 0; g < G; g++) xi[g] = g * (P - 1) / (G - 1);
+        var out = new Float32Array(10 * G * G);
+        for (var c2 = 0; c2 < 10; c2++) {
+          var mid = []; for (var r2 = 0; r2 < P; r2++) { mid[r2] = new Float64Array(G); for (var gc = 0; gc < G; gc++) mid[r2][gc] = aiInterp1(coarse[c2][r2], xi[gc]); }
+          var colv = new Float64Array(P);
+          for (var fi = 0; fi < G; fi++) for (var fj = 0; fj < G; fj++) {
+            for (var r3 = 0; r3 < P; r3++) colv[r3] = mid[r3][fj];
+            out[c2 * G * G + fi * G + fj] = (aiInterp1(colv, xi[fi]) - fm[c2]) / fs[c2];
+          }
+        }
+        return out;
+      }).catch(function () { return null; });
+  }
+
   // Replicates the model's preprocessing (verified bit-identical to the sklearn
   // pipeline) using the exported scaler arrays — returns Float32Array [1,steps,9].
   function aiPreprocess(fixes, meta) {
@@ -1731,13 +1792,18 @@
   }
   function aiRunModel(fixes) {
     var meta = aiRT.meta, ort = aiRT.ort, S = meta.steps, N = meta.ensemble_members, L = meta.latent, O = meta.output_dim;
-    var feeds = {
-      track_x: new ort.Tensor("float32", aiPreprocess(fixes, meta), [1, S, 9]),
-      field_x: new ort.Tensor("float32", new Float32Array(10 * 33 * 33), [1, 1, 10, 33, 33]),  // climatological mean
-      eps: new ort.Tensor("float32", aiRandn(N * L), [N, 1, L]),
-      indep: new ort.Tensor("float32", aiRandn(N * O), [N, 1, O])
-    };
-    return aiRT.session.run(feeds).then(function (res) {
+    var G = meta.patch || 33, here = fixes[fixes.length - 1];
+    // fetch the live steering field for the storm's current position; on any
+    // failure fall back to a zeros field (climatological mean) so it still runs.
+    return aiFetchField(here.lat, here.lon).then(function (field) {
+      var fieldSource = field ? "Open-Meteo live field" : "no live field (climatology)";
+      var feeds = {
+        track_x: new ort.Tensor("float32", aiPreprocess(fixes, meta), [1, S, 9]),
+        field_x: new ort.Tensor("float32", field || new Float32Array(10 * G * G), [1, 1, 10, G, G]),
+        eps: new ort.Tensor("float32", aiRandn(N * L), [N, 1, L]),
+        indep: new ort.Tensor("float32", aiRandn(N * O), [N, 1, O])
+      };
+      return aiRT.session.run(feeds).then(function (res) {
       var ens = (res.ensemble || res[Object.keys(res)[0]]).data;   // Float32Array [N*O]
       var ensMean = new Float64Array(O);
       for (var mm = 0; mm < N; mm++) for (var o = 0; o < O; o++) ensMean[o] += ens[mm * O + o];
@@ -1756,7 +1822,8 @@
           p10_lat: aiQuantile(lats, .1), p90_lat: aiQuantile(lats, .9),
           p10_lon: aiQuantile(lons, .1), p90_lon: aiQuantile(lons, .9) });
       }
-      return { initial_lat: base.lat, initial_lon: base.lon, points: points };
+      return { initial_lat: base.lat, initial_lon: base.lon, points: points, fieldSource: fieldSource };
+      });
     });
   }
   function aiSetStatus(msg, cls) {
@@ -1821,7 +1888,8 @@
     aiTraceCount = 2;
     aiLastFc = fc;   // remember it so a same-storm map rebuild can restore it
     if (els.aiBtn) { els.aiBtn.setAttribute("aria-pressed", "true"); els.aiBtn.classList.add("is-on"); }
-    aiSetStatus("🧪 " + (fc.storm || "AI") + " — experimental ensemble mean + 10–90% spread (not an official forecast)", "on");
+    aiSetStatus("🧪 " + (fc.storm || "AI") + " — experimental ensemble mean + 10–90% spread" +
+      (fc.fieldSource ? " · steering: " + fc.fieldSource : "") + " (not an official forecast)", "on");
   }
   // Build the model's history fixes from the storm the user is viewing, so the
   // AI track starts at the SAME "now" position as the JMA forecast (rather than
