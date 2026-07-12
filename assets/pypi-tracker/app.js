@@ -16,9 +16,22 @@ const PYPISTATS_URL = "https://pypistats.org/api/packages/";
 const CORS_PROXY = "https://cors.eu.org/";
 const formatNumber = new Intl.NumberFormat();
 
-// Fresh per-day totals (with mirrors) from pypistats as [{date, downloads}]
-// ascending. Throws on any failure so the caller can fall back to ClickHouse.
+// Fresh per-day totals (with mirrors) as [{date, downloads}] ascending. Prefers a
+// same-origin snapshot (assets/pypi-tracker/data/<pkg>.json) that a daily GitHub
+// Action commits — always reachable, no proxy — and falls back to a live fetch
+// via a CORS proxy for packages that aren't snapshotted. Throws on total failure
+// so the caller can fall back to ClickHouse.
 async function fetchPypistatsDaily(pkg) {
+  try {
+    const snap = await fetch("data/" + pkg + ".json", { cache: "no-cache" });
+    if (snap.ok) {
+      const j = await snap.json();
+      if (Array.isArray(j.rows) && j.rows.length) {
+        return j.rows.map((r) => ({ date: r.date, downloads: Number(r.downloads || 0) }));
+      }
+    }
+  } catch (_) { /* no snapshot for this package — try the live proxy below */ }
+
   const res = await fetch(CORS_PROXY + PYPISTATS_URL + pkg + "/overall");
   if (!res.ok) throw new Error("pypistats proxy HTTP " + res.status);
   const json = await res.json();

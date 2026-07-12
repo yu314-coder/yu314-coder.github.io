@@ -1,0 +1,37 @@
+name: Refresh PyPI stats
+
+# Snapshot pypistats.org daily downloads for the tracked packages into static
+# JSON the PyPI-stats page reads same-origin — so the chart shows fresh data with
+# no runtime CORS proxy. Runs daily; can also be triggered by hand.
+on:
+  schedule:
+    - cron: "17 6 * * *" # ~06:17 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-pypi-stats
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch pypistats snapshots
+        run: python3 scripts/refresh_pypistats.py
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/pypi-tracker/data
+          if git diff --cached --quiet; then
+            echo "No change in pypistats snapshots."
+          else
+            git commit -m "chore: refresh pypistats snapshots"
+            git push
+          fi
