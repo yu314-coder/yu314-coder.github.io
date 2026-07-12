@@ -184,30 +184,32 @@
   <!-- Auto-size the same-origin tracker iframe to its content -->
   <script>
     (function () {
-      var frame = document.getElementById('pypi-frame');
+      var frame = document.getElementById('pypi-frame'), lastH = 0;
+      // Measure the CONTENT element (.app-shell), not body.scrollHeight:
+      // scrollHeight is max(content, viewport), so once the iframe is sized to it
+      // the viewport matches and the +padding makes it grow every tick — a
+      // runaway. .app-shell's height is content-driven, so sizing to it is stable.
+      function contentEl(doc) { return doc.querySelector('.app-shell') || doc.body; }
       function sizeFrame() {
         try {
           var doc = frame.contentDocument || frame.contentWindow.document;
-          var h = doc.body ? doc.body.scrollHeight : 0;
-          if (h > 0) frame.style.height = (h + 24) + 'px';
+          var el = contentEl(doc);
+          var h = el ? Math.ceil(el.getBoundingClientRect().height) : 0;
+          if (h > 0 && Math.abs(h - lastH) > 1) { lastH = h; frame.style.height = (h + 16) + 'px'; }
         } catch (e) { /* cross-origin fallback: keep min-height */ }
       }
       frame.addEventListener('load', function () {
         sizeFrame();
-        // Re-measure only when the app's content actually changes size (results
-        // render, author panel expands) via a ResizeObserver on the same-origin
-        // iframe body — instead of polling on a timer forever. Falls back to a
-        // slow interval only where ResizeObserver is unavailable.
+        // Re-measure only when the app's content actually changes height (results
+        // render, author panel expands) via a ResizeObserver on the content; keep
+        // a slow poll as a reliable fallback. Both only WRITE the height when it
+        // changed, so idle costs nothing but a cheap read.
         try {
-          var doc = frame.contentDocument || frame.contentWindow.document;
-          if (doc && doc.body && 'ResizeObserver' in window) {
-            new ResizeObserver(sizeFrame).observe(doc.body);
-          } else {
-            setInterval(sizeFrame, 800);
-          }
-        } catch (e) {
-          setInterval(sizeFrame, 800);
-        }
+          var win = frame.contentWindow, doc = frame.contentDocument || win.document;
+          var RO = win.ResizeObserver || window.ResizeObserver, el = contentEl(doc);
+          if (RO && el) new RO(sizeFrame).observe(el);
+        } catch (e) { /* fall back to the poll below */ }
+        setInterval(sizeFrame, 1000);
       });
     })();
   </script>
