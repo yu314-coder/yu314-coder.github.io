@@ -550,3 +550,13 @@ th:last-child {
     border-bottom: 1px solid var(--line);
   }
 }
+
+/* Source/date note under the breakdown grid — shown when the chart & total come
+   from a fresher source (pypistats) than the ClickHouse breakdowns. */
+.breakdown-note {
+  margin: 4px 2px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.breakdown-note[hidden] { display: none; }

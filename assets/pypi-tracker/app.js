@@ -10,7 +10,26 @@ const authorLimit = document.querySelector("#author-limit");
 
 const CLICKHOUSE_URL = "https://sql-clickhouse.clickhouse.com/?user=demo";
 const DOWNLOADS_TABLE = "pypi.pypi_downloads_per_day_by_version_by_python_by_country";
+// pypistats.org runs ~a week ahead of the ClickHouse public dataset (which lags
+// several days), but sends no CORS headers — so reach it through a CORS proxy.
+const PYPISTATS_URL = "https://pypistats.org/api/packages/";
+const CORS_PROXY = "https://cors.eu.org/";
 const formatNumber = new Intl.NumberFormat();
+
+// Fresh per-day totals (with mirrors) from pypistats as [{date, downloads}]
+// ascending. Throws on any failure so the caller can fall back to ClickHouse.
+async function fetchPypistatsDaily(pkg) {
+  const res = await fetch(CORS_PROXY + PYPISTATS_URL + pkg + "/overall");
+  if (!res.ok) throw new Error("pypistats proxy HTTP " + res.status);
+  const json = await res.json();
+  const byDate = new Map();
+  for (const row of json.data || []) {
+    if (row.category !== "with_mirrors") continue;
+    byDate.set(row.date, (byDate.get(row.date) || 0) + Number(row.downloads || 0));
+  }
+  return Array.from(byDate, ([date, downloads]) => ({ date, downloads }))
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
+}
 
 function setStatus(message, type = "") {
   statusBox.className = `status ${type}`.trim();
@@ -215,6 +234,29 @@ async function webAnalyze(payload) {
         queryClickHouse(matrixSql),
       ]);
 
+    const chDaily = normalizeRows(dailyDownloads);
+    const breakdownLatest = chDaily.length ? chDaily[chDaily.length - 1].date
+      : (options.fullHistory ? "" : options.endDate);
+    let daily = chDaily;
+    let total = Number(totalRows[0]?.downloads || 0);
+    let dailySource = "ClickHouse public dataset";
+
+    // Freshen the chart + its total from pypistats. Only for a bounded recent
+    // range pypistats actually covers (it keeps ~180 days) — full history stays on
+    // ClickHouse. Any proxy/parse failure silently keeps the ClickHouse data, so a
+    // flaky proxy never breaks the query; worst case is the old (lagging) chart.
+    if (!options.fullHistory) {
+      try {
+        const ps = await fetchPypistatsDaily(options.package);
+        const inRange = ps.filter((r) => r.date >= options.startDate && r.date <= options.endDate);
+        if (inRange.length && ps[0].date <= options.startDate) {
+          daily = inRange;
+          total = inRange.reduce((sum, r) => sum + r.downloads, 0);
+          dailySource = "pypistats.org";
+        }
+      } catch (_) { /* keep the ClickHouse daily series */ }
+    }
+
     return {
       ok: true,
       data: {
@@ -222,11 +264,13 @@ async function webAnalyze(payload) {
         startDate: options.fullHistory ? "" : options.startDate,
         endDate: options.fullHistory ? "" : options.endDate,
         fullHistory: options.fullHistory,
-        totalDownloads: Number(totalRows[0]?.downloads || 0),
+        totalDownloads: total,
+        dailySource,
+        breakdownLatest,
         countries: normalizeRows(countries),
         packageVersions: normalizeRows(packageVersions),
         pythonVersions: normalizeRows(pythonVersions),
-        dailyDownloads: normalizeRows(dailyDownloads),
+        dailyDownloads: daily,
         matrix: normalizeRows(matrix),
       },
     };
@@ -379,7 +423,7 @@ function isoDate(date) {
   return date.toISOString().slice(0, 10);
 }
 
-function renderDownloadChart(rows) {
+function renderDownloadChart(rows, source) {
   const el = document.querySelector("#download-chart");
   const empty = document.querySelector("#chart-empty");
   const range = document.querySelector("#chart-range");
@@ -393,7 +437,8 @@ function renderDownloadChart(rows) {
   }
 
   empty.style.display = "none";
-  range.textContent = `${rows[0].date} to ${rows[rows.length - 1].date}`;
+  range.textContent = `${rows[0].date} to ${rows[rows.length - 1].date}` +
+    (source ? ` · ${source}` : "");
 
   const x = rows.map((row) => row.date);
   const y = rows.map((row) => row.downloads);
@@ -462,8 +507,30 @@ function renderResult(data) {
   renderBars("#countries", data.countries);
   renderBars("#package-versions", data.packageVersions);
   renderBars("#python-versions", data.pythonVersions);
-  renderDownloadChart(data.dailyDownloads);
+  renderDownloadChart(data.dailyDownloads, data.dailySource);
+  renderBreakdownNote(data);
   renderTable(data.matrix);
+}
+
+// When the chart & total are freshened from pypistats but the breakdowns still
+// come from the (laggier) ClickHouse dataset, say so plainly so the different
+// cutoff dates read as honest sourcing rather than a glitch.
+function renderBreakdownNote(data) {
+  const note = document.querySelector("#breakdown-note");
+  if (!note) return;
+  const daily = data.dailyDownloads || [];
+  const chartLatest = daily.length ? daily[daily.length - 1].date : null;
+  if (data.dailySource === "pypistats.org" && data.breakdownLatest && chartLatest &&
+      data.breakdownLatest < chartLatest) {
+    note.textContent =
+      `Chart & total: pypistats.org, through ${chartLatest}. ` +
+      `Country / version / Python breakdowns: ClickHouse public dataset, through ${data.breakdownLatest} ` +
+      `(it updates a few days behind).`;
+    note.hidden = false;
+  } else {
+    note.textContent = "";
+    note.hidden = true;
+  }
 }
 
 function escapeHtml(value) {
