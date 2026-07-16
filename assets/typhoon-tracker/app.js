@@ -1603,12 +1603,16 @@
         lon: d.observed.map(function (p) { return p[1]; }),
         line: { color: "rgba(255,255,255,0.45)", width: 1.6 }, hoverinfo: "skip", showlegend: false });
     }
+    // JMA 70% position-probability circles: where the CENTRE may be, not a wind
+    // field. Drawn as a faint DOTTED ring (barely filled) so a big ±200 km circle
+    // reads as "the storm could be anywhere in here", not a huge wind radius.
     pts.slice(1).forEach(function (p) {
       if (!p.circleKm) return;
       var c = circlePolygon(p.lat, p.lon, p.circleKm);
       traces.push({ type: "scattergeo", mode: "lines", lat: c.lat, lon: c.lon,
-        fill: "toself", fillcolor: "rgba(124,58,237,0.10)", line: { color: "rgba(124,58,237,0.4)", width: 1 },
-        hoverinfo: "skip", showlegend: false });
+        fill: "toself", fillcolor: "rgba(124,58,237,0.04)", line: { color: "rgba(167,139,250,0.6)", width: 1, dash: "dot" },
+        hoverinfo: "text", text: "+" + p.h + " h · 70% chance the centre is within " + p.circleKm + " km",
+        showlegend: false });
     });
     var flat = [a.lat], flon = [a.lon], ftext = ["now"];
     pts.slice(1).forEach(function (p) { flat.push(p.lat); flon.push(p.lon); ftext.push("+" + p.h + " h"); });
@@ -1657,7 +1661,7 @@
   var ORT_URL = "https://cdn.jsdelivr.net/npm/onnxruntime-web@" + ORT_VER + "/dist/ort.min.js";
   var ORT_WASM = "https://cdn.jsdelivr.net/npm/onnxruntime-web@" + ORT_VER + "/dist/";
   var AI_MODEL_URL = "model/typhoon-predict.onnx";     // relative to this page's dir
-  var AI_META_URL = "model/typhoon-predict-meta.json?v=20260712b";   // bump when the meta changes (e.g. field scaler added)
+  var AI_META_URL = "model/typhoon-predict-meta.json?v=20260712c";   // bump when the meta changes (e.g. field scaler added)
   var aiRT = { ort: null, session: null, meta: null };   // lazily-loaded runtime
   var aiTraceCount = 0, aiLoading = false;
   var aiEnabled = false; // the user wants the overlay shown — survives rebuilds,
