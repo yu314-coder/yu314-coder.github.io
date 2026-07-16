@@ -1544,17 +1544,13 @@
             if (!cur.past && prevCur && prevCur.past) cur.past = prevCur.past;         // keep history on a
             if (!cur.cimss && prevCur && prevCur.cimss) cur.cimss = prevCur.cimss;     // transient proxy miss
             if (oldCurKey && jmaIssueKey(cur) === oldCurKey) return;   // viewed storm unchanged — dropdown was enough
-            var aiWasOn = aiTraceCount > 0 || (aiLastFc && aiLastFc.tcId === curId);
-            aiLastFc = null;             // force a real re-run on the new track, not a redraw of the stale route
-            renderForecast(cur);
-            if (aiWasOn) aiRun(cur);     // recompute the AI route from the updated track
+            renderForecast(cur);         // aiRestoreOrClear sees the new dataKey and re-runs the AI on it
           } else {                       // the viewed storm dissipated — show the strongest remaining one
             var def = fresh.slice().sort(function (a, b) {
               return (a.points[0].pressure || 9999) - (b.points[0].pressure || 9999);
             })[0];
             sel.value = def.tcId;
-            aiLastFc = null;             // the old overlay belonged to the storm that's gone
-            renderForecast(def);
+            renderForecast(def);         // different tcId → aiRestoreOrClear re-runs for it
           }
         });
       })
@@ -1661,11 +1657,13 @@
   var ORT_URL = "https://cdn.jsdelivr.net/npm/onnxruntime-web@" + ORT_VER + "/dist/ort.min.js";
   var ORT_WASM = "https://cdn.jsdelivr.net/npm/onnxruntime-web@" + ORT_VER + "/dist/";
   var AI_MODEL_URL = "model/typhoon-predict.onnx";     // relative to this page's dir
-  var AI_META_URL = "model/typhoon-predict-meta.json?v=20260712a";   // bump when the meta changes (e.g. field scaler added)
+  var AI_META_URL = "model/typhoon-predict-meta.json?v=20260712b";   // bump when the meta changes (e.g. field scaler added)
   var aiRT = { ort: null, session: null, meta: null };   // lazily-loaded runtime
   var aiTraceCount = 0, aiLoading = false;
-  var aiLastFc = null;   // last drawn AI forecast (tagged with .tcId) — lets the
-                         // overlay survive a map rebuild for the same storm
+  var aiEnabled = false; // the user wants the overlay shown — survives rebuilds,
+                         // storm switches and the animation ending
+  var aiLastFc = null;   // last drawn AI forecast, tagged with .tcId + .dataKey so a
+                         // rebuild can tell "same run" (redraw) from "data moved on" (re-run)
 
   function aiPmod(a, n) { return ((a % n) + n) % n; }     // Python-style positive modulo
   function aiMean(a) { var s = 0; for (var i = 0; i < a.length; i++) s += a[i]; return s / a.length; }
@@ -1842,7 +1840,8 @@
       for (var i = n - aiTraceCount; i < n; i++) idx.push(i);   // AI traces are the last ones
       Plotly.deleteTraces(els.map, idx);
     }
-    aiLastFc = null;   // explicit toggle-off: don't restore it on the next rebuild
+    aiEnabled = false; // explicit toggle-off: don't restore or re-run on the next rebuild
+    aiLastFc = null;
     aiClearState();
   }
   // Called after buildForecastMap's Plotly.react (which drops every trace,
@@ -1850,8 +1849,11 @@
   // straight back — no need to re-run the model — so it survives the rebuild.
   function aiRestoreOrClear(d) {
     aiTraceCount = 0;   // react() just cleared the map; the old AI traces are gone
-    if (aiLastFc && d && aiLastFc.tcId != null && aiLastFc.tcId === d.tcId) aiDrawForecast(aiLastFc);
-    else aiClearState();
+    if (!aiEnabled || !d) { aiClearState(); return; }
+    // Same storm AND same JMA issuance → redraw the cached run (no recompute).
+    // Storm switched, or JMA reissued → re-run on THAT storm's latest data.
+    if (aiLastFc && aiLastFc.tcId === d.tcId && aiLastFc.dataKey === jmaIssueKey(d)) aiDrawForecast(aiLastFc);
+    else aiRun(d);
   }
   // Belt-and-suspenders: if the AI overlay should be on for the storm on screen
   // but its emerald traces aren't actually on the map any more, put them back.
@@ -1859,7 +1861,7 @@
   // is already present or was deliberately toggled off. Called once per play
   // cycle so the AI track can never silently vanish when the animation ends.
   function aiEnsureOverlay() {
-    if (appMode !== "predict" || !aiLastFc || aiLoading) return;
+    if (appMode !== "predict" || !aiEnabled || !aiLastFc || aiLoading) return;
     var d = els.typhoonSelect ? jmaCache[els.typhoonSelect.value] : null;
     if (!d || d.tcId !== aiLastFc.tcId) return;               // different / no storm on screen
     var data = els.map.data || [], last = data[data.length - 1];
@@ -1869,8 +1871,11 @@
   function aiDrawForecast(fc) {
     var pts = fc.points || [];
     if (!pts.length) throw new Error("empty forecast");
-    var meanLat = [fc.initial_lat], meanLon = [fc.initial_lon], txt = ["now"];
-    pts.forEach(function (p) { meanLat.push(p.lat); meanLon.push(p.lon); txt.push("AI +" + p.lead_hours + " h"); });
+    var meanLat = [fc.initial_lat], meanLon = [fc.initial_lon], txt = ["AI · now · " + fmtLatLon(fc.initial_lat, fc.initial_lon)];
+    pts.forEach(function (p) {
+      meanLat.push(p.lat); meanLon.push(p.lon);
+      txt.push("AI +" + p.lead_hours + " h · " + fmtLatLon(p.lat, p.lon));
+    });
     // spread cone: apex at now, out along the p90 corners, back along the p10 corners
     var rev = pts.slice().reverse();
     var coneLat = [fc.initial_lat].concat(pts.map(function (p) { return p.p90_lat; }))
@@ -1878,14 +1883,20 @@
     var coneLon = [fc.initial_lon].concat(pts.map(function (p) { return p.p90_lon; }))
       .concat(rev.map(function (p) { return p.p10_lon; }));
     var cone = { type: "scattergeo", mode: "lines", lat: coneLat, lon: coneLon,
-      fill: "toself", fillcolor: "rgba(52,211,153,0.12)", line: { color: "rgba(52,211,153,0.35)", width: 1 },
+      fill: "toself", fillcolor: "rgba(52,211,153,0.13)", line: { color: "rgba(52,211,153,0.4)", width: 1 },
       hoverinfo: "skip", showlegend: false };
+    // Soft casing under the track: a thin dashed line alone gets lost against the
+    // dark map and JMA's violet forecast — this gives the AI route its own presence.
+    var halo = { type: "scattergeo", mode: "lines", lat: meanLat, lon: meanLon,
+      line: { color: "rgba(52,211,153,0.22)", width: 9 }, hoverinfo: "skip", showlegend: false };
+    // "now" modest, mid points even, the +120 h endpoint emphasised
+    var sizes = meanLat.map(function (_, i) { return i === 0 ? 7 : (i === meanLat.length - 1 ? 11 : 8); });
     var mean = { type: "scattergeo", mode: "lines+markers", lat: meanLat, lon: meanLon,
-      line: { color: "rgba(52,211,153,0.95)", width: 2.2, dash: "dash" },
-      marker: { size: 6, color: "rgba(52,211,153,0.95)" },
+      line: { color: "rgb(52,211,153)", width: 3, dash: "dash" },
+      marker: { size: sizes, color: "rgb(16,185,129)", line: { width: 1.5, color: "rgba(6,20,15,0.9)" } },
       text: txt, hoverinfo: "text", showlegend: false };
-    Plotly.addTraces(els.map, [cone, mean]);   // appended after the sweep — sweep indices unaffected
-    aiTraceCount = 2;
+    Plotly.addTraces(els.map, [cone, halo, mean]);   // appended after the sweep — sweep indices unaffected
+    aiTraceCount = 3;
     aiLastFc = fc;   // remember it so a same-storm map rebuild can restore it
     if (els.aiBtn) { els.aiBtn.setAttribute("aria-pressed", "true"); els.aiBtn.classList.add("is-on"); }
     aiSetStatus("🧪 " + (fc.storm || "AI") + " — experimental ensemble mean + 10–90% spread" +
@@ -1930,7 +1941,8 @@
       .then(function (fc) {
         aiLoading = false;
         fc.storm = (d.name && d.name.en) || "storm";
-        fc.tcId = d.tcId;   // tag so a same-storm rebuild can restore this overlay
+        fc.tcId = d.tcId;              // which storm this run belongs to
+        fc.dataKey = jmaIssueKey(d);   // which JMA issuance it was computed from
         aiDrawForecast(fc);
       })
       .catch(function (e) {
@@ -1942,6 +1954,7 @@
     if (appMode !== "predict") return;
     if (aiTraceCount > 0) { aiRemoveTraces(); return; }   // toggle off
     if (aiLoading) return;
+    aiEnabled = true;   // keep it on across rebuilds, storm switches and play-end
     aiRun(els.typhoonSelect ? jmaCache[els.typhoonSelect.value] : null);
   }
 
