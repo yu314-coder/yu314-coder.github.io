@@ -2028,7 +2028,7 @@
     Plotly.addTraces(els.map, traces);
     hindcastTraceCount = traces.length;
     if (els.hindcastBtn) { els.hindcastBtn.setAttribute("aria-pressed", "true"); els.hindcastBtn.classList.add("is-on"); }
-    aiSetHindcastStatus("🧪 predicted (emerald) vs actual (white) from this point · " + (fc.fieldSource || "track-based") + " — experimental, not an official forecast", "on");
+    aiSetHindcastStatus("🧪 My model run forward from here (emerald) vs what actually happened (white). No historical steering field exists for a past date, so it reads the heading but under-shoots the speed — closest in the first day, drifting short by day 3–5. Experimental, not an official forecast.", "on");
   }
   function aiHindcastToggle() {
     if (appMode !== "track" || viewMode !== "storm" || !currentStorm) return;
