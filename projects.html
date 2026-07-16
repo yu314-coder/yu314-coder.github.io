@@ -95,6 +95,9 @@
         <button class="nav-link" id="tab-gps-btn" data-bs-toggle="pill" data-bs-target="#tab-gps" type="button" role="tab" aria-controls="tab-gps" aria-selected="false">GPS-location-app</button>
       </li>
       <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-typhoon-btn" data-bs-toggle="pill" data-bs-target="#tab-typhoon" type="button" role="tab" aria-controls="tab-typhoon" aria-selected="false">Typhoon AI</button>
+      </li>
+      <li class="nav-item" role="presentation">
         <button class="nav-link" id="tab-other-btn" data-bs-toggle="pill" data-bs-target="#tab-other" type="button" role="tab" aria-controls="tab-other" aria-selected="false">Others</button>
       </li>
     </ul>
@@ -1259,6 +1262,100 @@
       </div>
     </div>
     </div><!-- /tab-gps -->
+
+    <!-- Tab: Typhoon AI -->
+    <div class="tab-pane fade" id="tab-typhoon" role="tabpanel" aria-labelledby="tab-typhoon-btn">
+
+    <!-- Featured Project: Typhoon Forecasting AI (TrackFormer) -->
+    <div class="card card--hue hue-typhoon reveal">
+      <div class="card-body p-4 p-md-5">
+        <div class="row g-0 align-items-center justify-content-center">
+          <div class="col-lg-10 col-xl-9 text-center">
+            <header class="mb-4">
+              <h3 class="h2 mb-2 fw-bold">Typhoon Forecasting AI</h3>
+              <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
+                <span class="badge-neutral mono">TrackFormer</span>
+                <span class="badge-accent mono">runs in your browser</span>
+                <span class="badge-neutral mono">ONNX</span>
+              </div>
+              <p class="lead mb-0">My own tropical-cyclone model that forecasts a storm's next five days &mdash; track, intensity, and wind-field size &mdash; running entirely in the browser with no backend. Live on the <a href="typhoon-tracks.html">Typhoon Tracks</a> explorer, over real JMA forecasts and past storms.</p>
+            </header>
+
+            <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
+              <span class="feature-badge">Track-only Transformer</span>
+              <span class="feature-badge">Full storm state</span>
+              <span class="feature-badge">20 six-hourly leads</span>
+              <span class="feature-badge">Intensity + wind radii</span>
+              <span class="feature-badge">In-browser ONNX</span>
+              <span class="feature-badge">No backend</span>
+              <span class="feature-badge">IBTrACS + ERA5 trained</span>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">What it does</h4>
+              <ul class="list-unstyled">
+                <li class="mb-2"><strong>TrackFormer</strong> &mdash; a 21&nbsp;M-parameter transformer that reads a storm's recent 6-hourly track and predicts the <strong>full state</strong> at 20 lead times out to +120&nbsp;h: motion, max wind, central pressure, radius of max wind, and the 34/50/64&nbsp;kt wind radii in four quadrants</li>
+                <li class="mb-2"><strong>Track-only, yet competitive</strong> &mdash; on a held-out Western-Pacific test it matches an ERA5-conditioned model (720 vs 729&nbsp;km mean track error) using no atmospheric data at all; the lesson across experiments was <em>data diversity &gt; engineered features &gt; parameters</em></li>
+                <li class="mb-2"><strong>Runs client-side</strong> &mdash; exported to an int8 ONNX (~30&nbsp;MB) and executed with onnxruntime-web; no server, no cold start, works on an iPad</li>
+                <li class="mb-2"><strong>Live &amp; honest</strong> &mdash; overlays its forecast on the JMA official track for active storms, and lets you scrub any historical storm to forecast forward against what actually happened. Clearly flagged experimental &mdash; not an operational warning system</li>
+              </ul>
+            </div>
+
+            <div class="row g-3 mb-4 justify-content-center">
+              <div class="col-md-5">
+                <div class="lib-category-card">
+                  <h5 class="h6 fw-bold mb-3">The models</h5>
+                  <ul class="small mb-0 text-start">
+                    <li><strong>TrackFormer</strong> &mdash; 21&nbsp;M params, track-only (deployed)</li>
+                    <li><strong>StormFusion-MT</strong> &mdash; 3.3&nbsp;M params, ERA5 patches + track</li>
+                    <li>Trained on IBTrACS v04r01 (all basins, 1980+) &amp; ERA5</li>
+                    <li>84,150 storm-centred training windows</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="col-md-5">
+                <div class="lib-category-card">
+                  <h5 class="h6 fw-bold mb-3">How it runs</h5>
+                  <ul class="small mb-0 text-start">
+                    <li>PyTorch &rarr; int8 ONNX (~30&nbsp;MB, ~lossless)</li>
+                    <li>onnxruntime-web (WebAssembly), lazy-loaded on demand</li>
+                    <li>Encoder&ndash;decoder transformer, cross-attention lead queries</li>
+                    <li>No API keys; no data leaves your device</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">Technical Specifications</h4>
+              <div class="d-inline-block text-start">
+                <p class="small mb-1"><strong>Created by:</strong> Yu Yao-Hsing</p>
+                <p class="small mb-1"><strong>Category:</strong> Research &amp; Education &mdash; ML / weather</p>
+                <p class="small mb-1"><strong>Frameworks:</strong> PyTorch &middot; onnxruntime-web &middot; Plotly</p>
+                <p class="small mb-1"><strong>Data:</strong> NOAA NCEI IBTrACS &middot; ECMWF ERA5 &middot; JMA forecasts</p>
+                <p class="small mb-0"><strong>Status:</strong> Live in-browser on the Typhoon Tracks explorer</p>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
+              <a href="typhoon-tracks.html" class="badge-btn">
+                Try it live
+              </a>
+              <a href="https://github.com/yu314-coder/typhoon-predict" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                GitHub Repository
+              </a>
+              <a href="https://huggingface.co/euler314/typhoon-predict" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                Hugging Face model
+              </a>
+              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
+                Contact developer
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div><!-- /tab-typhoon -->
 
     <!-- Tab 6: Other Projects -->
     <div class="tab-pane fade" id="tab-other" role="tabpanel" aria-labelledby="tab-other-btn">
