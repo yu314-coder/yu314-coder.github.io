@@ -7,6 +7,7 @@
   "use strict";
 
   var DATA_BASE = "../data/typhoons/";
+  var DATA_V = "?v=20260716e";   // bump when the season/index JSON is regenerated (e.g. RMW added)
   var DEFAULT_STORM = { name: "Haiyan", season: 2013 };
   var DEFAULT_GEO = { lon: 150, lat: 20, lonRange: [95, 205], latRange: [-2, 55], scale: 1 };
   var currentGeoScale = DEFAULT_GEO.scale;
@@ -202,7 +203,7 @@
   /* ---------------------------------------------------------------------------
      Data loading
      ------------------------------------------------------------------------- */
-  fetch(DATA_BASE + "index.json")
+  fetch(DATA_BASE + "index.json" + DATA_V)
     .then(function (r) { return r.json(); })
     .then(function (data) {
       indexData = data;
@@ -227,7 +228,7 @@
       els.map.innerHTML = '<p class="tt-error">Could not load typhoon track data.</p>';
     });
 
-  fetch(DATA_BASE + "climatology.json")
+  fetch(DATA_BASE + "climatology.json" + DATA_V)
     .then(function (r) { return r.json(); })
     .then(function (data) {
       climatology = data;
@@ -634,7 +635,7 @@
     stopPlay();
     var p = seasonCache[season]
       ? Promise.resolve(seasonCache[season])
-      : fetch(DATA_BASE + "seasons/" + season + ".json")
+      : fetch(DATA_BASE + "seasons/" + season + ".json" + DATA_V)
           .then(function (r) { return r.json(); })
           .catch(function () { return {}; })   // a season may exist only via live NOAA storms
           .then(function (d) { seasonCache[season] = applyLiveToShard(season, fixTaiwanCats(d)); return seasonCache[season]; });
@@ -1731,11 +1732,7 @@
     var pts = fc.points || [];
     if (!pts.length) throw new Error("empty forecast");
     var meanLat = [fc.initial_lat], meanLon = [fc.initial_lon], txt = ["AI · now · " + fmtLatLon(fc.initial_lat, fc.initial_lon)];
-    pts.forEach(function (p) {
-      meanLat.push(p.lat); meanLon.push(p.lon);
-      txt.push("AI +" + p.lead_hours + " h · " + fmtLatLon(p.lat, p.lon) +
-        (p.vmax != null ? " · " + Math.round(p.vmax) + " kt · " + Math.round(p.pres) + " mb" : ""));
-    });
+    pts.forEach(function (p) { meanLat.push(p.lat); meanLon.push(p.lon); txt.push(tfHover(p)); });
     // spread cone: apex at now, out along the p90 corners, back along the p10 corners
     var rev = pts.slice().reverse();
     var coneLat = [fc.initial_lat].concat(pts.map(function (p) { return p.p90_lat; }))
@@ -1743,7 +1740,7 @@
     var coneLon = [fc.initial_lon].concat(pts.map(function (p) { return p.p90_lon; }))
       .concat(rev.map(function (p) { return p.p10_lon; }));
     var cone = { type: "scattergeo", mode: "lines", lat: coneLat, lon: coneLon,
-      fill: "toself", fillcolor: "rgba(52,211,153,0.13)", line: { color: "rgba(52,211,153,0.4)", width: 1 },
+      fill: "toself", fillcolor: "rgba(52,211,153,0.11)", line: { color: "rgba(52,211,153,0.35)", width: 1 },
       hoverinfo: "skip", showlegend: false };
     // Soft casing under the track: a thin dashed line alone gets lost against the
     // dark map and JMA's violet forecast — this gives the AI route its own presence.
@@ -1755,11 +1752,12 @@
       line: { color: "rgb(52,211,153)", width: 3, dash: "dash" },
       marker: { size: sizes, color: "rgb(16,185,129)", line: { width: 1.5, color: "rgba(6,20,15,0.9)" } },
       text: txt, hoverinfo: "text", showlegend: false };
-    Plotly.addTraces(els.map, [cone, halo, mean]);   // appended after the sweep — sweep indices unaffected
-    aiTraceCount = 3;
+    var allTraces = [cone].concat(tfRadiiTraces(pts), [halo, mean]);   // mean stays LAST (aiEnsureOverlay checks it)
+    Plotly.addTraces(els.map, allTraces);   // appended after the sweep — sweep indices unaffected
+    aiTraceCount = allTraces.length;
     aiLastFc = fc;   // remember it so a same-storm map rebuild can restore it
     if (els.aiBtn) { els.aiBtn.setAttribute("aria-pressed", "true"); els.aiBtn.classList.add("is-on"); }
-    aiSetStatus("🧪 " + (fc.storm || "AI") + " — my TrackFormer model (track-only, with predicted intensity — hover the dots) + its uncertainty cone. Experimental, not an official forecast.", "on");
+    aiSetStatus("🧪 " + (fc.storm || "AI") + " — my TrackFormer model: predicted track, intensity, pressure & wind-field size (hover the dots) + its uncertainty cone. Experimental, not an official forecast.", "on");
   }
   // Build TrackFormer's history pts from the live storm's recent track: the
   // Digital Typhoon best-track past leg + the current JMA analysis point, put on
@@ -1872,7 +1870,7 @@
       var p = pts[hidx[k]], off = k * 40, raw = new Array(40); for (var z = 0; z < 40; z++) raw[z] = 0;
       var en = tfMotionKm(base.la, base.lo, p.la, p.lo); raw[0] = en[0]; raw[1] = en[1];
       if (prev >= 0) { var s2 = tfMotionKm(pts[prev].la, pts[prev].lo, p.la, p.lo); raw[2] = s2[0]; raw[3] = s2[1]; }
-      var vals = [p.w, p.p, NaN, NaN];                 // vmax, pressure, gust(absent), rmw(absent)
+      var vals = [p.w, p.p, NaN, (p.rm != null ? p.rm / TF_NM : NaN)];   // vmax, pressure, gust(absent), rmw (km->nm)
       for (var j = 0; j < 4; j++) raw[4 + j] = (vals[j] != null && isFinite(vals[j])) ? vals[j] : 0;
       var rad = tfRadiiNm(p, "r3").concat(tfRadiiNm(p, "r5"), tfRadiiNm(p, "r6"));
       for (var jr = 0; jr < 12; jr++) raw[8 + jr] = isFinite(rad[jr]) ? rad[jr] : 0;
@@ -1893,21 +1891,58 @@
     var meta = tfRT.meta, TS = meta.target_scale, leads = meta.lead_hours, O = meta.out_dim;
     return tfRT.session.run({ track: new window.ort.Tensor("float32", built.feat, [1, 9, 40]) }).then(function (res) {
       var state = (res.state || res[Object.keys(res)[0]]).data;
-      var logs = (res.logscale || res[Object.keys(res)[1]]).data;
-      var base = built.base, la = base.la, lo = base.lo, points = [], accum = 0;
+      var base = built.base, la = base.la, lo = base.lo, points = [];
       for (var i = 0; i < leads.length; i++) {
         var o = i * O, e = state[o] * TS[0], n = state[o + 1] * TS[1];
         var la2 = la + n / 111.2, lo2 = lo + e / (111.2 * Math.cos((la + la2) / 2 * Math.PI / 180));
-        accum += Math.hypot(Math.exp(logs[o]) * TS[0], Math.exp(logs[o + 1]) * TS[1]);   // cumulative position spread (km)
-        var rlat = accum / 111.2, rlon = accum / (111.2 * Math.cos(la2 * Math.PI / 180));
         var radiiKm = []; for (var q = 0; q < 12; q++) radiiKm.push(Math.max(0, state[o + 5 + q]) * TS[5 + q] * TF_NM);
         points.push({ lead_hours: leads[i], lat: la2, lon: lo2,
           vmax: Math.max(0, state[o + 2] * TS[2]), pres: state[o + 3] * TS[3], rmw: Math.max(0, state[o + 4] * TS[4]) * TF_NM,
-          radiiKm: radiiKm, p90_lat: la2 + rlat, p10_lat: la2 - rlat, p90_lon: lo2 + rlon, p10_lon: lo2 - rlon });
+          radiiKm: radiiKm });
         la = la2; lo = lo2;
+      }
+      // Uncertainty cone. The model's own log-scale head is miscalibrated (its
+      // north-position channel saturates at the clamp), which blew the cone up to
+      // ~40,000 km — so size it from a climatological track-error growth instead,
+      // and lay each half-width PERPENDICULAR to the local heading: a proper
+      // widening cone, not a diagonal smear.
+      var prevLat = base.la, prevLon = base.lo;
+      for (var k = 0; k < points.length; k++) {
+        var p = points[k];
+        var cosk = Math.cos(p.lat * Math.PI / 180) || 1e-6;
+        var dxE = (aiPmod(p.lon - prevLon + 180, 360) - 180) * cosk, dyN = p.lat - prevLat;
+        var mag = Math.hypot(dxE, dyN) || 1e-6, pE = -dyN / mag, pN = dxE / mag;   // unit perpendicular
+        var hwDeg = (3.3 * p.lead_hours) / 111.2;                                   // half-width km -> deg (~400 km at +120 h)
+        var offLat = pN * hwDeg, offLon = (pE * hwDeg) / cosk;
+        p.p90_lat = p.lat + offLat; p.p90_lon = p.lon + offLon;   // right edge
+        p.p10_lat = p.lat - offLat; p.p10_lon = p.lon - offLon;   // left edge
+        prevLat = p.lat; prevLon = p.lon;
       }
       return { initial_lat: base.la, initial_lon: base.lo, points: points };
     });
+  }
+  // Faint 34-kt wind-field polygons at a few leads, from the model's radii output
+  // — shows the storm's forecast SIZE, not just its path. Skips implausible values.
+  function tfRadiiTraces(pts) {
+    var traces = [], want = { 24: 1, 72: 1, 120: 1 };
+    pts.forEach(function (p) {
+      if (!want[p.lead_hours] || !p.radiiKm) return;
+      var r34 = p.radiiKm.slice(0, 4), avg = avgRadius(r34);
+      if (!(avg > 15 && avg < 700)) return;
+      var poly = radiusPolygon(p.lat, p.lon, r34);
+      if (!poly) return;
+      traces.push({ type: "scattergeo", mode: "lines", lat: poly.lat, lon: poly.lon,
+        fill: "toself", fillcolor: "rgba(52,211,153,0.05)", line: { color: "rgba(52,211,153,0.28)", width: 1 },
+        hoverinfo: "text", text: "AI +" + p.lead_hours + " h · predicted 34 kt wind radius ~" + Math.round(avg) + " km", showlegend: false });
+    });
+    return traces;
+  }
+  // Hover text carrying the model's full predicted state at a lead.
+  function tfHover(p) {
+    var r34 = p.radiiKm ? avgRadius(p.radiiKm.slice(0, 4)) : null;
+    return "AI +" + p.lead_hours + " h · " + fmtLatLon(p.lat, p.lon) + " · " + Math.round(p.vmax) + " kt · " + Math.round(p.pres) + " mb"
+      + (p.rmw ? " · RMW " + Math.round(p.rmw) + " km" : "")
+      + (r34 ? " · R34 ~" + Math.round(r34) + " km" : "");
   }
   function aiSetHindcastStatus(msg, cls) {
     if (!els.hindcastStatus) return;
@@ -1928,10 +1963,7 @@
     aiClearHindcast();
     var pts = fc.points || [], rev = pts.slice().reverse();
     var meanLat = [fc.initial_lat], meanLon = [fc.initial_lon], txt = ["AI init · " + fmtLatLon(fc.initial_lat, fc.initial_lon)];
-    pts.forEach(function (p) {
-      meanLat.push(p.lat); meanLon.push(p.lon);
-      txt.push("AI +" + p.lead_hours + " h · " + fmtLatLon(p.lat, p.lon) + " · " + Math.round(p.vmax) + " kt · " + Math.round(p.pres) + " mb");
-    });
+    pts.forEach(function (p) { meanLat.push(p.lat); meanLon.push(p.lon); txt.push(tfHover(p)); });
     var coneLat = [fc.initial_lat].concat(pts.map(function (p) { return p.p90_lat; })).concat(rev.map(function (p) { return p.p10_lat; }));
     var coneLon = [fc.initial_lon].concat(pts.map(function (p) { return p.p90_lon; })).concat(rev.map(function (p) { return p.p10_lon; }));
     // what the storm ACTUALLY did from the init point on
@@ -1939,7 +1971,8 @@
     currentStorm.pts.forEach(function (p) { if (p.h > initHour + 0.01 && p.la != null) { actLat.push(p.la); actLon.push(p.lo); } });
     var traces = [
       { type: "scattergeo", mode: "lines", lat: coneLat, lon: coneLon, fill: "toself",
-        fillcolor: "rgba(52,211,153,0.10)", line: { color: "rgba(52,211,153,0.35)", width: 1 }, hoverinfo: "skip", showlegend: false },
+        fillcolor: "rgba(52,211,153,0.09)", line: { color: "rgba(52,211,153,0.3)", width: 1 }, hoverinfo: "skip", showlegend: false }
+    ].concat(tfRadiiTraces(pts), [
       { type: "scattergeo", mode: "lines", lat: actLat, lon: actLon,
         line: { color: "rgba(255,255,255,0.9)", width: 2.5 }, hoverinfo: "text",
         text: actLat.map(function () { return "actual track (what really happened)"; }), showlegend: false },
@@ -1947,11 +1980,11 @@
         line: { color: "rgb(52,211,153)", width: 3, dash: "dash" },
         marker: { size: 7, color: "rgb(16,185,129)", line: { width: 1.4, color: "rgba(6,20,15,0.9)" } },
         text: txt, hoverinfo: "text", showlegend: false }
-    ];
+    ]);
     Plotly.addTraces(els.map, traces);
     hindcastTraceCount = traces.length;
     if (els.hindcastBtn) { els.hindcastBtn.setAttribute("aria-pressed", "true"); els.hindcastBtn.classList.add("is-on"); }
-    aiSetHindcastStatus("🧪 " + (currentStorm.name || "This storm") + " — my TrackFormer model run forward from this point (emerald, with predicted intensity — hover the dots) vs what actually happened (white). Track-only, no ERA5. Experimental, not an official forecast.", "on");
+    aiSetHindcastStatus("🧪 " + (currentStorm.name || "This storm") + " — my TrackFormer model forecast from this point: track, intensity, pressure and wind-field size (hover the dots; faint rings = predicted 34 kt radius), vs what actually happened (white). Experimental, not an official forecast.", "on");
   }
   function aiHindcastToggle() {
     if (appMode !== "track" || viewMode !== "storm" || !currentStorm) return;
@@ -2238,7 +2271,7 @@
   function ensureSeasonThen(cb) {
     var season = els.season.value;
     if (seasonCache[season]) { cb(); return; }
-    fetch(DATA_BASE + "seasons/" + season + ".json")
+    fetch(DATA_BASE + "seasons/" + season + ".json" + DATA_V)
       .then(function (r) { return r.json(); })
       .catch(function () { return {}; })   // a season may exist only via live NOAA storms
       .then(function (d) { seasonCache[season] = applyLiveToShard(season, fixTaiwanCats(d)); cb(); });
