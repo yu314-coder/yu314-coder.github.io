@@ -411,3 +411,8 @@ body {
   .tt-time-readout { min-width: 0; text-align: left; }
   .tt-scrubber { flex-wrap: wrap; }
 }
+
+/* Track-mode "predict from here" hindcast control (AI run on a past storm) */
+.tt-hindcast { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: -4px 0 14px; }
+.tt-app.mode-predict .tt-hindcast,
+.tt-app.is-season .tt-hindcast { display: none; }

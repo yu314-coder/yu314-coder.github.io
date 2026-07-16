@@ -42,6 +42,8 @@
     fcSpeed: document.getElementById("tt-fc-speed"),
     aiBtn: document.getElementById("tt-ai-btn"),
     aiStatus: document.getElementById("tt-ai-status"),
+    hindcastBtn: document.getElementById("tt-hindcast-btn"),
+    hindcastStatus: document.getElementById("tt-hindcast-status"),
     fcSlider: document.getElementById("tt-fc-slider"),
     fcTime: document.getElementById("tt-fc-time"),
     viewStorm: document.getElementById("tt-view-storm"),
@@ -835,6 +837,11 @@
   }
 
   function buildMap() {
+    // a full track rebuild (storm/classification/view change) wipes every trace,
+    // so drop any hindcast overlay state that was sitting on the old map.
+    hindcastTraceCount = 0;
+    if (els.hindcastBtn) { els.hindcastBtn.setAttribute("aria-pressed", "false"); els.hindcastBtn.classList.remove("is-on"); }
+    aiSetHindcastStatus("");
     currentGeoScale = DEFAULT_GEO.scale;
     var pts = currentStorm.pts;
     var f = catFields();
@@ -1661,7 +1668,7 @@
   var ORT_URL = "https://cdn.jsdelivr.net/npm/onnxruntime-web@" + ORT_VER + "/dist/ort.min.js";
   var ORT_WASM = "https://cdn.jsdelivr.net/npm/onnxruntime-web@" + ORT_VER + "/dist/";
   var AI_MODEL_URL = "model/typhoon-predict.onnx";     // relative to this page's dir
-  var AI_META_URL = "model/typhoon-predict-meta.json?v=20260712c";   // bump when the meta changes (e.g. field scaler added)
+  var AI_META_URL = "model/typhoon-predict-meta.json?v=20260712d";   // bump when the meta changes (e.g. field scaler added)
   var aiRT = { ort: null, session: null, meta: null };   // lazily-loaded runtime
   var aiTraceCount = 0, aiLoading = false;
   var aiEnabled = false; // the user wants the overlay shown — survives rebuilds,
@@ -1792,13 +1799,17 @@
     }
     return out;
   }
-  function aiRunModel(fixes) {
+  function aiRunModel(fixes, opts) {
+    opts = opts || {};
     var meta = aiRT.meta, ort = aiRT.ort, S = meta.steps, N = meta.ensemble_members, L = meta.latent, O = meta.output_dim;
     var G = meta.patch || 33, here = fixes[fixes.length - 1];
-    // fetch the live steering field for the storm's current position; on any
-    // failure fall back to a zeros field (climatological mean) so it still runs.
-    return aiFetchField(here.lat, here.lon).then(function (field) {
-      var fieldSource = field ? "Open-Meteo live field" : "no live field (climatology)";
+    // Live: fetch the steering field for the storm's current position (fall back to
+    // a zeros field on failure). Past hindcast: skip it — the field NOW isn't the
+    // field THEN, so a zeros field is the honest choice (no historical ERA5 live).
+    var fieldPromise = opts.noField ? Promise.resolve(null) : aiFetchField(here.lat, here.lon);
+    return fieldPromise.then(function (field) {
+      var fieldSource = field ? "Open-Meteo live field"
+        : (opts.noField ? "no steering field (track-based hindcast)" : "no live field (climatology)");
       var feeds = {
         track_x: new ort.Tensor("float32", aiPreprocess(fixes, meta), [1, S, 9]),
         field_x: new ort.Tensor("float32", field || new Float32Array(10 * G * G), [1, 1, 10, G, G]),
@@ -1960,6 +1971,78 @@
     if (aiLoading) return;
     aiEnabled = true;   // keep it on across rebuilds, storm switches and play-end
     aiRun(els.typhoonSelect ? jmaCache[els.typhoonSelect.value] : null);
+  }
+
+  /* --- Track-mode hindcast: run the model from a chosen point on a PAST storm's
+     track and draw predicted-vs-actual. No live steering field exists for a past
+     init time, so this is track-based only (honestly labelled). ------------- */
+  var hindcastTraceCount = 0;
+  function aiSetHindcastStatus(msg, cls) {
+    if (!els.hindcastStatus) return;
+    els.hindcastStatus.textContent = msg || "";
+    els.hindcastStatus.className = "tt-ai-status" + (cls ? " tt-ai-status--" + cls : "");
+  }
+  function aiClearHindcast() {
+    if (hindcastTraceCount > 0 && els.map.data && els.map.data.length >= hindcastTraceCount) {
+      var n = els.map.data.length, idx = [];
+      for (var i = n - hindcastTraceCount; i < n; i++) idx.push(i);   // hindcast traces are last
+      Plotly.deleteTraces(els.map, idx);
+    }
+    hindcastTraceCount = 0;
+    if (els.hindcastBtn) { els.hindcastBtn.setAttribute("aria-pressed", "false"); els.hindcastBtn.classList.remove("is-on"); }
+    aiSetHindcastStatus("");
+  }
+  // Build model fixes from the storm's real track up to (and including) initHour.
+  function aiFixesFromTrackHour(initHour) {
+    if (!currentStorm || !currentStorm.pts) return null;
+    var fixes = [];
+    currentStorm.pts.forEach(function (p) {
+      if (p.h <= initHour + 0.01 && p.la != null && p.lo != null)
+        fixes.push({ time: p.t, lat: p.la, lon: p.lo, wind: p.w != null ? p.w : 35, pres: p.p || aiEstPres(p.w) });
+    });
+    var ip = interpAt(initHour);   // the exact init position (the model's "now")
+    fixes.push({ time: ip.t, lat: ip.la, lon: ip.lo, wind: ip.w != null ? ip.w : 35, pres: ip.p || aiEstPres(ip.w) });
+    return fixes.length >= 2 ? fixes.slice(-8) : null;
+  }
+  function aiDrawHindcast(fc, initHour) {
+    aiClearHindcast();
+    var pts = fc.points || [], rev = pts.slice().reverse();
+    var meanLat = [fc.initial_lat], meanLon = [fc.initial_lon], txt = ["AI init · " + fmtLatLon(fc.initial_lat, fc.initial_lon)];
+    pts.forEach(function (p) { meanLat.push(p.lat); meanLon.push(p.lon); txt.push("AI +" + p.lead_hours + " h · " + fmtLatLon(p.lat, p.lon)); });
+    var coneLat = [fc.initial_lat].concat(pts.map(function (p) { return p.p90_lat; })).concat(rev.map(function (p) { return p.p10_lat; }));
+    var coneLon = [fc.initial_lon].concat(pts.map(function (p) { return p.p90_lon; })).concat(rev.map(function (p) { return p.p10_lon; }));
+    // what the storm ACTUALLY did from the init point on
+    var actLat = [fc.initial_lat], actLon = [fc.initial_lon];
+    currentStorm.pts.forEach(function (p) { if (p.h > initHour + 0.01 && p.la != null) { actLat.push(p.la); actLon.push(p.lo); } });
+    var traces = [
+      { type: "scattergeo", mode: "lines", lat: coneLat, lon: coneLon, fill: "toself",
+        fillcolor: "rgba(52,211,153,0.12)", line: { color: "rgba(52,211,153,0.4)", width: 1 }, hoverinfo: "skip", showlegend: false },
+      { type: "scattergeo", mode: "lines", lat: actLat, lon: actLon,
+        line: { color: "rgba(255,255,255,0.9)", width: 2.5 }, hoverinfo: "text",
+        text: actLat.map(function () { return "actual track (what really happened)"; }), showlegend: false },
+      { type: "scattergeo", mode: "lines+markers", lat: meanLat, lon: meanLon,
+        line: { color: "rgb(52,211,153)", width: 3, dash: "dash" },
+        marker: { size: 7, color: "rgb(16,185,129)", line: { width: 1.4, color: "rgba(6,20,15,0.9)" } },
+        text: txt, hoverinfo: "text", showlegend: false }
+    ];
+    Plotly.addTraces(els.map, traces);
+    hindcastTraceCount = traces.length;
+    if (els.hindcastBtn) { els.hindcastBtn.setAttribute("aria-pressed", "true"); els.hindcastBtn.classList.add("is-on"); }
+    aiSetHindcastStatus("🧪 predicted (emerald) vs actual (white) from this point · " + (fc.fieldSource || "track-based") + " — experimental, not an official forecast", "on");
+  }
+  function aiHindcastToggle() {
+    if (appMode !== "track" || viewMode !== "storm" || !currentStorm) return;
+    if (hindcastTraceCount > 0) { aiClearHindcast(); return; }   // toggle off
+    if (aiLoading) return;
+    var initHour = Number(els.slider.value);
+    var fixes = aiFixesFromTrackHour(initHour);
+    if (!fixes) { aiSetHindcastStatus("Scrub a few hours into the storm first.", "err"); return; }
+    aiLoading = true;
+    aiSetHindcastStatus(aiRT.session ? "Running the model…" : "Loading the AI model (~one-time download)…", "loading");
+    aiEnsureModel()
+      .then(function () { return aiRunModel(fixes, { noField: true }); })
+      .then(function (fc) { aiLoading = false; aiDrawHindcast(fc, initHour); })
+      .catch(function (e) { aiLoading = false; aiSetHindcastStatus("Couldn't run the AI model: " + ((e && e.message) || e), "err"); });
   }
 
   // One continuous timeline. The PAST leg comes from JMA best-track (via
@@ -2288,6 +2371,7 @@
   if (els.fcReplay) els.fcReplay.addEventListener("click", replayForecastAnim);
   if (els.fcSpeed) els.fcSpeed.addEventListener("click", cycleForecastSpeed);
   if (els.aiBtn) els.aiBtn.addEventListener("click", aiToggle);
+  if (els.hindcastBtn) els.hindcastBtn.addEventListener("click", aiHindcastToggle);
 
   // Rest the forecast sweep when its map isn't on screen: no point spending
   // frames (and Plotly redraws) animating a map the user has scrolled past.
