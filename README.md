@@ -27,12 +27,11 @@ A Western Pacific typhoon explorer that runs entirely in the browser on real age
 - One-timeline sweep animation: past (real radii) → now → +120 h (forecast radii + probability circles), with play/pause/speed/scrub controls
 
 **Experimental AI overlay — my own track model, running in your browser**
-- An optional **"🧪 Overlay Yu's AI model track"** button runs my own ERA5-conditioned tropical-cyclone model ([typhoon-predict](https://github.com/yu314-coder/typhoon-predict)) — a CNN field encoder + bi-GRU track encoder + probabilistic ensemble head
-- Runs **entirely client-side via [onnxruntime-web](https://onnxruntime.ai/docs/tutorials/web/)** — the 1.4 MB checkpoint is exported to ONNX (verified numerically identical to PyTorch, max diff 1.4e-6) and executes in the browser (~1 s first run, ~0.5 s cached). **No backend, no server, no cold start** — the whole 50-member ensemble runs locally
-- Draws the ensemble-mean track (dashed emerald, with a soft casing so it reads against JMA's violet line) + a **10–90 % spread cone** over the JMA forecast, started from the same "now" position the JMA panel shows; hovering any point gives the lead time and predicted position. Clearly flagged **experimental — not an operational forecast**
-- **Both branches run live.** The steering (atmospheric) branch is fed a real field built per run from [Open-Meteo](https://open-meteo.com/)'s operational analysis: a coarse grid around the storm, unit-converted into the model's 10 ERA5 channels (winds from speed/direction, specific humidity from RH+T, geopotential from height × *g*), resampled to the 33×33 / 0.5° patch and normalised with the checkpoint's own field scaler
-- That field is what makes the forecast **location-aware**. Fed the climatological mean instead, the model is location-*blind* — two storms with the same recent motion at different places produce bit-identical tracks. With the live field, a 21 °N and a 31 °N storm on the same heading diverge (−42° vs −76° at +6 h; the higher-latitude one recurves, as it should). Honest caveat: Open-Meteo serves **operational-model** fields, not the ERA5 reanalysis the model trained on — a close substitute, not an exact match. It falls back to the climatological mean if the fetch fails, and the overlay label always says which steering it used
-- Stays on screen once you enable it — through the sweep animation ending, map rebuilds and storm switches — and **re-runs on the selected storm's latest data** whenever you pick a different typhoon or JMA reissues (same storm + same issuance just redraws the cached run)
+- An optional **"🧪 Overlay Yu's AI model track"** button (live-forecast mode) and **"🧪 Predict from here"** (history mode) run my own **[TrackFormer](https://github.com/yu314-coder/typhoon-predict)** — a 21 M-parameter transformer (bidirectional track-history encoder → temporal context → cross-attention lead-time decoder) that forecasts the **full storm state** at 20 six-hourly lead times: motion, max wind, central pressure, RMW, and the 34/50/64 kt wind radii in four quadrants
+- **Track-only, no atmosphere.** It reads 9 six-hourly history fixes (position, wind, pressure, wind radii) and needs **no ERA5, no live field fetch, nothing external** — so nothing off-site can make it fail. On a WP-2020+ held-out test it *matches* an ERA5-conditioned model (720 vs 729 km track error); across experiments the pattern was **data diversity > engineered features > parameters**
+- Runs **entirely client-side via [onnxruntime-web](https://onnxruntime.ai/docs/tutorials/web/)** — exported to an **int8 ONNX (~30 MB, lazily loaded only when you ask for a forecast)**, verified ~lossless vs fp32 (track 26 km, vmax 0.3 kt, radii 0.6 km) and validated **bit-for-bit** against the Python feature pipeline on real storm data. **No backend, no server, no cold start**
+- Draws the predicted track (dashed emerald with a soft casing so it reads against JMA's violet line) + an **uncertainty cone** built from the model's own per-step spread; hovering any point gives the lead time, predicted position **and predicted intensity**. Clearly flagged **experimental — not an operational forecast**
+- In **history mode** you can scrub to any point on a past storm and forecast forward, drawn against the white line of what the storm *actually* did next — a genuine, location-aware hindcast (needs ~2 days of prior track). The overlay stays on screen through the sweep ending, map rebuilds and storm switches, and **re-runs on the latest data** when you switch storms or JMA reissues
 
 ### 📦 PyPI Stats — [/pypi-stats.html](https://yu314-coder.github.io/pypi-stats.html)
 Live download analytics for any PyPI package (mine pre-listed), by country / package version / Python version.
@@ -41,14 +40,9 @@ Live download analytics for any PyPI package (mine pre-listed), by country / pac
 - The ClickHouse dataset runs **several days behind**, so the downloads chart is served from **pypistats.org** instead (fresher by about a week). For my own packages a nightly GitHub Action snapshots it into `assets/pypi-tracker/data/` and the page reads that **same-origin** — no runtime proxy to break. The country / version / Python breakdowns (which pypistats doesn't publish) stay on ClickHouse, and the page states each panel's source and cut-off date
 - Guarded by **Byte**, a hand-drawn canvas robot companion who watches your cursor, reacts while you type, and celebrates when the stats land
 
-### Phase 2 — offline ERA5 hindcasts
+### Why track-only
 
-The overlay now runs **both** branches live (above), with the steering field substituted from Open-Meteo's operational analysis. What still can't be done live is the *exact* field the model trained on, and that limit is physical rather than a shortcut:
-
-- The model was trained on **ERA5 reanalysis**, published with a **~5-day latency**. It wants the field at the *forecast-initialisation time*, so for a **currently-active** storm ("now" is within hours) **no ERA5 field exists yet**.
-- Copernicus **CDS** retrieval is queued (minutes–hours), so ERA5 can't be fetched per web-request anyway.
-
-Hence the live overlay uses the operational-analysis substitute, and **real-ERA5 inference stays an offline / historical hindcast** capability. Phase 2 (planned) is a batch pipeline — retrieve the 10 ERA5 channels (MSL, 10 m + 850/500 hPa winds, 850/500 hPa geopotential, 850 hPa humidity) over the 8° / 0.5° storm-centred patch via the CDS API, cache the normalised patches, and run the model on past storms with the *exact* field it was trained on. That serves two ends: verifying the model against what actually happened, and measuring how much accuracy the Open-Meteo substitute actually costs.
+I trained two forecasters (both in [typhoon-predict](https://github.com/yu314-coder/typhoon-predict)): **StormFusion-MT v2**, which ingests ERA5 reanalysis patches (26- and 14-channel, five pressure levels, 65×65 grid) plus track history, and **TrackFormer**, which sees only track. On the WP-2020+ held-out test the track-only model **matched or beat** the ERA5 one on every metric. ERA5 is heavy, high-latency (Copernicus CDS, ~5-day lag), and can't be fetched per web-request — and here it buys nothing — so the site runs **TrackFormer** for both live forecasts and past-storm hindcasts, with no atmospheric data and no external dependency at all.
 
 ---
 
@@ -137,7 +131,7 @@ yu314-coder.github.io/
 │   ├── typhoon-tracker/           # Typhoon Tracks app (iframe): Plotly geo map,
 │   │   │                          #   track/forecast modes, live NOAA/JMA/CIMSS feeds
 │   │   ├── index.html · app.js · styles.css
-│   │   └── model/                 #   typhoon-predict ONNX + meta (in-browser AI overlay)
+│   │   └── model/                 #   TrackFormer int8 ONNX + meta (in-browser AI overlay)
 │   ├── pypi-tracker/              # PyPI stats app (iframe): ClickHouse queries,
 │   │   │                          #   Plotly chart, Byte the robot companion
 │   │   ├── index.html · app.js · creature.js · styles.css
@@ -171,11 +165,11 @@ yu314-coder.github.io/
 - **HTML5 / CSS3 / JavaScript (ES5-compatible)** — no build step, no framework, no bundler
 - **Bootstrap 5.3.3** — responsive layout, pills/tabs, components
 - **Plotly.js** (geo + basic bundles, deferred) — typhoon map, intensity charts, download charts
-- **onnxruntime-web** — runs my ERA5-conditioned typhoon-track model (ONNX) *in the browser*, no backend
+- **onnxruntime-web** — runs my TrackFormer typhoon model (int8 ONNX) *in the browser*, no backend
 - **Google Fonts** — Inter, JetBrains Mono, Source Serif 4
 - **GitHub Pages** — static hosting; every data feed is fetched **client-side**, no server of my own
 - **Cross-platform parity** — identical behaviour on Windows and macOS across Chrome / Edge / Firefox / Safari (ES5 syntax, `-webkit-` + `-moz-` slider styling, motion that renders on every engine)
-- **Live data sources** — NOAA NCEI IBTrACS (archive, active-storms feed, and JMA `TOKYO_WIND` 10-min analysis), JTWC ATCF b-deck (via UCAR/RAL), JMA *bosai* forecasts + storm/gale radii, Digital Typhoon (NII) best-track radii, UW-CIMSS ADT Dvorak analyses, NOAA CPC ONI, **Open-Meteo** operational analysis (the AI overlay's live steering field), ClickPy ClickHouse + **pypistats.org** (PyPI downloads)
+- **Live data sources** — NOAA NCEI IBTrACS (archive, active-storms feed, and JMA `TOKYO_WIND` 10-min analysis), JTWC ATCF b-deck (via UCAR/RAL), JMA *bosai* forecasts + storm/gale radii, Digital Typhoon (NII) best-track radii, UW-CIMSS ADT Dvorak analyses, NOAA CPC ONI, ClickPy ClickHouse + **pypistats.org** (PyPI downloads)
 
 Every figure on both data pages traces to a named public agency — nothing is invented, simulated, or filled in when a source hasn't published it yet.
 
