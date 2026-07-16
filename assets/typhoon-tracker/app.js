@@ -1973,10 +1973,103 @@
     aiRun(els.typhoonSelect ? jmaCache[els.typhoonSelect.value] : null);
   }
 
-  /* --- Track-mode hindcast: run the model from a chosen point on a PAST storm's
-     track and draw predicted-vs-actual. No live steering field exists for a past
-     init time, so this is track-based only (honestly labelled). ------------- */
+  /* --- Track-mode hindcast, powered by TrackFormer -------------------------
+     The live overlay's model needs an ERA5 steering patch that doesn't exist
+     for a PAST date, so a field-less run there just drifts. TrackFormer
+     (github.com/yu314-coder/typhoon-predict) is track-ONLY and on a WP-2020+
+     held-out test matches the ERA5 model — so a past hindcast becomes a real,
+     location-aware forecast with NO field. It reads 9 six-hourly history fixes
+     (position, wind, pressure, wind radii) and outputs 20 six-hourly leads of
+     the full storm state (motion, wind, pressure, RMW, 34/50/64-kt radii). The
+     feature build below mirrors build_track_only.py and is validated bit-for-
+     bit against its Python reference. Radii: IBTrACS is nmile, our track JSON
+     is km, so ÷1.852 going in and ×1.852 coming out. ~30 MB int8 ONNX, lazily
+     loaded only when the user asks for a hindcast. ------------------------- */
+  var TF_MODEL_URL = "model/trackformer.int8.onnx";
+  var TF_META_URL = "model/trackformer-meta.json?v=20260716a";
+  var TF_NM = 1.852;                                    // km per nautical mile
+  var tfRT = { session: null, meta: null };
   var hindcastTraceCount = 0;
+  function tfEnsureModel() {
+    if (tfRT.session) return Promise.resolve();
+    return (window.ort ? Promise.resolve() : aiLoadScript(ORT_URL)).then(function () {
+      try { window.ort.env.wasm.wasmPaths = ORT_WASM; } catch (e) {}
+      return Promise.all([
+        fetch(TF_META_URL).then(function (r) { return r.json(); }),
+        window.ort.InferenceSession.create(TF_MODEL_URL)
+      ]);
+    }).then(function (r) { tfRT.meta = r[0]; tfRT.session = r[1]; });
+  }
+  function tfDoy(t) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(t || "");
+    if (!m) return 200;
+    return Math.round((Date.UTC(+m[1], +m[2] - 1, +m[3]) - Date.UTC(+m[1], 0, 0)) / 86400000);
+  }
+  function tfMotionKm(la0, lo0, la1, lo1) {   // storm-relative motion, east/north km
+    var dlat = la1 - la0, dlon = aiPmod(lo1 - lo0 + 180, 360) - 180;
+    return [dlon * 111.2 * Math.cos((la0 + la1) / 2 * Math.PI / 180), dlat * 111.2];
+  }
+  function tfNearestIdx(pts, targetH) {       // nearest fix within 1.5 h (build_track_only.py's TOL)
+    var best = -1, bd = 1.5 + 1e-9;
+    for (var i = 0; i < pts.length; i++) { var d = Math.abs(pts[i].h - targetH); if (d < bd) { bd = d; best = i; } }
+    return best;
+  }
+  function tfRadiiNm(p, key) {                 // km quadrants -> nm, order [ne,se,sw,nw]
+    var a = p[key]; if (!a) return [NaN, NaN, NaN, NaN];
+    var o = []; for (var q = 0; q < 4; q++) { var v = a[q]; o.push(v != null && isFinite(v) ? v / TF_NM : NaN); }
+    return o;
+  }
+  // Build the normalized [9,40] track-history tensor exactly as build_track_only.py does.
+  function tfBuildFeat(pts, baseHour) {
+    var meta = tfRT.meta, mean = meta.track_mean, std = meta.track_std;
+    pts = pts.filter(function (p) { return p.la != null && p.lo != null; });
+    var bi = tfNearestIdx(pts, baseHour);
+    if (bi < 0) return { ok: false };
+    var base = pts[bi], phase = 2 * Math.PI * tfDoy(base.t) / 365.25, sp = Math.sin(phase), cp = Math.cos(phase);
+    var hidx = []; for (var i = 8; i >= 0; i--) hidx.push(tfNearestIdx(pts, base.h - 6 * i));   // -48 h..0
+    if (hidx.indexOf(-1) >= 0) return { ok: false, base: base };
+    var feat = new Float32Array(9 * 40), prev = -1;
+    for (var k = 0; k < 9; k++) {
+      var p = pts[hidx[k]], off = k * 40, raw = new Array(40); for (var z = 0; z < 40; z++) raw[z] = 0;
+      var en = tfMotionKm(base.la, base.lo, p.la, p.lo); raw[0] = en[0]; raw[1] = en[1];
+      if (prev >= 0) { var s2 = tfMotionKm(pts[prev].la, pts[prev].lo, p.la, p.lo); raw[2] = s2[0]; raw[3] = s2[1]; }
+      var vals = [p.w, p.p, NaN, NaN];                 // vmax, pressure, gust(absent), rmw(absent)
+      for (var j = 0; j < 4; j++) raw[4 + j] = (vals[j] != null && isFinite(vals[j])) ? vals[j] : 0;
+      var rad = tfRadiiNm(p, "r3").concat(tfRadiiNm(p, "r5"), tfRadiiNm(p, "r6"));
+      for (var jr = 0; jr < 12; jr++) raw[8 + jr] = isFinite(rad[jr]) ? rad[jr] : 0;
+      raw[20] = 0; raw[21] = sp; raw[22] = cp; raw[23] = base.h - p.h;
+      var fields = vals.concat(rad);
+      for (var jf = 0; jf < 4; jf++) raw[24 + jf] = (fields[jf] != null && isFinite(fields[jf])) ? 1 : 0;
+      for (var jg = 0; jg < 12; jg++) raw[28 + jg] = isFinite(fields[4 + jg]) ? 1 : 0;
+      for (var c = 0; c < 40; c++) { var vv = (raw[c] - mean[c]) / std[c]; feat[off + c] = isFinite(vv) ? vv : 0; }
+      prev = hidx[k];
+    }
+    return { ok: true, feat: feat, base: base };
+  }
+  function tfRunModel(pts, baseHour) {
+    var built = tfBuildFeat(pts, baseHour);
+    if (!built.ok) return Promise.reject(new Error(built.base
+      ? "Need about two days of 6-hourly track before this point — scrub a bit later."
+      : "No usable track history at this point."));
+    var meta = tfRT.meta, TS = meta.target_scale, leads = meta.lead_hours, O = meta.out_dim;
+    return tfRT.session.run({ track: new window.ort.Tensor("float32", built.feat, [1, 9, 40]) }).then(function (res) {
+      var state = (res.state || res[Object.keys(res)[0]]).data;
+      var logs = (res.logscale || res[Object.keys(res)[1]]).data;
+      var base = built.base, la = base.la, lo = base.lo, points = [], accum = 0;
+      for (var i = 0; i < leads.length; i++) {
+        var o = i * O, e = state[o] * TS[0], n = state[o + 1] * TS[1];
+        var la2 = la + n / 111.2, lo2 = lo + e / (111.2 * Math.cos((la + la2) / 2 * Math.PI / 180));
+        accum += Math.hypot(Math.exp(logs[o]) * TS[0], Math.exp(logs[o + 1]) * TS[1]);   // cumulative position spread (km)
+        var rlat = accum / 111.2, rlon = accum / (111.2 * Math.cos(la2 * Math.PI / 180));
+        var radiiKm = []; for (var q = 0; q < 12; q++) radiiKm.push(Math.max(0, state[o + 5 + q]) * TS[5 + q] * TF_NM);
+        points.push({ lead_hours: leads[i], lat: la2, lon: lo2,
+          vmax: Math.max(0, state[o + 2] * TS[2]), pres: state[o + 3] * TS[3], rmw: Math.max(0, state[o + 4] * TS[4]) * TF_NM,
+          radiiKm: radiiKm, p90_lat: la2 + rlat, p10_lat: la2 - rlat, p90_lon: lo2 + rlon, p10_lon: lo2 - rlon });
+        la = la2; lo = lo2;
+      }
+      return { initial_lat: base.la, initial_lon: base.lo, points: points };
+    });
+  }
   function aiSetHindcastStatus(msg, cls) {
     if (!els.hindcastStatus) return;
     els.hindcastStatus.textContent = msg || "";
@@ -1992,23 +2085,14 @@
     if (els.hindcastBtn) { els.hindcastBtn.setAttribute("aria-pressed", "false"); els.hindcastBtn.classList.remove("is-on"); }
     aiSetHindcastStatus("");
   }
-  // Build model fixes from the storm's real track up to (and including) initHour.
-  function aiFixesFromTrackHour(initHour) {
-    if (!currentStorm || !currentStorm.pts) return null;
-    var fixes = [];
-    currentStorm.pts.forEach(function (p) {
-      if (p.h <= initHour + 0.01 && p.la != null && p.lo != null)
-        fixes.push({ time: p.t, lat: p.la, lon: p.lo, wind: p.w != null ? p.w : 35, pres: p.p || aiEstPres(p.w) });
-    });
-    var ip = interpAt(initHour);   // the exact init position (the model's "now")
-    fixes.push({ time: ip.t, lat: ip.la, lon: ip.lo, wind: ip.w != null ? ip.w : 35, pres: ip.p || aiEstPres(ip.w) });
-    return fixes.length >= 2 ? fixes.slice(-8) : null;
-  }
   function aiDrawHindcast(fc, initHour) {
     aiClearHindcast();
     var pts = fc.points || [], rev = pts.slice().reverse();
     var meanLat = [fc.initial_lat], meanLon = [fc.initial_lon], txt = ["AI init · " + fmtLatLon(fc.initial_lat, fc.initial_lon)];
-    pts.forEach(function (p) { meanLat.push(p.lat); meanLon.push(p.lon); txt.push("AI +" + p.lead_hours + " h · " + fmtLatLon(p.lat, p.lon)); });
+    pts.forEach(function (p) {
+      meanLat.push(p.lat); meanLon.push(p.lon);
+      txt.push("AI +" + p.lead_hours + " h · " + fmtLatLon(p.lat, p.lon) + " · " + Math.round(p.vmax) + " kt · " + Math.round(p.pres) + " mb");
+    });
     var coneLat = [fc.initial_lat].concat(pts.map(function (p) { return p.p90_lat; })).concat(rev.map(function (p) { return p.p10_lat; }));
     var coneLon = [fc.initial_lon].concat(pts.map(function (p) { return p.p90_lon; })).concat(rev.map(function (p) { return p.p10_lon; }));
     // what the storm ACTUALLY did from the init point on
@@ -2016,7 +2100,7 @@
     currentStorm.pts.forEach(function (p) { if (p.h > initHour + 0.01 && p.la != null) { actLat.push(p.la); actLon.push(p.lo); } });
     var traces = [
       { type: "scattergeo", mode: "lines", lat: coneLat, lon: coneLon, fill: "toself",
-        fillcolor: "rgba(52,211,153,0.12)", line: { color: "rgba(52,211,153,0.4)", width: 1 }, hoverinfo: "skip", showlegend: false },
+        fillcolor: "rgba(52,211,153,0.10)", line: { color: "rgba(52,211,153,0.35)", width: 1 }, hoverinfo: "skip", showlegend: false },
       { type: "scattergeo", mode: "lines", lat: actLat, lon: actLon,
         line: { color: "rgba(255,255,255,0.9)", width: 2.5 }, hoverinfo: "text",
         text: actLat.map(function () { return "actual track (what really happened)"; }), showlegend: false },
@@ -2028,21 +2112,19 @@
     Plotly.addTraces(els.map, traces);
     hindcastTraceCount = traces.length;
     if (els.hindcastBtn) { els.hindcastBtn.setAttribute("aria-pressed", "true"); els.hindcastBtn.classList.add("is-on"); }
-    aiSetHindcastStatus("🧪 My model run forward from here (emerald) vs what actually happened (white). No historical steering field exists for a past date, so it reads the heading but under-shoots the speed — closest in the first day, drifting short by day 3–5. Experimental, not an official forecast.", "on");
+    aiSetHindcastStatus("🧪 " + (currentStorm.name || "This storm") + " — my TrackFormer model run forward from this point (emerald, with predicted intensity — hover the dots) vs what actually happened (white). Track-only, no ERA5. Experimental, not an official forecast.", "on");
   }
   function aiHindcastToggle() {
     if (appMode !== "track" || viewMode !== "storm" || !currentStorm) return;
     if (hindcastTraceCount > 0) { aiClearHindcast(); return; }   // toggle off
     if (aiLoading) return;
     var initHour = Number(els.slider.value);
-    var fixes = aiFixesFromTrackHour(initHour);
-    if (!fixes) { aiSetHindcastStatus("Scrub a few hours into the storm first.", "err"); return; }
     aiLoading = true;
-    aiSetHindcastStatus(aiRT.session ? "Running the model…" : "Loading the AI model (~one-time download)…", "loading");
-    aiEnsureModel()
-      .then(function () { return aiRunModel(fixes, { noField: true }); })
+    aiSetHindcastStatus(tfRT.session ? "Running my AI model…" : "Loading my AI model (~one-time 30 MB download)…", "loading");
+    tfEnsureModel()
+      .then(function () { return tfRunModel(currentStorm.pts, initHour); })
       .then(function (fc) { aiLoading = false; aiDrawHindcast(fc, initHour); })
-      .catch(function (e) { aiLoading = false; aiSetHindcastStatus("Couldn't run the AI model: " + ((e && e.message) || e), "err"); });
+      .catch(function (e) { aiLoading = false; aiSetHindcastStatus(((e && e.message) || String(e)), "err"); });
   }
 
   // One continuous timeline. The PAST leg comes from JMA best-track (via
