@@ -2003,32 +2003,79 @@
     if (els.hindcastBtn) { els.hindcastBtn.setAttribute("aria-pressed", "false"); els.hindcastBtn.classList.remove("is-on"); }
     aiSetHindcastStatus("");
   }
-  function aiDrawHindcast(fc, initHour) {
-    aiClearHindcast();
+  var hindcastFollowRun = false, hindcastFollowTs = 0;
+  var ACT_HOVER = "actual track (what really happened)";
+  // Shared trace data for the overlay — used by both the initial draw and the
+  // in-place restyle that lets it follow the playhead. Fixed layout: cone, three
+  // 34-kt rings (+24/+72/+120 h, empty if implausible), actual track, mean track.
+  function tfHindcastData(fc, initHour) {
     var pts = fc.points || [], rev = pts.slice().reverse();
-    var meanLat = [fc.initial_lat], meanLon = [fc.initial_lon], txt = ["AI init · " + fmtLatLon(fc.initial_lat, fc.initial_lon)];
-    pts.forEach(function (p) { meanLat.push(p.lat); meanLon.push(p.lon); txt.push(tfHover(p)); });
+    var meanLat = [fc.initial_lat], meanLon = [fc.initial_lon], meanTxt = ["AI init · " + fmtLatLon(fc.initial_lat, fc.initial_lon)];
+    pts.forEach(function (p) { meanLat.push(p.lat); meanLon.push(p.lon); meanTxt.push(tfHover(p)); });
     var coneLat = [fc.initial_lat].concat(pts.map(function (p) { return p.p90_lat; })).concat(rev.map(function (p) { return p.p10_lat; }));
     var coneLon = [fc.initial_lon].concat(pts.map(function (p) { return p.p90_lon; })).concat(rev.map(function (p) { return p.p10_lon; }));
-    // what the storm ACTUALLY did from the init point on
     var actLat = [fc.initial_lat], actLon = [fc.initial_lon];
     currentStorm.pts.forEach(function (p) { if (p.h > initHour + 0.01 && p.la != null) { actLat.push(p.la); actLon.push(p.lo); } });
+    var rings = [24, 72, 120].map(function (L) {
+      var p = null, i; for (i = 0; i < pts.length; i++) if (pts[i].lead_hours === L) { p = pts[i]; break; }
+      if (p && p.radiiKm) {
+        var r34 = p.radiiKm.slice(0, 4), avg = avgRadius(r34);
+        if (avg > 15 && avg < 700) { var poly = radiusPolygon(p.lat, p.lon, r34);
+          if (poly) return { lat: poly.lat, lon: poly.lon, text: "AI +" + L + " h · predicted 34 kt wind radius ~" + Math.round(avg) + " km" }; }
+      }
+      return { lat: [], lon: [], text: "" };
+    });
+    return { coneLat: coneLat, coneLon: coneLon, rings: rings, actLat: actLat, actLon: actLon,
+      meanLat: meanLat, meanLon: meanLon, meanTxt: meanTxt, meanColors: tfCatColors(fc) };
+  }
+  function tfHindcastStatusText() {
+    return "🧪 " + (currentStorm.name || "This storm") + " — my TrackFormer model forecast from this point, dots coloured by forecast intensity category (hover for wind, pressure & 34/50/64 kt radii; faint rings = predicted gale radius), vs what actually happened (white). Press play and it re-forecasts as the storm moves. Experimental, not an official forecast.";
+  }
+  function aiDrawHindcast(fc, initHour) {
+    aiClearHindcast();
+    var d = tfHindcastData(fc, initHour);
+    function ring(r) { return { type: "scattergeo", mode: "lines", lat: r.lat, lon: r.lon, fill: "toself",
+      fillcolor: "rgba(52,211,153,0.05)", line: { color: "rgba(52,211,153,0.28)", width: 1 }, hoverinfo: "text", text: r.text, showlegend: false }; }
     var traces = [
-      { type: "scattergeo", mode: "lines", lat: coneLat, lon: coneLon, fill: "toself",
-        fillcolor: "rgba(52,211,153,0.09)", line: { color: "rgba(52,211,153,0.3)", width: 1 }, hoverinfo: "skip", showlegend: false }
-    ].concat(tfRadiiTraces(pts), [
-      { type: "scattergeo", mode: "lines", lat: actLat, lon: actLon,
-        line: { color: "rgba(255,255,255,0.9)", width: 2.5 }, hoverinfo: "text",
-        text: actLat.map(function () { return "actual track (what really happened)"; }), showlegend: false },
-      { type: "scattergeo", mode: "lines+markers", lat: meanLat, lon: meanLon,
+      { type: "scattergeo", mode: "lines", lat: d.coneLat, lon: d.coneLon, fill: "toself",
+        fillcolor: "rgba(52,211,153,0.09)", line: { color: "rgba(52,211,153,0.3)", width: 1 }, hoverinfo: "skip", showlegend: false },
+      ring(d.rings[0]), ring(d.rings[1]), ring(d.rings[2]),
+      { type: "scattergeo", mode: "lines", lat: d.actLat, lon: d.actLon,
+        line: { color: "rgba(255,255,255,0.9)", width: 2.5 }, hoverinfo: "text", text: ACT_HOVER, showlegend: false },
+      { type: "scattergeo", mode: "lines+markers", lat: d.meanLat, lon: d.meanLon,
         line: { color: "rgb(52,211,153)", width: 3, dash: "dash" },
-        marker: { size: 7, color: tfCatColors(fc), line: { width: 1.6, color: "rgba(52,211,153,0.95)" } },   // dots by predicted category, emerald-ringed = AI
-        text: txt, hoverinfo: "text", showlegend: false }
-    ]);
+        marker: { size: 7, color: d.meanColors, line: { width: 1.6, color: "rgba(52,211,153,0.95)" } },   // dots by predicted category, emerald-ringed = AI
+        text: d.meanTxt, hoverinfo: "text", showlegend: false }
+    ];
     Plotly.addTraces(els.map, traces);
-    hindcastTraceCount = traces.length;
+    hindcastTraceCount = traces.length;   // fixed 6, so a follow-update can restyle in place
     if (els.hindcastBtn) { els.hindcastBtn.setAttribute("aria-pressed", "true"); els.hindcastBtn.classList.add("is-on"); }
-    aiSetHindcastStatus("🧪 " + (currentStorm.name || "This storm") + " — my TrackFormer model forecast from this point, dots coloured by forecast intensity category (hover for wind, pressure & 34/50/64 kt radii; faint rings = predicted gale radius), vs what actually happened (white). Experimental, not an official forecast.", "on");
+    aiSetHindcastStatus(tfHindcastStatusText(), "on");
+  }
+  // In-place update (restyle) so the overlay follows the playhead smoothly, no
+  // flicker from delete+add. Falls back to a full redraw if the layout drifted.
+  function aiUpdateHindcast(fc, initHour) {
+    if (hindcastTraceCount !== 6) { aiDrawHindcast(fc, initHour); return; }
+    var d = tfHindcastData(fc, initHour), n = els.map.data.length, i0 = n - 6;
+    Plotly.restyle(els.map, {
+      lat: [d.coneLat, d.rings[0].lat, d.rings[1].lat, d.rings[2].lat, d.actLat, d.meanLat],
+      lon: [d.coneLon, d.rings[0].lon, d.rings[1].lon, d.rings[2].lon, d.actLon, d.meanLon]
+    }, [i0, i0 + 1, i0 + 2, i0 + 3, i0 + 4, i0 + 5]);
+    Plotly.restyle(els.map, { text: [d.rings[0].text, d.rings[1].text, d.rings[2].text, ACT_HOVER, d.meanTxt] }, [i0 + 1, i0 + 2, i0 + 3, i0 + 4, i0 + 5]);
+    Plotly.restyle(els.map, { "marker.color": [d.meanColors] }, [i0 + 5]);
+  }
+  // While the overlay is on, re-forecast from the current playhead as the animation
+  // (or a manual scrub) moves — throttled + in-flight-guarded + updated in place.
+  // Keeps the last good forecast if the playhead is too early (<~2 days of history).
+  function hindcastFollowTick(force) {
+    if (hindcastTraceCount === 0 || !tfRT.session || hindcastFollowRun) return;
+    var now = Date.now();
+    if (!force && now - hindcastFollowTs < 240) return;
+    hindcastFollowTs = now; hindcastFollowRun = true;
+    var h = Number(els.slider.value);
+    tfRunModel(currentStorm.pts, h).then(function (fc) {
+      if (hindcastTraceCount > 0) aiUpdateHindcast(fc, h);
+    }, function () {}).then(function () { hindcastFollowRun = false; });
   }
   function aiHindcastToggle() {
     if (appMode !== "track" || viewMode !== "storm" || !currentStorm) return;
@@ -2422,7 +2469,9 @@
     stopPlay();
     currentHour = Number(els.slider.value);
     renderScrub();
+    hindcastFollowTick();          // estimate follows a manual scrub too (throttled)
   });
+  els.slider.addEventListener("change", function () { hindcastFollowTick(true); });   // settle on release
   els.play.addEventListener("click", togglePlay);
 
   // Build the climatology chart the first time its panel is opened (a collapsed
@@ -2473,7 +2522,8 @@
       if (currentHour >= totalHours) { currentHour = totalHours; }
       els.slider.value = currentHour;
       renderScrub();
-      if (currentHour >= totalHours) { stopPlay(); return; }
+      if (currentHour >= totalHours) { hindcastFollowTick(true); stopPlay(); return; }
+      hindcastFollowTick();         // re-forecast from the moving playhead (throttled, in place)
       playRaf = requestAnimationFrame(tick);
     }
     playRaf = requestAnimationFrame(tick);
