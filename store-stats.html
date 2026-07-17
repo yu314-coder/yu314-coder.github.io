@@ -51,6 +51,12 @@
     .ss-mkt-row .ss-mkt-code{width:2.4rem;font:600 .8rem/1 JetBrains Mono,monospace;color:var(--ink-2)}
     .ss-mkt-bar{height:.7rem;border-radius:3px;background:var(--accent);min-width:2px}
     .ss-updated{font:500 .8rem/1.3 Inter,sans-serif;color:var(--ink-2);margin-top:.75rem}
+    .ss-tile .ss-sub{font:500 .72rem/1.25 Inter,sans-serif;color:var(--ink-2);margin-top:.35rem}
+    .ss-funnel{margin-top:1.5rem}
+    .ss-fn-row{display:flex;align-items:center;gap:.75rem;margin:.45rem 0;font:500 .85rem/1.2 Inter,sans-serif}
+    .ss-fn-row .ss-fn-label{width:9.5rem;flex:none;color:var(--ink-2)}
+    .ss-fn-row .ss-fn-bar{height:.9rem;border-radius:3px;background:var(--accent);min-width:3px;transition:width .3s ease}
+    .ss-fn-row .ss-fn-val{font:700 .85rem/1 JetBrains Mono,monospace}
     .ss-empty{background:var(--bg-alt);border:1px dashed var(--line);border-radius:var(--r);padding:2rem;text-align:center;color:var(--ink-2)}
   </style>
 </head>
@@ -81,17 +87,17 @@
     <div class="container">
       <p class="eyebrow eyebrow--rule">microsoft store analytics</p>
       <h1>Store Stats</h1>
-      <p class="lead-2 mb-0">Download counts for my Microsoft Store apps &mdash; ManimStudio, t-SNE Visualization, and Generalized Covariance Matrix &mdash; snapshotted nightly from Partner Center.</p>
+      <p class="lead-2 mb-0">Real download numbers for my three Microsoft Store apps &mdash; ManimStudio, t-SNE Visualization, and Generalized Covariance Matrix &mdash; read straight from Partner Center's acquisitions report.</p>
     </div>
   </header>
 
   <!-- Download Stats -->
   <section class="container section">
     <div class="mb-4 reveal">
-      <p class="eyebrow eyebrow--rule">acquisitions</p>
-      <h2>App downloads over time</h2>
-      <p class="lead-2 mb-0">Daily and cumulative acquisitions per app. A nightly GitHub Action pulls these from the <a href="https://learn.microsoft.com/windows/uwp/monetize/acquisitions-data" target="_blank" rel="noopener noreferrer">Microsoft Store analytics API</a> using credentials kept in encrypted repo secrets, and commits the numbers as static JSON this page reads directly &mdash; nothing is sent to me and no keys touch the browser.</p>
-      <p class="tracker-note mb-0">Store analytics run ~1&ndash;3 days behind, so the latest point is recent-but-not-live.</p>
+      <p class="eyebrow eyebrow--rule">acquisitions &middot; last 12 months</p>
+      <h2>Downloads, not page views</h2>
+      <p class="lead-2 mb-0">Each app's real acquisition funnel from Partner Center: how many people saw the store listing (<em>page views</em>), tried to install, actually installed (<em>downloads</em>), then launched it. <strong>Downloads = successful installs</strong> &mdash; the honest &ldquo;someone got the app&rdquo; count, which sits well below page views.</p>
+      <p class="tracker-note mb-0">Hand-read from the Partner Center acquisitions report &mdash; a personal Microsoft account has no Entra app for the automated API, so this is a snapshot rather than a nightly pull.</p>
     </div>
 
     <div class="reveal" id="ss-app"><!-- populated by JS --></div>
@@ -131,7 +137,7 @@
     fetch(DATA + "index.json?cb=" + Date.now()).then(function (r) { return r.ok ? r.json() : []; })
       .then(function (apps) {
         if (!apps || !apps.length) {
-          emptyState("<strong>No snapshots yet.</strong><br>Once the three <code>STORE_*</code> secrets are added to the repo, the nightly action fills this in. Meanwhile the apps are on the <a href=\"projects.html\">Projects</a> page.");
+          emptyState("<strong>No snapshots found.</strong><br>The apps are on the <a href=\"projects.html\">Projects</a> page.");
           return;
         }
         Promise.all(apps.map(function (a) {
@@ -162,44 +168,57 @@
     }
 
     function showApp(app, body) {
-      var rows = (app.rows || []).slice(), total = app.total || 0;
-      var cum = 0, series = rows.map(function (r) { cum += r.downloads; return { date: r.date, d: r.downloads, c: cum }; });
-      var last30 = rows.slice(-30).reduce(function (s, r) { return s + r.downloads; }, 0);
-      var last7 = rows.slice(-7).reduce(function (s, r) { return s + r.downloads; }, 0);
-      var peak = rows.reduce(function (m, r) { return r.downloads > m.downloads ? r : m; }, { downloads: 0, date: "—" });
-
+      var rows = (app.rows || []).slice();
+      var cum = 0, series = rows.map(function (r) { cum += r.installs; return { date: r.date, d: r.installs, c: cum }; });
       body.innerHTML = "";
+
+      // headline tiles — downloads is the star, page views alongside for contrast
+      var rate = app.install_attempts ? Math.round(100 * app.downloads / app.install_attempts) : 0;
       var tiles = document.createElement("div"); tiles.className = "ss-tiles";
-      [["Total downloads", fmt(total)], ["Last 30 days", fmt(last30)], ["Last 7 days", fmt(last7)],
-       ["Best day", fmt(peak.downloads) + (peak.date && peak.date !== "—" ? " · " + peak.date : "")]]
+      [["Downloads", fmt(app.downloads), "successful installs"],
+       ["Page views", fmt(app.page_views), "store-listing visits"],
+       ["Install success", rate + "%", fmt(app.downloads) + " of " + fmt(app.install_attempts) + " tries"],
+       ["First launches", fmt(app.first_launches), "opened after install"]]
         .forEach(function (t) {
-          tiles.innerHTML += '<div class="ss-tile"><div class="ss-k">' + t[0] + '</div><div class="ss-v">' + t[1] + '</div></div>';
+          tiles.innerHTML += '<div class="ss-tile"><div class="ss-k">' + t[0] + '</div><div class="ss-v">' + t[1] + '</div><div class="ss-sub">' + t[2] + '</div></div>';
         });
       body.appendChild(tiles);
 
-      var wrap = document.createElement("div"); wrap.className = "ss-chartwrap"; body.appendChild(wrap);
-      if (!series.length) { wrap.innerHTML = '<div class="ss-empty">No daily rows in this snapshot yet.</div>'; }
-      else wrap.appendChild(chart(series));
-      var legend = document.createElement("div"); legend.className = "ss-legend";
-      legend.innerHTML = '<span><b style="background:' + cssVar("--accent") + '"></b>daily downloads</span>' +
-                         '<span><b style="background:#ffffff"></b>cumulative</span>';
-      body.appendChild(legend);
+      // acquisition funnel — page views → attempts → installs → launches
+      var funnel = [
+        ["Page views", app.page_views, "rgba(150,160,180,0.55)"],
+        ["Install attempts", app.install_attempts, "rgba(120,150,240,0.72)"],
+        ["Successful installs", app.downloads, cssVar("--accent")],
+        ["First launches", app.first_launches, "rgba(110,205,170,0.85)"]
+      ];
+      var fmax = app.page_views || app.install_attempts || 1;
+      var fu = document.createElement("div"); fu.className = "ss-funnel";
+      fu.innerHTML = '<p class="eyebrow eyebrow--rule" style="margin-bottom:.6rem">acquisition funnel · last 12 months</p>';
+      funnel.forEach(function (s) {
+        var row = document.createElement("div"); row.className = "ss-fn-row";
+        row.innerHTML = '<span class="ss-fn-label">' + s[0] + '</span>' +
+          '<span class="ss-fn-bar" style="width:' + Math.max(3, Math.round(300 * s[1] / fmax)) + 'px;background:' + s[2] + '"></span>' +
+          '<span class="ss-fn-val">' + fmt(s[1]) + '</span>';
+        fu.appendChild(row);
+      });
+      body.appendChild(fu);
 
-      if (app.top_markets && app.top_markets.length) {
-        var mx = app.top_markets[0].downloads || 1, mk = document.createElement("div"); mk.className = "ss-markets";
-        mk.innerHTML = '<p class="eyebrow eyebrow--rule" style="margin-bottom:.6rem">top markets</p>';
-        app.top_markets.forEach(function (m) {
-          var row = document.createElement("div"); row.className = "ss-mkt-row";
-          row.innerHTML = '<span class="ss-mkt-code">' + m.market + '</span>' +
-            '<span class="ss-mkt-bar" style="width:' + Math.max(2, Math.round(220 * m.downloads / mx)) + 'px"></span>' +
-            '<span>' + fmt(m.downloads) + '</span>';
-          mk.appendChild(row);
-        });
-        body.appendChild(mk);
+      // weekly installs trend — only where a time series exists (ManimStudio)
+      if (series.length) {
+        var head = document.createElement("p"); head.className = "eyebrow eyebrow--rule";
+        head.style.cssText = "margin:1.6rem 0 .6rem"; head.textContent = "weekly installs";
+        body.appendChild(head);
+        var wrap = document.createElement("div"); wrap.className = "ss-chartwrap"; body.appendChild(wrap);
+        wrap.appendChild(chart(series));
+        var legend = document.createElement("div"); legend.className = "ss-legend";
+        legend.innerHTML = '<span><b style="background:' + cssVar("--accent") + '"></b>installs / week</span>' +
+                           '<span><b style="background:#ffffff"></b>cumulative</span>';
+        body.appendChild(legend);
       }
+
       var up = document.createElement("p"); up.className = "ss-updated";
-      up.textContent = "Snapshot updated " + (app.updated_utc || "—").replace("T", " ").replace("Z", " UTC") +
-                       " · Store ID " + app.id;
+      up.textContent = "Last 12 months · read from Partner Center " +
+                       (app.updated_utc || "").replace("T", " ").replace("Z", " UTC") + " · Store ID " + app.id;
       body.appendChild(up);
     }
 
