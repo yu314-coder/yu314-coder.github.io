@@ -1810,22 +1810,25 @@
     aiRun(els.typhoonSelect ? jmaCache[els.typhoonSelect.value] : null);
   }
 
-  /* --- TrackFormer v3 — powers BOTH the live overlay and the track-mode hindcast.
+  /* --- TrackFormer v8 — powers BOTH the live overlay and the track-mode hindcast.
      A track-ONLY model (github.com/yu314-coder/typhoon-predict), so it needs no
-     ERA5 field and runs anywhere in the browser. v3 is a "protected dual-stream"
-     architecture (separate kinematic/thermodynamic encoders + a persistence-
-     residual track head) that on a WP-2020+ held-out test cuts track error to
-     659 km, −61 vs the single-stream model and better than the full ERA5 model.
-     It reads 9 six-hourly history fixes as a 48-dim vector (position, motion,
-     wind, pressure, RMW, wind radii, + motion-dynamics: heading/speed/turn and
-     Δwind/Δpressure) PLUS the current velocity v0, and outputs 20 six-hourly
-     leads of the full storm state (motion, wind, pressure, RMW, 34/50/64-kt
-     radii). The feature build mirrors build_track_v2.py and is validated bit-
-     for-bit against its Python reference. Radii/RMW: IBTrACS is nmile, our JSON
-     is km, so ÷1.852 going in and ×1.852 coming out. ~22 MB int8 ONNX, lazily
-     loaded only when a forecast is requested. --------------------------------- */
-  var TF_MODEL_URL = "model/trackformer-v3.int8.onnx";
-  var TF_META_URL = "model/trackformer-v3-meta.json?v=20260717a";
+     ERA5 field and runs anywhere in the browser. Same "protected dual-stream"
+     architecture as v3 (separate kinematic/thermodynamic encoders + a persistence-
+     residual track head), retrained on partial-lead-expanded IBTrACS data (193k
+     windows). On the WP-2020+ held-out test it beats v3 on every metric — track
+     649 km (was 659), vmax 20.7 kt, pres 15.9 hPa, RMW 11.3 km, radii 27.8 km —
+     and still beats the full ERA5 model with no atmospheric data. It reads 9
+     six-hourly history fixes as a 48-dim vector (position, motion, wind, pressure,
+     RMW, wind radii, + motion-dynamics: heading/speed/turn and Δwind/Δpressure)
+     PLUS the current velocity v0, and outputs 20 six-hourly leads of the full
+     storm state (motion, wind, pressure, RMW, 34/50/64-kt radii). The feature
+     build mirrors build_track_v2.py (byte-identical to v8's build_track_v3data.py);
+     v8's own train-time normalization ships in the meta. The fp32 ONNX is bit-
+     exact to the PyTorch model, and int8 adds only ~3.7 km (0.6%) to track. Radii/
+     RMW: IBTrACS is nmile, our JSON is km, so ÷1.852 in and ×1.852 out. ~16 MB
+     int8 ONNX, lazily loaded only when a forecast is requested. --------------- */
+  var TF_MODEL_URL = "model/trackformer-v8.int8.onnx";
+  var TF_META_URL = "model/trackformer-v8-meta.json?v=20260717v8";
   var TF_NM = 1.852;                                    // km per nautical mile
   var tfRT = { session: null, meta: null };
   var hindcastTraceCount = 0;
@@ -1859,7 +1862,7 @@
     return o;
   }
   // Build the normalized [9,48] track-history tensor + current velocity v0, exactly
-  // as build_track_v2.py does (TrackFormer v3's protected dual-stream input). The
+  // as build_track_v2.py does (TrackFormer's protected dual-stream input). The
   // first 40 features match build_track_only.py; 40:48 are motion-dynamics (step
   // heading sin/cos, speed, turn/recurvature, Δvmax, Δpressure, 2 validity flags).
   function tfBuildFeat(pts, baseHour) {
