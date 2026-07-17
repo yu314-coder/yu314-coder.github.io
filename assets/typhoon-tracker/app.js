@@ -1750,14 +1750,14 @@
     var sizes = meanLat.map(function (_, i) { return i === 0 ? 7 : (i === meanLat.length - 1 ? 11 : 8); });
     var mean = { type: "scattergeo", mode: "lines+markers", lat: meanLat, lon: meanLon,
       line: { color: "rgb(52,211,153)", width: 3, dash: "dash" },
-      marker: { size: sizes, color: "rgb(16,185,129)", line: { width: 1.5, color: "rgba(6,20,15,0.9)" } },
+      marker: { size: sizes, color: tfCatColors(fc), line: { width: 1.6, color: "rgba(52,211,153,0.95)" } },   // dots by predicted category, emerald-ringed = AI
       text: txt, hoverinfo: "text", showlegend: false };
     var allTraces = [cone].concat(tfRadiiTraces(pts), [halo, mean]);   // mean stays LAST (aiEnsureOverlay checks it)
     Plotly.addTraces(els.map, allTraces);   // appended after the sweep — sweep indices unaffected
     aiTraceCount = allTraces.length;
     aiLastFc = fc;   // remember it so a same-storm map rebuild can restore it
     if (els.aiBtn) { els.aiBtn.setAttribute("aria-pressed", "true"); els.aiBtn.classList.add("is-on"); }
-    aiSetStatus("🧪 " + (fc.storm || "AI") + " — my TrackFormer model: predicted track, intensity, pressure & wind-field size (hover the dots) + its uncertainty cone. Experimental, not an official forecast.", "on");
+    aiSetStatus("🧪 " + (fc.storm || "AI") + " — my TrackFormer model: predicted track with dots coloured by forecast intensity category, plus wind, pressure & wind-field size (hover a dot) and an uncertainty cone. Experimental, not an official forecast.", "on");
   }
   // Build TrackFormer's history pts from the live storm's recent track: the
   // Digital Typhoon best-track past leg + the current JMA analysis point, put on
@@ -1941,8 +1941,21 @@
         p.p10_lat = p.lat - offLat; p.p10_lon = p.lon - offLon;   // left edge
         prevLat = p.lat; prevLon = p.lon;
       }
-      return { initial_lat: base.la, initial_lon: base.lo, points: points };
+      return { initial_lat: base.la, initial_lon: base.lo, initial_vmax: base.w, points: points };
     });
+  }
+  // The model predicts vmax (1-min); classify it in whichever standard is active so
+  // the AI dots read the same intensity scale (TD/TS/C1–C5, or CWA 輕/中/強) as the
+  // real track. Taiwan uses the converted-1-min fallback (no predicted 10-min wind).
+  function tfCat(vmax) {
+    if (vmax == null || !isFinite(vmax)) return ["Tropical Depression", "rgb(150,190,215)"];
+    var c = (standard === "taiwan") ? taiwanCat(vmax) : atlanticCat(vmax);
+    return [c[0] || "Tropical Depression", c[1] || "rgb(150,190,215)"];
+  }
+  function tfCatColors(fc) {   // per-marker color array: init + each lead, by predicted category
+    var cols = [tfCat(fc.initial_vmax)[1]];
+    (fc.points || []).forEach(function (p) { cols.push(tfCat(p.vmax)[1]); });
+    return cols;
   }
   // Faint 34-kt wind-field polygons at a few leads, from the model's radii output
   // — shows the storm's forecast SIZE, not just its path. Skips implausible values.
@@ -1960,12 +1973,20 @@
     });
     return traces;
   }
-  // Hover text carrying the model's full predicted state at a lead.
+  // Hover text carrying the model's full predicted state at a lead: category, wind,
+  // pressure, RMW, and the 34/50/64-kt wind radii.
   function tfHover(p) {
-    var r34 = p.radiiKm ? avgRadius(p.radiiKm.slice(0, 4)) : null;
-    return "AI +" + p.lead_hours + " h · " + fmtLatLon(p.lat, p.lon) + " · " + Math.round(p.vmax) + " kt · " + Math.round(p.pres) + " mb"
+    var r34 = p.radiiKm ? avgRadius(p.radiiKm.slice(0, 4)) : null,
+        r50 = p.radiiKm ? avgRadius(p.radiiKm.slice(4, 8)) : null,
+        r64 = p.radiiKm ? avgRadius(p.radiiKm.slice(8, 12)) : null;
+    var rads = [];
+    if (r34 > 1) rads.push("R34 ~" + Math.round(r34));
+    if (r50 > 1) rads.push("R50 ~" + Math.round(r50));
+    if (r64 > 1) rads.push("R64 ~" + Math.round(r64));
+    return "<b>" + tfCat(p.vmax)[0] + "</b><br>AI +" + p.lead_hours + " h · " + fmtLatLon(p.lat, p.lon)
+      + "<br>" + Math.round(p.vmax) + " kt · " + Math.round(p.pres) + " mb"
       + (p.rmw ? " · RMW " + Math.round(p.rmw) + " km" : "")
-      + (r34 ? " · R34 ~" + Math.round(r34) + " km" : "");
+      + (rads.length ? "<br>wind radii: " + rads.join(" · ") + " km" : "");
   }
   function aiSetHindcastStatus(msg, cls) {
     if (!els.hindcastStatus) return;
@@ -2001,13 +2022,13 @@
         text: actLat.map(function () { return "actual track (what really happened)"; }), showlegend: false },
       { type: "scattergeo", mode: "lines+markers", lat: meanLat, lon: meanLon,
         line: { color: "rgb(52,211,153)", width: 3, dash: "dash" },
-        marker: { size: 7, color: "rgb(16,185,129)", line: { width: 1.4, color: "rgba(6,20,15,0.9)" } },
+        marker: { size: 7, color: tfCatColors(fc), line: { width: 1.6, color: "rgba(52,211,153,0.95)" } },   // dots by predicted category, emerald-ringed = AI
         text: txt, hoverinfo: "text", showlegend: false }
     ]);
     Plotly.addTraces(els.map, traces);
     hindcastTraceCount = traces.length;
     if (els.hindcastBtn) { els.hindcastBtn.setAttribute("aria-pressed", "true"); els.hindcastBtn.classList.add("is-on"); }
-    aiSetHindcastStatus("🧪 " + (currentStorm.name || "This storm") + " — my TrackFormer model forecast from this point: track, intensity, pressure and wind-field size (hover the dots; faint rings = predicted 34 kt radius), vs what actually happened (white). Experimental, not an official forecast.", "on");
+    aiSetHindcastStatus("🧪 " + (currentStorm.name || "This storm") + " — my TrackFormer model forecast from this point, dots coloured by forecast intensity category (hover for wind, pressure & 34/50/64 kt radii; faint rings = predicted gale radius), vs what actually happened (white). Experimental, not an official forecast.", "on");
   }
   function aiHindcastToggle() {
     if (appMode !== "track" || viewMode !== "storm" || !currentStorm) return;
