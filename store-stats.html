@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Microsoft Store download statistics for Yu, Yao-Hsing 尤耀星's apps — ManimStudio, t-SNE Visualization, and Generalized Covariance Matrix — snapshotted daily from Partner Center analytics.">
+  <meta name="keywords" content="Yu, Yao-Hsing 尤耀星, Microsoft Store, downloads, acquisitions, ManimStudio, t-SNE, Generalized Covariance, app analytics">
+  <meta name="author" content="Yu, Yao-Hsing 尤耀星">
+  <meta name="robots" content="index, follow">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Store Stats | Yu, Yao-Hsing 尤耀星">
+  <meta property="og:description" content="Microsoft Store download statistics for my apps — daily and cumulative acquisitions from Partner Center">
+  <meta property="og:url" content="https://yu314-coder.github.io/store-stats.html">
+  <meta property="og:image" content="https://yu314-coder.github.io/assets/img/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://yu314-coder.github.io/assets/img/og-image.png">
+
+  <title>Store Stats | Yu, Yao-Hsing 尤耀星 - Microsoft Store Download Analytics</title>
+
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
+
+  <style>
+    .ss-tabs{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.25rem}
+    .ss-tab{font:600 .9rem/1 Inter,sans-serif;padding:.55rem 1rem;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);cursor:pointer}
+    .ss-tab.is-active{background:var(--grad-btn,var(--accent));color:#fff;border-color:transparent}
+    .ss-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin:1.25rem 0}
+    .ss-tile{background:var(--bg-alt);border:1px solid var(--line);border-radius:var(--r);padding:1rem 1.15rem}
+    .ss-tile .ss-k{font:600 .72rem/1 JetBrains Mono,monospace;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2)}
+    .ss-tile .ss-v{font:800 1.7rem/1.1 Inter,sans-serif;margin-top:.4rem}
+    .ss-chartwrap{background:var(--bg-alt);border:1px solid var(--line);border-radius:var(--r);padding:1rem;overflow-x:auto}
+    .ss-chart{width:100%;height:320px;display:block}
+    .ss-legend{display:flex;gap:1.25rem;flex-wrap:wrap;font:500 .82rem/1 Inter,sans-serif;color:var(--ink-2);margin:.4rem .2rem 0}
+    .ss-legend b{display:inline-block;width:.8rem;height:.8rem;border-radius:2px;margin-right:.35rem;vertical-align:-1px}
+    .ss-markets{margin-top:1.25rem}
+    .ss-mkt-row{display:flex;align-items:center;gap:.75rem;margin:.35rem 0;font:500 .85rem/1.2 Inter,sans-serif}
+    .ss-mkt-row .ss-mkt-code{width:2.4rem;font:600 .8rem/1 JetBrains Mono,monospace;color:var(--ink-2)}
+    .ss-mkt-bar{height:.7rem;border-radius:3px;background:var(--accent);min-width:2px}
+    .ss-updated{font:500 .8rem/1.3 Inter,sans-serif;color:var(--ink-2);margin-top:.75rem}
+    .ss-empty{background:var(--bg-alt);border:1px dashed var(--line);border-radius:var(--r);padding:2rem;text-align:center;color:var(--ink-2)}
+  </style>
+</head>
+<body class="theme-dark">
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+    <div class="container">
+      <a class="navbar-brand" href="index.html" aria-label="Yu, Yao-Hsing 尤耀星 Home">Yu, Yao-Hsing <span class="brand-cjk">尤耀星</span></a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="about.html">About</a></li>
+          <li class="nav-item"><a class="nav-link" href="projects.html">Projects</a></li>
+          <li class="nav-item"><a class="nav-link" href="pypi-stats.html">PyPI Stats</a></li>
+          <li class="nav-item"><a class="nav-link active" aria-current="page" href="store-stats.html">Store Stats</a></li>
+          <li class="nav-item"><a class="nav-link" href="typhoon-tracks.html">Typhoon Tracks</a></li>
+          <li class="nav-item"><a class="nav-link" href="privacy.html">Privacy</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Header Section -->
+  <header class="page-header">
+    <div class="container">
+      <p class="eyebrow eyebrow--rule">microsoft store analytics</p>
+      <h1>Store Stats</h1>
+      <p class="lead-2 mb-0">Download counts for my Microsoft Store apps &mdash; ManimStudio, t-SNE Visualization, and Generalized Covariance Matrix &mdash; snapshotted nightly from Partner Center.</p>
+    </div>
+  </header>
+
+  <!-- Download Stats -->
+  <section class="container section">
+    <div class="mb-4 reveal">
+      <p class="eyebrow eyebrow--rule">acquisitions</p>
+      <h2>App downloads over time</h2>
+      <p class="lead-2 mb-0">Daily and cumulative acquisitions per app. A nightly GitHub Action pulls these from the <a href="https://learn.microsoft.com/windows/uwp/monetize/acquisitions-data" target="_blank" rel="noopener noreferrer">Microsoft Store analytics API</a> using credentials kept in encrypted repo secrets, and commits the numbers as static JSON this page reads directly &mdash; nothing is sent to me and no keys touch the browser.</p>
+      <p class="tracker-note mb-0">Store analytics run ~1&ndash;3 days behind, so the latest point is recent-but-not-live.</p>
+    </div>
+
+    <div class="reveal" id="ss-app"><!-- populated by JS --></div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="site-footer text-center">
+    <div class="container py-4">
+      <div class="footer-links mb-3">
+        <a href="https://github.com/yu314-coder" target="_blank" rel="noopener noreferrer" aria-label="GitHub profile">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222 0 1.606-.014 2.898-.014 3.293 0 .322.216.694.825.576C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg> GitHub
+        </a>
+        <a href="mailto:euler.yu@gmail.com" aria-label="Email">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z"/></svg> Email
+        </a>
+      </div>
+      <p class="mb-0 footer-copy">&copy; 2026 Yu, Yao-Hsing <span class="brand-cjk">尤耀星</span>. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous" defer></script>
+
+  <!-- Store-stats renderer: reads the committed JSON snapshots, no dependencies -->
+  <script>
+  (function () {
+    var DATA = "assets/store-tracker/data/", root = document.getElementById("ss-app");
+    var SVGNS = "http://www.w3.org/2000/svg";
+    function el(tag, attrs, txt) { var e = document.createElementNS(SVGNS, tag);
+      for (var k in attrs) e.setAttribute(k, attrs[k]); if (txt != null) e.textContent = txt; return e; }
+    function fmt(n) { return (n || 0).toLocaleString("en-US"); }
+    function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim() || "#4f7cff"; }
+
+    function emptyState(msg) {
+      root.innerHTML = '<div class="ss-empty">' + msg + '</div>';
+    }
+
+    fetch(DATA + "index.json?cb=" + Date.now()).then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (apps) {
+        if (!apps || !apps.length) {
+          emptyState("<strong>No snapshots yet.</strong><br>Once the three <code>STORE_*</code> secrets are added to the repo, the nightly action fills this in. Meanwhile the apps are on the <a href=\"projects.html\">Projects</a> page.");
+          return;
+        }
+        Promise.all(apps.map(function (a) {
+          return fetch(DATA + a.id + ".json?cb=" + Date.now()).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+        })).then(function (loaded) {
+          var data = loaded.filter(Boolean);
+          if (!data.length) { emptyState("Snapshots are listed but couldn't be loaded yet — check back after the next refresh."); return; }
+          render(data);
+        });
+      }).catch(function () { emptyState("Couldn't load the download snapshots."); });
+
+    function render(apps) {
+      var tabs = document.createElement("div"); tabs.className = "ss-tabs";
+      var body = document.createElement("div");
+      root.innerHTML = ""; root.appendChild(tabs); root.appendChild(body);
+      apps.forEach(function (app, i) {
+        var b = document.createElement("button"); b.className = "ss-tab" + (i === 0 ? " is-active" : "");
+        b.textContent = app.app; b.onclick = function () {
+          [].forEach.call(tabs.children, function (c) { c.classList.remove("is-active"); });
+          b.classList.add("is-active"); showApp(app, body);
+        };
+        tabs.appendChild(b);
+      });
+      showApp(apps[0], body);
+      window.addEventListener("resize", function () {
+        var active = tabs.querySelector(".is-active"); if (active) active.click();
+      });
+    }
+
+    function showApp(app, body) {
+      var rows = (app.rows || []).slice(), total = app.total || 0;
+      var cum = 0, series = rows.map(function (r) { cum += r.downloads; return { date: r.date, d: r.downloads, c: cum }; });
+      var last30 = rows.slice(-30).reduce(function (s, r) { return s + r.downloads; }, 0);
+      var last7 = rows.slice(-7).reduce(function (s, r) { return s + r.downloads; }, 0);
+      var peak = rows.reduce(function (m, r) { return r.downloads > m.downloads ? r : m; }, { downloads: 0, date: "—" });
+
+      body.innerHTML = "";
+      var tiles = document.createElement("div"); tiles.className = "ss-tiles";
+      [["Total downloads", fmt(total)], ["Last 30 days", fmt(last30)], ["Last 7 days", fmt(last7)],
+       ["Best day", fmt(peak.downloads) + (peak.date && peak.date !== "—" ? " · " + peak.date : "")]]
+        .forEach(function (t) {
+          tiles.innerHTML += '<div class="ss-tile"><div class="ss-k">' + t[0] + '</div><div class="ss-v">' + t[1] + '</div></div>';
+        });
+      body.appendChild(tiles);
+
+      var wrap = document.createElement("div"); wrap.className = "ss-chartwrap"; body.appendChild(wrap);
+      if (!series.length) { wrap.innerHTML = '<div class="ss-empty">No daily rows in this snapshot yet.</div>'; }
+      else wrap.appendChild(chart(series));
+      var legend = document.createElement("div"); legend.className = "ss-legend";
+      legend.innerHTML = '<span><b style="background:' + cssVar("--accent") + '"></b>daily downloads</span>' +
+                         '<span><b style="background:#ffffff"></b>cumulative</span>';
+      body.appendChild(legend);
+
+      if (app.top_markets && app.top_markets.length) {
+        var mx = app.top_markets[0].downloads || 1, mk = document.createElement("div"); mk.className = "ss-markets";
+        mk.innerHTML = '<p class="eyebrow eyebrow--rule" style="margin-bottom:.6rem">top markets</p>';
+        app.top_markets.forEach(function (m) {
+          var row = document.createElement("div"); row.className = "ss-mkt-row";
+          row.innerHTML = '<span class="ss-mkt-code">' + m.market + '</span>' +
+            '<span class="ss-mkt-bar" style="width:' + Math.max(2, Math.round(220 * m.downloads / mx)) + 'px"></span>' +
+            '<span>' + fmt(m.downloads) + '</span>';
+          mk.appendChild(row);
+        });
+        body.appendChild(mk);
+      }
+      var up = document.createElement("p"); up.className = "ss-updated";
+      up.textContent = "Snapshot updated " + (app.updated_utc || "—").replace("T", " ").replace("Z", " UTC") +
+                       " · Store ID " + app.id;
+      body.appendChild(up);
+    }
+
+    function chart(series) {
+      var wrap = document.querySelector(".ss-chartwrap");
+      var W = Math.max(320, (wrap ? wrap.clientWidth : 800) - 32), H = 320, pad = { l: 46, r: 46, t: 16, b: 26 };
+      var iw = W - pad.l - pad.r, ih = H - pad.t - pad.b, n = series.length;
+      var maxD = Math.max.apply(null, series.map(function (s) { return s.d; }).concat([1]));
+      var maxC = Math.max.apply(null, series.map(function (s) { return s.c; }).concat([1]));
+      var x = function (i) { return pad.l + (n <= 1 ? iw / 2 : iw * i / (n - 1)); };
+      var yD = function (v) { return pad.t + ih - ih * v / maxD; };
+      var yC = function (v) { return pad.t + ih - ih * v / maxC; };
+      var accent = cssVar("--accent") || "#4f7cff";
+      var svg = el("svg", { viewBox: "0 0 " + W + " " + H, class: "ss-chart", preserveAspectRatio: "none" });
+      // gridlines + y labels (left daily, right cumulative)
+      [0, 0.5, 1].forEach(function (f) {
+        var yy = pad.t + ih - ih * f;
+        svg.appendChild(el("line", { x1: pad.l, y1: yy, x2: W - pad.r, y2: yy, stroke: "rgba(140,150,170,0.18)", "stroke-width": 1 }));
+        svg.appendChild(el("text", { x: pad.l - 6, y: yy + 3, "text-anchor": "end", "font-size": 10, fill: "rgba(150,160,180,0.85)" }, fmt(Math.round(maxD * f))));
+        svg.appendChild(el("text", { x: W - pad.r + 6, y: yy + 3, "text-anchor": "start", "font-size": 10, fill: "rgba(150,160,180,0.85)" }, fmt(Math.round(maxC * f))));
+      });
+      // daily bars
+      var bw = Math.max(1, iw / Math.max(n, 1) * 0.7);
+      series.forEach(function (s, i) {
+        var hh = ih * s.d / maxD;
+        if (hh > 0.2) svg.appendChild(el("rect", { x: x(i) - bw / 2, y: yD(s.d), width: bw, height: Math.max(0.6, hh), fill: accent, opacity: 0.55, rx: 1 }));
+      });
+      // cumulative area + line
+      var areaD = "M" + x(0) + "," + (pad.t + ih), lineD = "";
+      series.forEach(function (s, i) { areaD += " L" + x(i) + "," + yC(s.c); lineD += (i ? " L" : "M") + x(i) + "," + yC(s.c); });
+      areaD += " L" + x(n - 1) + "," + (pad.t + ih) + " Z";
+      svg.appendChild(el("path", { d: areaD, fill: "rgba(255,255,255,0.06)" }));
+      svg.appendChild(el("path", { d: lineD, fill: "none", stroke: "#ffffff", "stroke-width": 2, "stroke-linejoin": "round" }));
+      // x labels: first, middle, last
+      [0, Math.floor((n - 1) / 2), n - 1].forEach(function (i) {
+        if (i < 0 || i >= n) return;
+        svg.appendChild(el("text", { x: x(i), y: H - 8, "text-anchor": i === 0 ? "start" : (i === n - 1 ? "end" : "middle"), "font-size": 10, fill: "rgba(150,160,180,0.85)" }, series[i].date));
+      });
+      // hover: nearest-point tooltip
+      var tip = el("g", { visibility: "hidden" });
+      var tdot = el("circle", { r: 3.5, fill: "#fff" }), trect = el("rect", { rx: 4, fill: "rgba(10,14,22,0.92)", stroke: "rgba(255,255,255,0.15)" }), ttxt = el("text", { "font-size": 11, fill: "#fff" });
+      tip.appendChild(trect); tip.appendChild(tdot); tip.appendChild(ttxt); svg.appendChild(tip);
+      var hit = el("rect", { x: pad.l, y: pad.t, width: iw, height: ih, fill: "transparent" });
+      hit.addEventListener("mousemove", function (ev) {
+        var r = svg.getBoundingClientRect(), px = (ev.clientX - r.left) / r.width * W;
+        var i = Math.round((px - pad.l) / (iw / Math.max(n - 1, 1))); i = Math.max(0, Math.min(n - 1, i));
+        var s = series[i]; tdot.setAttribute("cx", x(i)); tdot.setAttribute("cy", yC(s.c));
+        ttxt.textContent = s.date + " · +" + fmt(s.d) + " · Σ " + fmt(s.c);
+        var tw = ttxt.getComputedTextLength ? ttxt.getComputedTextLength() + 14 : 150;
+        var tx = Math.min(Math.max(x(i) - tw / 2, pad.l), W - pad.r - tw), ty = Math.max(pad.t + 2, yC(s.c) - 30);
+        trect.setAttribute("x", tx); trect.setAttribute("y", ty); trect.setAttribute("width", tw); trect.setAttribute("height", 20);
+        ttxt.setAttribute("x", tx + 7); ttxt.setAttribute("y", ty + 14); tip.setAttribute("visibility", "visible");
+      });
+      hit.addEventListener("mouseleave", function () { tip.setAttribute("visibility", "hidden"); });
+      svg.appendChild(hit);
+      return svg;
+    }
+  })();
+  </script>
+
+  <script src="assets/js/ui.js" defer></script>
+  <script src="assets/js/script.js" defer></script>
+</body>
+</html>

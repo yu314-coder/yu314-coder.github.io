@@ -1,0 +1,44 @@
+name: Refresh Microsoft Store stats
+
+# Snapshot Microsoft Store app-download (acquisition) counts into static JSON that
+# store-stats.html reads same-origin — same idea as the PyPI stats refresher.
+#
+# Needs three repo secrets (Settings → Secrets and variables → Actions):
+#   STORE_TENANT_ID, STORE_CLIENT_ID, STORE_CLIENT_SECRET
+# Until they're set, the script is a graceful no-op, so this workflow stays green.
+on:
+  schedule:
+    - cron: "37 6 * * *" # ~06:37 UTC daily (offset from the PyPI job)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-store-stats
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch Microsoft Store acquisition snapshots
+        env:
+          STORE_TENANT_ID: ${{ secrets.STORE_TENANT_ID }}
+          STORE_CLIENT_ID: ${{ secrets.STORE_CLIENT_ID }}
+          STORE_CLIENT_SECRET: ${{ secrets.STORE_CLIENT_SECRET }}
+        run: python3 scripts/refresh_store_stats.py
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/store-tracker/data
+          if git diff --cached --quiet; then
+            echo "No change in Microsoft Store snapshots."
+          else
+            git commit -m "chore: refresh Microsoft Store download snapshots"
+            git push
+          fi
