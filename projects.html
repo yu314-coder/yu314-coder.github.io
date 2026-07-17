@@ -99,6 +99,9 @@
         <button class="nav-link" id="tab-typhoon-btn" data-bs-toggle="pill" data-bs-target="#tab-typhoon" type="button" role="tab" aria-controls="tab-typhoon" aria-selected="false">Typhoon AI</button>
       </li>
       <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-afm-btn" data-bs-toggle="pill" data-bs-target="#tab-afm" type="button" role="tab" aria-controls="tab-afm" aria-selected="false">AFM Teardown</button>
+      </li>
+      <li class="nav-item" role="presentation">
         <button class="nav-link" id="tab-other-btn" data-bs-toggle="pill" data-bs-target="#tab-other" type="button" role="tab" aria-controls="tab-other" aria-selected="false">Others</button>
       </li>
     </ul>
@@ -1357,6 +1360,97 @@
       </div>
     </div>
     </div><!-- /tab-typhoon -->
+
+    <!-- Tab: AFM-IFP Teardown -->
+    <div class="tab-pane fade" id="tab-afm" role="tabpanel" aria-labelledby="tab-afm-btn">
+
+    <!-- Featured Project: Apple On-Device Model Teardown -->
+    <div class="card card--hue hue-afm reveal">
+      <div class="card-body p-4 p-md-5">
+        <div class="row g-0 align-items-center justify-content-center">
+          <div class="col-lg-10 col-xl-9 text-center">
+            <header class="mb-4">
+              <h3 class="h2 mb-2 fw-bold">Apple On-Device Model Teardown</h3>
+              <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
+                <span class="badge-neutral mono">afmplus-v11.0-ifp</span>
+                <span class="badge-accent mono">reverse engineering</span>
+                <span class="badge-neutral mono">sparse MoE</span>
+                <span class="badge-neutral mono">paper + code</span>
+              </div>
+              <p class="lead mb-0">A complete static reverse-engineering of Apple's on-device foundation model &mdash; the sparse Mixture-of-Experts backbone shipped with Apple&nbsp;Intelligence &mdash; decoded from its container formats down to a component-validated PyTorch forward pass, plus a working CLI/server over Apple's own runtime. <strong>Original research only: the teardown paper and decode code &mdash; no Apple weights or tokenizer data are included or distributed.</strong> Everything operates on the asset files already present on an Apple device you own.</p>
+            </header>
+
+            <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
+              <span class="feature-badge">9.86&nbsp;B params recovered</span>
+              <span class="feature-badge">4-bit LUT codec</span>
+              <span class="feature-badge">ANE 8&times;128 de-swizzle</span>
+              <span class="feature-badge">Container stack decoded</span>
+              <span class="feature-badge">From-weights forward pass</span>
+              <span class="feature-badge">CLI + OpenAI server</span>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">What it found</h4>
+              <ul class="list-unstyled">
+                <li class="mb-2"><strong>The whole model, as data</strong> &mdash; all 9.86&nbsp;B stored weights recovered (100% of the file), the container stack (Cryptex, BBBB, odix, hwx, MPSGraph) fully characterized, and the 4-bit&nbsp;LUT + per-1024 fp16 block-scale weight codec validated against Apple's own <code>coreml2hwx</code> toolchain</li>
+                <li class="mb-2"><strong>A corrected &ldquo;fatal blocker&rdquo;</strong> &mdash; the expert-selection router&rarr;physical-expert map, long thought unrecoverable, is <em>mathematically irrelevant</em>: the IFP sparse FFN is an <em>ungated</em>, permutation-invariant SwiGLU sum over experts, so no selection map is needed to run it</li>
+                <li class="mb-2"><strong>The architecture</strong> &mdash; 32 full-QKV + 12 KV-reuse attention layers; 12 dense + 32 expert-FFN layers, d=1536, GQA, RoPE, SwiGLU, 219 routable experts/layer with Instruction-Following Pruning. The learned RMSNorm &gamma; turned out to be compile-time <em>folded</em> into the adjacent linears, not missing</li>
+                <li class="mb-2"><strong>It runs the real thing</strong> &mdash; <code>afm</code>, a Swift CLI and OpenAI-compatible server over Apple's <code>FoundationModels</code> runtime, alongside a reconstructed PyTorch forward pass. Component-complete, one mechanical assembly step from coherent from-weights text</li>
+              </ul>
+            </div>
+
+            <div class="row g-3 mb-4 justify-content-center">
+              <div class="col-md-5">
+                <div class="lib-category-card">
+                  <h5 class="h6 fw-bold mb-3">The model</h5>
+                  <ul class="small mb-0 text-start">
+                    <li><code>afmplus-v11.0-ifp</code> &mdash; sparse MoE, ~9.86&nbsp;B stored params</li>
+                    <li>12 dense + 32 sparse layers, d=1536, GQA, RoPE, SwiGLU</li>
+                    <li>219 experts/layer; default <code>ifp1_r48</code> = 10 active + 4 shared</li>
+                    <li>Shipped in <code>com.apple.MobileAsset.UAF.FM.GenerativeModels</code></li>
+                  </ul>
+                </div>
+              </div>
+              <div class="col-md-5">
+                <div class="lib-category-card">
+                  <h5 class="h6 fw-bold mb-3">What's in the repo</h5>
+                  <ul class="small mb-0 text-start">
+                    <li>15-page teardown paper (LaTeX) + condensed <code>FINDINGS.md</code></li>
+                    <li>Python: ANE de-swizzle, LUT-codec cracker, <code>odix</code> parser, weight export, forward pass</li>
+                    <li>Swift: <code>afm</code> CLI + OpenAI-compatible server</li>
+                    <li>No weights or tokenizer data &mdash; runs on assets already on your own device</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">Technical Specifications</h4>
+              <div class="d-inline-block text-start">
+                <p class="small mb-1"><strong>Created by:</strong> Yu Yao-Hsing</p>
+                <p class="small mb-1"><strong>Category:</strong> Research &mdash; reverse engineering / ML systems</p>
+                <p class="small mb-1"><strong>Languages:</strong> TeX &middot; Python &middot; Swift</p>
+                <p class="small mb-1"><strong>Target:</strong> Apple on-device <code>afmplus-v11.0-ifp</code> (Apple&nbsp;Intelligence, macOS&nbsp;26/27)</p>
+                <p class="small mb-0"><strong>Status:</strong> Component-complete teardown; runs the real model via <code>afm</code></p>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
+              <a href="https://github.com/yu314-coder/afm-ifp-teardown" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                GitHub Repository
+              </a>
+              <a href="https://github.com/yu314-coder/afm-ifp-teardown/blob/main/paper/afm_teardown.pdf" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                Read the paper
+              </a>
+              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
+                Contact developer
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div><!-- /tab-afm -->
 
     <!-- Tab 6: Other Projects -->
     <div class="tab-pane fade" id="tab-other" role="tabpanel" aria-labelledby="tab-other-btn">
