@@ -1294,8 +1294,8 @@
             <div class="mb-4">
               <h4 class="h5 fw-bold mb-3">What it does</h4>
               <ul class="list-unstyled">
-                <li class="mb-2"><strong>TrackFormer</strong> &mdash; a 21&nbsp;M-parameter transformer that reads a storm's recent 6-hourly track and predicts the <strong>full state</strong> at 20 lead times out to +120&nbsp;h: motion, max wind, central pressure, radius of max wind, and the 34/50/64&nbsp;kt wind radii in four quadrants</li>
-                <li class="mb-2"><strong>Track-only, yet competitive</strong> &mdash; on a held-out Western-Pacific test it matches an ERA5-conditioned model (720 vs 729&nbsp;km mean track error) using no atmospheric data at all; the lesson across experiments was <em>data diversity &gt; engineered features &gt; parameters</em></li>
+                <li class="mb-2"><strong>TrackFormer v3</strong> &mdash; a 15&nbsp;M-parameter <em>protected dual-stream</em> transformer that reads a storm's recent 6-hourly track and predicts the <strong>full state</strong> at 20 lead times out to +120&nbsp;h: motion, max wind, central pressure, radius of max wind, and the 34/50/64&nbsp;kt wind radii in four quadrants</li>
+                <li class="mb-2"><strong>Track-only, and better than ERA5</strong> &mdash; on a held-out Western-Pacific test it beats a full ERA5-conditioned model (659 vs 729&nbsp;km mean track error) using no atmospheric data at all. Separate kinematic/thermodynamic encoders remove the <em>negative transfer</em> that made extra features hurt track accuracy; the lesson across experiments was <em>data diversity &gt; engineered features &gt; parameters</em></li>
                 <li class="mb-2"><strong>Runs client-side</strong> &mdash; exported to an int8 ONNX (~30&nbsp;MB) and executed with onnxruntime-web; no server, no cold start, works on an iPad</li>
                 <li class="mb-2"><strong>Live &amp; honest</strong> &mdash; overlays its forecast on the JMA official track for active storms, and lets you scrub any historical storm to forecast forward against what actually happened. Clearly flagged experimental &mdash; not an operational warning system</li>
               </ul>
@@ -1306,7 +1306,7 @@
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">The models</h5>
                   <ul class="small mb-0 text-start">
-                    <li><strong>TrackFormer</strong> &mdash; 21&nbsp;M params, track-only (deployed)</li>
+                    <li><strong>TrackFormer v3</strong> &mdash; 15&nbsp;M params, track-only dual-stream (deployed)</li>
                     <li><strong>StormFusion-MT</strong> &mdash; 3.3&nbsp;M params, ERA5 patches + track</li>
                     <li>Trained on IBTrACS v04r01 (all basins, 1980+) &amp; ERA5</li>
                     <li>84,150 storm-centred training windows</li>
