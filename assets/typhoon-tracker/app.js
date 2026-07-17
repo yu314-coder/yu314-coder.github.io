@@ -1810,20 +1810,22 @@
     aiRun(els.typhoonSelect ? jmaCache[els.typhoonSelect.value] : null);
   }
 
-  /* --- Track-mode hindcast, powered by TrackFormer -------------------------
-     The live overlay's model needs an ERA5 steering patch that doesn't exist
-     for a PAST date, so a field-less run there just drifts. TrackFormer
-     (github.com/yu314-coder/typhoon-predict) is track-ONLY and on a WP-2020+
-     held-out test matches the ERA5 model — so a past hindcast becomes a real,
-     location-aware forecast with NO field. It reads 9 six-hourly history fixes
-     (position, wind, pressure, wind radii) and outputs 20 six-hourly leads of
-     the full storm state (motion, wind, pressure, RMW, 34/50/64-kt radii). The
-     feature build below mirrors build_track_only.py and is validated bit-for-
-     bit against its Python reference. Radii: IBTrACS is nmile, our track JSON
-     is km, so ÷1.852 going in and ×1.852 coming out. ~30 MB int8 ONNX, lazily
-     loaded only when the user asks for a hindcast. ------------------------- */
-  var TF_MODEL_URL = "model/trackformer.int8.onnx";
-  var TF_META_URL = "model/trackformer-meta.json?v=20260716a";
+  /* --- TrackFormer v3 — powers BOTH the live overlay and the track-mode hindcast.
+     A track-ONLY model (github.com/yu314-coder/typhoon-predict), so it needs no
+     ERA5 field and runs anywhere in the browser. v3 is a "protected dual-stream"
+     architecture (separate kinematic/thermodynamic encoders + a persistence-
+     residual track head) that on a WP-2020+ held-out test cuts track error to
+     659 km, −61 vs the single-stream model and better than the full ERA5 model.
+     It reads 9 six-hourly history fixes as a 48-dim vector (position, motion,
+     wind, pressure, RMW, wind radii, + motion-dynamics: heading/speed/turn and
+     Δwind/Δpressure) PLUS the current velocity v0, and outputs 20 six-hourly
+     leads of the full storm state (motion, wind, pressure, RMW, 34/50/64-kt
+     radii). The feature build mirrors build_track_v2.py and is validated bit-
+     for-bit against its Python reference. Radii/RMW: IBTrACS is nmile, our JSON
+     is km, so ÷1.852 going in and ×1.852 coming out. ~22 MB int8 ONNX, lazily
+     loaded only when a forecast is requested. --------------------------------- */
+  var TF_MODEL_URL = "model/trackformer-v3.int8.onnx";
+  var TF_META_URL = "model/trackformer-v3-meta.json?v=20260717a";
   var TF_NM = 1.852;                                    // km per nautical mile
   var tfRT = { session: null, meta: null };
   var hindcastTraceCount = 0;
@@ -1856,20 +1858,25 @@
     var o = []; for (var q = 0; q < 4; q++) { var v = a[q]; o.push(v != null && isFinite(v) ? v / TF_NM : NaN); }
     return o;
   }
-  // Build the normalized [9,40] track-history tensor exactly as build_track_only.py does.
+  // Build the normalized [9,48] track-history tensor + current velocity v0, exactly
+  // as build_track_v2.py does (TrackFormer v3's protected dual-stream input). The
+  // first 40 features match build_track_only.py; 40:48 are motion-dynamics (step
+  // heading sin/cos, speed, turn/recurvature, Δvmax, Δpressure, 2 validity flags).
   function tfBuildFeat(pts, baseHour) {
-    var meta = tfRT.meta, mean = meta.track_mean, std = meta.track_std;
+    var meta = tfRT.meta, mean = meta.track_mean, std = meta.track_std, D = meta.feat_dim || 48;
     pts = pts.filter(function (p) { return p.la != null && p.lo != null; });
     var bi = tfNearestIdx(pts, baseHour);
     if (bi < 0) return { ok: false };
     var base = pts[bi], phase = 2 * Math.PI * tfDoy(base.t) / 365.25, sp = Math.sin(phase), cp = Math.cos(phase);
     var hidx = []; for (var i = 8; i >= 0; i--) hidx.push(tfNearestIdx(pts, base.h - 6 * i));   // -48 h..0
     if (hidx.indexOf(-1) >= 0) return { ok: false, base: base };
-    var feat = new Float32Array(9 * 40), prev = -1;
+    var feat = new Float32Array(9 * D), prev = -1, prevDir = null, v0 = [0, 0];
     for (var k = 0; k < 9; k++) {
-      var p = pts[hidx[k]], off = k * 40, raw = new Array(40); for (var z = 0; z < 40; z++) raw[z] = 0;
+      var p = pts[hidx[k]], off = k * D, raw = new Array(D); for (var z = 0; z < D; z++) raw[z] = 0;
       var en = tfMotionKm(base.la, base.lo, p.la, p.lo); raw[0] = en[0]; raw[1] = en[1];
-      if (prev >= 0) { var s2 = tfMotionKm(pts[prev].la, pts[prev].lo, p.la, p.lo); raw[2] = s2[0]; raw[3] = s2[1]; }
+      var se = 0, sn = 0;
+      if (prev >= 0) { var s2 = tfMotionKm(pts[prev].la, pts[prev].lo, p.la, p.lo); se = s2[0]; sn = s2[1]; }
+      raw[2] = se; raw[3] = sn;
       var vals = [p.w, p.p, NaN, (p.rm != null ? p.rm / TF_NM : NaN)];   // vmax, pressure, gust(absent), rmw (km->nm)
       for (var j = 0; j < 4; j++) raw[4 + j] = (vals[j] != null && isFinite(vals[j])) ? vals[j] : 0;
       var rad = tfRadiiNm(p, "r3").concat(tfRadiiNm(p, "r5"), tfRadiiNm(p, "r6"));
@@ -1878,18 +1885,34 @@
       var fields = vals.concat(rad);
       for (var jf = 0; jf < 4; jf++) raw[24 + jf] = (fields[jf] != null && isFinite(fields[jf])) ? 1 : 0;
       for (var jg = 0; jg < 12; jg++) raw[28 + jg] = isFinite(fields[4 + jg]) ? 1 : 0;
-      for (var c = 0; c < 40; c++) { var vv = (raw[c] - mean[c]) / std[c]; feat[off + c] = isFinite(vv) ? vv : 0; }
+      // motion dynamics (40:48)
+      var speed = Math.hypot(se, sn), hsin = 0, hcos = 0;
+      if (speed > 1e-3 && prev >= 0) { hsin = se / speed; hcos = sn / speed; }
+      raw[40] = hsin; raw[41] = hcos; raw[42] = speed;
+      raw[43] = (prevDir && (hsin || hcos) && (prevDir[0] || prevDir[1])) ? (prevDir[0] * hcos - prevDir[1] * hsin) : 0;
+      if (prev >= 0) {
+        var pv = pts[prev], dvok = (pv.w != null && isFinite(pv.w) && p.w != null && isFinite(p.w));
+        var dpok = (pv.p != null && isFinite(pv.p) && p.p != null && isFinite(p.p));
+        raw[44] = dvok ? (p.w - pv.w) : 0; raw[45] = dpok ? (p.p - pv.p) : 0;
+        raw[46] = dvok ? 1 : 0; raw[47] = dpok ? 1 : 0;
+      }
+      if (hsin || hcos) prevDir = [hsin, hcos];
+      if (k === 8) v0 = [se, sn];   // current velocity (raw km/6h) for the persistence-residual head
+      for (var c = 0; c < D; c++) { var vv = (raw[c] - mean[c]) / std[c]; feat[off + c] = isFinite(vv) ? vv : 0; }
       prev = hidx[k];
     }
-    return { ok: true, feat: feat, base: base };
+    return { ok: true, feat: feat, base: base, v0: v0 };
   }
   function tfRunModel(pts, baseHour) {
     var built = tfBuildFeat(pts, baseHour);
     if (!built.ok) return Promise.reject(new Error(built.base
       ? "Need about two days of 6-hourly track before this point — scrub a bit later."
       : "No usable track history at this point."));
-    var meta = tfRT.meta, TS = meta.target_scale, leads = meta.lead_hours, O = meta.out_dim;
-    return tfRT.session.run({ track: new window.ort.Tensor("float32", built.feat, [1, 9, 40]) }).then(function (res) {
+    var meta = tfRT.meta, TS = meta.target_scale, leads = meta.lead_hours, O = meta.out_dim, D = meta.feat_dim || 48;
+    return tfRT.session.run({
+      track: new window.ort.Tensor("float32", built.feat, [1, 9, D]),
+      v0: new window.ort.Tensor("float32", new Float32Array(built.v0), [1, 2])
+    }).then(function (res) {
       var state = (res.state || res[Object.keys(res)[0]]).data;
       var base = built.base, la = base.la, lo = base.lo, points = [];
       for (var i = 0; i < leads.length; i++) {
