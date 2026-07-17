@@ -1829,8 +1829,16 @@
      int8 ONNX, lazily loaded only when a forecast is requested. --------------- */
   var TF_MODEL_URL = "model/trackformer-v8.int8.onnx";
   var TF_META_URL = "model/trackformer-v8-meta.json?v=20260717v8";
+  // Probabilistic ensemble on v8 (no retraining): a 40x40 Cholesky L of the model's
+  // own forecast-error covariance (20 leads x 2 axes) + a per-lead 90% cone radius.
+  // Sampling L·z gives CROSS-LEAD-CORRELATED noise, so drawn routes are coherent
+  // (smooth) rather than jagged. Computed offline (ensemble_v8.py); the "sample"
+  // covariance won on WP-2020+ energy score (cover90 0.82) — a diagonal cov collapses
+  // to 0.20, which is why the correlation structure matters.
+  var TF_ENS_URL = "model/trackformer-v8-ensemble.json?v=20260717v8";
   var TF_NM = 1.852;                                    // km per nautical mile
-  var tfRT = { session: null, meta: null };
+  var TF_ENS_N = 40;                                    // ensemble routes to draw
+  var tfRT = { session: null, meta: null, ens: null };
   var hindcastTraceCount = 0;
   function tfEnsureModel() {
     if (tfRT.session) return Promise.resolve();
@@ -1838,9 +1846,49 @@
       try { window.ort.env.wasm.wasmPaths = ORT_WASM; } catch (e) {}
       return Promise.all([
         fetch(TF_META_URL).then(function (r) { return r.json(); }),
-        window.ort.InferenceSession.create(TF_MODEL_URL)
+        window.ort.InferenceSession.create(TF_MODEL_URL),
+        fetch(TF_ENS_URL).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
       ]);
-    }).then(function (r) { tfRT.meta = r[0]; tfRT.session = r[1]; });
+    }).then(function (r) { tfRT.meta = r[0]; tfRT.session = r[1]; tfRT.ens = r[2]; });
+  }
+  // Deterministic seeded standard-normals (mulberry32 + Box–Muller) so ensemble
+  // routes stay stable across follow-the-playhead redraws (no flicker), yet morph
+  // smoothly as the forecast changes.
+  function tfRng(seed) {
+    return function () {
+      seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+      var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function tfNormals(n, seed) {
+    var r = tfRng(seed), out = new Float64Array(n);
+    for (var i = 0; i < n; i += 2) {
+      var m = Math.sqrt(-2 * Math.log(Math.max(1e-12, r()))), a = 6.283185307179586 * r();
+      out[i] = m * Math.cos(a); if (i + 1 < n) out[i + 1] = m * Math.sin(a);
+    }
+    return out;
+  }
+  // Sample TF_ENS_N coherent routes from L: eps = L·z (correlated per-step motion
+  // error, km), added to the deterministic per-step motion, then cumulatively
+  // walked into lat/lon exactly as tfRunModel does. Returns one null-separated
+  // {lat,lon} pair for a single Plotly trace (keeps the fixed trace layout intact).
+  function tfSpaghetti(fc) {
+    var ens = tfRT.ens; if (!ens || !ens.L || !fc.motion) return { lat: [], lon: [] };
+    var L = ens.L, mot = fc.motion, la0 = fc.initial_lat, lo0 = fc.initial_lon, lat = [], lon = [];
+    for (var m = 0; m < TF_ENS_N; m++) {
+      var z = tfNormals(40, 1013 + m * 9161), la = la0, lo = lo0;
+      for (var k = 0; k < 20; k++) {
+        var eE = 0, eN = 0, rE = (2 * k) * 40, rN = (2 * k + 1) * 40;   // rows of L for this lead's E,N
+        for (var j = 0; j <= 2 * k + 1; j++) { if (j <= 2 * k) eE += L[rE + j] * z[j]; eN += L[rN + j] * z[j]; }
+        var e = mot[k][0] + eE, n = mot[k][1] + eN;
+        var la2 = la + n / 111.2, lo2 = lo + e / (111.2 * Math.cos((la + la2) / 2 * Math.PI / 180));
+        lat.push(la2); lon.push(lo2); la = la2; lo = lo2;
+      }
+      lat.push(null); lon.push(null);   // break between routes
+    }
+    return { lat: lat, lon: lon };
   }
   function tfDoy(t) {
     var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(t || "");
@@ -1917,9 +1965,10 @@
       v0: new window.ort.Tensor("float32", new Float32Array(built.v0), [1, 2])
     }).then(function (res) {
       var state = (res.state || res[Object.keys(res)[0]]).data;
-      var base = built.base, la = base.la, lo = base.lo, points = [];
+      var base = built.base, la = base.la, lo = base.lo, points = [], motion = [];
       for (var i = 0; i < leads.length; i++) {
         var o = i * O, e = state[o] * TS[0], n = state[o + 1] * TS[1];
+        motion.push([e, n]);                                       // per-step motion (km) for the ensemble
         var la2 = la + n / 111.2, lo2 = lo + e / (111.2 * Math.cos((la + la2) / 2 * Math.PI / 180));
         var radiiKm = []; for (var q = 0; q < 12; q++) radiiKm.push(Math.max(0, state[o + 5 + q]) * TS[5 + q] * TF_NM);
         points.push({ lead_hours: leads[i], lat: la2, lon: lo2,
@@ -1927,24 +1976,26 @@
           radiiKm: radiiKm });
         la = la2; lo = lo2;
       }
-      // Uncertainty cone. The model's own log-scale head is miscalibrated (its
-      // north-position channel saturates at the clamp), which blew the cone up to
-      // ~40,000 km — so size it from a climatological track-error growth instead,
-      // and lay each half-width PERPENDICULAR to the local heading: a proper
-      // widening cone, not a diagonal smear.
+      // Uncertainty cone. Half-width per lead is the ensemble's data-driven 90%
+      // position radius (from v8's own forecast-error covariance, cone_km), laid
+      // PERPENDICULAR to the local heading. Falls back to a climatological growth
+      // (~3.3 km/h) if the ensemble artifact didn't load. (The model's raw log-scale
+      // head is miscalibrated — it saturates and blew the cone to ~40,000 km — so
+      // the covariance-derived cone replaces it.)
+      var coneKm = (tfRT.ens && tfRT.ens.cone_km) ? tfRT.ens.cone_km : null;
       var prevLat = base.la, prevLon = base.lo;
       for (var k = 0; k < points.length; k++) {
         var p = points[k];
         var cosk = Math.cos(p.lat * Math.PI / 180) || 1e-6;
         var dxE = (aiPmod(p.lon - prevLon + 180, 360) - 180) * cosk, dyN = p.lat - prevLat;
         var mag = Math.hypot(dxE, dyN) || 1e-6, pE = -dyN / mag, pN = dxE / mag;   // unit perpendicular
-        var hwDeg = (3.3 * p.lead_hours) / 111.2;                                   // half-width km -> deg (~400 km at +120 h)
+        var hwDeg = (coneKm ? coneKm[k] : 3.3 * p.lead_hours) / 111.2;              // half-width km -> deg
         var offLat = pN * hwDeg, offLon = (pE * hwDeg) / cosk;
         p.p90_lat = p.lat + offLat; p.p90_lon = p.lon + offLon;   // right edge
         p.p10_lat = p.lat - offLat; p.p10_lon = p.lon - offLon;   // left edge
         prevLat = p.lat; prevLon = p.lon;
       }
-      return { initial_lat: base.la, initial_lon: base.lo, initial_vmax: base.w, points: points };
+      return { initial_lat: base.la, initial_lon: base.lo, initial_vmax: base.w, points: points, motion: motion };
     });
   }
   // The model predicts vmax (1-min); classify it in whichever standard is active so
@@ -2032,16 +2083,21 @@
       meanLat: meanLat, meanLon: meanLon, meanTxt: meanTxt, meanColors: tfCatColors(fc) };
   }
   function tfHindcastStatusText() {
-    return "🧪 " + (currentStorm.name || "This storm") + " — my TrackFormer model forecast from this point, dots coloured by forecast intensity category (hover for wind, pressure & 34/50/64 kt radii; faint rings = predicted gale radius), vs what actually happened (white). Press play and it re-forecasts as the storm moves. Experimental, not an official forecast.";
+    var ens = tfRT.ens ? " Faint green lines are an ensemble of possible tracks sampled from the model's own forecast-error covariance; the shaded cone is the 90% area." : "";
+    return "🧪 " + (currentStorm.name || "This storm") + " — my TrackFormer model forecast from this point, dots coloured by forecast intensity category (hover for wind, pressure & 34/50/64 kt radii; faint rings = predicted gale radius), vs what actually happened (white)." + ens + " Press play and it re-forecasts as the storm moves. Experimental, not an official forecast.";
   }
   function aiDrawHindcast(fc, initHour) {
     aiClearHindcast();
-    var d = tfHindcastData(fc, initHour);
+    var d = tfHindcastData(fc, initHour), sp = tfSpaghetti(fc);
     function ring(r) { return { type: "scattergeo", mode: "lines", lat: r.lat, lon: r.lon, fill: "toself",
       fillcolor: "rgba(52,211,153,0.05)", line: { color: "rgba(52,211,153,0.28)", width: 1 }, hoverinfo: "text", text: r.text, showlegend: false }; }
+    // Fixed 7-trace layout so the follow-the-playhead restyle stays in place:
+    // cone, ensemble routes (one null-separated trace), 3 rings, actual, mean.
     var traces = [
       { type: "scattergeo", mode: "lines", lat: d.coneLat, lon: d.coneLon, fill: "toself",
-        fillcolor: "rgba(52,211,153,0.09)", line: { color: "rgba(52,211,153,0.3)", width: 1 }, hoverinfo: "skip", showlegend: false },
+        fillcolor: "rgba(52,211,153,0.08)", line: { color: "rgba(52,211,153,0.28)", width: 1 }, hoverinfo: "skip", showlegend: false },
+      { type: "scattergeo", mode: "lines", lat: sp.lat, lon: sp.lon, connectgaps: false,
+        line: { color: "rgba(52,211,153,0.14)", width: 1 }, hoverinfo: "skip", showlegend: false },
       ring(d.rings[0]), ring(d.rings[1]), ring(d.rings[2]),
       { type: "scattergeo", mode: "lines", lat: d.actLat, lon: d.actLon,
         line: { color: "rgba(255,255,255,0.9)", width: 2.5 }, hoverinfo: "text", text: ACT_HOVER, showlegend: false },
@@ -2051,21 +2107,21 @@
         text: d.meanTxt, hoverinfo: "text", showlegend: false }
     ];
     Plotly.addTraces(els.map, traces);
-    hindcastTraceCount = traces.length;   // fixed 6, so a follow-update can restyle in place
+    hindcastTraceCount = traces.length;   // fixed 7, so a follow-update can restyle in place
     if (els.hindcastBtn) { els.hindcastBtn.setAttribute("aria-pressed", "true"); els.hindcastBtn.classList.add("is-on"); }
     aiSetHindcastStatus(tfHindcastStatusText(), "on");
   }
   // In-place update (restyle) so the overlay follows the playhead smoothly, no
   // flicker from delete+add. Falls back to a full redraw if the layout drifted.
   function aiUpdateHindcast(fc, initHour) {
-    if (hindcastTraceCount !== 6) { aiDrawHindcast(fc, initHour); return; }
-    var d = tfHindcastData(fc, initHour), n = els.map.data.length, i0 = n - 6;
+    if (hindcastTraceCount !== 7) { aiDrawHindcast(fc, initHour); return; }
+    var d = tfHindcastData(fc, initHour), sp = tfSpaghetti(fc), n = els.map.data.length, i0 = n - 7;
     Plotly.restyle(els.map, {
-      lat: [d.coneLat, d.rings[0].lat, d.rings[1].lat, d.rings[2].lat, d.actLat, d.meanLat],
-      lon: [d.coneLon, d.rings[0].lon, d.rings[1].lon, d.rings[2].lon, d.actLon, d.meanLon]
-    }, [i0, i0 + 1, i0 + 2, i0 + 3, i0 + 4, i0 + 5]);
-    Plotly.restyle(els.map, { text: [d.rings[0].text, d.rings[1].text, d.rings[2].text, ACT_HOVER, d.meanTxt] }, [i0 + 1, i0 + 2, i0 + 3, i0 + 4, i0 + 5]);
-    Plotly.restyle(els.map, { "marker.color": [d.meanColors] }, [i0 + 5]);
+      lat: [d.coneLat, sp.lat, d.rings[0].lat, d.rings[1].lat, d.rings[2].lat, d.actLat, d.meanLat],
+      lon: [d.coneLon, sp.lon, d.rings[0].lon, d.rings[1].lon, d.rings[2].lon, d.actLon, d.meanLon]
+    }, [i0, i0 + 1, i0 + 2, i0 + 3, i0 + 4, i0 + 5, i0 + 6]);
+    Plotly.restyle(els.map, { text: [d.rings[0].text, d.rings[1].text, d.rings[2].text, ACT_HOVER, d.meanTxt] }, [i0 + 2, i0 + 3, i0 + 4, i0 + 5, i0 + 6]);
+    Plotly.restyle(els.map, { "marker.color": [d.meanColors] }, [i0 + 6]);
   }
   // While the overlay is on, re-forecast from the current playhead as the animation
   // (or a manual scrub) moves — throttled + in-flight-guarded + updated in place.
