@@ -1812,38 +1812,41 @@
     aiRun(els.typhoonSelect ? jmaCache[els.typhoonSelect.value] : null);
   }
 
-  /* --- TrackFormer v9 — powers BOTH the live overlay and the track-mode hindcast.
+  /* --- TrackFormer v10 — powers BOTH the live overlay and the track-mode hindcast.
      Still a NO-REANALYSIS model (github.com/yu314-coder/typhoon-predict): every input
      is derived from the track itself, so it runs anywhere in the browser. v9 adds a
      third "protected" stream to v8's kinematic+thermodynamic pair — an ENVIRONMENT
      encoder over absolute position (lat, |lat|, sin/cos lon), distance-to-land and a
      lat+month climatological SST proxy. v8 was position-BLIND (translation-invariant,
      relative motion only); giving the model absolute latitude — Coriolis, recurvature,
-     SST-latitude — cut WP-2020+ track to 618 km (−31 vs v8) and vmax to 18.6 kt (−2.1).
+     SST-latitude — cut WP-2020+ track to 618 km (v9). v10 adds a CURVED persistence
+     baseline: it takes the last TWO velocities (vpair) and extrapolates the current
+     turn rate per lead instead of a straight line, giving 614 km.
      Inputs: 9 six-hourly history fixes as a 54-dim vector (48 as before + 6 environment)
-     PLUS the current velocity v0; outputs 20 six-hourly leads of the full 17-dim storm
+     PLUS vpair (the last two 6 h velocities); outputs 20 six-hourly leads of the full 17-dim storm
      state. The feature build mirrors build_track_v9.py; dist2land isn't in our per-fix
      data so it's fed as the training mean (normalises to 0 — exactly how the builder
      treats a missing DIST2LAND). v9's own train-time normalization ships in the meta.
-     Verified: our export reproduces the published 618 km exactly (618.4), the fp32 ONNX
+     Verified: our v9 export reproduced the published 618 km exactly (618.4); v10 gives
+     614.2 km on the same held-out set. The fp32 ONNX
      is bit-exact to PyTorch, int8 costs ~3 physical units. Radii/RMW: IBTrACS is nmile,
      our JSON is km, so ÷1.852 in and ×1.852 out. ~18 MB int8 ONNX, lazily loaded only
      when a forecast is requested. ------------------------------------------------- */
-  var TF_MODEL_URL = "model/trackformer-v9.int8.onnx";
-  var TF_META_URL = "model/trackformer-v9-meta.json?v=20260719v9";
+  var TF_MODEL_URL = "model/trackformer-v10.int8.onnx";
+  var TF_META_URL = "model/trackformer-v10-meta.json?v=20260719v10";
   // Probabilistic ensemble on v8 (no retraining): a 40x40 Cholesky L of the model's
   // own forecast-error covariance (20 leads x 2 axes) + a per-lead 90% cone radius.
   // Sampling L·z gives CROSS-LEAD-CORRELATED noise, so drawn routes are coherent
   // (smooth) rather than jagged. Computed offline (ensemble_v8.py); the "sample"
   // covariance won on WP-2020+ energy score (cover90 0.82) — a diagonal cov collapses
   // to 0.20, which is why the correlation structure matters.
-  var TF_ENS_URL = "model/trackformer-v9-ensemble.json?v=20260719v9";
+  var TF_ENS_URL = "model/trackformer-v10-ensemble.json?v=20260719v10";
   // Multi-initialisation CONSENSUS (make_rmt_tracks.py + smooth_consensus.py): at each valid
   // time the members are forecasts from different init times, so they carry different leads.
   // Combine them min-variance, w = C^-1 1 / (1' C^-1 1) over the lead x lead position-error
   // covariance C, then run a constant-velocity Kalman + RTS smoother so the track has physical
   // momentum instead of jumping when the short-lead membership rotates.
-  var TF_CONS_URL = "model/trackformer-v9-consensus.json?v=20260719v9";
+  var TF_CONS_URL = "model/trackformer-v10-consensus.json?v=20260719v10";
   var TF_NM = 1.852;                                    // km per nautical mile
   var TF_ENS_N = 40;                                    // ensemble routes to draw
   var tfRT = { session: null, meta: null, ens: null, cons: null };
@@ -1946,7 +1949,7 @@
     var base = pts[bi], phase = 2 * Math.PI * tfDoy(base.t) / 365.25, sp = Math.sin(phase), cp = Math.cos(phase);
     var hidx = []; for (var i = 8; i >= 0; i--) hidx.push(tfNearestIdx(pts, base.h - 6 * i));   // -48 h..0
     if (hidx.indexOf(-1) >= 0) return { ok: false, base: base };
-    var feat = new Float32Array(9 * D), prev = -1, prevDir = null, v0 = [0, 0];
+    var feat = new Float32Array(9 * D), prev = -1, prevDir = null, v0 = [0, 0], vp = [0, 0];
     for (var k = 0; k < 9; k++) {
       var p = pts[hidx[k]], off = k * D, raw = new Array(D); for (var z = 0; z < D; z++) raw[z] = 0;
       var en = tfMotionKm(base.la, base.lo, p.la, p.lo); raw[0] = en[0]; raw[1] = en[1];
@@ -1988,11 +1991,14 @@
         raw[53] = Math.max(0, Math.min(31, 30 - 0.30 * Math.pow(Math.abs(p.la - thermal), 1.4)));
       }
       if (hsin || hcos) prevDir = [hsin, hcos];
+      if (k === 7) vp = [se, sn];   // previous 6 h velocity — v10 needs the TURN for its curved baseline
       if (k === 8) v0 = [se, sn];   // current velocity (raw km/6h) for the persistence-residual head
       for (var c = 0; c < D; c++) { var vv = (raw[c] - mean[c]) / std[c]; feat[off + c] = isFinite(vv) ? vv : 0; }
       prev = hidx[k];
     }
-    return { ok: true, feat: feat, base: base, v0: v0 };
+    // v10 takes vpair = [v0_east, v0_north, vp_east, vp_north]: two velocities let it
+    // extrapolate the current turn rate instead of a straight persistence line.
+    return { ok: true, feat: feat, base: base, v0: v0, vpair: [v0[0], v0[1], vp[0], vp[1]] };
   }
   function tfRunModel(pts, baseHour) {
     var built = tfBuildFeat(pts, baseHour);
@@ -2002,7 +2008,7 @@
     var meta = tfRT.meta, TS = meta.target_scale, leads = meta.lead_hours, O = meta.out_dim, D = meta.feat_dim || 48;
     return tfRT.session.run({
       track: new window.ort.Tensor("float32", built.feat, [1, 9, D]),
-      v0: new window.ort.Tensor("float32", new Float32Array(built.v0), [1, 2])
+      vpair: new window.ort.Tensor("float32", new Float32Array(built.vpair), [1, 4])
     }).then(function (res) {
       var state = (res.state || res[Object.keys(res)[0]]).data;
       var base = built.base, la = base.la, lo = base.lo, points = [], motion = [];
