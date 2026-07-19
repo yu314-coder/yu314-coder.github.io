@@ -1858,9 +1858,6 @@
   // Overlay tags. Both overlays can be on at once (the consensus stays visible while the
   // hindcast animates), so traces are located by tag, never by position in els.map.data.
   var TF_HIND = "tf-hind", TF_CONS = "tf-cons", TF_CONS_ACT = "tf-cons-act";
-  // Consensus horizon: only forecasts made at least this far ahead are combined, so the
-  // yellow line is a genuine PREDICTION rather than a re-tracing of the observations.
-  var TF_CONS_MIN_LEAD_H = 72;
   function tfTraceIdx(tag) {
     var out = [], data = (els.map && els.map.data) || [];
     for (var i = 0; i < data.length; i++) if (data[i].meta === tag) out.push(i);
@@ -2395,7 +2392,12 @@
     consFollowTs = now; consFollowRun = true;
     var h = Number(els.slider.value);
     tfConsensus(currentStorm.pts, h).then(function (c) {
-      if (c && consensusTraceCount > 0) aiUpdateConsensus(c, h);
+      if (consensusTraceCount > 0) {
+        // Near the end of the record there is nothing left to forecast. Blank the line
+        // rather than leaving the previous one on screen: a stale forecast anchored to
+        // an old position reads as a current one, and it is hundreds of km adrift.
+        if (c) aiUpdateConsensus(c, h); else aiBlankConsensus(h);
+      }
       consFollowRun = false;
     }, function () { consFollowRun = false; });
   }
@@ -2470,6 +2472,18 @@
       + (inSample ? "\u26A0\uFE0F This storm (" + yr + ") is in the model's TRAINING data; try a 2020+ storm or "
           + "Tip 1979 for an honest out-of-sample view. " : "")
       + "Experimental, not an official forecast.", "on");
+  }
+  // Nothing forecastable from here: clear the forecast and its rings, but keep showing
+  // whatever real track remains ahead so the panel doesn't just go blank.
+  function aiBlankConsensus(baseHour) {
+    var idx = tfTraceIdx(TF_CONS).concat(tfTraceIdx(TF_CONS_ACT)).sort(function (a, b) { return a - b; });
+    if (idx.length !== 6) return;
+    var actLat = [], actLon = [];
+    (currentStorm.pts || []).forEach(function (p) {
+      if (p.la != null && p.h != null && p.h >= baseHour - 0.01) { actLat.push(p.la); actLon.push(p.lo); }
+    });
+    Plotly.restyle(els.map, { lat: [[], [], [], [], actLat, []], lon: [[], [], [], [], actLon, []] },
+      [idx[0], idx[1], idx[2], idx[3], idx[4], idx[5]]);
   }
   // In-place restyle so the forecast follows the playhead without flicker.
   function aiUpdateConsensus(c, baseHour) {
