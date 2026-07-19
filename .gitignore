@@ -1,2 +1,6 @@
 .DS_Store
 .claude/
+
+# Local-only field-model demo: 14 MB ONNX + NCEP-derived steering.
+# Not servable from GitHub Pages; regenerate from /Volumes/D/typhoon_predict.
+assets/typhoon-tracker/local/
