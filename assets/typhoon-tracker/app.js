@@ -7,7 +7,7 @@
   "use strict";
 
   var DATA_BASE = "../data/typhoons/";
-  var DATA_V = "?v=20260716e";   // bump when the season/index JSON is regenerated (e.g. RMW added)
+  var DATA_V = "?v=20260719tip";   // bump when the season/index JSON is regenerated (e.g. RMW added)
   var DEFAULT_STORM = { name: "Haiyan", season: 2013 };
   var DEFAULT_GEO = { lon: 150, lat: 20, lonRange: [95, 205], latRange: [-2, 55], scale: 1 };
   var currentGeoScale = DEFAULT_GEO.scale;
@@ -44,7 +44,6 @@
     aiBtn: document.getElementById("tt-ai-btn"),
     aiStatus: document.getElementById("tt-ai-status"),
     hindcastBtn: document.getElementById("tt-hindcast-btn"),
-    consensusBtn: document.getElementById("tt-consensus-btn"),
     hindcastStatus: document.getElementById("tt-hindcast-status"),
     fcSlider: document.getElementById("tt-fc-slider"),
     fcTime: document.getElementById("tt-fc-time"),
@@ -844,7 +843,6 @@
     hindcastTraceCount = 0;
     if (els.hindcastBtn) { els.hindcastBtn.setAttribute("aria-pressed", "false"); els.hindcastBtn.classList.remove("is-on"); }
     consensusTraceCount = 0;
-    if (els.consensusBtn) { els.consensusBtn.setAttribute("aria-pressed", "false"); els.consensusBtn.classList.remove("is-on"); }
     aiSetHindcastStatus("");
     currentGeoScale = DEFAULT_GEO.scale;
     var pts = currentStorm.pts;
@@ -1855,7 +1853,7 @@
   var TF_HIND = "tf-hind", TF_CONS = "tf-cons", TF_CONS_ACT = "tf-cons-act";
   // Consensus horizon: only forecasts made at least this far ahead are combined, so the
   // yellow line is a genuine PREDICTION rather than a re-tracing of the observations.
-  var TF_CONS_MIN_LEAD_H = 0;
+  var TF_CONS_MIN_LEAD_H = 72;
   function tfTraceIdx(tag) {
     var out = [], data = (els.map && els.map.data) || [];
     for (var i = 0; i < data.length; i++) if (data[i].meta === tag) out.push(i);
@@ -2295,19 +2293,33 @@
           for (i2 = 0; i2 < m; i2++) { var s4 = 0; for (j2 = 0; j2 < m; j2++) s4 += inv[i2 * m + j2]; w[i2] = Math.max(0, s4); sum += w[i2]; denom += s4; }
         }
         if (!inv || sum <= 0) { for (i2 = 0; i2 < m; i2++) w[i2] = 1 / m; sum = 1; denom = m / Math.max(C[0], 1); }
-        var la = 0, lo = 0;
-        for (i2 = 0; i2 < m; i2++) { la += (w[i2] / sum) * mem[i2].lat; lo += (w[i2] / sum) * mem[i2].lon; }
+        // Average longitudes as WRAPPED offsets from a reference member. A plain mean
+        // breaks across the dateline (179.5 and -179.8 average to ~0, i.e. Africa) —
+        // which sent Tip 1979's consensus to 40 E.
+        var la = 0, ref = mem[0].lon, dlo = 0;
+        for (i2 = 0; i2 < m; i2++) {
+          la += (w[i2] / sum) * mem[i2].lat;
+          dlo += (w[i2] / sum) * (aiPmod(mem[i2].lon - ref + 180, 360) - 180);
+        }
+        var lo = aiPmod(ref + dlo + 180, 360) - 180;
         zlat.push(la); zlon.push(lo); rvar.push(denom > 0 ? Math.max(1 / denom, 1) : 1e4);
       });
-      // smooth in a local km frame
+      // Smooth in a local km frame. UNWRAP the longitudes into a continuous sequence
+      // first: a dateline-crossing storm (Tip 1979 ran 150 E -> past 180 -> -173 E)
+      // otherwise gets a meaningless mean origin and a 7,700 km jump in the km frame.
+      var unwrapped = [zlon[0]], prevU = zlon[0], u;
+      for (u = 1; u < zlon.length; u++) {
+        prevU = prevU + (aiPmod(zlon[u] - prevU + 180, 360) - 180);
+        unwrapped.push(prevU);
+      }
       var lat0 = zlat.reduce(function (a, b) { return a + b; }, 0) / zlat.length;
-      var lon0 = zlon.reduce(function (a, b) { return a + b; }, 0) / zlon.length;
+      var lon0 = unwrapped.reduce(function (a, b) { return a + b; }, 0) / unwrapped.length;
       var cos0 = Math.cos(lat0 * Math.PI / 180) || 1e-6;
-      var zx = zlon.map(function (v) { return (aiPmod(v - lon0 + 180, 360) - 180) * 111.2 * cos0; });
+      var zx = unwrapped.map(function (v) { return (v - lon0) * 111.2 * cos0; });
       var zy = zlat.map(function (v) { return (v - lat0) * 111.2; });
       var sm = tfRtsSmooth(times, zx, zy, rvar, qA);
       return { lat: sm.y.map(function (v) { return lat0 + v / 111.2; }),
-               lon: sm.x.map(function (v) { return lon0 + v / (111.2 * cos0); }),
+               lon: sm.x.map(function (v) { return aiPmod(lon0 + v / (111.2 * cos0) + 180, 360) - 180; }),
                n: runs.length, times: times };
     });
   }
@@ -2329,60 +2341,58 @@
     var idx0 = tfTraceIdx(TF_CONS).concat(tfTraceIdx(TF_CONS_ACT)).sort(function (a, b) { return a - b; });
     if (idx0.length) Plotly.deleteTraces(els.map, idx0);
     consensusTraceCount = 0;
-    if (els.consensusBtn) { els.consensusBtn.setAttribute("aria-pressed", "false"); els.consensusBtn.classList.remove("is-on"); }
   }
-  function aiConsensusToggle() {
-    if (appMode !== "track" || viewMode !== "storm" || !currentStorm) return;
-    if (consensusTraceCount > 0) { aiClearConsensus(); aiSetHindcastStatus(""); return; }
-    if (aiLoading) return;
-    aiLoading = true;
-    aiSetHindcastStatus(tfRT.session ? "Running every initialisation…" : "Loading my AI model…", "loading");
-    tfEnsureModel().then(function () { return tfConsensus(currentStorm.pts); })
-      .then(function (c) {
-        aiLoading = false;
-        if (!c) { aiSetHindcastStatus("Not enough of this storm to build a consensus.", "err"); return; }
-        Plotly.addTraces(els.map, [{
-          type: "scattergeo", mode: "lines", lat: c.lat, lon: c.lon, meta: TF_CONS,
-          line: { color: "rgb(250,204,21)", width: 3 }, hoverinfo: "text",
-          text: "consensus of " + c.n + " initialisations (min-variance by lead + Kalman/RTS smoothed)",
-          showlegend: false
-        }, {
-          // what actually happened, drawn only as far as the playhead — this is the
-          // trace that "plays" while the animation runs, against the yellow consensus
-          type: "scattergeo", mode: "lines", lat: [], lon: [], meta: TF_CONS_ACT,
-          line: { color: "rgba(255,255,255,0.95)", width: 3 }, hoverinfo: "text",
-          text: ACT_HOVER, showlegend: false
-        }]);
-        consensusTraceCount = 2;
-        consensusFollowTick();          // fill the white line up to the current playhead
-        els.consensusBtn.setAttribute("aria-pressed", "true"); els.consensusBtn.classList.add("is-on");
-        // Honest framing: this is an ANALYSIS, not a forecast. The minimum-variance
-        // solve puts ~89% of the weight on the +6 h member (sigma 34 km vs 1181 km at
-        // +120 h), and a +6 h forecast is near-persistence from the position observed
-        // 6 h earlier — so it necessarily sits close to the real track. Every member is
-        // still model output, and none of them sees data at or after its own valid time.
-        var inSample = currentStorm && Number(currentStorm.season) <= 2015;
-        aiSetHindcastStatus("🧭 Best-estimate track (yellow) — my model re-run from every 6-hourly "
-          + "initialisation (" + c.n + " of them), combined at each time by minimum-variance weighting over lead "
-          + "time and smoothed with a Kalman/RTS filter. This is an ANALYSIS, not a forecast: the weighting "
-          + "lands ~89% on the +6 h member, which is near-persistence, so it deliberately hugs the real track. "
-          + "For actual forecast skill use “Predict from here”. "
-          + (inSample ? "⚠️ This storm (" + currentStorm.season + ") is in the model's TRAINING data — it is "
-              + "in-sample and will flatter the model. Pick a 2020+ storm for an honest out-of-sample view. " : "")
-          + "Press play — the white line is what actually happened, drawn out to the playhead.", "on");
-      })
-      .catch(function (e) { aiLoading = false; aiSetHindcastStatus((e && e.message) || String(e), "err"); });
+  // Draw the consensus produced by tfConsensus(): the yellow multi-init forecast plus
+  // the white "what actually happened" line that walks out to the playhead.
+  function aiDrawConsensus(c) {
+    Plotly.addTraces(els.map, [{
+      type: "scattergeo", mode: "lines", lat: c.lat, lon: c.lon, meta: TF_CONS,
+      line: { color: "rgb(250,204,21)", width: 3 }, hoverinfo: "text",
+      text: "consensus of " + c.n + " initialisations, +" + TF_CONS_MIN_LEAD_H + " h and beyond",
+      showlegend: false
+    }, {
+      type: "scattergeo", mode: "lines", lat: [], lon: [], meta: TF_CONS_ACT,
+      line: { color: "rgba(255,255,255,0.95)", width: 3 }, hoverinfo: "text",
+      text: ACT_HOVER, showlegend: false
+    }]);
+    consensusTraceCount = 2;
+    consensusFollowTick();            // fill the white line up to the current playhead
+    // v9 trains on storms whose first year is 1980..2015, so a pre-1980 storm
+    // (Tip 1979) is genuinely out-of-sample.
+    var yr = currentStorm && Number(currentStorm.season);
+    var inSample = yr >= 1980 && yr <= 2015;
+    aiSetHindcastStatus("🧪 My AI model on " + (currentStorm.name || "this storm") + ". GREEN = forecast from "
+      + "the playhead (dots by predicted category, shaded cone = 90% area, faint lines = ensemble) — it "
+      + "re-forecasts as you play. YELLOW = consensus of " + c.n + " initialisations, built only from forecasts "
+      + "made +" + TF_CONS_MIN_LEAD_H + " h or more ahead, min-variance weighted by lead and Kalman/RTS smoothed. "
+      + "WHITE = what actually happened, drawn out to the playhead — the gap to yellow is the model's real error. "
+      + (inSample ? "⚠️ This storm (" + yr + ") is in the model's TRAINING data, so it flatters the model; "
+          + "pick a 2020+ storm (or Tip 1979) for an honest out-of-sample view. " : "")
+      + "Experimental, not an official forecast.", "on");
   }
+  // ONE control: run v9 from the playhead (cone + ensemble + mean, which follows the
+  // animation) AND the multi-initialisation consensus, drawn together.
   function aiHindcastToggle() {
     if (appMode !== "track" || viewMode !== "storm" || !currentStorm) return;
-    if (hindcastTraceCount > 0) { aiClearHindcast(); return; }   // toggle off
+    if (hindcastTraceCount > 0 || consensusTraceCount > 0) {      // toggle off
+      aiClearHindcast(); aiClearConsensus(); aiSetHindcastStatus(""); return;
+    }
     if (aiLoading) return;
     var initHour = Number(els.slider.value);
     aiLoading = true;
-    aiSetHindcastStatus(tfRT.session ? "Running my AI model…" : "Loading my AI model (~one-time 30 MB download)…", "loading");
+    aiSetHindcastStatus(tfRT.session ? "Running my AI model…" : "Loading my AI model (~one-time 18 MB download)…", "loading");
     tfEnsureModel()
       .then(function () { return tfRunModel(currentStorm.pts, initHour); })
-      .then(function (fc) { aiLoading = false; aiDrawHindcast(fc, initHour); })
+      .then(function (fc) {
+        aiDrawHindcast(fc, initHour);
+        aiSetHindcastStatus("Forecast drawn — now running every initialisation for the consensus…", "loading");
+        return tfConsensus(currentStorm.pts);
+      })
+      .then(function (c) {
+        aiLoading = false;
+        if (c) aiDrawConsensus(c);
+        else aiSetHindcastStatus(tfHindcastStatusText(), "on");
+      })
       .catch(function (e) { aiLoading = false; aiSetHindcastStatus(((e && e.message) || String(e)), "err"); });
   }
 
@@ -2713,7 +2723,6 @@
   if (els.fcSpeed) els.fcSpeed.addEventListener("click", cycleForecastSpeed);
   if (els.aiBtn) els.aiBtn.addEventListener("click", aiToggle);
   if (els.hindcastBtn) els.hindcastBtn.addEventListener("click", aiHindcastToggle);
-  if (els.consensusBtn) els.consensusBtn.addEventListener("click", aiConsensusToggle);
 
   // Rest the forecast sweep when its map isn't on screen: no point spending
   // frames (and Plotly redraws) animating a map the user has scrolled past.
