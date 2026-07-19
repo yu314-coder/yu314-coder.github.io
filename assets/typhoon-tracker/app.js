@@ -1850,6 +1850,14 @@
   var tfRT = { session: null, meta: null, ens: null, cons: null };
   var hindcastTraceCount = 0;
   var consensusTraceCount = 0;
+  // Overlay tags. Both overlays can be on at once (the consensus stays visible while the
+  // hindcast animates), so traces are located by tag, never by position in els.map.data.
+  var TF_HIND = "tf-hind", TF_CONS = "tf-cons";
+  function tfTraceIdx(tag) {
+    var out = [], data = (els.map && els.map.data) || [];
+    for (var i = 0; i < data.length; i++) if (data[i].meta === tag) out.push(i);
+    return out;
+  }
   function tfEnsureModel() {
     if (tfRT.session) return Promise.resolve();
     return (window.ort ? Promise.resolve() : aiLoadScript(ORT_URL)).then(function () {
@@ -2078,11 +2086,8 @@
     els.hindcastStatus.className = "tt-ai-status" + (cls ? " tt-ai-status--" + cls : "");
   }
   function aiClearHindcast() {
-    if (hindcastTraceCount > 0 && els.map.data && els.map.data.length >= hindcastTraceCount) {
-      var n = els.map.data.length, idx = [];
-      for (var i = n - hindcastTraceCount; i < n; i++) idx.push(i);   // hindcast traces are last
-      Plotly.deleteTraces(els.map, idx);
-    }
+    var idx = tfTraceIdx(TF_HIND);
+    if (idx.length) Plotly.deleteTraces(els.map, idx);
     hindcastTraceCount = 0;
     if (els.hindcastBtn) { els.hindcastBtn.setAttribute("aria-pressed", "false"); els.hindcastBtn.classList.remove("is-on"); }
     aiSetHindcastStatus("");
@@ -2119,19 +2124,21 @@
   function aiDrawHindcast(fc, initHour) {
     aiClearHindcast();
     var d = tfHindcastData(fc, initHour), sp = tfSpaghetti(fc);
-    function ring(r) { return { type: "scattergeo", mode: "lines", lat: r.lat, lon: r.lon, fill: "toself",
+    function ring(r) { return { type: "scattergeo", mode: "lines", lat: r.lat, lon: r.lon, fill: "toself", meta: TF_HIND,
       fillcolor: "rgba(52,211,153,0.05)", line: { color: "rgba(52,211,153,0.28)", width: 1 }, hoverinfo: "text", text: r.text, showlegend: false }; }
-    // Fixed 7-trace layout so the follow-the-playhead restyle stays in place:
+    // Fixed 7-trace block so the follow-the-playhead restyle stays in place:
     // cone, ensemble routes (one null-separated trace), 3 rings, actual, mean.
+    // Every trace is tagged so it can be found by tag rather than by tail position —
+    // that lets the consensus overlay coexist with this one during the animation.
     var traces = [
-      { type: "scattergeo", mode: "lines", lat: d.coneLat, lon: d.coneLon, fill: "toself",
+      { type: "scattergeo", mode: "lines", lat: d.coneLat, lon: d.coneLon, fill: "toself", meta: TF_HIND,
         fillcolor: "rgba(52,211,153,0.08)", line: { color: "rgba(52,211,153,0.28)", width: 1 }, hoverinfo: "skip", showlegend: false },
-      { type: "scattergeo", mode: "lines", lat: sp.lat, lon: sp.lon, connectgaps: false,
+      { type: "scattergeo", mode: "lines", lat: sp.lat, lon: sp.lon, connectgaps: false, meta: TF_HIND,
         line: { color: "rgba(52,211,153,0.14)", width: 1 }, hoverinfo: "skip", showlegend: false },
       ring(d.rings[0]), ring(d.rings[1]), ring(d.rings[2]),
-      { type: "scattergeo", mode: "lines", lat: d.actLat, lon: d.actLon,
+      { type: "scattergeo", mode: "lines", lat: d.actLat, lon: d.actLon, meta: TF_HIND,
         line: { color: "rgba(255,255,255,0.9)", width: 2.5 }, hoverinfo: "text", text: ACT_HOVER, showlegend: false },
-      { type: "scattergeo", mode: "lines+markers", lat: d.meanLat, lon: d.meanLon,
+      { type: "scattergeo", mode: "lines+markers", lat: d.meanLat, lon: d.meanLon, meta: TF_HIND,
         line: { color: "rgb(52,211,153)", width: 3, dash: "dash" },
         marker: { size: 7, color: d.meanColors, line: { width: 1.6, color: "rgba(52,211,153,0.95)" } },   // dots by predicted category, emerald-ringed = AI
         text: d.meanTxt, hoverinfo: "text", showlegend: false }
@@ -2144,8 +2151,9 @@
   // In-place update (restyle) so the overlay follows the playhead smoothly, no
   // flicker from delete+add. Falls back to a full redraw if the layout drifted.
   function aiUpdateHindcast(fc, initHour) {
-    if (hindcastTraceCount !== 7) { aiDrawHindcast(fc, initHour); return; }
-    var d = tfHindcastData(fc, initHour), sp = tfSpaghetti(fc), n = els.map.data.length, i0 = n - 7;
+    var block = tfTraceIdx(TF_HIND);
+    if (hindcastTraceCount !== 7 || block.length !== 7) { aiDrawHindcast(fc, initHour); return; }
+    var d = tfHindcastData(fc, initHour), sp = tfSpaghetti(fc), i0 = block[0];
     Plotly.restyle(els.map, {
       lat: [d.coneLat, sp.lat, d.rings[0].lat, d.rings[1].lat, d.rings[2].lat, d.actLat, d.meanLat],
       lon: [d.coneLon, sp.lon, d.rings[0].lon, d.rings[1].lon, d.rings[2].lon, d.actLon, d.meanLon]
@@ -2293,14 +2301,9 @@
                n: runs.length, times: times };
     });
   }
-  // Both overlays append their traces LAST and delete by tail index, so they are kept
-  // mutually exclusive — turning one on clears the other.
   function aiClearConsensus() {
-    if (consensusTraceCount > 0 && els.map.data && els.map.data.length >= consensusTraceCount) {
-      var n0 = els.map.data.length, idx0 = [];
-      for (var i0 = n0 - consensusTraceCount; i0 < n0; i0++) idx0.push(i0);
-      Plotly.deleteTraces(els.map, idx0);
-    }
+    var idx0 = tfTraceIdx(TF_CONS);
+    if (idx0.length) Plotly.deleteTraces(els.map, idx0);
     consensusTraceCount = 0;
     if (els.consensusBtn) { els.consensusBtn.setAttribute("aria-pressed", "false"); els.consensusBtn.classList.remove("is-on"); }
   }
@@ -2308,7 +2311,6 @@
     if (appMode !== "track" || viewMode !== "storm" || !currentStorm) return;
     if (consensusTraceCount > 0) { aiClearConsensus(); aiSetHindcastStatus(""); return; }
     if (aiLoading) return;
-    aiClearHindcast();                                  // keep the tail-index invariant
     aiLoading = true;
     aiSetHindcastStatus(tfRT.session ? "Running every initialisation…" : "Loading my AI model…", "loading");
     tfEnsureModel().then(function () { return tfConsensus(currentStorm.pts); })
@@ -2316,7 +2318,7 @@
         aiLoading = false;
         if (!c) { aiSetHindcastStatus("Not enough of this storm to build a consensus.", "err"); return; }
         Plotly.addTraces(els.map, [{
-          type: "scattergeo", mode: "lines", lat: c.lat, lon: c.lon,
+          type: "scattergeo", mode: "lines", lat: c.lat, lon: c.lon, meta: TF_CONS,
           line: { color: "rgb(250,204,21)", width: 3 }, hoverinfo: "text",
           text: "consensus of " + c.n + " initialisations (min-variance by lead + Kalman/RTS smoothed)",
           showlegend: false
@@ -2333,7 +2335,6 @@
     if (appMode !== "track" || viewMode !== "storm" || !currentStorm) return;
     if (hindcastTraceCount > 0) { aiClearHindcast(); return; }   // toggle off
     if (aiLoading) return;
-    aiClearConsensus();                                 // keep the tail-index invariant
     var initHour = Number(els.slider.value);
     aiLoading = true;
     aiSetHindcastStatus(tfRT.session ? "Running my AI model…" : "Loading my AI model (~one-time 30 MB download)…", "loading");
