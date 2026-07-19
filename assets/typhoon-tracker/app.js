@@ -1852,7 +1852,7 @@
   var consensusTraceCount = 0;
   // Overlay tags. Both overlays can be on at once (the consensus stays visible while the
   // hindcast animates), so traces are located by tag, never by position in els.map.data.
-  var TF_HIND = "tf-hind", TF_CONS = "tf-cons";
+  var TF_HIND = "tf-hind", TF_CONS = "tf-cons", TF_CONS_ACT = "tf-cons-act";
   function tfTraceIdx(tag) {
     var out = [], data = (els.map && els.map.data) || [];
     for (var i = 0; i < data.length; i++) if (data[i].meta === tag) out.push(i);
@@ -2301,8 +2301,22 @@
                n: runs.length, times: times };
     });
   }
+  // The consensus is a whole-storm line, so on its own nothing moves while the
+  // animation runs. This walks the REAL track out from the storm's start to the
+  // playhead, so you watch what actually happened trace itself against the
+  // consensus as it plays. Restyled in place on every scrub/play tick.
+  function consensusFollowTick() {
+    if (consensusTraceCount === 0 || !currentStorm) return;
+    var idx = tfTraceIdx(TF_CONS_ACT);
+    if (!idx.length) return;
+    var h = Number(els.slider.value), la = [], lo = [];
+    currentStorm.pts.forEach(function (p) {
+      if (p.la != null && p.h != null && p.h <= h + 0.01) { la.push(p.la); lo.push(p.lo); }
+    });
+    Plotly.restyle(els.map, { lat: [la], lon: [lo] }, idx);
+  }
   function aiClearConsensus() {
-    var idx0 = tfTraceIdx(TF_CONS);
+    var idx0 = tfTraceIdx(TF_CONS).concat(tfTraceIdx(TF_CONS_ACT)).sort(function (a, b) { return a - b; });
     if (idx0.length) Plotly.deleteTraces(els.map, idx0);
     consensusTraceCount = 0;
     if (els.consensusBtn) { els.consensusBtn.setAttribute("aria-pressed", "false"); els.consensusBtn.classList.remove("is-on"); }
@@ -2322,12 +2336,20 @@
           line: { color: "rgb(250,204,21)", width: 3 }, hoverinfo: "text",
           text: "consensus of " + c.n + " initialisations (min-variance by lead + Kalman/RTS smoothed)",
           showlegend: false
+        }, {
+          // what actually happened, drawn only as far as the playhead — this is the
+          // trace that "plays" while the animation runs, against the yellow consensus
+          type: "scattergeo", mode: "lines", lat: [], lon: [], meta: TF_CONS_ACT,
+          line: { color: "rgba(255,255,255,0.95)", width: 3 }, hoverinfo: "text",
+          text: ACT_HOVER, showlegend: false
         }]);
-        consensusTraceCount = 1;
+        consensusTraceCount = 2;
+        consensusFollowTick();          // fill the white line up to the current playhead
         els.consensusBtn.setAttribute("aria-pressed", "true"); els.consensusBtn.classList.add("is-on");
-        aiSetHindcastStatus("🧭 Consensus track — every 6-hourly initialisation of my model combined by "
+        aiSetHindcastStatus("🧭 Consensus track (yellow) — every 6-hourly initialisation of my model combined by "
           + "minimum-variance weighting over lead time (short leads count most), then smoothed with a "
-          + "constant-velocity Kalman/RTS filter. " + c.n + " initialisations. Compare it to the white actual track.", "on");
+          + "constant-velocity Kalman/RTS filter, from " + c.n + " initialisations. Press play: the white line is "
+          + "what actually happened, drawing itself out to the playhead so you can watch the two race.", "on");
       })
       .catch(function (e) { aiLoading = false; aiSetHindcastStatus((e && e.message) || String(e), "err"); });
   }
@@ -2725,8 +2747,9 @@
     currentHour = Number(els.slider.value);
     renderScrub();
     hindcastFollowTick();          // estimate follows a manual scrub too (throttled)
+    consensusFollowTick();         // actual track walks out to the playhead
   });
-  els.slider.addEventListener("change", function () { hindcastFollowTick(true); });   // settle on release
+  els.slider.addEventListener("change", function () { hindcastFollowTick(true); consensusFollowTick(); });   // settle on release
   els.play.addEventListener("click", togglePlay);
 
   // Build the climatology chart the first time its panel is opened (a collapsed
@@ -2777,8 +2800,9 @@
       if (currentHour >= totalHours) { currentHour = totalHours; }
       els.slider.value = currentHour;
       renderScrub();
-      if (currentHour >= totalHours) { hindcastFollowTick(true); stopPlay(); return; }
+      if (currentHour >= totalHours) { hindcastFollowTick(true); consensusFollowTick(); stopPlay(); return; }
       hindcastFollowTick();         // re-forecast from the moving playhead (throttled, in place)
+      consensusFollowTick();        // and the real track keeps drawing itself out
       playRaf = requestAnimationFrame(tick);
     }
     playRaf = requestAnimationFrame(tick);
