@@ -4,3 +4,6 @@
 # Local-only field-model demo: 14 MB ONNX + NCEP-derived steering.
 # Not servable from GitHub Pages; regenerate from /Volumes/D/typhoon_predict.
 assets/typhoon-tracker/local/
+# Local twin of the tracker running the field model (needs NCEP steering)
+assets/typhoon-tracker-local/
+typhoon-tracks-local.html
