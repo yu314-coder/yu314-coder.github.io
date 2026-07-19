@@ -2265,12 +2265,15 @@
     });
     return chain.then(function () {
       if (runs.length < 2) return null;
-      var bins = {};                                   // valid hour -> [{lead index, lat, lon}]
+      // valid hour -> members. Each member carries the model's FULL predicted state at
+      // that time (position, wind, pressure, RMW, the 12 wind radii), so the consensus
+      // can report all of it, not just the track.
+      var bins = {};
       runs.forEach(function (r) {
         r.fc.points.forEach(function (p, li) {
           if (leadsH[li] < minLeadH) return;         // drop the near-persistence short leads
           var vt = Math.round((r.h + leadsH[li]) / 6) * 6;
-          (bins[vt] = bins[vt] || []).push({ L: li, lat: p.lat, lon: p.lon });
+          (bins[vt] = bins[vt] || []).push({ L: li, p: p });
         });
       });
       // Keep only valid times the storm actually reached: leads from late inits project
@@ -2281,7 +2284,7 @@
       var times = Object.keys(bins).map(Number).sort(function (a, b) { return a - b; })
         .filter(function (t) { return bins[t].length >= MINM && t <= lastH; });
       if (times.length < 3) return null;
-      var zlat = [], zlon = [], rvar = [];
+      var zlat = [], zlon = [], rvar = [], state = [];
       times.forEach(function (t) {
         var mem = bins[t], m = mem.length, i2, j2;
         var sub = new Float64Array(m * m);
@@ -2296,13 +2299,20 @@
         // Average longitudes as WRAPPED offsets from a reference member. A plain mean
         // breaks across the dateline (179.5 and -179.8 average to ~0, i.e. Africa) —
         // which sent Tip 1979's consensus to 40 E.
-        var la = 0, ref = mem[0].lon, dlo = 0;
+        var la = 0, ref = mem[0].p.lon, dlo = 0;
+        // combine the rest of the state with the SAME min-variance weights
+        var vmax = 0, pres = 0, rmw = 0, radii = [], rq;
+        for (rq = 0; rq < 12; rq++) radii[rq] = 0;
         for (i2 = 0; i2 < m; i2++) {
-          la += (w[i2] / sum) * mem[i2].lat;
-          dlo += (w[i2] / sum) * (aiPmod(mem[i2].lon - ref + 180, 360) - 180);
+          var ww = w[i2] / sum, mp = mem[i2].p;
+          la += ww * mp.lat;
+          dlo += ww * (aiPmod(mp.lon - ref + 180, 360) - 180);
+          vmax += ww * (mp.vmax || 0); pres += ww * (mp.pres || 0); rmw += ww * (mp.rmw || 0);
+          if (mp.radiiKm) for (rq = 0; rq < 12; rq++) radii[rq] += ww * (mp.radiiKm[rq] || 0);
         }
         var lo = aiPmod(ref + dlo + 180, 360) - 180;
         zlat.push(la); zlon.push(lo); rvar.push(denom > 0 ? Math.max(1 / denom, 1) : 1e4);
+        state.push({ hour: t, vmax: vmax, pres: pres, rmw: rmw, radiiKm: radii, members: m });
       });
       // Smooth in a local km frame. UNWRAP the longitudes into a continuous sequence
       // first: a dateline-crossing storm (Tip 1979 ran 150 E -> past 180 -> -173 E)
@@ -2318,9 +2328,11 @@
       var zx = unwrapped.map(function (v) { return (v - lon0) * 111.2 * cos0; });
       var zy = zlat.map(function (v) { return (v - lat0) * 111.2; });
       var sm = tfRtsSmooth(times, zx, zy, rvar, qA);
-      return { lat: sm.y.map(function (v) { return lat0 + v / 111.2; }),
-               lon: sm.x.map(function (v) { return aiPmod(lon0 + v / (111.2 * cos0) + 180, 360) - 180; }),
-               n: runs.length, times: times };
+      var clat = sm.y.map(function (v) { return lat0 + v / 111.2; });
+      var clon = sm.x.map(function (v) { return aiPmod(lon0 + v / (111.2 * cos0) + 180, 360) - 180; });
+      // attach the smoothed position to each state entry so one array carries everything
+      state.forEach(function (st, i) { st.lat = clat[i]; st.lon = clon[i]; });
+      return { lat: clat, lon: clon, state: state, n: runs.length, times: times };
     });
   }
   // The consensus is a whole-storm line, so on its own nothing moves while the
@@ -2342,32 +2354,61 @@
     if (idx0.length) Plotly.deleteTraces(els.map, idx0);
     consensusTraceCount = 0;
   }
-  // Draw the consensus produced by tfConsensus(): the yellow multi-init forecast plus
-  // the white "what actually happened" line that walks out to the playhead.
+  // The consensus is the ONE prediction drawn: track + the full predicted state
+  // (category-coloured dots, wind/pressure/RMW/radii on hover, 34-kt gale rings),
+  // against the white actual track that walks out to the playhead.
   function aiDrawConsensus(c) {
-    Plotly.addTraces(els.map, [{
-      type: "scattergeo", mode: "lines", lat: c.lat, lon: c.lon, meta: TF_CONS,
-      line: { color: "rgb(250,204,21)", width: 3 }, hoverinfo: "text",
-      text: "consensus of " + c.n + " initialisations, +" + TF_CONS_MIN_LEAD_H + " h and beyond",
-      showlegend: false
+    var st = c.state || [];
+    var cols = st.map(function (p) { return tfCat(p.vmax)[1]; });
+    var txt = st.map(function (p) {
+      var r34 = p.radiiKm ? avgRadius(p.radiiKm.slice(0, 4)) : null,
+          r50 = p.radiiKm ? avgRadius(p.radiiKm.slice(4, 8)) : null,
+          r64 = p.radiiKm ? avgRadius(p.radiiKm.slice(8, 12)) : null;
+      var rads = [];
+      if (r34 > 1) rads.push("R34 ~" + Math.round(r34));
+      if (r50 > 1) rads.push("R50 ~" + Math.round(r50));
+      if (r64 > 1) rads.push("R64 ~" + Math.round(r64));
+      return "<b>" + tfCat(p.vmax)[0] + "</b><br>consensus &middot; " + fmtLatLon(p.lat, p.lon)
+        + "<br>" + Math.round(p.vmax) + " kt &middot; " + Math.round(p.pres) + " mb"
+        + (p.rmw > 1 ? " &middot; RMW " + Math.round(p.rmw) + " km" : "")
+        + (rads.length ? "<br>wind radii: " + rads.join(" &middot; ") + " km" : "")
+        + "<br><i>" + p.members + " forecasts, +" + TF_CONS_MIN_LEAD_H + " h and beyond</i>";
+    });
+    // predicted gale (34 kt) rings at a few points — the size of the storm, not just its path
+    var rings = [];
+    var step = Math.max(1, Math.floor(st.length / 4));
+    for (var i = 0; i < st.length; i += step) {
+      var p = st[i], avg = p.radiiKm ? avgRadius(p.radiiKm.slice(0, 4)) : 0;
+      if (!(avg > 15 && avg < 700)) continue;
+      var poly = radiusPolygon(p.lat, p.lon, p.radiiKm.slice(0, 4));
+      if (!poly) continue;
+      rings.push({ type: "scattergeo", mode: "lines", lat: poly.lat, lon: poly.lon, meta: TF_CONS,
+        fill: "toself", fillcolor: "rgba(250,204,21,0.05)",
+        line: { color: "rgba(250,204,21,0.3)", width: 1 }, hoverinfo: "text",
+        text: "consensus &middot; predicted 34 kt wind radius ~" + Math.round(avg) + " km", showlegend: false });
+    }
+    Plotly.addTraces(els.map, rings.concat([{
+      type: "scattergeo", mode: "lines+markers", lat: c.lat, lon: c.lon, meta: TF_CONS,
+      line: { color: "rgb(250,204,21)", width: 3 },
+      marker: { size: 7, color: cols, line: { width: 1.6, color: "rgba(250,204,21,0.95)" } },
+      text: txt, hoverinfo: "text", showlegend: false
     }, {
       type: "scattergeo", mode: "lines", lat: [], lon: [], meta: TF_CONS_ACT,
       line: { color: "rgba(255,255,255,0.95)", width: 3 }, hoverinfo: "text",
       text: ACT_HOVER, showlegend: false
-    }]);
-    consensusTraceCount = 2;
-    consensusFollowTick();            // fill the white line up to the current playhead
-    // v9 trains on storms whose first year is 1980..2015, so a pre-1980 storm
-    // (Tip 1979) is genuinely out-of-sample.
+    }]));
+    consensusTraceCount = rings.length + 2;
+    consensusFollowTick();
     var yr = currentStorm && Number(currentStorm.season);
     var inSample = yr >= 1980 && yr <= 2015;
-    aiSetHindcastStatus("🧪 My AI model on " + (currentStorm.name || "this storm") + ". GREEN = forecast from "
-      + "the playhead (dots by predicted category, shaded cone = 90% area, faint lines = ensemble) — it "
-      + "re-forecasts as you play. YELLOW = consensus of " + c.n + " initialisations, built only from forecasts "
-      + "made +" + TF_CONS_MIN_LEAD_H + " h or more ahead, min-variance weighted by lead and Kalman/RTS smoothed. "
-      + "WHITE = what actually happened, drawn out to the playhead — the gap to yellow is the model's real error. "
-      + (inSample ? "⚠️ This storm (" + yr + ") is in the model's TRAINING data, so it flatters the model; "
-          + "pick a 2020+ storm (or Tip 1979) for an honest out-of-sample view. " : "")
+    aiSetHindcastStatus("\uD83E\uDDED My AI model on " + (currentStorm.name || "this storm")
+      + " \u2014 consensus of " + c.n + " initialisations, built only from forecasts made +"
+      + TF_CONS_MIN_LEAD_H + " h or more ahead (min-variance weighted by lead, Kalman/RTS smoothed). "
+      + "Dots are coloured by predicted category; hover for wind, pressure, RMW and the 34/50/64 kt radii, "
+      + "and the faint rings are its predicted gale radius. WHITE is what actually happened, drawn out to the "
+      + "playhead \u2014 the gap between them is the model's real error. "
+      + (inSample ? "\u26A0\uFE0F This storm (" + yr + ") is in the model's TRAINING data, so it flatters the "
+          + "model; try a 2020+ storm or Tip 1979 for an honest out-of-sample view. " : "")
       + "Experimental, not an official forecast.", "on");
   }
   // ONE control: run v9 from the playhead (cone + ensemble + mean, which follows the
@@ -2378,20 +2419,14 @@
       aiClearHindcast(); aiClearConsensus(); aiSetHindcastStatus(""); return;
     }
     if (aiLoading) return;
-    var initHour = Number(els.slider.value);
     aiLoading = true;
-    aiSetHindcastStatus(tfRT.session ? "Running my AI model…" : "Loading my AI model (~one-time 18 MB download)…", "loading");
+    aiSetHindcastStatus(tfRT.session ? "Running every initialisation…" : "Loading my AI model (~one-time 18 MB download)…", "loading");
     tfEnsureModel()
-      .then(function () { return tfRunModel(currentStorm.pts, initHour); })
-      .then(function (fc) {
-        aiDrawHindcast(fc, initHour);
-        aiSetHindcastStatus("Forecast drawn — now running every initialisation for the consensus…", "loading");
-        return tfConsensus(currentStorm.pts);
-      })
+      .then(function () { return tfConsensus(currentStorm.pts); })
       .then(function (c) {
         aiLoading = false;
         if (c) aiDrawConsensus(c);
-        else aiSetHindcastStatus(tfHindcastStatusText(), "on");
+        else aiSetHindcastStatus("Not enough of this storm to build a consensus.", "err");
       })
       .catch(function (e) { aiLoading = false; aiSetHindcastStatus(((e && e.message) || String(e)), "err"); });
   }
