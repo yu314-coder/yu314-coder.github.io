@@ -843,6 +843,7 @@
     hindcastTraceCount = 0;
     if (els.hindcastBtn) { els.hindcastBtn.setAttribute("aria-pressed", "false"); els.hindcastBtn.classList.remove("is-on"); }
     consensusTraceCount = 0;
+    tfRunCache = {};          // forecasts are per-storm
     aiSetHindcastStatus("");
     currentGeoScale = DEFAULT_GEO.scale;
     var pts = currentStorm.pts;
@@ -2244,46 +2245,76 @@
     return { x: xs.map(function (s) { return s[0]; }), y: xs.map(function (s) { return s[1]; }) };
   }
   // Build the consensus track for the whole storm. Returns {lat,lon,n} or null.
-  function tfConsensus(pts, minLeadH) {
+  // Forecasts are memoised per initialisation hour. Advancing the playhead by 6 h only
+  // brings ONE new initialisation into the window, so following the animation costs a
+  // single ~10 ms model run instead of re-running the whole storm every tick.
+  var tfRunCache = {};
+  // Storm position at an arbitrary hour, interpolated from the observed fixes
+  // (dateline-safe). Used to pin the forecast to the storm's current position.
+  function tfPosAt(pts, h) {
+    var prev = null, i;
+    for (i = 0; i < pts.length; i++) {
+      var p = pts[i];
+      if (p.la == null || p.h == null) continue;
+      if (p.h >= h) {
+        if (!prev) return { lat: p.la, lon: p.lo, w: p.w, p: p.p };
+        var f = (h - prev.h) / ((p.h - prev.h) || 1);
+        return { lat: prev.la + (p.la - prev.la) * f,
+                 lon: aiPmod(prev.lo + (aiPmod(p.lo - prev.lo + 180, 360) - 180) * f + 180, 360) - 180,
+                 w: prev.w, p: prev.p };
+      }
+      prev = p;
+    }
+    return prev ? { lat: prev.la, lon: prev.lo, w: prev.w, p: prev.p } : null;
+  }
+  function tfRunCached(pts, h) {
+    var k = Math.round(h * 10) / 10;
+    if (Object.prototype.hasOwnProperty.call(tfRunCache, k)) return Promise.resolve(tfRunCache[k]);
+    return tfRunModel(pts, h).then(function (fc) { tfRunCache[k] = fc; return fc; },
+                                   function () { tfRunCache[k] = null; return null; });
+  }
+  // Consensus forecast anchored at the playhead: every initialisation UP TO now, projected
+  // FORWARD. At each future valid time the members are the forecasts that land on it (a
+  // +6 h from the latest init, a +12 h from the one before, …), combined min-variance by
+  // lead and Kalman/RTS smoothed. It starts at the storm's current position and advances
+  // with the animation — nothing here uses an observation later than `baseHour`.
+  function tfConsensus(pts, baseHour) {
     var cons = tfRT.cons; if (!cons || !cons.C) return Promise.resolve(null);
-    var C = cons.C, MINM = cons.min_members || 3, qA = cons.q_accel || 3.0;
-    var leadsH = tfRT.meta.lead_hours;
-    // ONLY combine forecasts made at least minLeadH ahead. Without this the
-    // minimum-variance solution collapses onto the +6 h member (89% of the weight,
-    // sigma 34 km vs 1181 km at +120 h) — and a +6 h forecast is essentially
-    // persistence from the position observed 6 h earlier, so the "consensus" just
-    // retraced the observed track instead of showing what the model predicts.
-    minLeadH = minLeadH || TF_CONS_MIN_LEAD_H;
-    // one init per 6-hourly fix that has enough history
+    var C = cons.C, MINM = cons.min_members || 2, qA = cons.q_accel || 3.0;
+    var leadsH = tfRT.meta.lead_hours, maxLead = leadsH[leadsH.length - 1];
+    // initialisations in the trailing window that can still reach past `baseHour`
     var inits = [];
-    for (var i = 0; i < pts.length; i++) if (pts[i].h != null) inits.push(pts[i].h);
+    for (var i = 0; i < pts.length; i++) {
+      var h = pts[i].h;
+      if (h != null && h <= baseHour + 0.01 && h >= baseHour - maxLead) inits.push(h);
+    }
+    if (!inits.length) return Promise.resolve(null);
     var runs = [], chain = Promise.resolve();
     inits.forEach(function (h) {
       chain = chain.then(function () {
-        return tfRunModel(pts, h).then(function (fc) { runs.push({ h: h, fc: fc }); }, function () {});
+        return tfRunCached(pts, h).then(function (fc) { if (fc) runs.push({ h: h, fc: fc }); });
       });
     });
     return chain.then(function () {
-      if (runs.length < 2) return null;
+      if (runs.length < 1) return null;
       // valid hour -> members. Each member carries the model's FULL predicted state at
       // that time (position, wind, pressure, RMW, the 12 wind radii), so the consensus
       // can report all of it, not just the track.
       var bins = {};
       runs.forEach(function (r) {
         r.fc.points.forEach(function (p, li) {
-          if (leadsH[li] < minLeadH) return;         // drop the near-persistence short leads
           var vt = Math.round((r.h + leadsH[li]) / 6) * 6;
+          if (vt <= baseHour + 0.01) return;         // FORWARD of the playhead only
           (bins[vt] = bins[vt] || []).push({ L: li, p: p });
         });
       });
-      // Keep only valid times the storm actually reached: leads from late inits project
-      // past the end of the record, and that tail is pure extrapolation with nothing to
-      // verify it against. Trimming makes the consensus directly comparable to the actual track.
+      // Only as far as the storm's record runs — beyond that there is nothing to compare
+      // the forecast against.
       var lastH = -1e9;
       for (var q2 = 0; q2 < pts.length; q2++) if (pts[q2].h != null && pts[q2].h > lastH) lastH = pts[q2].h;
       var times = Object.keys(bins).map(Number).sort(function (a, b) { return a - b; })
         .filter(function (t) { return bins[t].length >= MINM && t <= lastH; });
-      if (times.length < 3) return null;
+      if (times.length < 2) return null;
       var zlat = [], zlon = [], rvar = [], state = [];
       times.forEach(function (t) {
         var mem = bins[t], m = mem.length, i2, j2;
@@ -2332,35 +2363,46 @@
       var clon = sm.x.map(function (v) { return aiPmod(lon0 + v / (111.2 * cos0) + 180, 360) - 180; });
       // attach the smoothed position to each state entry so one array carries everything
       state.forEach(function (st, i) { st.lat = clat[i]; st.lon = clon[i]; });
-      return { lat: clat, lon: clon, state: state, n: runs.length, times: times };
+      // Anchor the line to where the storm actually IS at the playhead, so the forecast
+      // visibly emanates from the current position instead of starting adrift.
+      var here = tfPosAt(pts, baseHour);
+      var anchor = here || { lat: clat[0], lon: clon[0], w: null, p: null };
+      state.unshift({ hour: baseHour, lat: anchor.lat, lon: anchor.lon,
+                      vmax: anchor.w, pres: anchor.p, rmw: 0, radiiKm: null,
+                      members: 0, isAnchor: true });
+      return { lat: [anchor.lat].concat(clat), lon: [anchor.lon].concat(clon),
+               state: state, anchor: anchor, baseHour: baseHour, n: runs.length, times: times };
     });
   }
   // The consensus is a whole-storm line, so on its own nothing moves while the
   // animation runs. This walks the REAL track out from the storm's start to the
   // playhead, so you watch what actually happened trace itself against the
   // consensus as it plays. Restyled in place on every scrub/play tick.
-  function consensusFollowTick() {
-    if (consensusTraceCount === 0 || !currentStorm) return;
-    var idx = tfTraceIdx(TF_CONS_ACT);
-    if (!idx.length) return;
-    var h = Number(els.slider.value), la = [], lo = [];
-    currentStorm.pts.forEach(function (p) {
-      if (p.la != null && p.h != null && p.h <= h + 0.01) { la.push(p.la); lo.push(p.lo); }
-    });
-    Plotly.restyle(els.map, { lat: [la], lon: [lo] }, idx);
+  var consFollowRun = false, consFollowTs = 0;
+  function consensusFollowTick(force) {
+    if (consensusTraceCount === 0 || !currentStorm || !tfRT.session || consFollowRun) return;
+    var now = Date.now();
+    if (!force && now - consFollowTs < 240) return;
+    consFollowTs = now; consFollowRun = true;
+    var h = Number(els.slider.value);
+    tfConsensus(currentStorm.pts, h).then(function (c) {
+      if (c && consensusTraceCount > 0) aiUpdateConsensus(c, h);
+      consFollowRun = false;
+    }, function () { consFollowRun = false; });
   }
   function aiClearConsensus() {
     var idx0 = tfTraceIdx(TF_CONS).concat(tfTraceIdx(TF_CONS_ACT)).sort(function (a, b) { return a - b; });
     if (idx0.length) Plotly.deleteTraces(els.map, idx0);
     consensusTraceCount = 0;
   }
-  // The consensus is the ONE prediction drawn: track + the full predicted state
-  // (category-coloured dots, wind/pressure/RMW/radii on hover, 34-kt gale rings),
-  // against the white actual track that walks out to the playhead.
-  function aiDrawConsensus(c) {
+  // Shared trace data for the consensus overlay — used by both the first draw and the
+  // in-place restyle that lets it follow the playhead. FIXED layout: 4 gale rings
+  // (empty when not applicable), the consensus line, the actual track ahead.
+  function tfConsensusData(c, baseHour) {
     var st = c.state || [];
-    var cols = st.map(function (p) { return tfCat(p.vmax)[1]; });
+    var cols = st.map(function (p) { return p.isAnchor ? "rgba(255,255,255,0.95)" : tfCat(p.vmax)[1]; });
     var txt = st.map(function (p) {
+      if (p.isAnchor) return "now &middot; " + fmtLatLon(p.lat, p.lon) + (p.vmax ? "<br>" + Math.round(p.vmax) + " kt observed" : "");
       var r34 = p.radiiKm ? avgRadius(p.radiiKm.slice(0, 4)) : null,
           r50 = p.radiiKm ? avgRadius(p.radiiKm.slice(4, 8)) : null,
           r64 = p.radiiKm ? avgRadius(p.radiiKm.slice(8, 12)) : null;
@@ -2368,48 +2410,70 @@
       if (r34 > 1) rads.push("R34 ~" + Math.round(r34));
       if (r50 > 1) rads.push("R50 ~" + Math.round(r50));
       if (r64 > 1) rads.push("R64 ~" + Math.round(r64));
-      return "<b>" + tfCat(p.vmax)[0] + "</b><br>consensus &middot; " + fmtLatLon(p.lat, p.lon)
-        + "<br>" + Math.round(p.vmax) + " kt &middot; " + Math.round(p.pres) + " mb"
+      return "<b>" + tfCat(p.vmax)[0] + "</b><br>+" + Math.round(p.hour - baseHour) + " h &middot; "
+        + fmtLatLon(p.lat, p.lon) + "<br>" + Math.round(p.vmax) + " kt &middot; " + Math.round(p.pres) + " mb"
         + (p.rmw > 1 ? " &middot; RMW " + Math.round(p.rmw) + " km" : "")
         + (rads.length ? "<br>wind radii: " + rads.join(" &middot; ") + " km" : "")
-        + "<br><i>" + p.members + " forecasts, +" + TF_CONS_MIN_LEAD_H + " h and beyond</i>";
+        + "<br><i>" + p.members + " forecast" + (p.members === 1 ? "" : "s") + " combined</i>";
     });
-    // predicted gale (34 kt) rings at a few points — the size of the storm, not just its path
-    var rings = [];
-    var step = Math.max(1, Math.floor(st.length / 4));
-    for (var i = 0; i < st.length; i += step) {
-      var p = st[i], avg = p.radiiKm ? avgRadius(p.radiiKm.slice(0, 4)) : 0;
-      if (!(avg > 15 && avg < 700)) continue;
-      var poly = radiusPolygon(p.lat, p.lon, p.radiiKm.slice(0, 4));
-      if (!poly) continue;
-      rings.push({ type: "scattergeo", mode: "lines", lat: poly.lat, lon: poly.lon, meta: TF_CONS,
-        fill: "toself", fillcolor: "rgba(250,204,21,0.05)",
-        line: { color: "rgba(250,204,21,0.3)", width: 1 }, hoverinfo: "text",
-        text: "consensus &middot; predicted 34 kt wind radius ~" + Math.round(avg) + " km", showlegend: false });
+    // four evenly spaced gale rings along the forecast
+    var fwd = st.filter(function (p) { return !p.isAnchor; });
+    var rings = [], step = Math.max(1, Math.floor(fwd.length / 4)), k;
+    for (k = 0; k < 4; k++) {
+      var p2 = fwd[Math.min(fwd.length - 1, k * step)], avg = p2 && p2.radiiKm ? avgRadius(p2.radiiKm.slice(0, 4)) : 0;
+      var poly = (p2 && avg > 15 && avg < 700) ? radiusPolygon(p2.lat, p2.lon, p2.radiiKm.slice(0, 4)) : null;
+      rings.push(poly ? { lat: poly.lat, lon: poly.lon,
+        text: "consensus +" + Math.round(p2.hour - baseHour) + " h &middot; predicted 34 kt radius ~" + Math.round(avg) + " km" }
+        : { lat: [], lon: [], text: "" });
     }
-    Plotly.addTraces(els.map, rings.concat([{
-      type: "scattergeo", mode: "lines+markers", lat: c.lat, lon: c.lon, meta: TF_CONS,
-      line: { color: "rgb(250,204,21)", width: 3 },
-      marker: { size: 7, color: cols, line: { width: 1.6, color: "rgba(250,204,21,0.95)" } },
-      text: txt, hoverinfo: "text", showlegend: false
-    }, {
-      type: "scattergeo", mode: "lines", lat: [], lon: [], meta: TF_CONS_ACT,
-      line: { color: "rgba(255,255,255,0.95)", width: 3 }, hoverinfo: "text",
-      text: ACT_HOVER, showlegend: false
-    }]));
-    consensusTraceCount = rings.length + 2;
-    consensusFollowTick();
+    // what actually happened FROM the playhead onward — the like-for-like comparison
+    var actLat = [], actLon = [];
+    (currentStorm.pts || []).forEach(function (p) {
+      if (p.la != null && p.h != null && p.h >= baseHour - 0.01) { actLat.push(p.la); actLon.push(p.lo); }
+    });
+    return { lat: c.lat, lon: c.lon, cols: cols, txt: txt, rings: rings, actLat: actLat, actLon: actLon };
+  }
+  function aiDrawConsensus(c, baseHour) {
+    aiClearConsensus();
+    var d = tfConsensusData(c, baseHour);
+    function ring(r) { return { type: "scattergeo", mode: "lines", lat: r.lat, lon: r.lon, meta: TF_CONS,
+      fill: "toself", fillcolor: "rgba(250,204,21,0.05)", line: { color: "rgba(250,204,21,0.3)", width: 1 },
+      hoverinfo: "text", text: r.text, showlegend: false }; }
+    Plotly.addTraces(els.map, [
+      ring(d.rings[0]), ring(d.rings[1]), ring(d.rings[2]), ring(d.rings[3]),
+      { type: "scattergeo", mode: "lines", lat: d.actLat, lon: d.actLon, meta: TF_CONS_ACT,
+        line: { color: "rgba(255,255,255,0.95)", width: 3 }, hoverinfo: "text", text: ACT_HOVER, showlegend: false },
+      { type: "scattergeo", mode: "lines+markers", lat: d.lat, lon: d.lon, meta: TF_CONS,
+        line: { color: "rgb(250,204,21)", width: 3 },
+        marker: { size: 7, color: d.cols, line: { width: 1.6, color: "rgba(250,204,21,0.95)" } },
+        text: d.txt, hoverinfo: "text", showlegend: false }
+    ]);
+    consensusTraceCount = 6;
+    els.hindcastBtn.setAttribute("aria-pressed", "true"); els.hindcastBtn.classList.add("is-on");
     var yr = currentStorm && Number(currentStorm.season);
     var inSample = yr >= 1980 && yr <= 2015;
     aiSetHindcastStatus("\uD83E\uDDED My AI model on " + (currentStorm.name || "this storm")
-      + " \u2014 consensus of " + c.n + " initialisations, built only from forecasts made +"
-      + TF_CONS_MIN_LEAD_H + " h or more ahead (min-variance weighted by lead, Kalman/RTS smoothed). "
-      + "Dots are coloured by predicted category; hover for wind, pressure, RMW and the 34/50/64 kt radii, "
-      + "and the faint rings are its predicted gale radius. WHITE is what actually happened, drawn out to the "
-      + "playhead \u2014 the gap between them is the model's real error. "
-      + (inSample ? "\u26A0\uFE0F This storm (" + yr + ") is in the model's TRAINING data, so it flatters the "
-          + "model; try a 2020+ storm or Tip 1979 for an honest out-of-sample view. " : "")
+      + " \u2014 a consensus forecast from the storm's CURRENT position, combining every initialisation up to "
+      + "now (" + c.n + ") by minimum-variance weighting over lead time, Kalman/RTS smoothed. Dots are coloured "
+      + "by predicted category; hover for wind, pressure, RMW and the 34/50/64 kt radii, and the faint rings are "
+      + "its predicted gale radius. WHITE is what actually happened from here on \u2014 the gap is the model's "
+      + "real error. Press play and the forecast re-runs from each new position. "
+      + (inSample ? "\u26A0\uFE0F This storm (" + yr + ") is in the model's TRAINING data; try a 2020+ storm or "
+          + "Tip 1979 for an honest out-of-sample view. " : "")
       + "Experimental, not an official forecast.", "on");
+  }
+  // In-place restyle so the forecast follows the playhead without flicker.
+  function aiUpdateConsensus(c, baseHour) {
+    var idx = tfTraceIdx(TF_CONS).concat(tfTraceIdx(TF_CONS_ACT)).sort(function (a, b) { return a - b; });
+    if (idx.length !== 6) { aiDrawConsensus(c, baseHour); return; }
+    var d = tfConsensusData(c, baseHour), i0 = idx[0];
+    Plotly.restyle(els.map, {
+      lat: [d.rings[0].lat, d.rings[1].lat, d.rings[2].lat, d.rings[3].lat, d.actLat, d.lat],
+      lon: [d.rings[0].lon, d.rings[1].lon, d.rings[2].lon, d.rings[3].lon, d.actLon, d.lon]
+    }, [i0, i0 + 1, i0 + 2, i0 + 3, i0 + 4, i0 + 5]);
+    Plotly.restyle(els.map, { text: [d.rings[0].text, d.rings[1].text, d.rings[2].text, d.rings[3].text, ACT_HOVER, d.txt] },
+      [i0, i0 + 1, i0 + 2, i0 + 3, i0 + 4, i0 + 5]);
+    Plotly.restyle(els.map, { "marker.color": [d.cols] }, [i0 + 5]);
   }
   // ONE control: run v9 from the playhead (cone + ensemble + mean, which follows the
   // animation) AND the multi-initialisation consensus, drawn together.
@@ -2419,13 +2483,14 @@
       aiClearHindcast(); aiClearConsensus(); aiSetHindcastStatus(""); return;
     }
     if (aiLoading) return;
+    var initHour = Number(els.slider.value);
     aiLoading = true;
     aiSetHindcastStatus(tfRT.session ? "Running every initialisation…" : "Loading my AI model (~one-time 18 MB download)…", "loading");
     tfEnsureModel()
-      .then(function () { return tfConsensus(currentStorm.pts); })
+      .then(function () { return tfConsensus(currentStorm.pts, initHour); })
       .then(function (c) {
         aiLoading = false;
-        if (c) aiDrawConsensus(c);
+        if (c) aiDrawConsensus(c, initHour);
         else aiSetHindcastStatus("Not enough of this storm to build a consensus.", "err");
       })
       .catch(function (e) { aiLoading = false; aiSetHindcastStatus(((e && e.message) || String(e)), "err"); });
@@ -2813,7 +2878,7 @@
     hindcastFollowTick();          // estimate follows a manual scrub too (throttled)
     consensusFollowTick();         // actual track walks out to the playhead
   });
-  els.slider.addEventListener("change", function () { hindcastFollowTick(true); consensusFollowTick(); });   // settle on release
+  els.slider.addEventListener("change", function () { hindcastFollowTick(true); consensusFollowTick(true); });   // settle on release
   els.play.addEventListener("click", togglePlay);
 
   // Build the climatology chart the first time its panel is opened (a collapsed
