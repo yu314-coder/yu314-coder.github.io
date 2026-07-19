@@ -1853,6 +1853,9 @@
   // Overlay tags. Both overlays can be on at once (the consensus stays visible while the
   // hindcast animates), so traces are located by tag, never by position in els.map.data.
   var TF_HIND = "tf-hind", TF_CONS = "tf-cons", TF_CONS_ACT = "tf-cons-act";
+  // Consensus horizon: only forecasts made at least this far ahead are combined, so the
+  // yellow line is a genuine PREDICTION rather than a re-tracing of the observations.
+  var TF_CONS_MIN_LEAD_H = 0;
   function tfTraceIdx(tag) {
     var out = [], data = (els.map && els.map.data) || [];
     for (var i = 0; i < data.length; i++) if (data[i].meta === tag) out.push(i);
@@ -2243,10 +2246,16 @@
     return { x: xs.map(function (s) { return s[0]; }), y: xs.map(function (s) { return s[1]; }) };
   }
   // Build the consensus track for the whole storm. Returns {lat,lon,n} or null.
-  function tfConsensus(pts) {
+  function tfConsensus(pts, minLeadH) {
     var cons = tfRT.cons; if (!cons || !cons.C) return Promise.resolve(null);
     var C = cons.C, MINM = cons.min_members || 3, qA = cons.q_accel || 3.0;
     var leadsH = tfRT.meta.lead_hours;
+    // ONLY combine forecasts made at least minLeadH ahead. Without this the
+    // minimum-variance solution collapses onto the +6 h member (89% of the weight,
+    // sigma 34 km vs 1181 km at +120 h) — and a +6 h forecast is essentially
+    // persistence from the position observed 6 h earlier, so the "consensus" just
+    // retraced the observed track instead of showing what the model predicts.
+    minLeadH = minLeadH || TF_CONS_MIN_LEAD_H;
     // one init per 6-hourly fix that has enough history
     var inits = [];
     for (var i = 0; i < pts.length; i++) if (pts[i].h != null) inits.push(pts[i].h);
@@ -2261,6 +2270,7 @@
       var bins = {};                                   // valid hour -> [{lead index, lat, lon}]
       runs.forEach(function (r) {
         r.fc.points.forEach(function (p, li) {
+          if (leadsH[li] < minLeadH) return;         // drop the near-persistence short leads
           var vt = Math.round((r.h + leadsH[li]) / 6) * 6;
           (bins[vt] = bins[vt] || []).push({ L: li, lat: p.lat, lon: p.lon });
         });
@@ -2346,10 +2356,20 @@
         consensusTraceCount = 2;
         consensusFollowTick();          // fill the white line up to the current playhead
         els.consensusBtn.setAttribute("aria-pressed", "true"); els.consensusBtn.classList.add("is-on");
-        aiSetHindcastStatus("🧭 Consensus track (yellow) — every 6-hourly initialisation of my model combined by "
-          + "minimum-variance weighting over lead time (short leads count most), then smoothed with a "
-          + "constant-velocity Kalman/RTS filter, from " + c.n + " initialisations. Press play: the white line is "
-          + "what actually happened, drawing itself out to the playhead so you can watch the two race.", "on");
+        // Honest framing: this is an ANALYSIS, not a forecast. The minimum-variance
+        // solve puts ~89% of the weight on the +6 h member (sigma 34 km vs 1181 km at
+        // +120 h), and a +6 h forecast is near-persistence from the position observed
+        // 6 h earlier — so it necessarily sits close to the real track. Every member is
+        // still model output, and none of them sees data at or after its own valid time.
+        var inSample = currentStorm && Number(currentStorm.season) <= 2015;
+        aiSetHindcastStatus("🧭 Best-estimate track (yellow) — my model re-run from every 6-hourly "
+          + "initialisation (" + c.n + " of them), combined at each time by minimum-variance weighting over lead "
+          + "time and smoothed with a Kalman/RTS filter. This is an ANALYSIS, not a forecast: the weighting "
+          + "lands ~89% on the +6 h member, which is near-persistence, so it deliberately hugs the real track. "
+          + "For actual forecast skill use “Predict from here”. "
+          + (inSample ? "⚠️ This storm (" + currentStorm.season + ") is in the model's TRAINING data — it is "
+              + "in-sample and will flatter the model. Pick a 2020+ storm for an honest out-of-sample view. " : "")
+          + "Press play — the white line is what actually happened, drawn out to the playhead.", "on");
       })
       .catch(function (e) { aiLoading = false; aiSetHindcastStatus((e && e.message) || String(e), "err"); });
   }
