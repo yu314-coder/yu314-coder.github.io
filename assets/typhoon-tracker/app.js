@@ -44,6 +44,7 @@
     aiBtn: document.getElementById("tt-ai-btn"),
     aiStatus: document.getElementById("tt-ai-status"),
     hindcastBtn: document.getElementById("tt-hindcast-btn"),
+    consensusBtn: document.getElementById("tt-consensus-btn"),
     hindcastStatus: document.getElementById("tt-hindcast-status"),
     fcSlider: document.getElementById("tt-fc-slider"),
     fcTime: document.getElementById("tt-fc-time"),
@@ -842,6 +843,8 @@
     // so drop any hindcast overlay state that was sitting on the old map.
     hindcastTraceCount = 0;
     if (els.hindcastBtn) { els.hindcastBtn.setAttribute("aria-pressed", "false"); els.hindcastBtn.classList.remove("is-on"); }
+    consensusTraceCount = 0;
+    if (els.consensusBtn) { els.consensusBtn.setAttribute("aria-pressed", "false"); els.consensusBtn.classList.remove("is-on"); }
     aiSetHindcastStatus("");
     currentGeoScale = DEFAULT_GEO.scale;
     var pts = currentStorm.pts;
@@ -1810,36 +1813,43 @@
     aiRun(els.typhoonSelect ? jmaCache[els.typhoonSelect.value] : null);
   }
 
-  /* --- TrackFormer v8 — powers BOTH the live overlay and the track-mode hindcast.
-     A track-ONLY model (github.com/yu314-coder/typhoon-predict), so it needs no
-     ERA5 field and runs anywhere in the browser. Same "protected dual-stream"
-     architecture as v3 (separate kinematic/thermodynamic encoders + a persistence-
-     residual track head), retrained on partial-lead-expanded IBTrACS data (193k
-     windows). On the WP-2020+ held-out test it beats v3 on every metric — track
-     649 km (was 659), vmax 20.7 kt, pres 15.9 hPa, RMW 11.3 km, radii 27.8 km —
-     and still beats the full ERA5 model with no atmospheric data. It reads 9
-     six-hourly history fixes as a 48-dim vector (position, motion, wind, pressure,
-     RMW, wind radii, + motion-dynamics: heading/speed/turn and Δwind/Δpressure)
-     PLUS the current velocity v0, and outputs 20 six-hourly leads of the full
-     storm state (motion, wind, pressure, RMW, 34/50/64-kt radii). The feature
-     build mirrors build_track_v2.py (byte-identical to v8's build_track_v3data.py);
-     v8's own train-time normalization ships in the meta. The fp32 ONNX is bit-
-     exact to the PyTorch model, and int8 adds only ~3.7 km (0.6%) to track. Radii/
-     RMW: IBTrACS is nmile, our JSON is km, so ÷1.852 in and ×1.852 out. ~16 MB
-     int8 ONNX, lazily loaded only when a forecast is requested. --------------- */
-  var TF_MODEL_URL = "model/trackformer-v8.int8.onnx";
-  var TF_META_URL = "model/trackformer-v8-meta.json?v=20260717v8";
+  /* --- TrackFormer v9 — powers BOTH the live overlay and the track-mode hindcast.
+     Still a NO-REANALYSIS model (github.com/yu314-coder/typhoon-predict): every input
+     is derived from the track itself, so it runs anywhere in the browser. v9 adds a
+     third "protected" stream to v8's kinematic+thermodynamic pair — an ENVIRONMENT
+     encoder over absolute position (lat, |lat|, sin/cos lon), distance-to-land and a
+     lat+month climatological SST proxy. v8 was position-BLIND (translation-invariant,
+     relative motion only); giving the model absolute latitude — Coriolis, recurvature,
+     SST-latitude — cut WP-2020+ track to 618 km (−31 vs v8) and vmax to 18.6 kt (−2.1).
+     Inputs: 9 six-hourly history fixes as a 54-dim vector (48 as before + 6 environment)
+     PLUS the current velocity v0; outputs 20 six-hourly leads of the full 17-dim storm
+     state. The feature build mirrors build_track_v9.py; dist2land isn't in our per-fix
+     data so it's fed as the training mean (normalises to 0 — exactly how the builder
+     treats a missing DIST2LAND). v9's own train-time normalization ships in the meta.
+     Verified: our export reproduces the published 618 km exactly (618.4), the fp32 ONNX
+     is bit-exact to PyTorch, int8 costs ~3 physical units. Radii/RMW: IBTrACS is nmile,
+     our JSON is km, so ÷1.852 in and ×1.852 out. ~18 MB int8 ONNX, lazily loaded only
+     when a forecast is requested. ------------------------------------------------- */
+  var TF_MODEL_URL = "model/trackformer-v9.int8.onnx";
+  var TF_META_URL = "model/trackformer-v9-meta.json?v=20260719v9";
   // Probabilistic ensemble on v8 (no retraining): a 40x40 Cholesky L of the model's
   // own forecast-error covariance (20 leads x 2 axes) + a per-lead 90% cone radius.
   // Sampling L·z gives CROSS-LEAD-CORRELATED noise, so drawn routes are coherent
   // (smooth) rather than jagged. Computed offline (ensemble_v8.py); the "sample"
   // covariance won on WP-2020+ energy score (cover90 0.82) — a diagonal cov collapses
   // to 0.20, which is why the correlation structure matters.
-  var TF_ENS_URL = "model/trackformer-v8-ensemble.json?v=20260717v8";
+  var TF_ENS_URL = "model/trackformer-v9-ensemble.json?v=20260719v9";
+  // Multi-initialisation CONSENSUS (make_rmt_tracks.py + smooth_consensus.py): at each valid
+  // time the members are forecasts from different init times, so they carry different leads.
+  // Combine them min-variance, w = C^-1 1 / (1' C^-1 1) over the lead x lead position-error
+  // covariance C, then run a constant-velocity Kalman + RTS smoother so the track has physical
+  // momentum instead of jumping when the short-lead membership rotates.
+  var TF_CONS_URL = "model/trackformer-v9-consensus.json?v=20260719v9";
   var TF_NM = 1.852;                                    // km per nautical mile
   var TF_ENS_N = 40;                                    // ensemble routes to draw
-  var tfRT = { session: null, meta: null, ens: null };
+  var tfRT = { session: null, meta: null, ens: null, cons: null };
   var hindcastTraceCount = 0;
+  var consensusTraceCount = 0;
   function tfEnsureModel() {
     if (tfRT.session) return Promise.resolve();
     return (window.ort ? Promise.resolve() : aiLoadScript(ORT_URL)).then(function () {
@@ -1847,9 +1857,10 @@
       return Promise.all([
         fetch(TF_META_URL).then(function (r) { return r.json(); }),
         window.ort.InferenceSession.create(TF_MODEL_URL),
-        fetch(TF_ENS_URL).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
+        fetch(TF_ENS_URL).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
+        fetch(TF_CONS_URL).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
       ]);
-    }).then(function (r) { tfRT.meta = r[0]; tfRT.session = r[1]; tfRT.ens = r[2]; });
+    }).then(function (r) { tfRT.meta = r[0]; tfRT.session = r[1]; tfRT.ens = r[2]; tfRT.cons = r[3]; });
   }
   // Deterministic seeded standard-normals (mulberry32 + Box–Muller) so ensemble
   // routes stay stable across follow-the-playhead redraws (no flicker), yet morph
@@ -1894,6 +1905,10 @@
     var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(t || "");
     if (!m) return 200;
     return Math.round((Date.UTC(+m[1], +m[2] - 1, +m[3]) - Date.UTC(+m[1], 0, 0)) / 86400000);
+  }
+  function tfMonth(t) {   // 1..12, for v9's climatological SST proxy
+    var m = /^\d{4}-(\d{2})/.exec(t || "");
+    return m ? +m[1] : 8;
   }
   function tfMotionKm(la0, lo0, la1, lo1) {   // storm-relative motion, east/north km
     var dlat = la1 - la0, dlon = aiPmod(lo1 - lo0 + 180, 360) - 180;
@@ -1946,6 +1961,21 @@
         var dpok = (pv.p != null && isFinite(pv.p) && p.p != null && isFinite(p.p));
         raw[44] = dvok ? (p.w - pv.w) : 0; raw[45] = dpok ? (p.p - pv.p) : 0;
         raw[46] = dvok ? 1 : 0; raw[47] = dpok ? 1 : 0;
+      }
+      // environment stream (48:53) — v9's third encoder, all IBTrACS-derivable. Mirrors
+      // build_track_v9.py exactly: absolute position (Coriolis/recurvature), plus a
+      // lat+month climatological SST proxy. dist2land isn't in our per-fix data, so we
+      // feed the training mean — which normalises to 0, exactly how the dataset builder
+      // treats a missing DIST2LAND (NaN -> train mean).
+      if (D > 48) {
+        var mo = tfMonth(p.t), decl = 23.44 * Math.sin(2 * Math.PI * (mo - 3) / 12);
+        var thermal = 0.5 * decl;                                   // thermal-equator shift
+        raw[48] = p.la;
+        raw[49] = Math.abs(p.la);
+        raw[50] = Math.sin(p.lo * Math.PI / 180);
+        raw[51] = Math.cos(p.lo * Math.PI / 180);
+        raw[52] = mean[52];                                          // dist2land -> train mean
+        raw[53] = Math.max(0, Math.min(31, 30 - 0.30 * Math.pow(Math.abs(p.la - thermal), 1.4)));
       }
       if (hsin || hcos) prevDir = [hsin, hcos];
       if (k === 8) v0 = [se, sn];   // current velocity (raw km/6h) for the persistence-residual head
@@ -2136,10 +2166,174 @@
       if (hindcastTraceCount > 0) aiUpdateHindcast(fc, h);
     }, function () {}).then(function () { hindcastFollowRun = false; });
   }
+  /* --- Multi-initialisation consensus ------------------------------------------
+     Runs the model from EVERY 6-hourly init along the storm, then at each valid time
+     combines the forecasts that land on it. Those members carry different lead times
+     (one 6 h out, one 120 h out) so an equal mean is wrong: we use the min-variance
+     combination w = C^-1 1 / (1' C^-1 1) over the shipped lead x lead position-error
+     covariance, clip negative weights, and feed the combination variance
+     R = 1/(1' C^-1 1) to a constant-velocity Kalman + RTS smoother — a storm has
+     momentum, so the track must not jump when short-lead membership rotates.
+     Inference is ~2 ms, so ~40 inits is well under a tenth of a second. ---------- */
+  function tfMatInv(A, n) {                 // Gauss-Jordan with partial pivoting; null if singular
+    var M = [], i, j, k;
+    for (i = 0; i < n; i++) { M[i] = []; for (j = 0; j < n; j++) M[i][j] = A[i * n + j]; for (j = 0; j < n; j++) M[i][n + j] = (i === j) ? 1 : 0; }
+    for (i = 0; i < n; i++) {
+      var piv = i; for (k = i + 1; k < n; k++) if (Math.abs(M[k][i]) > Math.abs(M[piv][i])) piv = k;
+      if (Math.abs(M[piv][i]) < 1e-12) return null;
+      var tmp = M[i]; M[i] = M[piv]; M[piv] = tmp;
+      var d = M[i][i]; for (j = i; j < 2 * n; j++) M[i][j] /= d;
+      for (k = 0; k < n; k++) { if (k === i) continue; var f = M[k][i]; if (!f) continue; for (j = i; j < 2 * n; j++) M[k][j] -= f * M[i][j]; }
+    }
+    var out = new Float64Array(n * n);
+    for (i = 0; i < n; i++) for (j = 0; j < n; j++) out[i * n + j] = M[i][n + j];
+    return out;
+  }
+  // Constant-velocity Kalman filter + RTS smoother on 2-D positions (km).
+  function tfRtsSmooth(th, zx, zy, rvar, qA) {
+    var n = th.length, i;
+    var xs = [], Ps = [], xp = [], Pp = [];
+    var x = [zx[0], zy[0], 0, 0];
+    var P = [[rvar[0], 0, 0, 0], [0, rvar[0], 0, 0], [0, 0, 2500, 0], [0, 0, 0, 2500]];
+    function mul(A, B) { var C = [], r, c, k2; for (r = 0; r < 4; r++) { C[r] = []; for (c = 0; c < 4; c++) { var s = 0; for (k2 = 0; k2 < 4; k2++) s += A[r][k2] * B[k2][c]; C[r][c] = s; } } return C; }
+    function T(A) { var C = [], r, c; for (r = 0; r < 4; r++) { C[r] = []; for (c = 0; c < 4; c++) C[r][c] = A[c][r]; } return C; }
+    for (i = 0; i < n; i++) {
+      if (i > 0) {
+        var dt = Math.max(th[i] - th[i - 1], 1e-3);
+        var F = [[1, 0, dt, 0], [0, 1, 0, dt], [0, 0, 1, 0], [0, 0, 0, 1]];
+        var d4 = dt * dt * dt * dt / 4, d3 = dt * dt * dt / 2, d2 = dt * dt;
+        var Q = [[qA * d4, 0, qA * d3, 0], [0, qA * d4, 0, qA * d3], [qA * d3, 0, qA * d2, 0], [0, qA * d3, 0, qA * d2]];
+        var nx = [x[0] + dt * x[2], x[1] + dt * x[3], x[2], x[3]];
+        P = mul(mul(F, P), T(F));
+        for (var a = 0; a < 4; a++) for (var b = 0; b < 4; b++) P[a][b] += Q[a][b];
+        x = nx;
+      }
+      xp[i] = x.slice(); Pp[i] = P.map(function (r) { return r.slice(); });
+      var R = Math.max(rvar[i], 1e-3);
+      // H picks [x,y]; S = HPH' + R (2x2), K = P H' S^-1 (4x2)
+      var S00 = P[0][0] + R, S01 = P[0][1], S10 = P[1][0], S11 = P[1][1] + R;
+      var det = S00 * S11 - S01 * S10; if (Math.abs(det) < 1e-12) det = 1e-12;
+      var Si = [[S11 / det, -S01 / det], [-S10 / det, S00 / det]];
+      var K = [];
+      for (var r2 = 0; r2 < 4; r2++) K[r2] = [P[r2][0] * Si[0][0] + P[r2][1] * Si[1][0], P[r2][0] * Si[0][1] + P[r2][1] * Si[1][1]];
+      var yx = zx[i] - x[0], yy = zy[i] - x[1];
+      for (r2 = 0; r2 < 4; r2++) x[r2] = x[r2] + K[r2][0] * yx + K[r2][1] * yy;
+      var Pn = [];
+      for (r2 = 0; r2 < 4; r2++) { Pn[r2] = []; for (var c2 = 0; c2 < 4; c2++) Pn[r2][c2] = P[r2][c2] - (K[r2][0] * P[0][c2] + K[r2][1] * P[1][c2]); }
+      P = Pn;
+      xs[i] = x.slice(); Ps[i] = P.map(function (rr) { return rr.slice(); });
+    }
+    for (i = n - 2; i >= 0; i--) {                       // RTS backward pass
+      var dt2 = Math.max(th[i + 1] - th[i], 1e-3);
+      var F2 = [[1, 0, dt2, 0], [0, 1, 0, dt2], [0, 0, 1, 0], [0, 0, 0, 1]];
+      var PpInv = tfMatInv(new Float64Array([].concat.apply([], Pp[i + 1])), 4);
+      if (!PpInv) continue;
+      var PFt = mul(Ps[i], T(F2)), G = [];
+      for (var r3 = 0; r3 < 4; r3++) { G[r3] = []; for (var c3 = 0; c3 < 4; c3++) { var s3 = 0; for (var k3 = 0; k3 < 4; k3++) s3 += PFt[r3][k3] * PpInv[k3 * 4 + c3]; G[r3][c3] = s3; } }
+      for (r3 = 0; r3 < 4; r3++) { var acc = 0; for (k3 = 0; k3 < 4; k3++) acc += G[r3][k3] * (xs[i + 1][k3] - xp[i + 1][k3]); xs[i][r3] += acc; }
+    }
+    return { x: xs.map(function (s) { return s[0]; }), y: xs.map(function (s) { return s[1]; }) };
+  }
+  // Build the consensus track for the whole storm. Returns {lat,lon,n} or null.
+  function tfConsensus(pts) {
+    var cons = tfRT.cons; if (!cons || !cons.C) return Promise.resolve(null);
+    var C = cons.C, MINM = cons.min_members || 3, qA = cons.q_accel || 3.0;
+    var leadsH = tfRT.meta.lead_hours;
+    // one init per 6-hourly fix that has enough history
+    var inits = [];
+    for (var i = 0; i < pts.length; i++) if (pts[i].h != null) inits.push(pts[i].h);
+    var runs = [], chain = Promise.resolve();
+    inits.forEach(function (h) {
+      chain = chain.then(function () {
+        return tfRunModel(pts, h).then(function (fc) { runs.push({ h: h, fc: fc }); }, function () {});
+      });
+    });
+    return chain.then(function () {
+      if (runs.length < 2) return null;
+      var bins = {};                                   // valid hour -> [{lead index, lat, lon}]
+      runs.forEach(function (r) {
+        r.fc.points.forEach(function (p, li) {
+          var vt = Math.round((r.h + leadsH[li]) / 6) * 6;
+          (bins[vt] = bins[vt] || []).push({ L: li, lat: p.lat, lon: p.lon });
+        });
+      });
+      // Keep only valid times the storm actually reached: leads from late inits project
+      // past the end of the record, and that tail is pure extrapolation with nothing to
+      // verify it against. Trimming makes the consensus directly comparable to the actual track.
+      var lastH = -1e9;
+      for (var q2 = 0; q2 < pts.length; q2++) if (pts[q2].h != null && pts[q2].h > lastH) lastH = pts[q2].h;
+      var times = Object.keys(bins).map(Number).sort(function (a, b) { return a - b; })
+        .filter(function (t) { return bins[t].length >= MINM && t <= lastH; });
+      if (times.length < 3) return null;
+      var zlat = [], zlon = [], rvar = [];
+      times.forEach(function (t) {
+        var mem = bins[t], m = mem.length, i2, j2;
+        var sub = new Float64Array(m * m);
+        for (i2 = 0; i2 < m; i2++) for (j2 = 0; j2 < m; j2++) sub[i2 * m + j2] = C[mem[i2].L * 20 + mem[j2].L];
+        var tr = 0; for (i2 = 0; i2 < m; i2++) tr += sub[i2 * m + i2];
+        for (i2 = 0; i2 < m; i2++) sub[i2 * m + i2] += 1e-6 * tr / m;      // ridge
+        var inv = tfMatInv(sub, m), w = [], sum = 0, denom = 0;
+        if (inv) {
+          for (i2 = 0; i2 < m; i2++) { var s4 = 0; for (j2 = 0; j2 < m; j2++) s4 += inv[i2 * m + j2]; w[i2] = Math.max(0, s4); sum += w[i2]; denom += s4; }
+        }
+        if (!inv || sum <= 0) { for (i2 = 0; i2 < m; i2++) w[i2] = 1 / m; sum = 1; denom = m / Math.max(C[0], 1); }
+        var la = 0, lo = 0;
+        for (i2 = 0; i2 < m; i2++) { la += (w[i2] / sum) * mem[i2].lat; lo += (w[i2] / sum) * mem[i2].lon; }
+        zlat.push(la); zlon.push(lo); rvar.push(denom > 0 ? Math.max(1 / denom, 1) : 1e4);
+      });
+      // smooth in a local km frame
+      var lat0 = zlat.reduce(function (a, b) { return a + b; }, 0) / zlat.length;
+      var lon0 = zlon.reduce(function (a, b) { return a + b; }, 0) / zlon.length;
+      var cos0 = Math.cos(lat0 * Math.PI / 180) || 1e-6;
+      var zx = zlon.map(function (v) { return (aiPmod(v - lon0 + 180, 360) - 180) * 111.2 * cos0; });
+      var zy = zlat.map(function (v) { return (v - lat0) * 111.2; });
+      var sm = tfRtsSmooth(times, zx, zy, rvar, qA);
+      return { lat: sm.y.map(function (v) { return lat0 + v / 111.2; }),
+               lon: sm.x.map(function (v) { return lon0 + v / (111.2 * cos0); }),
+               n: runs.length, times: times };
+    });
+  }
+  // Both overlays append their traces LAST and delete by tail index, so they are kept
+  // mutually exclusive — turning one on clears the other.
+  function aiClearConsensus() {
+    if (consensusTraceCount > 0 && els.map.data && els.map.data.length >= consensusTraceCount) {
+      var n0 = els.map.data.length, idx0 = [];
+      for (var i0 = n0 - consensusTraceCount; i0 < n0; i0++) idx0.push(i0);
+      Plotly.deleteTraces(els.map, idx0);
+    }
+    consensusTraceCount = 0;
+    if (els.consensusBtn) { els.consensusBtn.setAttribute("aria-pressed", "false"); els.consensusBtn.classList.remove("is-on"); }
+  }
+  function aiConsensusToggle() {
+    if (appMode !== "track" || viewMode !== "storm" || !currentStorm) return;
+    if (consensusTraceCount > 0) { aiClearConsensus(); aiSetHindcastStatus(""); return; }
+    if (aiLoading) return;
+    aiClearHindcast();                                  // keep the tail-index invariant
+    aiLoading = true;
+    aiSetHindcastStatus(tfRT.session ? "Running every initialisation…" : "Loading my AI model…", "loading");
+    tfEnsureModel().then(function () { return tfConsensus(currentStorm.pts); })
+      .then(function (c) {
+        aiLoading = false;
+        if (!c) { aiSetHindcastStatus("Not enough of this storm to build a consensus.", "err"); return; }
+        Plotly.addTraces(els.map, [{
+          type: "scattergeo", mode: "lines", lat: c.lat, lon: c.lon,
+          line: { color: "rgb(250,204,21)", width: 3 }, hoverinfo: "text",
+          text: "consensus of " + c.n + " initialisations (min-variance by lead + Kalman/RTS smoothed)",
+          showlegend: false
+        }]);
+        consensusTraceCount = 1;
+        els.consensusBtn.setAttribute("aria-pressed", "true"); els.consensusBtn.classList.add("is-on");
+        aiSetHindcastStatus("🧭 Consensus track — every 6-hourly initialisation of my model combined by "
+          + "minimum-variance weighting over lead time (short leads count most), then smoothed with a "
+          + "constant-velocity Kalman/RTS filter. " + c.n + " initialisations. Compare it to the white actual track.", "on");
+      })
+      .catch(function (e) { aiLoading = false; aiSetHindcastStatus((e && e.message) || String(e), "err"); });
+  }
   function aiHindcastToggle() {
     if (appMode !== "track" || viewMode !== "storm" || !currentStorm) return;
     if (hindcastTraceCount > 0) { aiClearHindcast(); return; }   // toggle off
     if (aiLoading) return;
+    aiClearConsensus();                                 // keep the tail-index invariant
     var initHour = Number(els.slider.value);
     aiLoading = true;
     aiSetHindcastStatus(tfRT.session ? "Running my AI model…" : "Loading my AI model (~one-time 30 MB download)…", "loading");
@@ -2476,6 +2670,7 @@
   if (els.fcSpeed) els.fcSpeed.addEventListener("click", cycleForecastSpeed);
   if (els.aiBtn) els.aiBtn.addEventListener("click", aiToggle);
   if (els.hindcastBtn) els.hindcastBtn.addEventListener("click", aiHindcastToggle);
+  if (els.consensusBtn) els.consensusBtn.addEventListener("click", aiConsensusToggle);
 
   // Rest the forecast sweep when its map isn't on screen: no point spending
   // frames (and Plotly redraws) animating a map the user has scrolled past.
