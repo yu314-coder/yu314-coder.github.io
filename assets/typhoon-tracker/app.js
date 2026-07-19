@@ -1813,25 +1813,28 @@
   }
 
   /* --- TrackFormer v10 — powers BOTH the live overlay and the track-mode hindcast.
-     Still a NO-REANALYSIS model (github.com/yu314-coder/typhoon-predict): every input
-     is derived from the track itself, so it runs anywhere in the browser. v9 adds a
-     third "protected" stream to v8's kinematic+thermodynamic pair — an ENVIRONMENT
-     encoder over absolute position (lat, |lat|, sin/cos lon), distance-to-land and a
-     lat+month climatological SST proxy. v8 was position-BLIND (translation-invariant,
-     relative motion only); giving the model absolute latitude — Coriolis, recurvature,
-     SST-latitude — cut WP-2020+ track to 618 km (v9). v10 adds a CURVED persistence
-     baseline: it takes the last TWO velocities (vpair) and extrapolates the current
-     turn rate per lead instead of a straight line, giving 614 km.
-     Inputs: 9 six-hourly history fixes as a 54-dim vector (48 as before + 6 environment)
-     PLUS vpair (the last two 6 h velocities); outputs 20 six-hourly leads of the full 17-dim storm
-     state. The feature build mirrors build_track_v9.py; dist2land isn't in our per-fix
-     data so it's fed as the training mean (normalises to 0 — exactly how the builder
-     treats a missing DIST2LAND). v9's own train-time normalization ships in the meta.
-     Verified: our v9 export reproduced the published 618 km exactly (618.4); v10 gives
-     614.2 km on the same held-out set. The fp32 ONNX
-     is bit-exact to PyTorch, int8 costs ~3 physical units. Radii/RMW: IBTrACS is nmile,
-     our JSON is km, so ÷1.852 in and ×1.852 out. ~18 MB int8 ONNX, lazily loaded only
-     when a forecast is requested. ------------------------------------------------- */
+     A FIELD-FREE model (github.com/yu314-coder/typhoon-predict): it sees 48 h of the
+     storm's own best-track history — motion, intensity, position — and nothing else.
+     No steering winds, no pressure fields, no reanalysis, no satellite. (v13+ add a
+     17×17 reanalysis patch, which is what takes 549 → 463 km, but that data can't be
+     fetched in a browser, so v10 is the best model that can actually run here.)
+     Three streams are encoded separately — kinematic (11 cols), thermodynamic (36),
+     environment (6: lat, |lat|, sin/cos lon, dist-to-land, a lat×month SST proxy) —
+     then 20 lead queries cross-attend over kinematic+environment memory.
+     PHYSICS FIRST: the net doesn't predict the track, it predicts a CORRECTION to a
+     damped, curved persistence extrapolation. base = rho[L]·|v0| along a heading
+     extrapolated by gturn[L]·(turn rate); motion = base + residual. Zero-init, so an
+     untrained v10 is exact straight-line persistence. The trained weights damp speed
+     ~8% (mostly inside 24 h), extrapolate at most 7.6% of the measured turn (it's
+     mostly noise) with a sign flip past +48 h, and the intensity→track gate learned
+     EXACTLY 0 — intensity contributes nothing to where the storm goes.
+     Inputs: track [1,9,54] + vpair [1,4] (the last TWO 6-h velocities — the curved
+     baseline needs the turn). Outputs 20 six-hourly leads × 17 dims; the first two are
+     per-step displacements, cumulatively summed into lat/lon so long-horizon error
+     doesn't compound. Measured here: 549.3 km (WP+EP 2020+, all leads pooled) — matches
+     the model card exactly; 614.2 km on the WP-only mean-over-leads basis the older
+     models were quoted on. fp32 ONNX is bit-exact to PyTorch; ~18 MB int8, lazily
+     loaded. Radii/RMW: IBTrACS is nmile, our JSON km, so ÷1.852 in and ×1.852 out. */
   var TF_MODEL_URL = "model/trackformer-v10.int8.onnx";
   var TF_META_URL = "model/trackformer-v10-meta.json?v=20260719v10";
   // Probabilistic ensemble on v8 (no retraining): a 40x40 Cholesky L of the model's
