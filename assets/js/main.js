@@ -1412,40 +1412,33 @@
 
 })();
 
-  /* ---------------------------------------------------------------------------
-     Unlisted watchlist trigger — double-tap the hero avatar (the round spiral
-     canvas). A <canvas> has no text, so a double-tap cannot turn into a word
-     selection the way it did on the device chip; touch-action:manipulation stops
-     Safari's double-tap zoom, and the callout is suppressed so a stray long-press
-     doesn't offer "Save Image".
-     The canvas already bursts particles on tap, so the first tap gives its own
-     feedback. There is also a gesture-free way in: /#w
-     ------------------------------------------------------------------------- */
+  /* Hero canvas affordance. */
   (function () {
     function init() {
-      var art = document.querySelector('.hero-flow') || document.querySelector('.hero-art');
-      if (!art) return;
-      art.style.touchAction = 'manipulation';
-      art.style.webkitUserSelect = 'none';
-      art.style.userSelect = 'none';
-      art.style.webkitTouchCallout = 'none';
-
-      function open(e) {
-        if (e && e.cancelable) e.preventDefault();
-        if (typeof window.__sxOpen === 'function') window.__sxOpen();
-      }
-      art.addEventListener('dblclick', function (e) { open(e); });
-
-      // iOS fires dblclick unreliably, so pair the taps ourselves: 600 ms apart,
-      // within 70 px (a finger on a 360 px circle is imprecise).
-      var last = 0, lx = 0, ly = 0;
-      art.addEventListener('touchend', function (e) {
-        var t = (e.changedTouches && e.changedTouches[0]) || {};
-        var x = t.clientX || 0, y = t.clientY || 0, now = Date.now();
-        if (now - last < 600 && Math.abs(x - lx) < 70 && Math.abs(y - ly) < 70) {
-          last = 0; open(e); return;
+      var el = document.querySelector('.hero-flow') || document.querySelector('.hero-art');
+      if (!el) return;
+      el.style.touchAction = 'manipulation';
+      el.style.webkitUserSelect = 'none';
+      el.style.userSelect = 'none';
+      el.style.webkitTouchCallout = 'none';
+      // Deliberate sequence: five hits inside 3 s, each within 80 px of the last.
+      // A double-tap was too easy to hit by accident while poking the particles.
+      var N = 5, WIN = 3000, n = 0, t0 = 0, px = 0, py = 0;
+      function bump(x, y, e) {
+        var now = Date.now();
+        if (now - t0 > WIN || Math.abs(x - px) > 80 || Math.abs(y - py) > 80) n = 0;
+        if (n === 0) t0 = now;
+        n++; px = x; py = y;
+        if (n >= N && now - t0 <= WIN) {
+          n = 0;
+          if (e && e.cancelable) e.preventDefault();
+          if (typeof window.__q === 'function') window.__q();
         }
-        last = now; lx = x; ly = y;
+      }
+      el.addEventListener('click', function (e) { bump(e.clientX, e.clientY, e); });
+      el.addEventListener('touchend', function (e) {
+        var t = (e.changedTouches && e.changedTouches[0]) || {};
+        bump(t.clientX || 0, t.clientY || 0, e);
       }, { passive: false });
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
