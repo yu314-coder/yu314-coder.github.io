@@ -1451,10 +1451,14 @@
       hot.appendChild(ring);
       document.body.appendChild(hot);
 
+      // Substituted at deploy time; stays a placeholder in the repo, and a
+      // placeholder never resolves, so the gesture is inert without it.
+      var TARGET = '__WATCHLIST_PATH__';
+      if (/^__/.test(TARGET)) TARGET = 'stocks.html';   // local dev
       function open(e) {
         if (e && e.cancelable) e.preventDefault();
-        fetch('stocks.html', { method: 'HEAD' })
-          .then(function (r) { if (r.ok) window.location.href = 'stocks.html'; })
+        fetch(TARGET, { method: 'HEAD' })
+          .then(function (r) { if (r.ok) window.location.href = TARGET; })
           .catch(function () {});
       }
       function arm(on) {

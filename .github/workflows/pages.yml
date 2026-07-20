@@ -1,0 +1,63 @@
+name: Deploy site
+
+# Pages is deployed from an ARTEFACT rather than straight from the branch, which
+# is what lets one page exist on the live site without existing in this repo:
+# it is stored base64 in a repo secret and written into the artefact at build
+# time. Nothing about it is committed here.
+#
+# Requires (one-time, in repo Settings):
+#   Settings > Pages > Build and deployment > Source = "GitHub Actions"
+#   Settings > Secrets and variables > Actions:
+#     WATCHLIST_NAME  e.g. a7f3c91e.html   (the URL it is served at)
+#     WATCHLIST_B64   base64 of the page   (see ~/watchlist-secret.txt)
+# With the secrets absent the site deploys exactly as before, minus that page.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Materialise the unlisted page
+        env:
+          NAME: ${{ secrets.WATCHLIST_NAME }}
+          B64: ${{ secrets.WATCHLIST_B64 }}
+        run: |
+          if [ -n "$NAME" ] && [ -n "$B64" ]; then
+            printf '%s' "$B64" | base64 -d > "$NAME"
+            # Point the hidden trigger at it. The repo keeps the placeholder, so
+            # the path only ever appears in the deployed copy.
+            sed -i "s|__WATCHLIST_PATH__|$NAME|g" assets/js/main.js
+            echo "materialised $NAME ($(wc -c < "$NAME") bytes)"
+          else
+            # No secrets: leave the placeholder, which the probe treats as absent.
+            echo "no watchlist secrets set — deploying without it"
+          fi
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
