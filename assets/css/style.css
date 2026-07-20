@@ -1041,3 +1041,38 @@ body[data-device="tablet"] .feature-badge { padding: 7px 14px; font-size: 0.85re
 body[data-device="desktop"] .hero h1 { letter-spacing: -0.5px; }
 body[data-device="desktop"] .spotlight-card:hover { transform: translateY(-7px); }
 
+
+/* ---------------------------------------------------------------------------
+   Device chip — touch ergonomics
+   The chip doubles as the (unlisted) watchlist trigger, so on phones and tablets
+   it has to behave like a real button. Three iOS-specific problems:
+   1. double-tap zooms Safari instead of reaching the handler -> touch-action
+   2. 39px tall is under Apple's 44px minimum target
+   3. bottom:18px can sit under the Safari toolbar / home indicator -> safe-area
+   Additive only; the block above is preserved verbatim.
+   ------------------------------------------------------------------------- */
+.device-chip {
+  touch-action: manipulation;        /* no double-tap zoom, no 300ms delay */
+  -webkit-touch-callout: none;       /* no long-press callout on the emoji */
+}
+body[data-device="phone"] .device-chip,
+body[data-device="tablet"] .device-chip {
+  min-height: 44px;
+  padding: 11px 16px 11px 14px;
+  font-size: 0.82rem;
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  right: calc(18px + env(safe-area-inset-right, 0px));
+}
+body[data-device="phone"] .device-chip .glyph,
+body[data-device="tablet"] .device-chip .glyph { font-size: 1.15rem; }
+/* Invisible 12px cushion so a near-miss still lands on the target. */
+body[data-device="phone"] .device-chip::before,
+body[data-device="tablet"] .device-chip::before {
+  content: ""; position: absolute; inset: -12px; border-radius: inherit;
+}
+/* First tap acknowledged — tells you the second tap will open it. */
+.device-chip.is-armed {
+  transform: scale(1.06);
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.28), 0 6px 18px rgba(0,0,0,0.22);
+}
+@media (prefers-reduced-motion: reduce) { .device-chip.is-armed { transform: none; } }

@@ -1367,21 +1367,7 @@
         glyph.textContent = kind === 'desktop' ? '🖥️' : (kind === 'tablet' ? '🖼️' : '📱');
         chip.appendChild(glyph);
         document.body.appendChild(chip);
-        // Double-click (or double-tap) the device chip -> unlisted watchlist.
-      function sxOpen(e) {
-        if (e) e.preventDefault();
-        fetch('stocks.html', { method: 'HEAD' })
-          .then(function (r) { if (r.ok) window.location.href = 'stocks.html'; })
-          .catch(function () {});
-      }
-      chip.addEventListener('dblclick', function () { sxOpen(); });
-      var lastTap = 0;
-      chip.addEventListener('touchend', function (e) {
-        var now = Date.now();
-        if (now - lastTap < 400) sxOpen(e);
-        lastTap = now;
-      }, { passive: false });
-      }
+        }
       let t;
       window.addEventListener('resize', () => {
         clearTimeout(t);
@@ -1425,3 +1411,57 @@
   });
 
 })();
+
+  /* ---------------------------------------------------------------------------
+     Unlisted watchlist trigger.
+     Lives on the hero canvas, NOT on text: double-tapping text on iOS selects a
+     word instead of firing the gesture, which is why the device chip didn't work
+     on iPhone/iPad. A <canvas> has nothing to select, so the gesture lands.
+     The page is local-only, so probe first and stay silent if it isn't there.
+     ------------------------------------------------------------------------- */
+  (function () {
+    function init() {
+      var art = document.querySelector('.hero-art');
+      if (!art) return;
+      art.style.touchAction = 'manipulation';          /* no double-tap zoom */
+      art.style.webkitUserSelect = 'none';             /* iOS needs the prefix */
+      art.style.userSelect = 'none';
+      art.style.webkitTouchCallout = 'none';
+      function open(e) {
+        if (e) e.preventDefault();
+        fetch('stocks.html', { method: 'HEAD' })
+          .then(function (r) { if (r.ok) window.location.href = 'stocks.html'; })
+          .catch(function () {});
+      }
+      art.addEventListener('dblclick', function () { open(); });
+      // Touch: TWO ways in, because a double-tap is fiddly on a phone.
+      //  - double-tap (500 ms window, 60 px tolerance)
+      //  - long-press (700 ms) — the reliable one on iOS: it cannot be mistaken
+      //    for text selection (a canvas has no text) or for pinch/zoom.
+      var last = 0, lx = 0, ly = 0, hold = null;
+      art.addEventListener('touchstart', function (e) {
+        var t = (e.changedTouches && e.changedTouches[0]) || {};
+        var sx = t.clientX || 0, sy = t.clientY || 0;
+        clearTimeout(hold);
+        hold = setTimeout(function () { open(e); }, 700);
+        art.__sx = sx; art.__sy = sy;
+      }, { passive: true });
+      art.addEventListener('touchmove', function (e) {
+        var t = (e.changedTouches && e.changedTouches[0]) || {};
+        // a scroll/drag cancels the hold
+        if (Math.abs((t.clientX || 0) - art.__sx) > 12 || Math.abs((t.clientY || 0) - art.__sy) > 12) clearTimeout(hold);
+      }, { passive: true });
+      art.addEventListener('touchcancel', function () { clearTimeout(hold); }, { passive: true });
+      art.addEventListener('touchend', function (e) {
+        clearTimeout(hold);
+        var t = (e.changedTouches && e.changedTouches[0]) || {};
+        var x = t.clientX || 0, y = t.clientY || 0, now = Date.now();
+        if (now - last < 500 && Math.abs(x - lx) < 60 && Math.abs(y - ly) < 60) {
+          last = 0; open(e); return;
+        }
+        last = now; lx = x; ly = y;
+      }, { passive: false });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+  })();

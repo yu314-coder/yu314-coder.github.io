@@ -92,20 +92,6 @@
       glyph.textContent = kind === 'desktop' ? '🖥️' : (kind === 'tablet' ? '🖼️' : '📱');
       chip.appendChild(glyph);
       document.body.appendChild(chip);
-      // Double-click (or double-tap) the device chip -> unlisted watchlist.
-      function sxOpen(e) {
-        if (e) e.preventDefault();
-        fetch('stocks.html', { method: 'HEAD' })
-          .then(function (r) { if (r.ok) window.location.href = 'stocks.html'; })
-          .catch(function () {});
-      }
-      chip.addEventListener('dblclick', function () { sxOpen(); });
-      var lastTap = 0;
-      chip.addEventListener('touchend', function (e) {
-        var now = Date.now();
-        if (now - lastTap < 400) sxOpen(e);
-        lastTap = now;
-      }, { passive: false });
     }
     let t;
     window.addEventListener('resize', () => {
