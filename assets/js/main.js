@@ -1413,54 +1413,85 @@
 })();
 
   /* ---------------------------------------------------------------------------
-     Unlisted watchlist trigger.
-     Lives on the hero canvas, NOT on text: double-tapping text on iOS selects a
-     word instead of firing the gesture, which is why the device chip didn't work
-     on iPhone/iPad. A <canvas> has nothing to select, so the gesture lands.
-     The page is local-only, so probe first and stay silent if it isn't there.
+     Unlisted watchlist trigger — a dedicated invisible hotspot.
+     Previous attempts failed on iOS for reasons outside our control: the device
+     chip is text (double-tap selects a word), and long-pressing the hero <canvas>
+     can raise Safari's image callout and competes with the canvas's own burst
+     handler. So this owns its element outright: a fixed 76px square in the
+     BOTTOM-LEFT corner, no text, no image, no other listeners.
+       - long-press 600 ms   (primary; a ring fades in so you can see it register)
+       - triple-tap          (backup, if a hold gets eaten)
+       - double-click        (desktop)
+     A 14px drag cancels the hold, so scrolling never fires it. The page is
+     local-only: probe first and stay silent when it isn't there.
      ------------------------------------------------------------------------- */
   (function () {
     function init() {
-      var art = document.querySelector('.hero-art');
-      if (!art) return;
-      art.style.touchAction = 'manipulation';          /* no double-tap zoom */
-      art.style.webkitUserSelect = 'none';             /* iOS needs the prefix */
-      art.style.userSelect = 'none';
-      art.style.webkitTouchCallout = 'none';
+      if (document.getElementById('sx-hot')) return;
+      var hot = document.createElement('div');
+      hot.id = 'sx-hot';
+      hot.setAttribute('aria-hidden', 'true');
+      hot.style.cssText = [
+        'position:fixed', 'left:0', 'bottom:0',
+        'width:76px', 'height:76px',
+        'z-index:8001', 'background:transparent',
+        'touch-action:none', '-webkit-user-select:none', 'user-select:none',
+        '-webkit-touch-callout:none', 'cursor:default',
+        'padding-bottom:env(safe-area-inset-bottom,0px)',
+        'padding-left:env(safe-area-inset-left,0px)'
+      ].join(';');
+      // Held-state ring: the only visible sign it exists, and only while pressed.
+      var ring = document.createElement('div');
+      ring.style.cssText = [
+        'position:absolute', 'left:14px', 'bottom:14px', 'width:44px', 'height:44px',
+        'border-radius:50%', 'border:2px solid rgba(255,255,255,.55)',
+        'opacity:0', 'transform:scale(.6)', 'transition:opacity .18s ease, transform .6s ease',
+        'pointer-events:none'
+      ].join(';');
+      hot.appendChild(ring);
+      document.body.appendChild(hot);
+
       function open(e) {
-        if (e) e.preventDefault();
+        if (e && e.cancelable) e.preventDefault();
         fetch('stocks.html', { method: 'HEAD' })
           .then(function (r) { if (r.ok) window.location.href = 'stocks.html'; })
           .catch(function () {});
       }
-      art.addEventListener('dblclick', function () { open(); });
-      // Touch: TWO ways in, because a double-tap is fiddly on a phone.
-      //  - double-tap (500 ms window, 60 px tolerance)
-      //  - long-press (700 ms) — the reliable one on iOS: it cannot be mistaken
-      //    for text selection (a canvas has no text) or for pinch/zoom.
-      var last = 0, lx = 0, ly = 0, hold = null;
-      art.addEventListener('touchstart', function (e) {
-        var t = (e.changedTouches && e.changedTouches[0]) || {};
-        var sx = t.clientX || 0, sy = t.clientY || 0;
+      function arm(on) {
+        ring.style.opacity = on ? '1' : '0';
+        ring.style.transform = on ? 'scale(1)' : 'scale(.6)';
+      }
+
+      var hold = null, sx = 0, sy = 0, taps = 0, tapT = 0;
+      hot.addEventListener('touchstart', function (e) {
+        var t = (e.touches && e.touches[0]) || {};
+        sx = t.clientX || 0; sy = t.clientY || 0;
+        arm(true);
         clearTimeout(hold);
-        hold = setTimeout(function () { open(e); }, 700);
-        art.__sx = sx; art.__sy = sy;
-      }, { passive: true });
-      art.addEventListener('touchmove', function (e) {
-        var t = (e.changedTouches && e.changedTouches[0]) || {};
-        // a scroll/drag cancels the hold
-        if (Math.abs((t.clientX || 0) - art.__sx) > 12 || Math.abs((t.clientY || 0) - art.__sy) > 12) clearTimeout(hold);
-      }, { passive: true });
-      art.addEventListener('touchcancel', function () { clearTimeout(hold); }, { passive: true });
-      art.addEventListener('touchend', function (e) {
-        clearTimeout(hold);
-        var t = (e.changedTouches && e.changedTouches[0]) || {};
-        var x = t.clientX || 0, y = t.clientY || 0, now = Date.now();
-        if (now - last < 500 && Math.abs(x - lx) < 60 && Math.abs(y - ly) < 60) {
-          last = 0; open(e); return;
-        }
-        last = now; lx = x; ly = y;
+        hold = setTimeout(function () { arm(false); open(e); }, 600);
       }, { passive: false });
+      hot.addEventListener('touchmove', function (e) {
+        var t = (e.touches && e.touches[0]) || {};
+        if (Math.abs((t.clientX || 0) - sx) > 14 || Math.abs((t.clientY || 0) - sy) > 14) {
+          clearTimeout(hold); arm(false);
+        }
+      }, { passive: true });
+      hot.addEventListener('touchcancel', function () { clearTimeout(hold); arm(false); }, { passive: true });
+      hot.addEventListener('touchend', function (e) {
+        clearTimeout(hold); arm(false);
+        var now = Date.now();
+        taps = (now - tapT < 600) ? taps + 1 : 1;
+        tapT = now;
+        if (taps >= 3) { taps = 0; open(e); }
+      }, { passive: false });
+      // Desktop: press-and-hold with the mouse, or double-click.
+      hot.addEventListener('mousedown', function () {
+        arm(true); clearTimeout(hold); hold = setTimeout(function () { arm(false); open(); }, 600);
+      });
+      hot.addEventListener('mouseup', function () { clearTimeout(hold); arm(false); });
+      hot.addEventListener('mouseleave', function () { clearTimeout(hold); arm(false); });
+      hot.addEventListener('dblclick', function () { open(); });
+      hot.addEventListener('contextmenu', function (e) { e.preventDefault(); });
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();
