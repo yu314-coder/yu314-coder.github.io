@@ -7,3 +7,9 @@ assets/typhoon-tracker/local/
 # Local twin of the tracker running the field model (needs NCEP steering)
 assets/typhoon-tracker-local/
 typhoon-tracks-local.html
+
+# Unlisted watchlist — local only, kept out of the public repo
+stocks.html
+assets/stocks/
+scripts/refresh_stocks.py
+.github/workflows/refresh-stocks.yml
