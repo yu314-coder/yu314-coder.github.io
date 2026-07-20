@@ -1413,85 +1413,40 @@
 })();
 
   /* ---------------------------------------------------------------------------
-     Unlisted watchlist trigger — a dedicated invisible hotspot.
-     Previous attempts failed on iOS for reasons outside our control: the device
-     chip is text (double-tap selects a word), and long-pressing the hero <canvas>
-     can raise Safari's image callout and competes with the canvas's own burst
-     handler. So this owns its element outright: a fixed 76px square in the
-     BOTTOM-LEFT corner, no text, no image, no other listeners.
-       - long-press 600 ms   (primary; a ring fades in so you can see it register)
-       - triple-tap          (backup, if a hold gets eaten)
-       - double-click        (desktop)
-     A 14px drag cancels the hold, so scrolling never fires it. The page is
-     local-only: probe first and stay silent when it isn't there.
+     Unlisted watchlist trigger — double-tap the hero avatar (the round spiral
+     canvas). A <canvas> has no text, so a double-tap cannot turn into a word
+     selection the way it did on the device chip; touch-action:manipulation stops
+     Safari's double-tap zoom, and the callout is suppressed so a stray long-press
+     doesn't offer "Save Image".
+     The canvas already bursts particles on tap, so the first tap gives its own
+     feedback. There is also a gesture-free way in: /#w
      ------------------------------------------------------------------------- */
   (function () {
     function init() {
-      if (document.getElementById('sx-hot')) return;
-      var hot = document.createElement('div');
-      hot.id = 'sx-hot';
-      hot.setAttribute('aria-hidden', 'true');
-      hot.style.cssText = [
-        'position:fixed', 'left:0', 'bottom:0',
-        'width:110px', 'height:110px',
-        'z-index:8001', 'background:transparent',
-        'touch-action:none', '-webkit-user-select:none', 'user-select:none',
-        '-webkit-touch-callout:none', 'cursor:default',
-        'padding-bottom:env(safe-area-inset-bottom,0px)',
-        'padding-left:env(safe-area-inset-left,0px)'
-      ].join(';');
-      // Held-state ring: the only visible sign it exists, and only while pressed.
-      var ring = document.createElement('div');
-      ring.style.cssText = [
-        'position:absolute', 'left:22px', 'bottom:22px', 'width:56px', 'height:56px',
-        'border-radius:50%', 'border:2px solid rgba(255,255,255,.55)',
-        'opacity:0', 'transform:scale(.6)', 'transition:opacity .18s ease, transform .6s ease',
-        'pointer-events:none'
-      ].join(';');
-      hot.appendChild(ring);
-      document.body.appendChild(hot);
+      var art = document.querySelector('.hero-flow') || document.querySelector('.hero-art');
+      if (!art) return;
+      art.style.touchAction = 'manipulation';
+      art.style.webkitUserSelect = 'none';
+      art.style.userSelect = 'none';
+      art.style.webkitTouchCallout = 'none';
 
-      // The watchlist is markup inside this very page, not a separate file, so
-      // this reveals it rather than navigating. Nothing to 404, nothing to deploy.
       function open(e) {
         if (e && e.cancelable) e.preventDefault();
         if (typeof window.__sxOpen === 'function') window.__sxOpen();
       }
-      function arm(on) {
-        ring.style.opacity = on ? '1' : '0';
-        ring.style.transform = on ? 'scale(1)' : 'scale(.6)';
-      }
+      art.addEventListener('dblclick', function (e) { open(e); });
 
-      var hold = null, sx = 0, sy = 0, taps = 0, tapT = 0;
-      hot.addEventListener('touchstart', function (e) {
-        var t = (e.touches && e.touches[0]) || {};
-        sx = t.clientX || 0; sy = t.clientY || 0;
-        arm(true);
-        clearTimeout(hold);
-        hold = setTimeout(function () { arm(false); open(e); }, 450);
-      }, { passive: false });
-      hot.addEventListener('touchmove', function (e) {
-        var t = (e.touches && e.touches[0]) || {};
-        if (Math.abs((t.clientX || 0) - sx) > 14 || Math.abs((t.clientY || 0) - sy) > 14) {
-          clearTimeout(hold); arm(false);
+      // iOS fires dblclick unreliably, so pair the taps ourselves: 600 ms apart,
+      // within 70 px (a finger on a 360 px circle is imprecise).
+      var last = 0, lx = 0, ly = 0;
+      art.addEventListener('touchend', function (e) {
+        var t = (e.changedTouches && e.changedTouches[0]) || {};
+        var x = t.clientX || 0, y = t.clientY || 0, now = Date.now();
+        if (now - last < 600 && Math.abs(x - lx) < 70 && Math.abs(y - ly) < 70) {
+          last = 0; open(e); return;
         }
-      }, { passive: true });
-      hot.addEventListener('touchcancel', function () { clearTimeout(hold); arm(false); }, { passive: true });
-      hot.addEventListener('touchend', function (e) {
-        clearTimeout(hold); arm(false);
-        var now = Date.now();
-        taps = (now - tapT < 600) ? taps + 1 : 1;
-        tapT = now;
-        if (taps >= 2) { taps = 0; open(e); }   // double-tap is enough
+        last = now; lx = x; ly = y;
       }, { passive: false });
-      // Desktop: press-and-hold with the mouse, or double-click.
-      hot.addEventListener('mousedown', function () {
-        arm(true); clearTimeout(hold); hold = setTimeout(function () { arm(false); open(); }, 600);
-      });
-      hot.addEventListener('mouseup', function () { clearTimeout(hold); arm(false); });
-      hot.addEventListener('mouseleave', function () { clearTimeout(hold); arm(false); });
-      hot.addEventListener('dblclick', function () { open(); });
-      hot.addEventListener('contextmenu', function (e) { e.preventDefault(); });
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();
