@@ -1433,7 +1433,7 @@
       hot.setAttribute('aria-hidden', 'true');
       hot.style.cssText = [
         'position:fixed', 'left:0', 'bottom:0',
-        'width:76px', 'height:76px',
+        'width:110px', 'height:110px',
         'z-index:8001', 'background:transparent',
         'touch-action:none', '-webkit-user-select:none', 'user-select:none',
         '-webkit-touch-callout:none', 'cursor:default',
@@ -1443,7 +1443,7 @@
       // Held-state ring: the only visible sign it exists, and only while pressed.
       var ring = document.createElement('div');
       ring.style.cssText = [
-        'position:absolute', 'left:14px', 'bottom:14px', 'width:44px', 'height:44px',
+        'position:absolute', 'left:22px', 'bottom:22px', 'width:56px', 'height:56px',
         'border-radius:50%', 'border:2px solid rgba(255,255,255,.55)',
         'opacity:0', 'transform:scale(.6)', 'transition:opacity .18s ease, transform .6s ease',
         'pointer-events:none'
@@ -1468,7 +1468,7 @@
         sx = t.clientX || 0; sy = t.clientY || 0;
         arm(true);
         clearTimeout(hold);
-        hold = setTimeout(function () { arm(false); open(e); }, 600);
+        hold = setTimeout(function () { arm(false); open(e); }, 450);
       }, { passive: false });
       hot.addEventListener('touchmove', function (e) {
         var t = (e.touches && e.touches[0]) || {};
@@ -1482,7 +1482,7 @@
         var now = Date.now();
         taps = (now - tapT < 600) ? taps + 1 : 1;
         tapT = now;
-        if (taps >= 3) { taps = 0; open(e); }
+        if (taps >= 2) { taps = 0; open(e); }   // double-tap is enough
       }, { passive: false });
       // Desktop: press-and-hold with the mouse, or double-click.
       hot.addEventListener('mousedown', function () {
