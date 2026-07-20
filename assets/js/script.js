@@ -92,6 +92,19 @@
       glyph.textContent = kind === 'desktop' ? '🖥️' : (kind === 'tablet' ? '🖼️' : '📱');
       chip.appendChild(glyph);
       document.body.appendChild(chip);
+      // Double-click the device chip -> unlisted watchlist page. Kept off the nav
+      // and noindex'd; it's hidden, not private.
+      chip.addEventListener('dblclick', function () {
+      window.location.href = 'stocks.html';
+      });
+      // Touch devices don't fire dblclick reliably: treat two taps within 400 ms
+      // as the same gesture, so the chip works on the phone/tablet it reports.
+      var lastTap = 0;
+      chip.addEventListener('touchend', function (e) {
+      var now = Date.now();
+      if (now - lastTap < 400) { e.preventDefault(); window.location.href = 'stocks.html'; }
+      lastTap = now;
+      }, { passive: false });
     }
     let t;
     window.addEventListener('resize', () => {
