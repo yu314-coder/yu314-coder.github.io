@@ -1451,15 +1451,11 @@
       hot.appendChild(ring);
       document.body.appendChild(hot);
 
-      // Substituted at deploy time; stays a placeholder in the repo, and a
-      // placeholder never resolves, so the gesture is inert without it.
-      var TARGET = '__WATCHLIST_PATH__';
-      if (/^__/.test(TARGET)) TARGET = 'stocks.html';   // local dev
+      // The watchlist is markup inside this very page, not a separate file, so
+      // this reveals it rather than navigating. Nothing to 404, nothing to deploy.
       function open(e) {
         if (e && e.cancelable) e.preventDefault();
-        fetch(TARGET, { method: 'HEAD' })
-          .then(function (r) { if (r.ok) window.location.href = TARGET; })
-          .catch(function () {});
+        if (typeof window.__sxOpen === 'function') window.__sxOpen();
       }
       function arm(on) {
         ring.style.opacity = on ? '1' : '0';
