@@ -1,0 +1,43 @@
+name: Refresh data
+
+# Keeps the price data embedded in index.html current, so the offline fallback
+# isn't stale between visits. The page still refreshes live in the browser; this
+# just backstops it. Every 2 hours on weekdays — quiet markets don't change the
+# blob, so no commit happens outside trading hours. Also runnable on demand.
+on:
+  schedule:
+    - cron: "5 */2 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-data
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch quotes and rewrite the embedded blob
+        run: python scripts/refresh_embedded.py
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --staged --quiet; then
+            echo "no change — nothing to commit"
+            exit 0
+          fi
+          git commit -m "Refresh embedded quotes"
+          # Coexist with the other scheduled commit on main.
+          git pull --rebase --autostash origin main
+          git push
