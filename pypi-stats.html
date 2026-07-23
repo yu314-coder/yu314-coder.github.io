@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <!-- SEO Meta Tags -->
-  <meta name="description" content="PyPI download statistics for Yu, Yao-Hsing 尤耀星's Python packages — live downloads by country, package version, and Python version. Packages: rmt-denoise, cairometal, narrate, ollama-installer.">
-  <meta name="keywords" content="Yu, Yao-Hsing 尤耀星, PyPI, download stats, rmt-denoise, cairometal, narrate, ollama-installer, ClickPy, package analytics">
+  <meta name="description" content="PyPI download statistics for Yu, Yao-Hsing 尤耀星's Python packages — live downloads by country, package version, and Python version. Packages: rmt-denoise, cairometal, narrate, ollama-installer, python-to-binary.">
+  <meta name="keywords" content="Yu, Yao-Hsing 尤耀星, PyPI, download stats, rmt-denoise, cairometal, narrate, ollama-installer, python-to-binary, ClickPy, package analytics">
   <meta name="author" content="Yu, Yao-Hsing 尤耀星">
   <meta name="robots" content="index, follow">
 
@@ -71,7 +71,7 @@
     <div class="container">
       <p class="eyebrow eyebrow--rule">pypi analytics</p>
       <h1>PyPI Stats</h1>
-      <p class="lead-2 mb-0">Live download analytics for my open-source Python packages across rmt-denoise, cairometal, narrate, and ollama-installer.<span data-live-downloads-wrap> — <span id="live-downloads"></span> downloads tracked.</span></p>
+      <p class="lead-2 mb-0">Live download analytics for my open-source Python packages across rmt-denoise, cairometal, narrate, ollama-installer, and python-to-binary.<span data-live-downloads-wrap> — <span id="live-downloads"></span> downloads tracked.</span></p>
     </div>
   </header>
 
@@ -84,7 +84,7 @@
     </div>
 
     <div class="row">
-      <div class="col-md-6 col-lg-3 d-flex mb-4 reveal reveal-delay-1">
+      <div class="col-md-6 col-lg-4 d-flex mb-4 reveal reveal-delay-1">
         <div class="card flex-fill">
           <div class="card-body d-flex flex-column">
             <div class="d-flex align-items-center gap-3 mb-3">
@@ -99,12 +99,12 @@
           </div>
         </div>
       </div>
-      <div class="col-md-6 col-lg-3 d-flex mb-4 reveal reveal-delay-2">
+      <div class="col-md-6 col-lg-4 d-flex mb-4 reveal reveal-delay-2">
         <div class="card flex-fill">
           <div class="card-body d-flex flex-column">
             <div class="d-flex align-items-center gap-3 mb-3">
               <span class="app-icon app-icon--gh" role="img" aria-label="cairometal on GitHub"></span>
-              <h5 class="card-title mb-0">cairometal <span class="badge-accent ms-1">NEW</span></h5>
+              <h5 class="card-title mb-0">cairometal</h5>
             </div>
             <p class="card-text flex-grow-1">pycairo-compatible 2D vector graphics rendered on the Apple GPU via Metal — 246 C functions, drop-in <code>import cairo_metal as cairo</code>, pixel-diffed against real cairo. Ships a macOS arm64 wheel (Python ≥3.10). The first GPU/Metal cairo on PyPI.</p>
             <div class="d-flex gap-2 mt-auto">
@@ -114,7 +114,7 @@
           </div>
         </div>
       </div>
-      <div class="col-md-6 col-lg-3 d-flex mb-4 reveal reveal-delay-3">
+      <div class="col-md-6 col-lg-4 d-flex mb-4 reveal reveal-delay-3">
         <div class="card flex-fill">
           <div class="card-body d-flex flex-column">
             <div class="d-flex align-items-center gap-3 mb-3">
@@ -129,7 +129,7 @@
           </div>
         </div>
       </div>
-      <div class="col-md-6 col-lg-3 d-flex mb-4 reveal reveal-delay-4">
+      <div class="col-md-6 col-lg-4 d-flex mb-4 reveal reveal-delay-4">
         <div class="card flex-fill">
           <div class="card-body d-flex flex-column">
             <div class="d-flex align-items-center gap-3 mb-3">
@@ -140,6 +140,21 @@
             <div class="d-flex gap-2 mt-auto">
               <a href="https://github.com/yu314-coder/python-ollama" target="_blank" rel="noopener noreferrer" class="btn btn-ghost flex-fill">GitHub</a>
               <a href="https://pypi.org/project/ollama-installer/" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">PyPI</a>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4 d-flex mb-4 reveal reveal-delay-4">
+        <div class="card flex-fill">
+          <div class="card-body d-flex flex-column">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <span class="app-icon app-icon--gh" role="img" aria-label="python-to-binary on GitHub"></span>
+              <h5 class="card-title mb-0">python-to-binary <span class="badge-accent ms-1">NEW</span></h5>
+            </div>
+            <p class="card-text flex-grow-1">A compiler written with nothing but the standard library: Python AST &rarr; its own IR &rarr; its own optimizer &rarr; handwritten x86-64/ARM64 &rarr; ELF, PE, or Mach-O bytes it writes itself. No C toolchain, assembler, or linker &mdash; and no dependencies at all. Also freezes or bundles arbitrary CPython apps. <a href="projects.html#tab-py2bin">How it works &rarr;</a></p>
+            <div class="d-flex gap-2 mt-auto">
+              <a href="https://github.com/yu314-coder/python_to_binary" target="_blank" rel="noopener noreferrer" class="btn btn-ghost flex-fill">GitHub</a>
+              <a href="https://pypi.org/project/python-to-binary/" target="_blank" rel="noopener noreferrer" class="btn btn-primary flex-fill">PyPI</a>
             </div>
           </div>
         </div>
@@ -157,7 +172,7 @@
     </div>
 
     <div class="tracker-shell reveal">
-      <iframe id="pypi-frame" src="assets/pypi-tracker/index.html?v=20260712b" title="PyPI Download Statistics" loading="lazy"></iframe>
+      <iframe id="pypi-frame" src="assets/pypi-tracker/index.html?v=20260723a" title="PyPI Download Statistics" loading="lazy"></iframe>
     </div>
   </section>
 

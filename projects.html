@@ -102,6 +102,9 @@
         <button class="nav-link" id="tab-afm-btn" data-bs-toggle="pill" data-bs-target="#tab-afm" type="button" role="tab" aria-controls="tab-afm" aria-selected="false">Apple Teardown</button>
       </li>
       <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-py2bin-btn" data-bs-toggle="pill" data-bs-target="#tab-py2bin" type="button" role="tab" aria-controls="tab-py2bin" aria-selected="false">py2bin</button>
+      </li>
+      <li class="nav-item" role="presentation">
         <button class="nav-link" id="tab-other-btn" data-bs-toggle="pill" data-bs-target="#tab-other" type="button" role="tab" aria-controls="tab-other" aria-selected="false">Others</button>
       </li>
     </ul>
@@ -1455,6 +1458,102 @@
     </div>
     </div><!-- /tab-afm -->
 
+    <!-- Tab: py2bin (python-to-binary) -->
+    <div class="tab-pane fade" id="tab-py2bin" role="tabpanel" aria-labelledby="tab-py2bin-btn">
+
+    <!-- Featured Project: python-to-binary -->
+    <div class="card card--hue hue-py2bin reveal">
+      <div class="card-body p-4 p-md-5">
+        <div class="row g-0 align-items-center justify-content-center">
+          <div class="col-lg-10 col-xl-9 text-center">
+            <header class="mb-4">
+              <h3 class="h2 mb-2 fw-bold">py2bin &mdash; Python to Native Binary</h3>
+              <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
+                <span class="badge-neutral mono">python-to-binary</span>
+                <span class="badge-accent mono">on PyPI</span>
+                <span class="badge-neutral mono">pure stdlib</span>
+                <span class="badge-neutral mono">compilers</span>
+              </div>
+              <p class="lead mb-0">A compiler and application builder written entirely with the Python standard library. It turns Python into real machine code &mdash; AST&nbsp;&rarr; its own IR &rarr; its own optimizer &rarr; handwritten x86-64/ARM64 instructions &rarr; ELF, PE, or Mach&#8209;O bytes it writes itself. <strong>No Cython, Nuitka, mypyc, Rust, C/C++ compiler, PyInstaller, assembler, linker, or SDK is involved</strong> &mdash; the build and runtime dependency lists are literally empty, and the test suite enforces that.</p>
+            </header>
+
+            <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
+              <span class="feature-badge">Zero dependencies</span>
+              <span class="feature-badge">ELF &middot; PE &middot; Mach-O</span>
+              <span class="feature-badge">x86-64 + ARM64</span>
+              <span class="feature-badge">6 cross targets</span>
+              <span class="feature-badge">Own IR + optimizer</span>
+              <span class="feature-badge">1.5&nbsp;KB Windows .exe</span>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">What it does</h4>
+              <ul class="list-unstyled">
+                <li class="mb-2"><strong>It writes the executable formats by hand</strong> &mdash; the ELF, PE, and Mach&#8209;O writers are pure Python: headers, load commands, import tables, syscalls, and encoded instructions emitted byte by byte. From one macOS laptop it cross-builds all six targets &mdash; <code>linux-x86_64</code>, <code>linux-arm64</code>, <code>darwin-x86_64</code>, <code>darwin-arm64</code>, <code>windows-x86_64</code>, <code>windows-arm64</code> &mdash; with no Wine, no Rosetta, no target SDK, and no target Python. The Windows <code>.exe</code> comes out at <strong>1,536&nbsp;bytes</strong>; the Linux ELF at ~4&nbsp;KB</li>
+                <li class="mb-2"><strong>Four deliberately separate paths</strong> &mdash; <code>compile</code> (true machine code, no Python on the target), <code>freeze</code> (embedded CPython in one self-extracting binary &mdash; packaging, not translation), <code>build</code> (<code>.pyz</code>/<code>.bin</code>/directory bundles that do need a target Python), and <code>emit-c</code> (a typed Python subset to readable C). They are never blurred together</li>
+                <li class="mb-2"><strong>An honest scope, stated up front</strong> &mdash; the README carries a <em>claims audit</em> that answers &ldquo;No&rdquo; to several flattering questions: a frozen app <em>does</em> still run CPython, third-party packages are <em>not</em> natively translated, and arbitrary Python is <em>not</em> compiled to machine code. <code>compile</code> accepts a documented static subset &mdash; integers, comparisons, <code>if</code>/<code>while</code>/<code>for range</code>, constant f-strings, <code>print</code>, <code>sys.exit</code> &mdash; and rejects everything else with a source location rather than emitting a subtly wrong binary</li>
+                <li class="mb-2"><strong>Its own optimizer, not constant folding dressed up</strong> &mdash; a target-independent pass propagates assignment constants, folds arithmetic/Boolean/conditional/f-string constants, keeps only the reachable arm of a constant <code>if</code>, merges adjacent writes to cut syscalls, and drops everything after the first process exit. Runtime integer variables and structured control flow lower to IR that the x86-64 and ARM64 backends encode directly &mdash; that path is documented as codegen, not folding</li>
+                <li class="mb-2"><strong>Supply-chain-aware source fetching</strong> &mdash; <code>--source-lock</code> downloads pinned third-party <em>source</em> over Python's own HTTPS client (no pip), verifies SHA-256 against an immutable revision, and extracts it while rejecting traversal paths, links, special files, case-collisions, and oversized archives. It <em>never</em> imports the download or runs <code>setup.py</code>, and it deliberately refuses to guess a repository from an import name</li>
+                <li class="mb-2"><strong>Published and installable</strong> &mdash; <code>pip install python-to-binary</code>, Python&nbsp;3.10+, MIT. It even builds itself: <code>pyproject.toml</code> points at an in-tree <code>py2bin.build_backend</code> with an empty <code>[build-system].requires</code></li>
+              </ul>
+            </div>
+
+            <div class="row g-3 mb-4 justify-content-center">
+              <div class="col-md-5">
+                <div class="lib-category-card">
+                  <h5 class="h6 fw-bold mb-3">Inside the compiler</h5>
+                  <ul class="small mb-0 text-start">
+                    <li><code>native/frontend.py</code> &mdash; Python AST &rarr; py2bin IR</li>
+                    <li><code>native/optimizer.py</code> &mdash; target-independent passes</li>
+                    <li><code>native/x86_64.py</code>, <code>arm64.py</code> &mdash; instruction encoders</li>
+                    <li><code>native/formats/</code> &mdash; hand-written ELF, PE, Mach-O writers</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="col-md-5">
+                <div class="lib-category-card">
+                  <h5 class="h6 fw-bold mb-3">What it is not</h5>
+                  <ul class="small mb-0 text-start">
+                    <li>Not a general Python&rarr;native translator &mdash; a static subset only</li>
+                    <li>Not a wheel recompiler &mdash; NumPy/Torch stay CPython payload</li>
+                    <li>Not a PyInstaller wrapper &mdash; <code>compile</code> has no fallback path</li>
+                    <li>The build machine still needs Python 3.10+; the target does not</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">Technical Specifications</h4>
+              <div class="d-inline-block text-start">
+                <p class="small mb-1"><strong>Created by:</strong> Yu Yao-Hsing</p>
+                <p class="small mb-1"><strong>Category:</strong> Developer tools &mdash; compilers / packaging</p>
+                <p class="small mb-1"><strong>Language:</strong> Python (standard library only) &middot; 44 modules, 12 test suites</p>
+                <p class="small mb-1"><strong>Targets:</strong> Linux &middot; macOS &middot; Windows, each on x86-64 and ARM64</p>
+                <p class="small mb-0"><strong>Status:</strong> v0.2.1 on PyPI &mdash; alpha; native subset small and growing</p>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
+              <a href="https://github.com/yu314-coder/python_to_binary" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                GitHub Repository
+              </a>
+              <a href="https://pypi.org/project/python-to-binary/" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                PyPI package
+              </a>
+              <a href="pypi-stats.html" class="badge-btn">
+                Download stats
+              </a>
+              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
+                Contact developer
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div><!-- /tab-py2bin -->
+
     <!-- Tab 6: Other Projects -->
     <div class="tab-pane fade" id="tab-other" role="tabpanel" aria-labelledby="tab-other-btn">
 
@@ -1616,5 +1715,25 @@
 
   <!-- Custom JavaScript (arcade) -->
   <script src="assets/js/main.js?v=20260722-125409" defer></script>
+
+  <!-- Deep-linkable tabs: projects.html#tab-py2bin opens that pane instead of
+       landing on the default one and scrolling to a hidden element. -->
+  <script>
+    (function () {
+      function openFromHash() {
+        var id = (location.hash || "").replace(/^#/, "");
+        if (!id) return;
+        var btn = document.getElementById(id + "-btn");
+        if (!btn || btn.classList.contains("active")) return;
+        btn.click();
+        var tabs = document.getElementById("projectTabs");
+        if (tabs && tabs.scrollIntoView) tabs.scrollIntoView({ block: "start" });
+      }
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", openFromHash);
+      } else { openFromHash(); }
+      window.addEventListener("hashchange", openFromHash);
+    })();
+  </script>
 </body>
 </html>

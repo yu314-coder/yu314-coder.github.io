@@ -15,7 +15,9 @@ import os
 import urllib.request
 
 # The page's "My packages" quick-picks — keep in sync with assets/pypi-tracker/index.html.
-PACKAGES = ["rmt-denoise", "cairometal", "narrate", "ollama-installer"]
+# A just-published package 404s here until pypistats.org first indexes it; that is
+# handled below as a normal failure, so it can be listed from day one.
+PACKAGES = ["rmt-denoise", "cairometal", "narrate", "ollama-installer", "python-to-binary"]
 OUT_DIR = os.path.join("assets", "pypi-tracker", "data")
 
 

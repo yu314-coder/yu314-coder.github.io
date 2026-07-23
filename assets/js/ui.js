@@ -129,7 +129,7 @@
 
     var query =
       "SELECT sum(count) AS total FROM pypi.pypi_downloads_per_day_by_version_by_python_by_country " +
-      "WHERE project IN ('rmt-denoise','cairometal','narrate','ollama-installer') FORMAT TabSeparated";
+      "WHERE project IN ('rmt-denoise','cairometal','narrate','ollama-installer','python-to-binary') FORMAT TabSeparated";
 
     var url = "https://sql-clickhouse.clickhouse.com/?user=demo";
 
