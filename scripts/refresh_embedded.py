@@ -53,7 +53,13 @@ def fetch(sym):
     ext_price = ext_ref = None
     cp = m.get("currentTradingPeriod") or {}
     reg = cp.get("regular") or {}
-    if bars and reg.get("start") is not None:
+    pre, post = cp.get("pre") or {}, cp.get("post") or {}
+    # Only markets with a real extended session get an off-market number. Taiwan
+    # equities report zero-width pre/post windows, so any "outside" bar there is
+    # just the opening auction and would duplicate the close.
+    has_ext = (pre.get("end", 0) > pre.get("start", 0)
+               or post.get("end", 0) > post.get("start", 0))
+    if has_ext and bars and reg.get("start") is not None:
         outside = [(t, c) for t, c in bars if t < reg["start"] or t >= reg.get("end", 0)]
         inside = [c for t, c in bars if reg["start"] <= t < reg.get("end", 0)]
         if outside:
@@ -74,22 +80,30 @@ def fetch(sym):
         "ext_change_pct": ((ext_price - ext_ref) / ext_ref * 100) if (ext_price and ext_ref) else None,
         "series": {}, "range_pct": {},
     }
-    # 1D as time-positioned bars (see refresh_stocks.py): while trading, the axis is
-    # the extended session so the line only reaches "now"; when closed, fall back to
-    # the bars' own extent so the last full day fills.
-    pre, post = cp.get("pre") or {}, cp.get("post") or {}
-    win0 = pre.get("start") or reg.get("start")
-    win1 = post.get("end") or reg.get("end")
-    if sess != "closed" and win0 and win1:
-        t0, t1 = win0, win1
-        dpts = [[int(t), round(c, 4)] for t, c in bars if win0 <= t <= win1]
-    elif bars:
+    # 1D chart is anchored to the REGULAR session (US 9:30–16:00, TW 9:00–13:30) so
+    # its first point is the market open, like Google Finance. tradingPeriods.regular
+    # tracks the day the data covers; currentTradingPeriod rolls to the next session
+    # once the market shuts, so prefer the former. A partial session (mid-day) stops
+    # the line at "now" because t1 stays the scheduled close.
+    tp = m.get("tradingPeriods") or {}
+    try:
+        regp = tp["regular"][0][0]
+    except (KeyError, IndexError, TypeError):
+        regp = reg
+    r0, r1 = regp.get("start"), regp.get("end")
+    reg_bars = [(t, c) for t, c in bars if r0 is not None and r1 is not None and r0 <= t <= r1]
+    if len(reg_bars) >= 2:
+        t0, t1 = int(r0), int(r1)
+        dpts = [[int(t), round(c, 4)] for t, c in reg_bars]
+    elif len(bars) >= 2:
+        # Pre-market before the open (no regular bars yet) or a holiday: keep what
+        # we have rather than emitting an empty chart.
         t0, t1 = int(bars[0][0]), int(bars[-1][0])
         dpts = [[int(t), round(c, 4)] for t, c in bars]
     else:
         t0 = t1 = None
         dpts = []
-    out["day"] = {"t0": t0, "t1": t1, "pts": dpts[-200:]}
+    out["day"] = {"t0": t0, "t1": t1, "pts": dpts[-260:]}
     out["range_pct"]["1D"] = round(out["change_pct"], 2) if out["change_pct"] is not None else None
     for label, rng, iv in RANGES:
         if label == "1D":
