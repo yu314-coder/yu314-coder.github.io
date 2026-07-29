@@ -27,9 +27,9 @@ A Western Pacific typhoon explorer that runs entirely in the browser on real age
 - One-timeline sweep animation: past (real radii) → now → +120 h (forecast radii + probability circles), with play/pause/speed/scrub controls
 
 **Experimental AI overlay — my own track model, running in your browser**
-- An optional **"🧪 Overlay Yu's AI model track"** button (live-forecast mode) and **"🧪 Predict from here"** (history mode) run my own **[TrackFormer](https://github.com/yu314-coder/typhoon-predict)** — a 21 M-parameter transformer (bidirectional track-history encoder → temporal context → cross-attention lead-time decoder) that forecasts the **full storm state** at 20 six-hourly lead times: motion, max wind, central pressure, RMW, and the 34/50/64 kt wind radii in four quadrants
-- **Track-only, no atmosphere.** It reads 9 six-hourly history fixes (position, wind, pressure, wind radii) and needs **no ERA5, no live field fetch, nothing external** — so nothing off-site can make it fail. On a WP-2020+ held-out test it *matches* an ERA5-conditioned model (720 vs 729 km track error); across experiments the pattern was **data diversity > engineered features > parameters**
-- Runs **entirely client-side via [onnxruntime-web](https://onnxruntime.ai/docs/tutorials/web/)** — exported to an **int8 ONNX (~30 MB, lazily loaded only when you ask for a forecast)**, verified ~lossless vs fp32 (track 26 km, vmax 0.3 kt, radii 0.6 km) and validated **bit-for-bit** against the Python feature pipeline on real storm data. **No backend, no server, no cold start**
+- An optional **"🧪 Overlay Yu's AI model track"** button (live-forecast mode) and **"🧪 Predict from here"** (history mode) run my own **[TrackFormer v23](https://github.com/yu314-coder/typhoon-predict)** — a 13.1 M-parameter transformer (triple-stream kinematic/thermodynamic/environment history encoders, chain-of-thought steering-flow prediction conditioned on its own t-24h/t-12h/now temporal history) that forecasts the **full storm state** at 20 six-hourly lead times: motion, max wind, central pressure, RMW, and the 34/50/64 kt wind radii in four quadrants
+- **Track-only in the browser, no live atmosphere.** v23's full architecture is built around a real deep-layer-mean steering-wind field, which gets it to 434.96 km on the project's held-out test — but that field can't be fetched live in a static site, so it runs here in the project's own documented "IBTrACS-only" mode (steering zero-filled, explicit availability flag, never fabricated): 9 six-hourly history fixes (position, wind, pressure, wind radii) and **no ERA5, no live field fetch, nothing external**, so nothing off-site can make it fail. Verified on the exact deployed artifacts: **530.69 km** (WP+EP 2020+, all leads pooled) vs the field-free v10 it replaces at 549.30 km on the identical test set — a real, honest improvement even without the steering data v23 was designed around
+- Ships as a genuine **5-of-10-seed ensemble** (per-seed noise is 4–7 km on this model, so a single seed isn't trustworthy) — every seed run separately in your browser and averaged, matching the model's own reference CLI. Runs **entirely client-side via [onnxruntime-web](https://onnxruntime.ai/docs/tutorials/web/)** — each seed exported to **int8 ONNX (~15 MB, 75 MB total, lazily loaded only when you ask for a forecast)**, verified bit-exact to PyTorch (fp32, 1e-5) and cross-checked against the deployed int8 artifacts on real storm data. **No backend, no server, no cold start**
 - Draws the predicted track (dashed emerald with a soft casing so it reads against JMA's violet line) + an **uncertainty cone** built from the model's own per-step spread; hovering any point gives the lead time, predicted position **and predicted intensity**. Clearly flagged **experimental — not an operational forecast**
 - In **history mode** you can scrub to any point on a past storm and forecast forward, drawn against the white line of what the storm *actually* did next — a genuine, location-aware hindcast (needs ~2 days of prior track). The overlay stays on screen through the sweep ending, map rebuilds and storm switches, and **re-runs on the latest data** when you switch storms or JMA reissues
 
@@ -42,7 +42,9 @@ Live download analytics for any PyPI package (mine pre-listed), by country / pac
 
 ### Why track-only
 
-I trained two forecasters (both in [typhoon-predict](https://github.com/yu314-coder/typhoon-predict)): **StormFusion-MT v2**, which ingests ERA5 reanalysis patches (26- and 14-channel, five pressure levels, 65×65 grid) plus track history, and **TrackFormer**, which sees only track. On the WP-2020+ held-out test the track-only model **matched or beat** the ERA5 one on every metric. ERA5 is heavy, high-latency (Copernicus CDS, ~5-day lag), and can't be fetched per web-request — and here it buys nothing — so the site runs **TrackFormer** for both live forecasts and past-storm hindcasts, with no atmospheric data and no external dependency at all.
+I trained two forecasters (both in [typhoon-predict](https://github.com/yu314-coder/typhoon-predict)): **StormFusion-MT v2**, which ingests ERA5 reanalysis patches (26- and 14-channel, five pressure levels, 65×65 grid) plus track history, and **TrackFormer**, which sees only track. On the WP-2020+ held-out test the earlier track-only models **matched or beat** the ERA5 one on every metric. ERA5 is heavy, high-latency (Copernicus CDS, ~5-day lag), and can't be fetched per web-request — so the site has always run **TrackFormer**, with no atmospheric data and no external dependency at all.
+
+The newer TrackFormer v23 (deployed now) tells a more specific story: its full architecture *is* built around a real steering-wind field, and that field genuinely helps — 434.96 km with it vs 530.69 km without, on the identical held-out test. The field just can't be fetched live from a static site, so v23 runs here in its own documented "IBTrACS-only" mode. It's still a real, verified 18.6 km improvement over v10 in that mode — the atmosphere isn't free lunch here, it's *headroom the browser can't reach yet*.
 
 ---
 
@@ -131,7 +133,7 @@ yu314-coder.github.io/
 │   ├── typhoon-tracker/           # Typhoon Tracks app (iframe): Plotly geo map,
 │   │   │                          #   track/forecast modes, live NOAA/JMA/CIMSS feeds
 │   │   ├── index.html · app.js · styles.css
-│   │   └── model/                 #   TrackFormer int8 ONNX + meta (in-browser AI overlay)
+│   │   └── model/                 #   TrackFormer v23 5-seed int8 ONNX ensemble + meta/ensemble/consensus (in-browser AI overlay)
 │   ├── pypi-tracker/              # PyPI stats app (iframe): ClickHouse queries,
 │   │   │                          #   Plotly chart, Byte the robot companion
 │   │   ├── index.html · app.js · creature.js · styles.css
@@ -165,7 +167,7 @@ yu314-coder.github.io/
 - **HTML5 / CSS3 / JavaScript (ES5-compatible)** — no build step, no framework, no bundler
 - **Bootstrap 5.3.3** — responsive layout, pills/tabs, components
 - **Plotly.js** (geo + basic bundles, deferred) — typhoon map, intensity charts, download charts
-- **onnxruntime-web** — runs my TrackFormer typhoon model (int8 ONNX) *in the browser*, no backend
+- **onnxruntime-web** — runs my TrackFormer v23 typhoon model (5-seed int8 ONNX ensemble) *in the browser*, no backend
 - **Google Fonts** — Inter, JetBrains Mono, Source Serif 4
 - **GitHub Pages** — static hosting; every data feed is fetched **client-side**, no server of my own
 - **Cross-platform parity** — identical behaviour on Windows and macOS across Chrome / Edge / Firefox / Safari (ES5 syntax, `-webkit-` + `-moz-` slider styling, motion that renders on every engine)

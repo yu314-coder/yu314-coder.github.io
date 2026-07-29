@@ -1788,8 +1788,8 @@
     var live = tfLivePts(d);
     if (!live) { aiSetStatus("No storm loaded to run the model on.", "err"); return; }
     aiLoading = true;
-    aiSetStatus(tfRT.session ? "Running my AI model…"
-      : "Loading my AI model in your browser (~one-time 30 MB download)…", "loading");
+    aiSetStatus(tfRT.sessions ? "Running my AI model…"
+      : "Loading my AI model in your browser (~one-time 75 MB download, 5-seed ensemble)…", "loading");
     tfEnsureModel()
       .then(function () { return tfRunModel(live.pts, live.nowHour); })
       .then(function (fc) {
@@ -1812,47 +1812,54 @@
     aiRun(els.typhoonSelect ? jmaCache[els.typhoonSelect.value] : null);
   }
 
-  /* --- TrackFormer v10 — powers BOTH the live overlay and the track-mode hindcast.
-     A FIELD-FREE model (github.com/yu314-coder/typhoon-predict): it sees 48 h of the
-     storm's own best-track history — motion, intensity, position — and nothing else.
-     No steering winds, no pressure fields, no reanalysis, no satellite. (v13+ add a
-     17×17 reanalysis patch, which is what takes 549 → 463 km, but that data can't be
-     fetched in a browser, so v10 is the best model that can actually run here.)
-     Three streams are encoded separately — kinematic (11 cols), thermodynamic (36),
-     environment (6: lat, |lat|, sin/cos lon, dist-to-land, a lat×month SST proxy) —
-     then 20 lead queries cross-attend over kinematic+environment memory.
-     PHYSICS FIRST: the net doesn't predict the track, it predicts a CORRECTION to a
-     damped, curved persistence extrapolation. base = rho[L]·|v0| along a heading
-     extrapolated by gturn[L]·(turn rate); motion = base + residual. Zero-init, so an
-     untrained v10 is exact straight-line persistence. The trained weights damp speed
-     ~8% (mostly inside 24 h), extrapolate at most 7.6% of the measured turn (it's
-     mostly noise) with a sign flip past +48 h, and the intensity→track gate learned
-     EXACTLY 0 — intensity contributes nothing to where the storm goes.
-     Inputs: track [1,9,54] + vpair [1,4] (the last TWO 6-h velocities — the curved
-     baseline needs the turn). Outputs 20 six-hourly leads × 17 dims; the first two are
-     per-step displacements, cumulatively summed into lat/lon so long-horizon error
-     doesn't compound. Measured here: 549.3 km (WP+EP 2020+, all leads pooled) — matches
-     the model card exactly; 614.2 km on the WP-only mean-over-leads basis the older
-     models were quoted on. fp32 ONNX is bit-exact to PyTorch; ~18 MB int8, lazily
-     loaded. Radii/RMW: IBTrACS is nmile, our JSON km, so ÷1.852 in and ×1.852 out. */
-  var TF_MODEL_URL = "model/trackformer-v10.int8.onnx";
-  var TF_META_URL = "model/trackformer-v10-meta.json?v=20260719v10";
-  // Probabilistic ensemble on v8 (no retraining): a 40x40 Cholesky L of the model's
-  // own forecast-error covariance (20 leads x 2 axes) + a per-lead 90% cone radius.
-  // Sampling L·z gives CROSS-LEAD-CORRELATED noise, so drawn routes are coherent
-  // (smooth) rather than jagged. Computed offline (ensemble_v8.py); the "sample"
-  // covariance won on WP-2020+ energy score (cover90 0.82) — a diagonal cov collapses
-  // to 0.20, which is why the correlation structure matters.
-  var TF_ENS_URL = "model/trackformer-v10-ensemble.json?v=20260719v10";
-  // Multi-initialisation CONSENSUS (make_rmt_tracks.py + smooth_consensus.py): at each valid
-  // time the members are forecasts from different init times, so they carry different leads.
-  // Combine them min-variance, w = C^-1 1 / (1' C^-1 1) over the lead x lead position-error
-  // covariance C, then run a constant-velocity Kalman + RTS smoother so the track has physical
-  // momentum instead of jumping when the short-lead membership rotates.
-  var TF_CONS_URL = "model/trackformer-v10-consensus.json?v=20260719v10";
+  /* --- TrackFormer v23 — powers BOTH the live overlay and the track-mode hindcast.
+     A FIELD-FREE deployment of github.com/yu314-coder/typhoon-predict's v23, the best
+     model in that project: it sees 48 h of the storm's own best-track history — motion,
+     intensity, position — and nothing else. v23's full architecture (chain-of-thought
+     steering-flow prediction, conditioned on a t-24h/t-12h/now temporal history of that
+     flow) is designed around a real deep-layer-mean steering-wind field (850/500/200 hPa
+     u/v), which is what gets it to 434.96 km — but that field can't be fetched live in a
+     browser, so here it runs in the project's own documented "IBTrACS-only" mode: the
+     steering input and its history are zero-filled with an explicit availability flag
+     (never fabricated), exactly like a young storm's missing fields elsewhere in this
+     model. Verified on the exact deployed artifacts (int8, 5-seed, batch=1, one window at
+     a time): 530.69 km (WP+EP 2020+, all leads pooled) vs the field-free v10 it replaces
+     at 549.30 km on the identical test set — an 18.6 km real, honest improvement even
+     without the steering data v23 was designed around. Seed noise is ~4-7 km on this
+     model, so a single seed cannot be trusted; ships as a genuine 5-of-10-seed ensemble
+     (not a statistical proxy), each seed run separately and averaged, matching
+     run_v23.py's own reference CLI.
+     Same 54-dim triple-stream feature layout as v10 (kinematic/thermodynamic/environment;
+     tfBuildFeat is unchanged) plus three always-zero inputs (slp, hist, have — the
+     steering field, its 12h/24h history, and their availability flags) required by v23's
+     forward pass but inert in this mode. Same curved-persistence-residual baseline and
+     vpair=[v0,vp] (last two 6-h velocities) v10 already used. Outputs 20 six-hourly leads
+     × 17 dims, first two per-step displacements cumulatively summed so long-horizon error
+     doesn't compound. fp32 ONNX is bit-exact to PyTorch to 1e-5; ~15 MB int8 per seed (75
+     MB total), lazily loaded. Conv2d layers (the now-inert steering CNN) are kept in fp32
+     during quantization — onnxruntime-web has no ConvInteger — only the much larger
+     Transformer MatMul layers are quantized. Radii/RMW: IBTrACS is nmile, our JSON km, so
+     ÷1.852 in and ×1.852 out. */
+  var TF_MODEL_URLS = [0, 1, 2, 3, 4].map(function (s) { return "model/trackformer-v23-seed" + s + ".int8.onnx"; });
+  var TF_META_URL = "model/trackformer-v23-meta.json?v=20260730v23";
+  // Probabilistic ensemble, computed from v23's OWN residuals (never reused from v10's):
+  // a 40x40 Cholesky L of the model's own per-STEP forecast-error covariance (20 leads x 2
+  // axes, <=2019 validation split) + a per-lead 90% cone radius. Sampling L·z gives
+  // CROSS-LEAD-CORRELATED noise, so drawn routes are coherent (smooth) rather than jagged.
+  // cover90 measured out-of-sample on the >=2020 test split: 0.865 (honestly reported, not
+  // assumed 0.90 — v10's own cover90 was likewise an imperfect 0.777).
+  var TF_ENS_URL = "model/trackformer-v23-ensemble.json?v=20260730v23";
+  // Multi-initialisation CONSENSUS, also computed from v23's own <=2019-validation
+  // residuals: at each valid time the members are forecasts from different init times, so
+  // they carry different leads. Combine them min-variance, w = C^-1 1 / (1' C^-1 1) over
+  // the lead x lead position-error covariance C, then run a constant-velocity Kalman + RTS
+  // smoother so the track has physical momentum instead of jumping when the short-lead
+  // membership rotates.
+  var TF_CONS_URL = "model/trackformer-v23-consensus.json?v=20260730v23";
   var TF_NM = 1.852;                                    // km per nautical mile
   var TF_ENS_N = 40;                                    // ensemble routes to draw
-  var tfRT = { session: null, meta: null, ens: null, cons: null };
+  var TF_NSEED = 5;                                     // seeds actually shipped (of the 10 published)
+  var tfRT = { sessions: null, meta: null, ens: null, cons: null };
   var hindcastTraceCount = 0;
   var consensusTraceCount = 0;
   // Overlay tags. Both overlays can be on at once (the consensus stays visible while the
@@ -1863,17 +1870,29 @@
     for (var i = 0; i < data.length; i++) if (data[i].meta === tag) out.push(i);
     return out;
   }
+  // Loads the 5 seed sessions ONE AT A TIME, not Promise.all: instantiating 5
+  // ~15 MB WASM graphs concurrently spikes peak memory/CPU hard enough to stall
+  // the tab on ordinary hardware. Sequential is slower wall-clock but far more
+  // reliable — nothing here is latency-sensitive (it's a one-time model load).
+  function tfLoadSeedsSequential(urls, i, out) {
+    i = i || 0; out = out || [];
+    if (i >= urls.length) return Promise.resolve(out);
+    return window.ort.InferenceSession.create(urls[i]).then(function (s) {
+      out.push(s);
+      return tfLoadSeedsSequential(urls, i + 1, out);
+    });
+  }
   function tfEnsureModel() {
-    if (tfRT.session) return Promise.resolve();
+    if (tfRT.sessions) return Promise.resolve();
     return (window.ort ? Promise.resolve() : aiLoadScript(ORT_URL)).then(function () {
       try { window.ort.env.wasm.wasmPaths = ORT_WASM; } catch (e) {}
       return Promise.all([
         fetch(TF_META_URL).then(function (r) { return r.json(); }),
-        window.ort.InferenceSession.create(TF_MODEL_URL),
+        tfLoadSeedsSequential(TF_MODEL_URLS),
         fetch(TF_ENS_URL).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
         fetch(TF_CONS_URL).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
       ]);
-    }).then(function (r) { tfRT.meta = r[0]; tfRT.session = r[1]; tfRT.ens = r[2]; tfRT.cons = r[3]; });
+    }).then(function (r) { tfRT.meta = r[0]; tfRT.sessions = r[1]; tfRT.ens = r[2]; tfRT.cons = r[3]; });
   }
   // Deterministic seeded standard-normals (mulberry32 + Box–Muller) so ensemble
   // routes stay stable across follow-the-playhead redraws (no flicker), yet morph
@@ -1991,14 +2010,38 @@
         raw[53] = Math.max(0, Math.min(31, 30 - 0.30 * Math.pow(Math.abs(p.la - thermal), 1.4)));
       }
       if (hsin || hcos) prevDir = [hsin, hcos];
-      if (k === 7) vp = [se, sn];   // previous 6 h velocity — v10 needs the TURN for its curved baseline
+      if (k === 7) vp = [se, sn];   // previous 6 h velocity — the curved baseline needs the TURN
       if (k === 8) v0 = [se, sn];   // current velocity (raw km/6h) for the persistence-residual head
       for (var c = 0; c < D; c++) { var vv = (raw[c] - mean[c]) / std[c]; feat[off + c] = isFinite(vv) ? vv : 0; }
       prev = hidx[k];
     }
-    // v10 takes vpair = [v0_east, v0_north, vp_east, vp_north]: two velocities let it
+    // vpair = [v0_east, v0_north, vp_east, vp_north]: two velocities let the model
     // extrapolate the current turn rate instead of a straight persistence line.
+    // Same convention v10 used and v23 (which inherits the same curved-persistence
+    // baseline internally) still needs.
     return { ok: true, feat: feat, base: base, v0: v0, vpair: [v0[0], v0[1], vp[0], vp[1]] };
+  }
+  // Runs `feed` through each session ONE AT A TIME (see the call site for why
+  // concurrent .run() calls across sessions are unsafe here).
+  function tfRunSeedsSequential(sessions, feed, i, out) {
+    if (i >= sessions.length) return Promise.resolve(out);
+    return sessions[i].run(feed).then(function (res) {
+      out.push(res);
+      return tfRunSeedsSequential(sessions, feed, i + 1, out);
+    });
+  }
+  // v23's ONNX export decomposes torch.atan2 into a formula with a genuine 0/0 at
+  // EXACTLY (0,0) (confirmed: PyTorch's native atan2 has no such issue, and a 1e-6
+  // nudge reproduces the true-zero PyTorch output exactly) -- 6 of 3,763 real
+  // held-out windows hit this (a storm with zero net displacement over one 6h
+  // step: genesis/stationary edge cases). Pure numerical safety, not a physics
+  // change; harmless no-op for any vector that isn't exactly zero.
+  function tfClampVpair(vp) {
+    var out = vp.slice();
+    for (var c = 0; c <= 2; c += 2) {
+      if (Math.abs(out[c]) < 1e-9 && Math.abs(out[c + 1]) < 1e-9) out[c] = 1e-6;
+    }
+    return out;
   }
   function tfRunModel(pts, baseHour) {
     var built = tfBuildFeat(pts, baseHour);
@@ -2006,11 +2049,30 @@
       ? "Need about two days of 6-hourly track before this point — scrub a bit later."
       : "No usable track history at this point."));
     var meta = tfRT.meta, TS = meta.target_scale, leads = meta.lead_hours, O = meta.out_dim, D = meta.feat_dim || 48;
-    return tfRT.session.run({
+    // v23's forward pass takes three more inputs than v10's did -- the steering
+    // field, its 12h/24h history, and their availability flags -- all always
+    // zero here (see the runtime doc-comment above: no live atmospheric fetch in
+    // a browser, so this runs in the project's own "IBTrACS-only" mode).
+    var feed = {
       track: new window.ort.Tensor("float32", built.feat, [1, 9, D]),
-      vpair: new window.ort.Tensor("float32", new Float32Array(built.vpair), [1, 4])
-    }).then(function (res) {
-      var state = (res.state || res[Object.keys(res)[0]]).data;
+      vpair: new window.ort.Tensor("float32", new Float32Array(tfClampVpair(built.vpair)), [1, 4]),
+      slp: new window.ort.Tensor("float32", new Float32Array(4 * 17 * 17), [1, 4, 17, 17]),
+      hist: new window.ort.Tensor("float32", new Float32Array(8 * 17 * 17), [1, 8, 17, 17]),
+      have: new window.ort.Tensor("float32", new Float32Array(2), [1, 2])
+    };
+    // Genuine 5-seed ensemble (not a statistical proxy): every seed sees the
+    // identical input and is run separately, matching run_v23.py's own reference
+    // CLI (motion = mean of the seeds' raw state output, THEN de-normalised).
+    // Sequential, NOT Promise.all: onnxruntime-web's WASM backend hangs the tab
+    // when multiple sessions' .run() calls overlap (confirmed directly — 5
+    // concurrent runs never returns, 5 sequential runs take ~180ms total). Each
+    // run is already ~30ms, so sequential costs nothing perceptible here.
+    return tfRunSeedsSequential(tfRT.sessions, feed, 0, []).then(function (results) {
+      var state = new Float64Array(leads.length * O);
+      results.forEach(function (res) {
+        var s = (res.state || res[Object.keys(res)[0]]).data;
+        for (var k = 0; k < state.length; k++) state[k] += s[k] / TF_NSEED;
+      });
       var base = built.base, la = base.la, lo = base.lo, points = [], motion = [];
       for (var i = 0; i < leads.length; i++) {
         var o = i * O, e = state[o] * TS[0], n = state[o + 1] * TS[1];
@@ -2023,7 +2085,7 @@
         la = la2; lo = lo2;
       }
       // Uncertainty cone. Half-width per lead is the ensemble's data-driven 90%
-      // position radius (from v8's own forecast-error covariance, cone_km), laid
+      // position radius (from v23's own forecast-error covariance, cone_km), laid
       // PERPENDICULAR to the local heading. Falls back to a climatological growth
       // (~3.3 km/h) if the ensemble artifact didn't load. (The model's raw log-scale
       // head is miscalibrated — it saturates and blew the cone to ~40,000 km — so
@@ -2173,7 +2235,7 @@
   // (or a manual scrub) moves — throttled + in-flight-guarded + updated in place.
   // Keeps the last good forecast if the playhead is too early (<~2 days of history).
   function hindcastFollowTick(force) {
-    if (hindcastTraceCount === 0 || !tfRT.session || hindcastFollowRun) return;
+    if (hindcastTraceCount === 0 || !tfRT.sessions || hindcastFollowRun) return;
     var now = Date.now();
     if (!force && now - hindcastFollowTs < 240) return;
     hindcastFollowTs = now; hindcastFollowRun = true;
@@ -2386,7 +2448,7 @@
   // consensus as it plays. Restyled in place on every scrub/play tick.
   var consFollowRun = false, consFollowTs = 0;
   function consensusFollowTick(force) {
-    if (consensusTraceCount === 0 || !currentStorm || !tfRT.session || consFollowRun) return;
+    if (consensusTraceCount === 0 || !currentStorm || !tfRT.sessions || consFollowRun) return;
     var now = Date.now();
     if (!force && now - consFollowTs < 240) return;
     consFollowTs = now; consFollowRun = true;
@@ -2508,7 +2570,7 @@
     if (aiLoading) return;
     var initHour = Number(els.slider.value);
     aiLoading = true;
-    aiSetHindcastStatus(tfRT.session ? "Running every initialisation…" : "Loading my AI model (~one-time 18 MB download)…", "loading");
+    aiSetHindcastStatus(tfRT.sessions ? "Running every initialisation…" : "Loading my AI model (~one-time 75 MB download, 5-seed ensemble)…", "loading");
     tfEnsureModel()
       .then(function () { return tfConsensus(currentStorm.pts, initHour); })
       .then(function (c) {
