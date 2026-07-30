@@ -1230,6 +1230,13 @@
   // CORS-open, so we can read it from the browser. Its "Detailed Best Track
   // Wind" (k) page is an HTML table we parse. DT id = "20" + JMA number.
   var DT_WIND = "https://agora.ex.nii.ac.jp/digital-typhoon/summary/wnp/k/";
+  // The k page has wind + radii but NOT pressure. Digital Typhoon's "Detailed
+  // Track Information" (l) page, same per-observation grid, carries central
+  // pressure instead — fetched separately and merged in by exact timestamp
+  // (fetchJmaTc). Without this, every live-storm history fix except the
+  // current one has no pressure, so the model reads 8 of its 9 history steps
+  // as "pressure unavailable" instead of a real trend.
+  var DT_TRACK = "https://agora.ex.nii.ac.jp/digital-typhoon/summary/wnp/l/";
   var jmaCache = {};   // tcId -> parsed forecast
   var jmaList = [];    // parsed forecasts for all currently-active TCs
   var fcAnim = null;   // requestAnimationFrame id for the forecast sweep
@@ -1386,6 +1393,48 @@
     });
     return out.length ? out : null;
   }
+  // Digital Typhoon's "Detailed Track Information" (l) page — same per-fix
+  // grid as parseDTWind's (k) page, but the columns are Year/Month/Day/Hour/
+  // Lat./Long./Pressure (hPa)/Wind/Class instead of wind + radii. Only the
+  // pressure is pulled out here; wind/position already come from the k page.
+  function parseDTPressure(html) {
+    var doc = new DOMParser().parseFromString(html, "text/html");
+    var trs = Array.prototype.slice.call(doc.querySelectorAll("tr"));
+    function cellsOf(tr) {
+      return Array.prototype.map.call(tr.querySelectorAll(":scope > th, :scope > td"),
+        function (c) { return c.textContent.trim(); });
+    }
+    var headerCells = null;
+    for (var r = 0; r < trs.length; r++) {
+      var cells = cellsOf(trs[r]);
+      if (cells.length >= 6 && cells.indexOf("Lat.") !== -1 && cells.join("|").indexOf("Pressure") !== -1) {
+        headerCells = cells; break;
+      }
+    }
+    if (!headerCells) return null;
+    function col(label) { for (var i = 0; i < headerCells.length; i++) { if (headerCells[i].indexOf(label) !== -1) return i; } return -1; }
+    var ci = { y: col("Year"), mo: col("Month"), d: col("Day"), h: col("Hour"), pres: col("Pressure") };
+    if (ci.y < 0 || ci.pres < 0) return null;
+    function n(v) { return (v && v !== "-" && v !== "—" && !isNaN(Number(v))) ? Number(v) : null; }
+    var out = [];
+    trs.forEach(function (tr) {
+      var c = cellsOf(tr);
+      if (c.length < 6 || c.length > 20 || !/^\d{4}$/.test(c[ci.y] || "")) return;
+      var pres = n(c[ci.pres]);
+      if (pres == null) return;
+      out.push({ timeMs: Date.UTC(+c[ci.y], (+c[ci.mo] || 1) - 1, +c[ci.d] || 1, +c[ci.h] || 0, 0, 0), pres: pres });
+    });
+    return out.length ? out : null;
+  }
+  // The k (wind/radii) and l (pressure) pages are separate fetches for the same
+  // storm; both are on the same 6-hourly UTC grid, so merge by exact timestamp.
+  function mergeDTPressure(wind, pres) {
+    if (!wind || !pres || !pres.length) return wind;
+    var byTime = {};
+    pres.forEach(function (o) { byTime[o.timeMs] = o.pres; });
+    wind.forEach(function (o) { if (Object.prototype.hasOwnProperty.call(byTime, o.timeMs)) o.pres = byTime[o.timeMs]; });
+    return wind;
+  }
 
   // Real satellite Dvorak T-numbers from UW-CIMSS ADT (the objective Dvorak
   // technique). CIMSS is CORS-blocked, so route through a public CORS proxy
@@ -1453,17 +1502,22 @@
     ]).then(function (res) {
       var p = parseJma(tcId, res[0], res[1]);
       if (!p) return null;
-      // Past wind radii from JMA best-track (via Digital Typhoon), and real
-      // past Dvorak T-numbers from CIMSS ADT (via CORS proxy). Both best-effort.
+      // Past wind radii AND pressure from JMA best-track (via Digital Typhoon —
+      // two separate pages for the same per-fix grid, merged by timestamp below),
+      // and real past Dvorak T-numbers from CIMSS ADT (via CORS proxy). All best-effort.
       var dtId = /^\d{4}$/.test(p.number) ? "20" + p.number : null;
-      var dtPromise = dtId
+      var dtWindPromise = dtId
         ? fetch(DT_WIND + dtId + ".html.en").then(function (r) { return r.text(); })
             .then(function (html) { return parseDTWind(html); }).catch(function () { return null; })
         : Promise.resolve(null);
+      var dtPresPromise = dtId
+        ? fetch(DT_TRACK + dtId + ".html.en").then(function (r) { return r.text(); })
+            .then(function (html) { return parseDTPressure(html); }).catch(function () { return null; })
+        : Promise.resolve(null);
       var analysisMs = (p.points[0] && p.points[0].valid) ? Date.parse(p.points[0].valid.UTC) : null;
-      return Promise.all([dtPromise, fetchCimss(p.number, analysisMs)]).then(function (r2) {
-        p.past = r2[0];
-        p.cimss = r2[1];
+      return Promise.all([dtWindPromise, dtPresPromise, fetchCimss(p.number, analysisMs)]).then(function (r2) {
+        p.past = mergeDTPressure(r2[0], r2[1]);
+        p.cimss = r2[2];
         jmaCache[tcId] = p;
         return p;
       });
@@ -1769,10 +1823,22 @@
   function tfLivePts(d) {
     if (!d || !d.points || !d.points.length) return null;
     var a = d.points[0], raw = [];
-    if (d.past && d.past.length) {
-      d.past.forEach(function (o) { if (o.lat != null && o.lon != null) raw.push({ ms: o.timeMs, la: o.lat, lo: o.lon, w: o.windKt }); });
-    }
     var nowMs = (a.valid && a.valid.UTC) ? Date.parse(a.valid.UTC) : Date.now();
+    if (d.past && d.past.length) {
+      // o.pres comes from mergeDTPressure (fetchJmaTc) joining Digital Typhoon's
+      // separate pressure page in by timestamp — without it every past fix here
+      // read as pressure-unavailable, only the current point ever had a real one.
+      // Digital Typhoon's most recent archived fix and JMA's live "current"
+      // analysis are often the SAME synoptic observation reported by two
+      // sources — drop the DT one when it's within an hour of "now" so it
+      // isn't pushed twice at h=0 (confirmed happening on Dolphin, 2026-07-30:
+      // both reported 2026-07-30T00:00Z with identical la/lo/w/p).
+      d.past.forEach(function (o) {
+        if (o.lat == null || o.lon == null) return;
+        if (Math.abs(o.timeMs - nowMs) < 3600000) return;
+        raw.push({ ms: o.timeMs, la: o.lat, lo: o.lon, w: o.windKt, p: o.pres });
+      });
+    }
     raw.push({ ms: nowMs, la: a.lat, lo: a.lon, w: a.windKt, p: a.pressure });
     raw.sort(function (x, y) { return x.ms - y.ms; });
     var pts = raw.map(function (o) {
@@ -1856,10 +1922,18 @@
   // smoother so the track has physical momentum instead of jumping when the short-lead
   // membership rotates.
   var TF_CONS_URL = "model/trackformer-v23-consensus.json?v=20260730v23";
+  // Global coastline points (Natural Earth 110m, ~5,100 points, 64 KB) for a
+  // REAL dist2land feature (column 52). Previously this always fed the training
+  // mean as an "unavailable" placeholder -- fine for a storm near its climatological
+  // average distance from land, but confirmed WRONG by 4-5 standard deviations for
+  // a storm sitting in open ocean far from any coast (Typhoon Dolphin, 2026-07-30):
+  // that alone was most of why the browser's forecast pointed in nearly the
+  // opposite direction from the reference implementation's.
+  var TF_COASTLINE_URL = "model/coastline.json?v=20260730v23";
   var TF_NM = 1.852;                                    // km per nautical mile
   var TF_ENS_N = 40;                                    // ensemble routes to draw
   var TF_NSEED = 5;                                     // seeds actually shipped (of the 10 published)
-  var tfRT = { sessions: null, meta: null, ens: null, cons: null };
+  var tfRT = { sessions: null, meta: null, ens: null, cons: null, coastline: null };
   var hindcastTraceCount = 0;
   var consensusTraceCount = 0;
   // Overlay tags. Both overlays can be on at once (the consensus stays visible while the
@@ -1890,9 +1964,10 @@
         fetch(TF_META_URL).then(function (r) { return r.json(); }),
         tfLoadSeedsSequential(TF_MODEL_URLS),
         fetch(TF_ENS_URL).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
-        fetch(TF_CONS_URL).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
+        fetch(TF_CONS_URL).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
+        fetch(TF_COASTLINE_URL).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
       ]);
-    }).then(function (r) { tfRT.meta = r[0]; tfRT.sessions = r[1]; tfRT.ens = r[2]; tfRT.cons = r[3]; });
+    }).then(function (r) { tfRT.meta = r[0]; tfRT.sessions = r[1]; tfRT.ens = r[2]; tfRT.cons = r[3]; tfRT.coastline = r[4]; });
   }
   // Deterministic seeded standard-normals (mulberry32 + Box–Muller) so ensemble
   // routes stay stable across follow-the-playhead redraws (no flicker), yet morph
@@ -1933,10 +2008,23 @@
     }
     return { lat: lat, lon: lon };
   }
-  function tfDoy(t) {
-    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(t || "");
-    if (!m) return 200;
-    return Math.round((Date.UTC(+m[1], +m[2] - 1, +m[3]) - Date.UTC(+m[1], 0, 0)) / 86400000);
+  // Reproduces run_v23.py's build_window doy EXACTLY, including a real quirk in
+  // it: `(np.datetime64(t) - np.datetime64(year+"-01-01")).astype(int)` is
+  // computed in MINUTES, not days -- numpy infers that unit from the
+  // minute-precision ISO strings the reference CLI's --track JSON uses. That
+  // reads like a bug from the variable name, but the model was TRAINED against
+  // this exact (deterministic, if oddly-scaled) formula, so it has to be
+  // reproduced bit-for-bit here, not "corrected" to real day-of-year. Confirmed
+  // by a direct column-by-column diff against build_window's own output on a
+  // real storm (Typhoon Dolphin, 2026-07-30): using true day-of-year here was
+  // one of two bugs that sent the browser's forecast in nearly the opposite
+  // direction from the reference implementation's.
+  function tfDoyMinutes(t) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(t || "");
+    if (!m) return 210 * 1440 + 1;   // fallback: ~day 210 (curve's roughly flat there anyway)
+    var thisMs = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
+    var yearStartMs = Date.UTC(+m[1], 0, 1, 0, 0);
+    return Math.round((thisMs - yearStartMs) / 60000) + 1;
   }
   function tfMonth(t) {   // 1..12, for v9's climatological SST proxy
     var m = /^\d{4}-(\d{2})/.exec(t || "");
@@ -1945,6 +2033,23 @@
   function tfMotionKm(la0, lo0, la1, lo1) {   // storm-relative motion, east/north km
     var dlat = la1 - la0, dlon = aiPmod(lo1 - lo0 + 180, 360) - 180;
     return [dlon * 111.2 * Math.cos((la0 + la1) / 2 * Math.PI / 180), dlat * 111.2];
+  }
+  // Real dist2land (column 52): nearest-point distance to a global coastline
+  // (Natural Earth 110m, ~5,100 points, preloaded into tfRT.coastline by
+  // tfEnsureModel). Longitude difference is dateline-wrapped the same way
+  // tfMotionKm is. Returns null if the coastline data hasn't loaded yet --
+  // callers fall back to the training mean (the existing "unavailable" convention),
+  // never a fabricated distance.
+  function tfDist2Land(la, lo) {
+    var cl = tfRT.coastline;
+    if (!cl || !cl.lat || !cl.lat.length) return null;
+    var cosLa = Math.cos(la * Math.PI / 180), best = Infinity;
+    for (var i = 0; i < cl.lat.length; i++) {
+      var dlat = cl.lat[i] - la, dlon = aiPmod(cl.lon[i] - lo + 180, 360) - 180;
+      var dE = dlon * 111.2 * cosLa, dN = dlat * 111.2, d2 = dE * dE + dN * dN;
+      if (d2 < best) best = d2;
+    }
+    return Math.sqrt(best);
   }
   function tfNearestIdx(pts, targetH) {       // nearest fix within 1.5 h (build_track_only.py's TOL)
     var best = -1, bd = 1.5 + 1e-9;
@@ -1965,7 +2070,10 @@
     pts = pts.filter(function (p) { return p.la != null && p.lo != null; });
     var bi = tfNearestIdx(pts, baseHour);
     if (bi < 0) return { ok: false };
-    var base = pts[bi], phase = 2 * Math.PI * tfDoy(base.t) / 365.25, sp = Math.sin(phase), cp = Math.cos(phase);
+    // NOT a bug fix: dividing minutes-since-Jan-1 by 365.25 (not 365.25*1440) is
+    // exactly what build_window does -- see tfDoyMinutes's comment. Replicated
+    // as-is because that's what the checkpoints were trained against.
+    var base = pts[bi], phase = 2 * Math.PI * tfDoyMinutes(base.t) / 365.25, sp = Math.sin(phase), cp = Math.cos(phase);
     var hidx = []; for (var i = 8; i >= 0; i--) hidx.push(tfNearestIdx(pts, base.h - 6 * i));   // -48 h..0
     if (hidx.indexOf(-1) >= 0) return { ok: false, base: base };
     var feat = new Float32Array(9 * D), prev = -1, prevDir = null, v0 = [0, 0], vp = [0, 0];
@@ -1996,9 +2104,11 @@
       }
       // environment stream (48:53) — v9's third encoder, all IBTrACS-derivable. Mirrors
       // build_track_v9.py exactly: absolute position (Coriolis/recurvature), plus a
-      // lat+month climatological SST proxy. dist2land isn't in our per-fix data, so we
-      // feed the training mean — which normalises to 0, exactly how the dataset builder
-      // treats a missing DIST2LAND (NaN -> train mean).
+      // lat+month climatological SST proxy. dist2land is real (tfDist2Land, a global
+      // coastline lookup) when the coastline data has loaded; falls back to the
+      // training mean — which normalises to 0, the existing "unavailable" convention —
+      // only if it hasn't. The mean was confirmed WRONG by 4-5 std devs for a storm
+      // far from any coast (Dolphin, 2026-07-30), not just a small approximation.
       if (D > 48) {
         var mo = tfMonth(p.t), decl = 23.44 * Math.sin(2 * Math.PI * (mo - 3) / 12);
         var thermal = 0.5 * decl;                                   // thermal-equator shift
@@ -2006,7 +2116,8 @@
         raw[49] = Math.abs(p.la);
         raw[50] = Math.sin(p.lo * Math.PI / 180);
         raw[51] = Math.cos(p.lo * Math.PI / 180);
-        raw[52] = mean[52];                                          // dist2land -> train mean
+        var d2l = tfDist2Land(p.la, p.lo);
+        raw[52] = (d2l != null && isFinite(d2l)) ? d2l : mean[52];
         raw[53] = Math.max(0, Math.min(31, 30 - 0.30 * Math.pow(Math.abs(p.la - thermal), 1.4)));
       }
       if (hsin || hcos) prevDir = [hsin, hcos];
