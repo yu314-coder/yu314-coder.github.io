@@ -2560,8 +2560,14 @@
       [i0, i0 + 1, i0 + 2, i0 + 3, i0 + 4, i0 + 5]);
     Plotly.restyle(els.map, { "marker.color": [d.cols] }, [i0 + 5]);
   }
-  // ONE control: run v9 from the playhead (cone + ensemble + mean, which follows the
-  // animation) AND the multi-initialisation consensus, drawn together.
+  // ONE control: the single mean forecast (cone + ensemble + mean) from the
+  // playhead — literally "predict from HERE" — which follows the animation as
+  // it plays. NOT the multi-initialisation consensus: that blends in forecasts
+  // from many past starting points, which is a different, harder-to-read thing
+  // to show under a "predict from here" button. (tfConsensus/aiDrawConsensus
+  // are left in place, just unused by this control, in case they're wanted
+  // again — see git history "one prediction only" for why this toggled the
+  // other way once before.)
   function aiHindcastToggle() {
     if (appMode !== "track" || viewMode !== "storm" || !currentStorm) return;
     if (hindcastTraceCount > 0 || consensusTraceCount > 0) {      // toggle off
@@ -2570,13 +2576,12 @@
     if (aiLoading) return;
     var initHour = Number(els.slider.value);
     aiLoading = true;
-    aiSetHindcastStatus(tfRT.sessions ? "Running every initialisation…" : "Loading my AI model (~one-time 75 MB download, 5-seed ensemble)…", "loading");
+    aiSetHindcastStatus(tfRT.sessions ? "Running my AI model…" : "Loading my AI model (~one-time 75 MB download, 5-seed ensemble)…", "loading");
     tfEnsureModel()
-      .then(function () { return tfConsensus(currentStorm.pts, initHour); })
-      .then(function (c) {
+      .then(function () { return tfRunModel(currentStorm.pts, initHour); })
+      .then(function (fc) {
         aiLoading = false;
-        if (c) aiDrawConsensus(c, initHour);
-        else aiSetHindcastStatus("Not enough of this storm to build a consensus.", "err");
+        aiDrawHindcast(fc, initHour);
       })
       .catch(function (e) { aiLoading = false; aiSetHindcastStatus(((e && e.message) || String(e)), "err"); });
   }
