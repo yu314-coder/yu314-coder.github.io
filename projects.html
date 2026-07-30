@@ -125,7 +125,7 @@
                 <span class="app-icon"><picture><source srcset="assets/img/app-icons/manimstudio-win.webp" type="image/webp"><img src="assets/img/app-icons/manimstudio-win.png" alt="ManimStudio icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
                 <div class="text-start">
                   <h3 class="h2 mb-1 fw-bold">ManimStudio</h3>
-                  <span class="badge-neutral mono version">v1.1.3.0</span>
+                  <span class="badge-neutral mono version">v1.1.4.0</span>
                 </div>
               </div>
               <p class="lead mb-0">Create stunning mathematical animations with a powerful GUI application. Microsoft Store compatible — no administrator rights required.</p>
@@ -1470,31 +1470,31 @@
               <h3 class="h2 mb-2 fw-bold">py2bin &mdash; Python to Native Binary</h3>
               <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
                 <span class="badge-neutral mono">python-to-binary</span>
-                <span class="badge-accent mono">on PyPI</span>
+                <span class="badge-accent mono">v0.8.0 on PyPI</span>
                 <span class="badge-neutral mono">pure stdlib</span>
                 <span class="badge-neutral mono">compilers</span>
               </div>
-              <p class="lead mb-0">A compiler and application builder written entirely with the Python standard library. It turns Python into real machine code &mdash; AST&nbsp;&rarr; its own IR &rarr; its own optimizer &rarr; handwritten x86-64/ARM64 instructions &rarr; ELF, PE, or Mach&#8209;O bytes it writes itself. <strong>No Cython, Nuitka, mypyc, Rust, C/C++ compiler, PyInstaller, assembler, linker, or SDK is involved</strong> &mdash; the build and runtime dependency lists are literally empty, and the test suite enforces that.</p>
+              <p class="lead mb-0">A compiler and application builder written entirely with the Python standard library. Three tiers trade the same things off &mdash; <code>compile</code> emits true machine code with no interpreter at all, <code>freeze</code> ships a full CPython beside your program, and <code>compile-capi</code> (the tier under active work) translates ordinary Python into C that drives the CPython C API, then compiles that C with <strong>py2bin's own C compiler</strong>. <strong>No Cython, Nuitka, mypyc, Rust, gcc, clang, PyInstaller, assembler, linker, or SDK is involved anywhere</strong> &mdash; the build and runtime dependency lists are literally empty, and the test suite enforces that.</p>
             </header>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
               <span class="feature-badge">Zero dependencies</span>
               <span class="feature-badge">ELF &middot; PE &middot; Mach-O</span>
-              <span class="feature-badge">x86-64 + ARM64</span>
-              <span class="feature-badge">6 cross targets</span>
-              <span class="feature-badge">Own IR + optimizer</span>
-              <span class="feature-badge">1.5&nbsp;KB Windows .exe</span>
+              <span class="feature-badge">Own C compiler</span>
+              <span class="feature-badge">878&#8202;/&#8202;889 corpus pass</span>
+              <span class="feature-badge">1,328 tests</span>
+              <span class="feature-badge">Beats Nuitka on size</span>
             </div>
 
             <div class="mb-4">
               <h4 class="h5 fw-bold mb-3">What it does</h4>
               <ul class="list-unstyled">
-                <li class="mb-2"><strong>It writes the executable formats by hand</strong> &mdash; the ELF, PE, and Mach&#8209;O writers are pure Python: headers, load commands, import tables, syscalls, and encoded instructions emitted byte by byte. From one macOS laptop it cross-builds all six targets &mdash; <code>linux-x86_64</code>, <code>linux-arm64</code>, <code>darwin-x86_64</code>, <code>darwin-arm64</code>, <code>windows-x86_64</code>, <code>windows-arm64</code> &mdash; with no Wine, no Rosetta, no target SDK, and no target Python. The Windows <code>.exe</code> comes out at <strong>1,536&nbsp;bytes</strong>; the Linux ELF at ~4&nbsp;KB</li>
-                <li class="mb-2"><strong>Four deliberately separate paths</strong> &mdash; <code>compile</code> (true machine code, no Python on the target), <code>freeze</code> (embedded CPython in one self-extracting binary &mdash; packaging, not translation), <code>build</code> (<code>.pyz</code>/<code>.bin</code>/directory bundles that do need a target Python), and <code>emit-c</code> (a typed Python subset to readable C). They are never blurred together</li>
-                <li class="mb-2"><strong>An honest scope, stated up front</strong> &mdash; the README carries a <em>claims audit</em> that answers &ldquo;No&rdquo; to several flattering questions: a frozen app <em>does</em> still run CPython, third-party packages are <em>not</em> natively translated, and arbitrary Python is <em>not</em> compiled to machine code. <code>compile</code> accepts a documented static subset &mdash; integers, comparisons, <code>if</code>/<code>while</code>/<code>for range</code>, constant f-strings, <code>print</code>, <code>sys.exit</code> &mdash; and rejects everything else with a source location rather than emitting a subtly wrong binary</li>
-                <li class="mb-2"><strong>Its own optimizer, not constant folding dressed up</strong> &mdash; a target-independent pass propagates assignment constants, folds arithmetic/Boolean/conditional/f-string constants, keeps only the reachable arm of a constant <code>if</code>, merges adjacent writes to cut syscalls, and drops everything after the first process exit. Runtime integer variables and structured control flow lower to IR that the x86-64 and ARM64 backends encode directly &mdash; that path is documented as codegen, not folding</li>
-                <li class="mb-2"><strong>Supply-chain-aware source fetching</strong> &mdash; <code>--source-lock</code> downloads pinned third-party <em>source</em> over Python's own HTTPS client (no pip), verifies SHA-256 against an immutable revision, and extracts it while rejecting traversal paths, links, special files, case-collisions, and oversized archives. It <em>never</em> imports the download or runs <code>setup.py</code>, and it deliberately refuses to guess a repository from an import name</li>
-                <li class="mb-2"><strong>Published and installable</strong> &mdash; <code>pip install python-to-binary</code>, Python&nbsp;3.10+, MIT. It even builds itself: <code>pyproject.toml</code> points at an in-tree <code>py2bin.build_backend</code> with an empty <code>[build-system].requires</code></li>
+                <li class="mb-2"><strong><code>compile-capi</code> takes almost the whole language</strong> &mdash; classes, inheritance and <code>super()</code>, closures, decorators, <code>try</code>/<code>except</code>/<code>with</code>, <code>match</code> (sequence, mapping and class patterns), and generators/<code>async def</code> compiled by cutting the body into blocks at each <code>yield</code>/<code>await</code> and turning it into a state machine &mdash; no interpreter loop involved. On an 889-program corpus it produces byte-identical output and exit status to CPython on 878; the 7 that differ do so for inherent reasons (e.g. CPython's "Did you mean" needs a live Python frame to suggest from)</li>
+                <li class="mb-2"><strong>Verified on a real application &mdash; this portfolio's own ManimStudio</strong> &mdash; 10,100 lines with pywebview, Pillow and pyobjc, built both ways on the same machine and interleaved so drift falls on both equally. Result: a 61.2&nbsp;MB <code>.app</code> vs Nuitka's 72.6&nbsp;MB, a 9.2&nbsp;MB main binary vs 29.6&nbsp;MB, and a 16.7&nbsp;second compile vs Nuitka's minutes &mdash; with every imported module verified to resolve and Pillow round-tripping PNG/JPEG/GIF/BMP/WEBP/TIFF from a copy moved elsewhere on disk</li>
+                <li class="mb-2"><strong>It writes the executable formats by hand</strong> &mdash; the ELF, PE, and Mach&#8209;O writers are pure Python: headers, load commands, import tables, and encoded x86-64/ARM64 instructions emitted byte by byte, with no assembler or linker anywhere in the path</li>
+                <li class="mb-2"><strong>An honest, measured scope</strong> &mdash; a per-feature support table in the README marks exactly what compiles and what's refused outright (e.g. <code>async for</code>, and a <code>finally</code> around a suspended generator, since nothing here is told when a generator is closed). A refusal is always a <code>file:line:col</code> error, never a silently wrong binary. Where it's slower than CPython &mdash; method calls, instantiation &mdash; that's measured and published too, not hidden</li>
+                <li class="mb-2"><strong>Windows bundling handles the pitfalls explicitly</strong> &mdash; an embeddable CPython copied beside the executable, packages placed <em>and</em> named on the interpreter's <code>._pth</code> path (skip either half and a windowed exe fails with no console to explain why), and wheel-ABI matching (<code>cp314</code> vs <code>cp314t</code>) called out by name</li>
+                <li class="mb-2"><strong>Published and installable</strong> &mdash; <code>pip install python-to-binary</code>, Python&nbsp;3.10+, MIT. It builds itself: <code>pyproject.toml</code> points at an in-tree <code>py2bin.build_backend</code> with an empty <code>[build-system].requires</code>, and 1,328 tests across 31 files enforce that nothing under <code>src/</code> ever imports <code>subprocess</code>, <code>ctypes</code>-via-ffi tricks, or names an external toolchain</li>
               </ul>
             </div>
 
@@ -1503,9 +1503,9 @@
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">Inside the compiler</h5>
                   <ul class="small mb-0 text-start">
-                    <li><code>native/frontend.py</code> &mdash; Python AST &rarr; py2bin IR</li>
-                    <li><code>native/optimizer.py</code> &mdash; target-independent passes</li>
-                    <li><code>native/x86_64.py</code>, <code>arm64.py</code> &mdash; instruction encoders</li>
+                    <li><code>capi_emit.py</code>, <code>c_frontend.py</code> &mdash; Python AST &rarr; C driving the CPython C API</li>
+                    <li><code>native/x86_64.py</code>, <code>arm64.py</code> &mdash; py2bin's own C compiler's backends</li>
+                    <li><code>native/optimizer.py</code> &mdash; constant folding, dead code, register allocation for hot locals</li>
                     <li><code>native/formats/</code> &mdash; hand-written ELF, PE, Mach-O writers</li>
                   </ul>
                 </div>
@@ -1514,9 +1514,9 @@
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">What it is not</h5>
                   <ul class="small mb-0 text-start">
-                    <li>Not a general Python&rarr;native translator &mdash; a static subset only</li>
-                    <li>Not a wheel recompiler &mdash; NumPy/Torch stay CPython payload</li>
-                    <li>Not a PyInstaller wrapper &mdash; <code>compile</code> has no fallback path</li>
+                    <li>Not a wheel recompiler &mdash; NumPy/Torch/Pillow stay CPython payload</li>
+                    <li><code>compile</code> (no-CPython tier) still only takes a static subset</li>
+                    <li>Not a PyInstaller wrapper &mdash; every tier has a hard, documented boundary</li>
                     <li>The build machine still needs Python 3.10+; the target does not</li>
                   </ul>
                 </div>
@@ -1528,9 +1528,9 @@
               <div class="d-inline-block text-start">
                 <p class="small mb-1"><strong>Created by:</strong> Yu Yao-Hsing</p>
                 <p class="small mb-1"><strong>Category:</strong> Developer tools &mdash; compilers / packaging</p>
-                <p class="small mb-1"><strong>Language:</strong> Python (standard library only) &middot; 44 modules, 12 test suites</p>
-                <p class="small mb-1"><strong>Targets:</strong> Linux &middot; macOS &middot; Windows, each on x86-64 and ARM64</p>
-                <p class="small mb-0"><strong>Status:</strong> v0.2.1 on PyPI &mdash; alpha; native subset small and growing</p>
+                <p class="small mb-1"><strong>Language:</strong> Python (standard library only) &middot; 49 modules under <code>src/py2bin</code>, 1,328 tests across 31 files</p>
+                <p class="small mb-1"><strong>Targets:</strong> <code>compile-capi</code> &mdash; macOS x86-64/ARM64, Windows x86-64 today; <code>compile</code> (native, no CPython) targets all six OS&times;arch combinations</p>
+                <p class="small mb-0"><strong>Status:</strong> v0.8.0 on PyPI &mdash; <code>compile-capi</code> is the tier under active work</p>
               </div>
             </div>
 
