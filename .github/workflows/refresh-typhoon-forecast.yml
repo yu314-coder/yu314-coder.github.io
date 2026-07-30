@@ -57,8 +57,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
-          pip install --no-cache-dir -r scripts/requirements-forecast.txt
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r scripts/requirements-forecast.txt
 
       - name: Run v23 forecast
         env:
