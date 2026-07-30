@@ -1885,19 +1885,29 @@
       .catch(function () { return null; })
       .then(function (all) {
         var pre = all && all.storms && all.storms[d.tcId];
-        if (aiLoading && tfPrecomputedFresh(pre, d)) {
-          var quick = tfPrecomputedFc(pre, d.points[0].windKt);
-          quick.storm = (d.name && d.name.en) || "storm";
-          quick.tcId = d.tcId; quick.dataKey = dataKey;
-          aiDrawForecast(quick);
-          aiSetStatus("🧪 " + quick.storm + " — quick preview (precomputed server-side, 10-seed full precision). Refining with your browser's own run…", "loading");
-        } else {
-          aiSetStatus(tfRT.sessions ? "Running my AI model…"
-            : "Loading my AI model in your browser (~one-time 75 MB download, 5-seed ensemble)…", "loading");
+        // If a fresh server-side run exists, it's STRICTLY better than the browser's own
+        // (full 10-seed fp32 vs a 5-seed int8 export) -- draw it and stop, rather than
+        // drawing it as a "preview" only to overwrite it with the worse client result a
+        // moment later (that was this control's behavior before, and it was backwards).
+        if (tfPrecomputedFresh(pre, d)) {
+          aiLoading = false;
+          var fc = tfPrecomputedFc(pre, d.points[0].windKt);
+          fc.storm = (d.name && d.name.en) || "storm";
+          fc.tcId = d.tcId; fc.dataKey = dataKey;
+          aiDrawForecast(fc);
+          aiSetStatus("🧪 " + fc.storm + " — my TrackFormer model, full precision (10-seed fp32, computed "
+            + "server-side every 30 min): predicted track with dots coloured by forecast intensity category "
+            + "(hover a dot for wind &amp; pressure). No uncertainty cone or wind-radii rings on this "
+            + "server-computed run -- that data isn't produced server-side, so none is shown rather than faked. "
+            + "Experimental, not an official forecast.", "on");
+          return null;   // signals "already drawn" to the next .then — skip the client-side run
         }
+        aiSetStatus(tfRT.sessions ? "Running my AI model…"
+          : "Loading my AI model in your browser (~one-time 75 MB download, 5-seed ensemble)…", "loading");
         return tfEnsureModel().then(function () { return tfRunModel(live.pts, live.nowHour); });
       })
       .then(function (fc) {
+        if (!fc) return;   // the precomputed path above already drew the result
         aiLoading = false;
         fc.storm = (d.name && d.name.en) || "storm";
         fc.tcId = d.tcId;              // which storm this run belongs to
