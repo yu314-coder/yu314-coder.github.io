@@ -1,0 +1,3 @@
+# torch is installed separately (CPU wheel) in the workflow.
+numpy<3
+beautifulsoup4

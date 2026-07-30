@@ -1850,19 +1850,58 @@
   // Run TrackFormer on storm d's current track and draw the overlay. Shared by
   // the toggle and the live refresh (which re-runs it on freshly-fetched data so
   // the route reflects the new analysis — genuinely recomputed, not redrawn).
+  // Precomputed forecast for the CURRENTLY-displayed JMA issuance, from
+  // .github/workflows/refresh-typhoon-forecast.yml -- the full 10-seed fp32
+  // ensemble, run server-side every 30 min, so a bad connection can show a track
+  // instantly instead of waiting on a 75 MB in-browser model download. Carries no
+  // uncertainty cone or wind-radii data (the reference CLI this reuses doesn't
+  // expose those dims) -- degenerate cone, no radii rings -- so it's drawn as a
+  // quick preview only; the real client-side run below still fires right after
+  // and overwrites it with the full picture, same as before this existed.
+  var TF_LIVE_JSON_URL = "model/v23-live-forecast.json";
+  function tfPrecomputedFc(pre, baseW) {
+    var pts = pre.lats.map(function (la, i) {
+      return { lead_hours: pre.lead_hours[i], lat: la, lon: pre.lons[i],
+        vmax: pre.vmax_kt[i], pres: pre.pres_hpa[i], rmw: null, radiiKm: null,
+        p10_lat: la, p10_lon: pre.lons[i], p90_lat: la, p90_lon: pre.lons[i] };
+    });
+    return { initial_lat: pre.base_lat, initial_lon: pre.base_lon, initial_vmax: baseW, points: pts };
+  }
+  // Fresh only if it was computed from the exact same JMA analysis currently on
+  // screen -- never show a precomputed forecast that's one issuance behind.
+  function tfPrecomputedFresh(pre, d) {
+    var nowUTC = d.points[0] && d.points[0].valid && d.points[0].valid.UTC;
+    if (!pre || !nowUTC) return false;
+    var preMs = Date.parse(pre.issue_time + ":00Z"), nowMs = Date.parse(nowUTC);
+    return isFinite(preMs) && isFinite(nowMs) && Math.abs(preMs - nowMs) < 60000;
+  }
   function aiRun(d) {
     var live = tfLivePts(d);
     if (!live) { aiSetStatus("No storm loaded to run the model on.", "err"); return; }
     aiLoading = true;
-    aiSetStatus(tfRT.sessions ? "Running my AI model…"
-      : "Loading my AI model in your browser (~one-time 75 MB download, 5-seed ensemble)…", "loading");
-    tfEnsureModel()
-      .then(function () { return tfRunModel(live.pts, live.nowHour); })
+    var dataKey = jmaIssueKey(d);
+    fetch(TF_LIVE_JSON_URL + "?_=" + Date.now())
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; })
+      .then(function (all) {
+        var pre = all && all.storms && all.storms[d.tcId];
+        if (aiLoading && tfPrecomputedFresh(pre, d)) {
+          var quick = tfPrecomputedFc(pre, d.points[0].windKt);
+          quick.storm = (d.name && d.name.en) || "storm";
+          quick.tcId = d.tcId; quick.dataKey = dataKey;
+          aiDrawForecast(quick);
+          aiSetStatus("🧪 " + quick.storm + " — quick preview (precomputed server-side, 10-seed full precision). Refining with your browser's own run…", "loading");
+        } else {
+          aiSetStatus(tfRT.sessions ? "Running my AI model…"
+            : "Loading my AI model in your browser (~one-time 75 MB download, 5-seed ensemble)…", "loading");
+        }
+        return tfEnsureModel().then(function () { return tfRunModel(live.pts, live.nowHour); });
+      })
       .then(function (fc) {
         aiLoading = false;
         fc.storm = (d.name && d.name.en) || "storm";
         fc.tcId = d.tcId;              // which storm this run belongs to
-        fc.dataKey = jmaIssueKey(d);   // which JMA issuance it was computed from
+        fc.dataKey = dataKey;          // which JMA issuance it was computed from
         aiDrawForecast(fc);
       })
       .catch(function (e) {
