@@ -1,0 +1,127 @@
+name: Build v62 history hindcasts
+
+# Generates full-life v62 hindcasts for past storms and commits them, so the
+# fetching happens here rather than on someone's laptop before a push.
+#
+# This is a backfill job, not a refresh: each run takes the next few
+# not-yet-generated storms and stops. Re-run it to keep going -- --skip-existing
+# makes it resume, and the index is written after every storm so a run that hits
+# the time limit still lands the storms it finished.
+#
+# Cost is dominated by the analysis archive, and the two eras are very different:
+#   CFSR  (to 2011-03-31)  4.6 MB per analysis  -> ~220-410 MB per storm
+#   CDAS  (from 2011-04-01) 78 MB per analysis  -> ~3.7 GB per storm
+# So `count` should be several for old storms and 1 for post-2011 ones. Analyses
+# are pruned after each storm to keep the runner's disk bounded.
+on:
+  workflow_dispatch:
+    inputs:
+      storms:
+        description: "Space-separated IBTrACS ids. Leave blank to take the most intense ungenerated storms."
+        required: false
+        default: ""
+      count:
+        description: "How many ungenerated storms to take when `storms` is blank (use 1 for post-2011/CDAS storms)"
+        required: false
+        default: "3"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-v62-history
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350        # the job cap is 360; leave room to commit
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free disk for the analysis cache
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc || true
+          df -h / | tail -1
+
+      # Same weights the live job uses: the v23 norm stats/terrain are vendored in
+      # this repo, but the v37G structure checkpoints come from typhoon-predict.
+      - name: Cache model weights
+        id: cache-weights
+        uses: actions/cache@v4
+        with:
+          path: typhoon-predict-models
+          key: v62-weights-v3
+
+      - name: Checkout weights
+        if: steps.cache-weights.outputs.cache-hit != 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: yu314-coder/typhoon-predict
+          lfs: true
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            models/v23
+            v37/structure_spatial
+          path: typhoon-predict-weights
+
+      - name: Move weights into cache path
+        if: steps.cache-weights.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p typhoon-predict-models/v23 typhoon-predict-models/v37
+          mv typhoon-predict-weights/models/v23/* typhoon-predict-models/v23/
+          mv typhoon-predict-weights/v37/* typhoon-predict-models/v37/
+          rm -rf typhoon-predict-weights
+
+      - name: Checkout v62 source modules
+        uses: actions/checkout@v4
+        with:
+          repository: yu314-coder/typhoon-predict
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            v62_pacific_domain_route.py
+            v61_big_system_route.py
+            analysis_level_mean_route.py
+            v62_intensity_structure.py
+            scripts/predict_ibtracs_jma_only.py
+          path: typhoon-predict-src
+
+      - name: Link cached v37 weights into the source tree
+        run: ln -sfn "$GITHUB_WORKSPACE/typhoon-predict-models/v37" typhoon-predict-src/v37
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: scripts/requirements-forecast.txt
+
+      - name: Install dependencies
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r scripts/requirements-forecast.txt
+
+      - name: Generate hindcasts
+        env:
+          V62_SRC_DIR: ${{ github.workspace }}/typhoon-predict-src
+          V62_CFSR_DIR: /tmp/v62-analysis
+          MPLBACKEND: Agg
+        run: |
+          if [ -n "${{ inputs.storms }}" ]; then
+            python scripts/build_v62_history.py ${{ inputs.storms }} --prune
+          else
+            python scripts/build_v62_history.py --top "${{ inputs.count }}" --skip-existing --prune
+          fi
+          df -h / | tail -1
+
+      - name: Commit generated hindcasts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/typhoon-tracker/model/v62 assets/typhoon-tracker/model/v62-hindcasts.json
+          if git diff --staged --quiet; then
+            echo "nothing new generated"
+            exit 0
+          fi
+          git commit -m "Add v62 history hindcasts"
+          git pull --rebase --autostash origin main
+          git push

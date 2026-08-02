@@ -102,7 +102,9 @@ def cfsr_path(stamp):
     return p
 
 
-_FULL, _PATCH = {}, {}
+_FULL = {}
+_FULL_ORDER = []
+_FULL_MAX = 8          # decoded analyses held at once; a CDAS one is ~15 MB
 
 
 def _open(path, lev):
@@ -132,6 +134,9 @@ def read_full(stamp):
     finally:
         pr.close(); sf.close()
     _FULL[stamp] = (fields.astype("float32"), mslp, lat, lon, levels)
+    _FULL_ORDER.append(stamp)
+    while len(_FULL_ORDER) > _FULL_MAX:
+        _FULL.pop(_FULL_ORDER.pop(0), None)
     return _FULL[stamp]
 
 
@@ -357,6 +362,10 @@ def main():
     ap.add_argument("sid", nargs="*", help="IBTrACS storm id(s)")
     ap.add_argument("--top", type=int, help="instead: the N most intense CFSR-era storms")
     ap.add_argument("--no-intensity", action="store_true")
+    ap.add_argument("--skip-existing", action="store_true",
+                    help="ignore storms already generated, so --top N resumes across runs")
+    ap.add_argument("--prune", action="store_true",
+                    help="delete each storm's analyses after it is written (CI: a CDAS storm is ~3.7 GB)")
     args = ap.parse_args()
 
     catalogue = {}
@@ -371,10 +380,13 @@ def main():
                 continue
             catalogue[sid] = (year, storm)
 
+    done = set(load_index().get("hindcasts", {})) if args.skip_existing else set()
     if args.top:
         ranked = sorted(catalogue.items(),
                         key=lambda kv: -max((p.get("w") or 0) for p in kv[1][1]["pts"]))
-        targets = [sid for sid, _ in ranked[: args.top]]
+        targets = [sid for sid, _ in ranked if sid not in done][: args.top]
+        if not targets:
+            log("nothing left to generate"); return
     else:
         targets = args.sid
     if not targets:
@@ -415,6 +427,14 @@ def main():
             "mean_track_mae_km": round(sum(scored) / len(scored), 1) if scored else None,
             "file": f"v62/{sid}.json",
         }
+        if args.prune:
+            freed = 0
+            for f in CACHE.glob("*.grb2"):
+                freed += f.stat().st_size; f.unlink()
+            _FULL.clear(); _FULL_ORDER.clear()
+            log(f"  pruned {freed/1e9:.2f} GB of analyses")
+        index["generated_at"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        INDEX.write_text(json.dumps(index, indent=2) + "\n")
         log(f"  {len(runs)} initialisations ({index['hindcasts'][sid]['intensity_runs']} with intensity), "
             f"{out.stat().st_size/1024:.0f} KB"
             + (f", mean {index['hindcasts'][sid]['mean_track_mae_km']} km over {len(scored)} scored" if scored else ""))

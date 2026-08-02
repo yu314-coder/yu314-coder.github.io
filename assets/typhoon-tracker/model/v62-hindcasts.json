@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-02T13:42:25Z",
+  "generated_at": "2026-08-02T15:31:59Z",
   "note": "Per-storm v62 hindcasts, loaded lazily when that storm is opened.",
   "hindcasts": {
     "1979275N06159": {
@@ -11,6 +11,36 @@
       "intensity_runs": 63,
       "mean_track_mae_km": 872.2,
       "file": "v62/1979275N06159.json"
+    },
+    "1992318N06182": {
+      "storm": "Gay",
+      "season": 1992,
+      "runs": 79,
+      "first_issue_utc": "1992-11-14T06:00:00Z",
+      "last_issue_utc": "1992-12-03T18:00:00Z",
+      "intensity_runs": 66,
+      "mean_track_mae_km": 886.9,
+      "file": "v62/1992318N06182.json"
+    },
+    "1997283N07177": {
+      "storm": "Ivan",
+      "season": 1997,
+      "runs": 65,
+      "first_issue_utc": "1997-10-10T12:00:00Z",
+      "last_issue_utc": "1997-10-26T12:00:00Z",
+      "intensity_runs": 53,
+      "mean_track_mae_km": 780.2,
+      "file": "v62/1997283N07177.json"
+    },
+    "1997284N04179": {
+      "storm": "Joan",
+      "season": 1997,
+      "runs": 55,
+      "first_issue_utc": "1997-10-12T00:00:00Z",
+      "last_issue_utc": "1997-10-25T12:00:00Z",
+      "intensity_runs": 47,
+      "mean_track_mae_km": 847.4,
+      "file": "v62/1997284N04179.json"
     }
   }
 }
