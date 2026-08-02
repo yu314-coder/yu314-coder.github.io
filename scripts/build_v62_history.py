@@ -345,11 +345,17 @@ def main():
     catalogue = {}
     for path in sorted(SEASONS.glob("*.json")):
         year = int(path.stem)
-        # only CFSR-era storms can be generated today
-        last = (storm.get("pts") or [{}])[-1].get("t")
-        if not last or dt.datetime.fromisoformat(last).replace(tzinfo=dt.timezone.utc) > CFSR_END:
+        if year > CFSR_END.year:
             continue
         for sid, storm in json.loads(path.read_text()).items():
+            # the archive switches product mid-2011, so test the storm's own last
+            # observation rather than its season
+            pts = storm.get("pts") or []
+            if not pts:
+                continue
+            last = pts[-1].get("t")
+            if not last or dt.datetime.fromisoformat(last).replace(tzinfo=dt.timezone.utc) > CFSR_END:
+                continue
             catalogue[sid] = (year, storm)
 
     if args.top:

@@ -419,8 +419,14 @@ def v62_track(points, issue, guard):
     # and flagged rather than fabricated, the same convention used everywhere else here.
     centers = [center_at(points, key_to_dt(mains[0]))]
     if centers[0] is None:
-        log(f"  v62: no observed centre near {mains[0]}; cannot anchor the route")
-        return None
+        # A storm reported for the first time after the newest posted cycle has no
+        # observed position back at that analysis time. Sampling the environment
+        # around where it IS, from the latest analysis at or before the issue, is
+        # still causal -- both are pre-issue -- so anchor there rather than refuse.
+        last = points[-1]
+        centers[0] = (float(last["lat"]), float(last["lon"]))
+        log(f"  v62: no observed centre at {mains[0]}; anchoring that analysis on the"
+            f" current position instead")
     for key in mains[1:]:
         centers.append(center_at(points, key_to_dt(key)))
     available = np.asarray([1.0 if c is not None else 0.0 for c in centers[1:]], dtype="float32")
@@ -560,12 +566,9 @@ def process_storm(tc, models):
         log(f"{tc_id}: v62 track failed ({type(e).__name__}: {e})")
 
     if not v62:
-        out["track_source"] = "v23"
-        out["intensity_source"] = "v23"
-        out["v62"] = None
-        out["causality"] = guard.ledger()
-        log(f"{tc_id} ({a['name']}): v62 unavailable, using v23 for track and intensity")
-        return out
+        log(f"{tc_id} ({a['name']}): v62 produced nothing; omitting this storm rather than "
+            f"shipping another model's forecast under it")
+        return None
 
     out["lats"] = v62["lats"]
     out["lons"] = v62["lons"]
@@ -595,9 +598,11 @@ def process_storm(tc, models):
         intensity_note = f"{type(e).__name__}: {e}"
 
     if out.get("intensity_source") != "v62":
-        out["intensity_source"] = "v23"
-        v62["intensity_fallback_reason"] = str(intensity_note)
-        log(f"{tc_id}: v62 intensity unavailable ({intensity_note}); keeping v23 intensity")
+        out["intensity_source"] = None
+        for k in ("vmax_kt", "pres_hpa"):
+            out.pop(k, None)
+        v62["intensity_unavailable_reason"] = str(intensity_note)
+        log(f"{tc_id}: v62 intensity unavailable ({intensity_note}); shipping track only")
 
     # cone from v62's own route members, so the drawn spread is its statistic
     try:
