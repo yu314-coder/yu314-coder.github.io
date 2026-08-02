@@ -41,7 +41,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 
   <!-- Site stylesheet (single source of truth) -->
-  <link rel="stylesheet" href="assets/css/style.css?v=20260802-1228">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260802-1330">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
 <body class="theme-dark">
@@ -1943,18 +1943,71 @@
   <!-- Custom JavaScript (arcade) -->
   <script src="assets/js/main.js?v=20260722-125409" defer></script>
 
-  <!-- Deep-linkable tabs: projects.html#tab-py2bin opens that pane instead of
-       landing on the default one and scrolling to a hidden element. -->
+  <!-- Tab behaviour: deep links (projects.html#tab-py2bin), plus a standalone
+       fallback so the pills still switch when Bootstrap's JS never arrives.
+       Every pill is data-bs-toggle only, so a blocked/slow CDN — an ordinary
+       thing on phone data — left the whole section dead with no way in. -->
   <script>
     (function () {
+      var tabsEl = document.getElementById("projectTabs");
+      var contentEl = document.getElementById("projectTabsContent");
+      if (!tabsEl || !contentEl) return;
+
+      function hasBsTab() { return !!(window.bootstrap && window.bootstrap.Tab); }
+
+      function paneFor(btn) {
+        var sel = btn.getAttribute("data-bs-target");
+        return sel ? document.querySelector(sel) : null;
+      }
+
+      // A pane opened by either path must have its scroll-reveal content lit:
+      // those elements start at opacity 0 and the observer may never fire for a
+      // pane that was display:none when the page loaded.
+      function revealIn(pane) {
+        if (!pane) return;
+        var r = pane.querySelectorAll(".reveal");
+        for (var i = 0; i < r.length; i++) r[i].classList.add("is-visible");
+      }
+
+      function activate(btn) {
+        var pane = paneFor(btn);
+        if (!pane) return;
+        var links = tabsEl.querySelectorAll(".nav-link");
+        for (var i = 0; i < links.length; i++) {
+          var on = links[i] === btn;
+          links[i].classList.toggle("active", on);
+          links[i].setAttribute("aria-selected", on ? "true" : "false");
+        }
+        for (var j = 0; j < contentEl.children.length; j++) {
+          var p = contentEl.children[j];
+          if (!p.classList || !p.classList.contains("tab-pane")) continue;
+          var onPane = p === pane;
+          p.classList.toggle("active", onPane);
+          p.classList.toggle("show", onPane);
+        }
+        revealIn(pane);
+      }
+
+      // Bootstrap present: let it drive, just light the pane it opened.
+      tabsEl.addEventListener("shown.bs.tab", function (e) {
+        revealIn(paneFor(e.target));
+      });
+
+      // Bootstrap absent: drive the tabs ourselves.
+      tabsEl.addEventListener("click", function (e) {
+        var btn = e.target && e.target.closest ? e.target.closest(".nav-link[data-bs-target]") : null;
+        if (!btn || hasBsTab()) return;
+        e.preventDefault();
+        activate(btn);
+      });
+
       function openFromHash() {
         var id = (location.hash || "").replace(/^#/, "");
         if (!id) return;
         var btn = document.getElementById(id + "-btn");
         if (!btn || btn.classList.contains("active")) return;
-        btn.click();
-        var tabs = document.getElementById("projectTabs");
-        if (tabs && tabs.scrollIntoView) tabs.scrollIntoView({ block: "start" });
+        if (hasBsTab()) { btn.click(); } else { activate(btn); }
+        if (tabsEl.scrollIntoView) tabsEl.scrollIntoView({ block: "start" });
       }
       if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", openFromHash);

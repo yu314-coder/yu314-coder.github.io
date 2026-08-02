@@ -1291,7 +1291,12 @@ body.theme-dark .chip-no { background: rgba(255,255,255,0.05); }
 .cover li::before { content: "✓"; color: var(--ok); font-weight: 700; flex: none; }
 .cover li.no::before { content: "×"; color: var(--ink-3); }
 
-/* --- project tab pills (were unstyled Bootstrap defaults) ------------------ */
+/* --- project tab pills (were unstyled Bootstrap defaults) ------------------
+   touch-action: manipulation is not cosmetic here. Without it iOS holds each
+   tap open as a possible double-tap-zoom, so the first tap on a pill is delayed
+   or swallowed and the tab reads as "not working" on iPhone. Same fix the
+   .device-chip block below already documents. Pills were also 41px tall —
+   under Apple's 44px minimum target — so a coarse pointer gets a taller one. */
 #projectTabs .nav-link {
   font-family: var(--font-body);
   font-size: 0.88rem; font-weight: 550;
@@ -1300,10 +1305,19 @@ body.theme-dark .chip-no { background: rgba(255,255,255,0.05); }
   border: 1px solid var(--line);
   border-radius: var(--r-pill);
   padding: 0.5rem 1rem;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
   transition: color .18s var(--ease), border-color .18s var(--ease), background .18s var(--ease);
 }
 #projectTabs .nav-link:hover { color: var(--ink); border-color: var(--line-2); }
 #projectTabs .nav-link.active {
   color: var(--accent); background: var(--accent-tint);
   border-color: transparent;
+}
+@media (pointer: coarse) {
+  #projectTabs .nav-link {
+    min-height: 44px;
+    padding: 0.6rem 1.05rem;
+    display: inline-flex; align-items: center;
+  }
 }
