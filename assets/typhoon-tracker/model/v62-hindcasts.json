@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-08-02T15:31:59Z",
-  "note": "Per-storm v62 hindcasts, loaded lazily when that storm is opened.",
+  "generated_at": "2026-08-02T17:51:17Z",
+  "note": "Per-storm v62 hindcasts, loaded lazily. History mode uses v62 wherever a run covers the initialisation on screen and v23 elsewhere.",
   "hindcasts": {
     "1979275N06159": {
       "storm": "Tip",
@@ -41,6 +41,26 @@
       "intensity_runs": 47,
       "mean_track_mae_km": 847.4,
       "file": "v62/1997284N04179.json"
+    },
+    "2013306N07162": {
+      "storm": "Haiyan",
+      "season": 2013,
+      "runs": 33,
+      "first_issue_utc": "2013-11-03T06:00:00Z",
+      "last_issue_utc": "2013-11-11T06:00:00Z",
+      "intensity_runs": 33,
+      "mean_track_mae_km": 606.3,
+      "file": "v62/2013306N07162.json"
+    },
+    "2016253N13144": {
+      "storm": "Meranti",
+      "season": 2016,
+      "runs": 31,
+      "first_issue_utc": "2016-09-09T18:00:00Z",
+      "last_issue_utc": "2016-09-17T06:00:00Z",
+      "intensity_runs": 24,
+      "mean_track_mae_km": 584.8,
+      "file": "v62/2016253N13144.json"
     }
   }
 }
