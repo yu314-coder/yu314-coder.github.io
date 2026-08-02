@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-02T12:07:42Z",
+  "generated_at": "2026-08-02T12:19:05Z",
   "storms": {
     "TC2616": {
       "issue_time": "2026-08-02T09:00",
@@ -537,7 +537,7 @@
         "intensity_model": {
           "model": "frozen v37G spatial structure ensemble used as the v62 intensity head",
           "checkpoint_count": 3,
-          "calibration": "/private/tmp/claude-501/-Volumes-D-yu314-coder-github-io/0eed1540-0f91-4dff-a0d5-40efcc13b061/scratchpad/v62src/v37/structure_spatial/v37g_intensity_calibration.json",
+          "calibration": "/home/runner/work/yu314-coder.github.io/yu314-coder.github.io/typhoon-predict-src/v37/structure_spatial/v37g_intensity_calibration.json",
           "field_contract": "4x17x17 v23-compatible analysis patch, q/31.75 then clipped to [-4,4]",
           "outputs": [
             "vmax_kt",
@@ -1736,7 +1736,7 @@
         "intensity_model": {
           "model": "frozen v37G spatial structure ensemble used as the v62 intensity head",
           "checkpoint_count": 3,
-          "calibration": "/private/tmp/claude-501/-Volumes-D-yu314-coder-github-io/0eed1540-0f91-4dff-a0d5-40efcc13b061/scratchpad/v62src/v37/structure_spatial/v37g_intensity_calibration.json",
+          "calibration": "/home/runner/work/yu314-coder.github.io/yu314-coder.github.io/typhoon-predict-src/v37/structure_spatial/v37g_intensity_calibration.json",
           "field_contract": "4x17x17 v23-compatible analysis patch, q/31.75 then clipped to [-4,4]",
           "outputs": [
             "vmax_kt",
