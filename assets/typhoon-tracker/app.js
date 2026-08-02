@@ -2007,7 +2007,7 @@
   // storm and initialisation on screen. v62 integrates a route from actual analysis
   // fields, which do not exist for most past storms -- NOMADS keeps ~9 days of GFS --
   // so everywhere else this stays on v23, which is field-free by design.
-  var TF_V62_HINDCAST_URL = "model/v62-hindcasts.json?v=20260802v62d";
+  var TF_V62_HINDCAST_URL = "model/v62-hindcasts.json?v=20260802v62h";
   var TF_NM = 1.852;                                    // km per nautical mile
   var TF_ENS_N = 40;                                    // ensemble routes to draw
   var TF_NSEED = 5;                                     // seeds actually shipped (of the 10 published)
@@ -2045,7 +2045,7 @@
         fetch(TF_ENS_URL).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
         fetch(TF_CONS_URL).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
         fetch(TF_COASTLINE_URL).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
-        fetch(TF_V62_HINDCAST_URL).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
+        tfEnsureV62()
       ]);
     }).then(function (r) { tfRT.meta = r[0]; tfRT.sessions = r[1]; tfRT.ens = r[2]; tfRT.cons = r[3]; tfRT.coastline = r[4]; tfRT.v62 = r[5]; });
   }
@@ -2448,6 +2448,55 @@
     fc.v62 = run;
     return fc;
   }
+  // The hindcast table is 47 KB against the model's 75 MB, so fetch it on its
+  // own. Where a published v62 run covers the initialisation it carries the
+  // whole state, and the in-browser model never has to be downloaded at all.
+  var tfV62Loading = null;
+  function tfEnsureV62() {
+    if (tfRT.v62) return Promise.resolve(tfRT.v62);
+    if (tfV62Loading) return tfV62Loading;
+    tfV62Loading = fetch(TF_V62_HINDCAST_URL)
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; })
+      .then(function (j) { tfRT.v62 = j || { hindcasts: {} }; return tfRT.v62; });
+    return tfV62Loading;
+  }
+  // v62's own 90% member radius, laid perpendicular to the local heading.
+  function tfV62Cone(fc, run) {
+    if (!run.cone_km) return;
+    var prevLat = fc.initial_lat, prevLon = fc.initial_lon, pts = fc.points;
+    for (var k = 0; k < pts.length; k++) {
+      var p = pts[k], half = (run.cone_km[k] != null ? run.cone_km[k] : 0) / 111.2;
+      var ck = Math.cos(p.lat * Math.PI / 180) || 1e-6;
+      var dxE = (aiPmod(p.lon - prevLon + 180, 360) - 180) * ck, dyN = p.lat - prevLat;
+      var mag = Math.hypot(dxE, dyN) || 1e-6;
+      var offLat = (dxE / mag) * half, offLon = ((-dyN / mag) * half) / ck;
+      p.p90_lat = p.lat + offLat; p.p90_lon = p.lon + offLon;
+      p.p10_lat = p.lat - offLat; p.p10_lon = p.lon - offLon;
+      prevLat = p.lat; prevLon = p.lon;
+    }
+  }
+  // A complete forecast built from a published v62 run alone — no v23, no ONNX.
+  function tfV62Forecast(run, initHour) {
+    var base = null, bd = Infinity, spts = (currentStorm && currentStorm.pts) || [];
+    for (var i = 0; i < spts.length; i++) {
+      var d = Math.abs(spts[i].h - initHour);
+      if (d < bd && spts[i].la != null) { bd = d; base = spts[i]; }
+    }
+    if (!base || !run.has_intensity) return null;   // without intensity there'd be nothing to hover
+    var fc = { initial_lat: base.la, initial_lon: base.lo, initial_vmax: base.w,
+               points: [], motion: null, trackSource: "v62", v62: run };
+    for (var n = 0; n < run.lead_hours.length; n++) {
+      fc.points.push({
+        lead_hours: run.lead_hours[n], lat: run.lats[n], lon: run.lons[n],
+        vmax: run.vmax_kt[n], pres: run.pres_hpa[n], rmw: run.rmw_km[n],
+        radiiKm: run.radii_km[n],
+        p10_lat: run.lats[n], p10_lon: run.lons[n], p90_lat: run.lats[n], p90_lon: run.lons[n]
+      });
+    }
+    tfV62Cone(fc, run);
+    return fc;
+  }
   // v62's drawn routes are real ensemble members, not samples from a covariance.
   function tfSpaghettiFor(fc) {
     return (fc && fc.trackSource === "v62") ? tfV62Spaghetti(fc) : tfSpaghetti(fc);
@@ -2540,11 +2589,16 @@
   // (or a manual scrub) moves — throttled + in-flight-guarded + updated in place.
   // Keeps the last good forecast if the playhead is too early (<~2 days of history).
   function hindcastFollowTick(force) {
-    if (hindcastTraceCount === 0 || !tfRT.sessions || hindcastFollowRun) return;
+    if (hindcastTraceCount === 0 || !currentStorm || hindcastFollowRun) return;
     var now = Date.now();
     if (!force && now - hindcastFollowTs < 240) return;
-    hindcastFollowTs = now; hindcastFollowRun = true;
     var h = Number(els.slider.value);
+    // A published v62 run needs no model at all, so it can follow the playhead
+    // even when the browser never downloaded one.
+    var run = tfV62For(h), quick = run ? tfV62Forecast(run, h) : null;
+    if (quick) { hindcastFollowTs = now; aiUpdateHindcast(quick, h); return; }
+    if (!tfRT.sessions) return;   // v23 needed here but not loaded yet — tfEnsureModel is already warming
+    hindcastFollowTs = now; hindcastFollowRun = true;
     tfRunModel(currentStorm.pts, h).then(function (fc) {
       tfApplyV62(fc, h);
       if (hindcastTraceCount > 0) aiUpdateHindcast(fc, h);
@@ -2882,10 +2936,27 @@
     if (aiLoading) return;
     var initHour = Number(els.slider.value);
     aiLoading = true;
-    aiSetHindcastStatus(tfRT.sessions ? "Running my AI model…" : "Loading my AI model (~one-time 75 MB download, 5-seed ensemble)…", "loading");
-    tfEnsureModel()
-      .then(function () { return tfRunModel(currentStorm.pts, initHour); })
+    aiSetHindcastStatus("Loading…", "loading");
+    // Check the 47 KB hindcast table first. If a published v62 run covers this
+    // initialisation it already carries track, intensity, radii, cone and member
+    // routes — so draw straight from it and skip the 75 MB model entirely.
+    tfEnsureV62()
+      .then(function () {
+        var run = tfV62For(initHour);
+        var quick = run ? tfV62Forecast(run, initHour) : null;
+        if (quick) {
+          aiLoading = false;
+          aiDrawHindcast(quick, initHour);
+          // Draw first, then warm v23 quietly, so scrubbing off this
+          // initialisation still re-forecasts without a visible stall.
+          tfEnsureModel().catch(function () {});
+          return null;
+        }
+        aiSetHindcastStatus(tfRT.sessions ? "Running my AI model…" : "Loading my AI model (~one-time 75 MB download, 5-seed ensemble)…", "loading");
+        return tfEnsureModel().then(function () { return tfRunModel(currentStorm.pts, initHour); });
+      })
       .then(function (fc) {
+        if (!fc) return;                  // already drawn from the published v62 run
         aiLoading = false;
         aiDrawHindcast(tfApplyV62(fc, initHour), initHour);
       })
