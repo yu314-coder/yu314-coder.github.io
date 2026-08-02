@@ -2029,7 +2029,8 @@
   // storm and initialisation on screen. v62 integrates a route from actual analysis
   // fields, which do not exist for most past storms -- NOMADS keeps ~9 days of GFS --
   // so everywhere else this stays on v23, which is field-free by design.
-  var TF_V62_HINDCAST_URL = "model/v62-hindcasts.json?v=20260802v62h";
+  var TF_V62_HINDCAST_URL = "model/v62-hindcasts.json?v=20260802v62k";
+  var TF_V62_RUNS_BUST = "?v=20260802v62k";
   var TF_NM = 1.852;                                    // km per nautical mile
   var TF_ENS_N = 40;                                    // ensemble routes to draw
   var TF_NSEED = 5;                                     // seeds actually shipped (of the 10 published)
@@ -2417,9 +2418,8 @@
   }
   // A published v62 run for THIS storm at THIS initialisation, or null.
   function tfV62For(initHour) {
-    var tbl = tfRT.v62 && tfRT.v62.hindcasts;
-    if (!tbl || !currentSid) return null;
-    var runs = tbl[currentSid];
+    if (!currentSid) return null;
+    var runs = tfV62Runs[currentSid];
     if (!runs || !runs.length) return null;
     var ms = tfStormTimeAt(initHour);
     if (ms == null) return null;
@@ -2482,6 +2482,23 @@
       .catch(function () { return null; })
       .then(function (j) { tfRT.v62 = j || { hindcasts: {} }; return tfRT.v62; });
     return tfV62Loading;
+  }
+  // The index is a few hundred bytes per storm; the runs themselves are ~700 KB
+  // for a 20-day storm, so a storm's file is only fetched once you open it.
+  var tfV62Runs = {}, tfV62RunsLoading = {};
+  function tfEnsureV62Runs(sid) {
+    if (!sid) return Promise.resolve(null);
+    if (tfV62Runs[sid] !== undefined) return Promise.resolve(tfV62Runs[sid]);
+    if (tfV62RunsLoading[sid]) return tfV62RunsLoading[sid];
+    tfV62RunsLoading[sid] = tfEnsureV62().then(function (idx) {
+      var entry = idx && idx.hindcasts && idx.hindcasts[sid];
+      if (!entry || !entry.file) { tfV62Runs[sid] = null; return null; }
+      return fetch("model/" + entry.file + TF_V62_RUNS_BUST)
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .catch(function () { return null; })
+        .then(function (j) { tfV62Runs[sid] = (j && j.runs) || null; return tfV62Runs[sid]; });
+    });
+    return tfV62RunsLoading[sid];
   }
   // v62's own 90% member radius, laid perpendicular to the local heading.
   function tfV62Cone(fc, run) {
@@ -2962,7 +2979,7 @@
     // Check the 47 KB hindcast table first. If a published v62 run covers this
     // initialisation it already carries track, intensity, radii, cone and member
     // routes — so draw straight from it and skip the 75 MB model entirely.
-    tfEnsureV62()
+    tfEnsureV62Runs(currentSid)
       .then(function () {
         var run = tfV62For(initHour);
         var quick = run ? tfV62Forecast(run, initHour) : null;
