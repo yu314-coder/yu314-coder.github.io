@@ -1470,7 +1470,7 @@
               <h3 class="h2 mb-2 fw-bold">py2bin &mdash; Python to Native Binary</h3>
               <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
                 <span class="badge-neutral mono">python-to-binary</span>
-                <span class="badge-accent mono">v0.8.0 on PyPI</span>
+                <span class="badge-accent mono">v0.8.4 on PyPI</span>
                 <span class="badge-neutral mono">pure stdlib</span>
                 <span class="badge-neutral mono">compilers</span>
               </div>
@@ -1479,7 +1479,7 @@
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
               <span class="feature-badge">Zero dependencies</span>
-              <span class="feature-badge">ELF &middot; PE &middot; Mach-O</span>
+              <span class="feature-badge">macOS &middot; Windows &middot; Linux, &times;2 arch</span>
               <span class="feature-badge">Own C compiler</span>
               <span class="feature-badge">878&#8202;/&#8202;889 corpus pass</span>
               <span class="feature-badge">1,328 tests</span>
@@ -1489,12 +1489,13 @@
             <div class="mb-4">
               <h4 class="h5 fw-bold mb-3">What it does</h4>
               <ul class="list-unstyled">
-                <li class="mb-2"><strong><code>compile-capi</code> takes almost the whole language</strong> &mdash; classes, inheritance and <code>super()</code>, closures, decorators, <code>try</code>/<code>except</code>/<code>with</code>, <code>match</code> (sequence, mapping and class patterns), and generators/<code>async def</code> compiled by cutting the body into blocks at each <code>yield</code>/<code>await</code> and turning it into a state machine &mdash; no interpreter loop involved. On an 889-program corpus it produces byte-identical output and exit status to CPython on 878; the 7 that differ do so for inherent reasons (e.g. CPython's "Did you mean" needs a live Python frame to suggest from)</li>
+                <li class="mb-2"><strong><code>compile-capi</code> now reaches all six targets</strong> &mdash; macOS, Windows, and Linux, each on x86-64 and ARM64, all producing machine code that drives a linked CPython. Every working target is held to the same bar: an 889-program corpus compiled and run, output and exit status compared against CPython's, byte-identical on 878</li>
+                <li class="mb-2"><strong>Generators and <code>async</code> now survive almost everything</strong> &mdash; a generator compiles to a class whose <code>__next__</code> dispatches on which block to run next (no real interpreter loop involved), and as of this release that machine handles <code>finally</code>, <code>with</code>, <code>async for</code> and <code>async with</code> around a suspended generator too, including a <code>finally</code> that itself yields. Only two narrow shapes remain refused outright, always as a <code>file:line:col</code> error, never a silently wrong binary</li>
+                <li class="mb-2"><strong><code>py2bin make</code> &mdash; three questions, then a bundle</strong> &mdash; asks which file is the program, which machine it's for, and what shape it should take; everything else (the rest of the program, its imports, an interpreter for the target, a <code>web/</code>/<code>assets/</code> folder, an icon) is found or fetched rather than typed. <code>--include PATH</code> names anything the automatic walk can't find on its own, like a folder opened at runtime rather than imported</li>
                 <li class="mb-2"><strong>Verified on a real application &mdash; this portfolio's own ManimStudio</strong> &mdash; 10,100 lines with pywebview, Pillow and pyobjc, built both ways on the same machine and interleaved so drift falls on both equally. Result: a 61.2&nbsp;MB <code>.app</code> vs Nuitka's 72.6&nbsp;MB, a 9.2&nbsp;MB main binary vs 29.6&nbsp;MB, and a 16.7&nbsp;second compile vs Nuitka's minutes &mdash; with every imported module verified to resolve and Pillow round-tripping PNG/JPEG/GIF/BMP/WEBP/TIFF from a copy moved elsewhere on disk</li>
                 <li class="mb-2"><strong>It writes the executable formats by hand</strong> &mdash; the ELF, PE, and Mach&#8209;O writers are pure Python: headers, load commands, import tables, and encoded x86-64/ARM64 instructions emitted byte by byte, with no assembler or linker anywhere in the path</li>
-                <li class="mb-2"><strong>An honest, measured scope</strong> &mdash; a per-feature support table in the README marks exactly what compiles and what's refused outright (e.g. <code>async for</code>, and a <code>finally</code> around a suspended generator, since nothing here is told when a generator is closed). A refusal is always a <code>file:line:col</code> error, never a silently wrong binary. Where it's slower than CPython &mdash; method calls, instantiation &mdash; that's measured and published too, not hidden</li>
-                <li class="mb-2"><strong>Windows bundling handles the pitfalls explicitly</strong> &mdash; an embeddable CPython copied beside the executable, packages placed <em>and</em> named on the interpreter's <code>._pth</code> path (skip either half and a windowed exe fails with no console to explain why), and wheel-ABI matching (<code>cp314</code> vs <code>cp314t</code>) called out by name</li>
-                <li class="mb-2"><strong>Published and installable</strong> &mdash; <code>pip install python-to-binary</code>, Python&nbsp;3.10+, MIT. It builds itself: <code>pyproject.toml</code> points at an in-tree <code>py2bin.build_backend</code> with an empty <code>[build-system].requires</code>, and 1,328 tests across 31 files enforce that nothing under <code>src/</code> ever imports <code>subprocess</code>, <code>ctypes</code>-via-ffi tricks, or names an external toolchain</li>
+                <li class="mb-2"><strong>Windows bundling handles the pitfalls explicitly</strong> &mdash; an embeddable CPython copied beside the executable (or auto-fetched and hash-checked), packages placed <em>and</em> named on the interpreter's <code>._pth</code> path (skip either half and a windowed exe fails with no console to explain why), and wheel-ABI matching (<code>cp314</code> vs <code>cp314t</code>) called out by name</li>
+                <li class="mb-2"><strong>Published and installable</strong> &mdash; <code>pip install python-to-binary</code>, Python&nbsp;3.10+, MIT. It builds itself: <code>pyproject.toml</code> points at an in-tree <code>py2bin.build_backend</code> with an empty <code>[build-system].requires</code>, and 1,328 tests enforce that nothing under <code>src/</code> ever imports <code>subprocess</code>, <code>ctypes</code>-via-ffi tricks, or names an external toolchain</li>
               </ul>
             </div>
 
@@ -1528,9 +1529,9 @@
               <div class="d-inline-block text-start">
                 <p class="small mb-1"><strong>Created by:</strong> Yu Yao-Hsing</p>
                 <p class="small mb-1"><strong>Category:</strong> Developer tools &mdash; compilers / packaging</p>
-                <p class="small mb-1"><strong>Language:</strong> Python (standard library only) &middot; 49 modules under <code>src/py2bin</code>, 1,328 tests across 31 files</p>
-                <p class="small mb-1"><strong>Targets:</strong> <code>compile-capi</code> &mdash; macOS x86-64/ARM64, Windows x86-64 today; <code>compile</code> (native, no CPython) targets all six OS&times;arch combinations</p>
-                <p class="small mb-0"><strong>Status:</strong> v0.8.0 on PyPI &mdash; <code>compile-capi</code> is the tier under active work</p>
+                <p class="small mb-1"><strong>Language:</strong> Python (standard library only) &middot; 51 modules under <code>src/py2bin</code>, 1,328 tests across 38 files</p>
+                <p class="small mb-1"><strong>Targets:</strong> macOS, Windows, Linux &times; x86-64/ARM64 &mdash; all six now work for both <code>compile-capi</code> and the native <code>compile</code> tier</p>
+                <p class="small mb-0"><strong>Status:</strong> v0.8.4 on PyPI &mdash; <code>compile-capi</code> is the tier under active work</p>
               </div>
             </div>
 
