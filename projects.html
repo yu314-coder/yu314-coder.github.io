@@ -41,7 +41,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 
   <!-- Site stylesheet (single source of truth) -->
-  <link rel="stylesheet" href="assets/css/style.css?v=20260722-125409">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260802-1228">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
 <body class="theme-dark">
@@ -1464,93 +1464,319 @@
     <!-- Featured Project: python-to-binary -->
     <div class="card card--hue hue-py2bin reveal">
       <div class="card-body p-4 p-md-5">
-        <div class="row g-0 align-items-center justify-content-center">
-          <div class="col-lg-10 col-xl-9 text-center">
-            <header class="mb-4">
-              <h3 class="h2 mb-2 fw-bold">py2bin &mdash; Python to Native Binary</h3>
-              <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
+
+        <header class="mb-5 text-center">
+          <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
+            <span class="app-icon app-icon--gh"></span>
+            <div class="text-start">
+              <h3 class="h2 mb-1 fw-bold">py2bin</h3>
+              <div class="d-flex flex-wrap gap-2">
                 <span class="badge-neutral mono">python-to-binary</span>
                 <span class="badge-accent mono">v0.8.4 on PyPI</span>
-                <span class="badge-neutral mono">pure stdlib</span>
-                <span class="badge-neutral mono">compilers</span>
-              </div>
-              <p class="lead mb-0">A compiler and application builder written entirely with the Python standard library. Three tiers trade the same things off &mdash; <code>compile</code> emits true machine code with no interpreter at all, <code>freeze</code> ships a full CPython beside your program, and <code>compile-capi</code> (the tier under active work) translates ordinary Python into C that drives the CPython C API, then compiles that C with <strong>py2bin's own C compiler</strong>. <strong>No Cython, Nuitka, mypyc, Rust, gcc, clang, PyInstaller, assembler, linker, or SDK is involved anywhere</strong> &mdash; the build and runtime dependency lists are literally empty, and the test suite enforces that.</p>
-            </header>
-
-            <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
-              <span class="feature-badge">Zero dependencies</span>
-              <span class="feature-badge">macOS &middot; Windows &middot; Linux, &times;2 arch</span>
-              <span class="feature-badge">Own C compiler</span>
-              <span class="feature-badge">878&#8202;/&#8202;889 corpus pass</span>
-              <span class="feature-badge">1,328 tests</span>
-              <span class="feature-badge">Beats Nuitka on size</span>
-            </div>
-
-            <div class="mb-4">
-              <h4 class="h5 fw-bold mb-3">What it does</h4>
-              <ul class="list-unstyled">
-                <li class="mb-2"><strong><code>compile-capi</code> now reaches all six targets</strong> &mdash; macOS, Windows, and Linux, each on x86-64 and ARM64, all producing machine code that drives a linked CPython. Every working target is held to the same bar: an 889-program corpus compiled and run, output and exit status compared against CPython's, byte-identical on 878</li>
-                <li class="mb-2"><strong>Generators and <code>async</code> now survive almost everything</strong> &mdash; a generator compiles to a class whose <code>__next__</code> dispatches on which block to run next (no real interpreter loop involved), and as of this release that machine handles <code>finally</code>, <code>with</code>, <code>async for</code> and <code>async with</code> around a suspended generator too, including a <code>finally</code> that itself yields. Only two narrow shapes remain refused outright, always as a <code>file:line:col</code> error, never a silently wrong binary</li>
-                <li class="mb-2"><strong><code>py2bin make</code> &mdash; three questions, then a bundle</strong> &mdash; asks which file is the program, which machine it's for, and what shape it should take; everything else (the rest of the program, its imports, an interpreter for the target, a <code>web/</code>/<code>assets/</code> folder, an icon) is found or fetched rather than typed. <code>--include PATH</code> names anything the automatic walk can't find on its own, like a folder opened at runtime rather than imported</li>
-                <li class="mb-2"><strong>Verified on a real application &mdash; this portfolio's own ManimStudio</strong> &mdash; 10,100 lines with pywebview, Pillow and pyobjc, built both ways on the same machine and interleaved so drift falls on both equally. Result: a 61.2&nbsp;MB <code>.app</code> vs Nuitka's 72.6&nbsp;MB, a 9.2&nbsp;MB main binary vs 29.6&nbsp;MB, and a 16.7&nbsp;second compile vs Nuitka's minutes &mdash; with every imported module verified to resolve and Pillow round-tripping PNG/JPEG/GIF/BMP/WEBP/TIFF from a copy moved elsewhere on disk</li>
-                <li class="mb-2"><strong>It writes the executable formats by hand</strong> &mdash; the ELF, PE, and Mach&#8209;O writers are pure Python: headers, load commands, import tables, and encoded x86-64/ARM64 instructions emitted byte by byte, with no assembler or linker anywhere in the path</li>
-                <li class="mb-2"><strong>Windows bundling handles the pitfalls explicitly</strong> &mdash; an embeddable CPython copied beside the executable (or auto-fetched and hash-checked), packages placed <em>and</em> named on the interpreter's <code>._pth</code> path (skip either half and a windowed exe fails with no console to explain why), and wheel-ABI matching (<code>cp314</code> vs <code>cp314t</code>) called out by name</li>
-                <li class="mb-2"><strong>Published and installable</strong> &mdash; <code>pip install python-to-binary</code>, Python&nbsp;3.10+, MIT. It builds itself: <code>pyproject.toml</code> points at an in-tree <code>py2bin.build_backend</code> with an empty <code>[build-system].requires</code>, and 1,328 tests enforce that nothing under <code>src/</code> ever imports <code>subprocess</code>, <code>ctypes</code>-via-ffi tricks, or names an external toolchain</li>
-              </ul>
-            </div>
-
-            <div class="row g-3 mb-4 justify-content-center">
-              <div class="col-md-5">
-                <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">Inside the compiler</h5>
-                  <ul class="small mb-0 text-start">
-                    <li><code>capi_emit.py</code>, <code>c_frontend.py</code> &mdash; Python AST &rarr; C driving the CPython C API</li>
-                    <li><code>native/x86_64.py</code>, <code>arm64.py</code> &mdash; py2bin's own C compiler's backends</li>
-                    <li><code>native/optimizer.py</code> &mdash; constant folding, dead code, register allocation for hot locals</li>
-                    <li><code>native/formats/</code> &mdash; hand-written ELF, PE, Mach-O writers</li>
-                  </ul>
-                </div>
-              </div>
-              <div class="col-md-5">
-                <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">What it is not</h5>
-                  <ul class="small mb-0 text-start">
-                    <li>Not a wheel recompiler &mdash; NumPy/Torch/Pillow stay CPython payload</li>
-                    <li><code>compile</code> (no-CPython tier) still only takes a static subset</li>
-                    <li>Not a PyInstaller wrapper &mdash; every tier has a hard, documented boundary</li>
-                    <li>The build machine still needs Python 3.10+; the target does not</li>
-                  </ul>
-                </div>
+                <span class="badge-neutral mono">MIT</span>
               </div>
             </div>
+          </div>
+          <p class="lead mb-0 mx-auto" style="max-width:70ch;">A compiler and application builder written with <strong>nothing but the Python standard library</strong>. It turns Python into real machine code &mdash; and where it needs C in the middle, it compiles that C with a C compiler it also wrote. No Cython, Nuitka, mypyc, Rust, PyInstaller, assembler, linker, SDK, <code>gcc</code> or <code>clang</code> at any point. Build and runtime dependency lists are literally empty, and the test suite fails if that stops being true.</p>
+        </header>
 
-            <div class="mb-4">
-              <h4 class="h5 fw-bold mb-3">Technical Specifications</h4>
-              <div class="d-inline-block text-start">
-                <p class="small mb-1"><strong>Created by:</strong> Yu Yao-Hsing</p>
-                <p class="small mb-1"><strong>Category:</strong> Developer tools &mdash; compilers / packaging</p>
-                <p class="small mb-1"><strong>Language:</strong> Python (standard library only) &middot; 51 modules under <code>src/py2bin</code>, 1,328 tests across 38 files</p>
-                <p class="small mb-1"><strong>Targets:</strong> macOS, Windows, Linux &times; x86-64/ARM64 &mdash; all six now work for both <code>compile-capi</code> and the native <code>compile</code> tier</p>
-                <p class="small mb-0"><strong>Status:</strong> v0.8.4 on PyPI &mdash; <code>compile-capi</code> is the tier under active work</p>
-              </div>
+        <!-- headline numbers -->
+        <div class="g g-4 mb-5">
+          <div class="kpi kpi--accent">
+            <div class="kpi-val">6<span class="unit">/6</span></div>
+            <div class="kpi-lab">Targets</div>
+            <div class="kpi-sub">macOS, Windows, Linux &mdash; each on x86-64 and ARM64</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-val">878<span class="unit">/889</span></div>
+            <div class="kpi-lab">Corpus match</div>
+            <div class="kpi-sub">Programs byte-identical to CPython, output and exit status</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-val">0</div>
+            <div class="kpi-lab">Dependencies</div>
+            <div class="kpi-sub">Build and runtime both empty; enforced by tests</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-val">1,328</div>
+            <div class="kpi-lab">Tests</div>
+            <div class="kpi-sub">Across 38 files, 51 modules under <code>src/py2bin</code></div>
+          </div>
+        </div>
+
+        <!-- the three tiers -->
+        <div class="mb-5">
+          <div class="sec-head">
+            <h4 class="h5 fw-bold">Three ways through</h4>
+            <span class="sec-note">same trade, three answers</span>
+          </div>
+          <div class="g g-3">
+            <div class="tier" style="--tier-hue: var(--s1);">
+              <div class="tier-name">compile</div>
+              <p class="tier-role">Fastest and smallest. No interpreter in the artifact, and none on the machine it runs on.</p>
+              <dl>
+                <dt>Speed</dt><dd><strong>0.062 s</strong> on a 30M-iteration loop &mdash; 11&times; CPython</dd>
+                <dt>Artifact</dt><dd><strong>48 KB</strong>, runs on a bare system</dd>
+                <dt>Python</dt><dd>Not needed at all</dd>
+                <dt>Accepts</dt><dd>A documented static subset &mdash; ints, floats, strings, control flow, your own functions</dd>
+                <dt>Packages</dt><dd>None; it will not import one</dd>
+              </dl>
             </div>
-
-            <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
-              <a href="https://github.com/yu314-coder/python_to_binary" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                GitHub Repository
-              </a>
-              <a href="https://pypi.org/project/python-to-binary/" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                PyPI package
-              </a>
-              <a href="pypi-stats.html" class="badge-btn">
-                Download stats
-              </a>
-              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
-                Contact developer
-              </a>
+            <div class="tier" style="--tier-hue: var(--accent);">
+              <div class="tier-name">compile-capi <span class="badge-accent mono" style="vertical-align:middle;">active</span></div>
+              <p class="tier-role">The middle, and where the work is. Python &rarr; C driving the CPython C API &rarr; machine code, through py2bin's own C compiler.</p>
+              <dl>
+                <dt>Speed</dt><dd>1.27 s on that loop; <strong>1.67&times; CPython</strong> on a loop it can claim</dd>
+                <dt>Artifact</dt><dd><strong>66 KB</strong> plus the interpreter it links</dd>
+                <dt>Python</dt><dd>Yes &mdash; linked, or bundled alongside</dd>
+                <dt>Accepts</dt><dd>Almost the whole language &mdash; 878 of 889 corpus programs</dd>
+                <dt>Packages</dt><dd>Anything the interpreter can import</dd>
+              </dl>
+            </div>
+            <div class="tier" style="--tier-hue: var(--s3);">
+              <div class="tier-name">freeze</div>
+              <p class="tier-role">The most complete. Ships your program beside an interpreter that runs it; nothing is translated, so nothing is faster.</p>
+              <dl>
+                <dt>Speed</dt><dd>0.66 s &mdash; CPython's, because it is CPython</dd>
+                <dt>Artifact</dt><dd>Tens of MB &mdash; an interpreter and every dependency inside</dd>
+                <dt>Python</dt><dd>Not needed; it carries one</dd>
+                <dt>Accepts</dt><dd>Everything</dd>
+                <dt>Packages</dt><dd>NumPy, Torch, a GUI toolkit &mdash; all carried inside</dd>
+              </dl>
             </div>
           </div>
         </div>
+
+        <!-- platform matrix -->
+        <div class="g g-2 mb-5" style="align-items:start;">
+          <div>
+            <div class="sec-head">
+              <h4 class="h5 fw-bold">Every target reached</h4>
+              <span class="sec-note">v0.8.4</span>
+            </div>
+            <table class="matrix">
+              <thead>
+                <tr><th scope="col">Platform</th><th scope="col">x86-64</th><th scope="col">ARM64</th></tr>
+              </thead>
+              <tbody>
+                <tr><th scope="row">macOS</th><td><span class="chip-ok">works</span></td><td><span class="chip-ok">works</span></td></tr>
+                <tr><th scope="row">Windows</th><td><span class="chip-ok">works</span></td><td><span class="chip-ok">works</span></td></tr>
+                <tr><th scope="row">Linux</th><td><span class="chip-ok">works</span></td><td><span class="chip-ok">works</span></td></tr>
+              </tbody>
+            </table>
+            <p class="small mt-3 mb-0" style="color:var(--ink-3); line-height:1.5;">Each is held to the same bar: the 889-program corpus compiled for it, every program's output and exit code compared against CPython's. The 7 that differ do so inherently &mdash; CPython's &ldquo;Did you mean&rdquo; needs a live Python frame to suggest from, and the repr of a compiled function really is a builtin function's.</p>
+          </div>
+          <div>
+            <div class="sec-head">
+              <h4 class="h5 fw-bold"><code>py2bin make</code></h4>
+              <span class="sec-note">three questions</span>
+            </div>
+            <p class="small mb-3" style="color:var(--ink-2); line-height:1.55;">Asks which file is the program, which machine it is for, and what shape it should take. Everything else is found or downloaded rather than typed &mdash; the other <code>.py</code> files beside it, the libraries it imports, an interpreter for the target, <code>web/</code> and <code>assets/</code> if they are there, and an icon if one is.</p>
+            <table class="matrix">
+              <thead>
+                <tr><th scope="col">Target</th><th scope="col">What comes out</th></tr>
+              </thead>
+              <tbody>
+                <tr><th scope="row">macOS</th><td>A compressed <code>.dmg</code> holding the app</td></tr>
+                <tr><th scope="row">Windows</th><td>One <code>.exe</code> that unpacks itself</td></tr>
+                <tr><th scope="row">Linux</th><td>One executable</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- benchmark: real application -->
+        <div class="mb-5">
+          <div class="sec-head">
+            <h4 class="h5 fw-bold">Measured against Nuitka, on a real application</h4>
+            <span class="sec-note">lower is better</span>
+          </div>
+          <p class="small mb-3" style="color:var(--ink-2); line-height:1.55;">The application is <strong>ManimStudio</strong> &mdash; also on this page &mdash; 10,100 lines with pywebview, Pillow and pyobjc. Built both ways on the same machine, interleaved so drift falls on both equally. Every row is scaled to its own maximum and labelled with the real figure.</p>
+          <div class="legend mb-3">
+            <span class="legend-item"><span class="legend-swatch" style="--sw: var(--s1);"></span>py2bin</span>
+            <span class="legend-item"><span class="legend-swatch" style="--sw: var(--s3);"></span>Nuitka</span>
+          </div>
+          <div class="bars mb-3">
+            <div class="bar-row">
+              <div class="bar-lab">Whole <code>.app</code></div>
+              <div class="bar-track">
+                <div class="bar-line"><span class="bar-fill" style="width:84.3%; --bar: var(--s1);"></span><span class="bar-val"><span class="win">61.2 MB</span></span></div>
+                <div class="bar-line"><span class="bar-fill" style="width:100%; --bar: var(--s3);"></span><span class="bar-val">72.6 MB</span></div>
+              </div>
+            </div>
+            <div class="bar-row">
+              <div class="bar-lab">Main binary</div>
+              <div class="bar-track">
+                <div class="bar-line"><span class="bar-fill" style="width:31.1%; --bar: var(--s1);"></span><span class="bar-val"><span class="win">9.2 MB</span></span></div>
+                <div class="bar-line"><span class="bar-fill" style="width:100%; --bar: var(--s3);"></span><span class="bar-val">29.6 MB</span></div>
+              </div>
+            </div>
+            <div class="bar-row">
+              <div class="bar-lab">Bare interpreter start</div>
+              <div class="bar-track">
+                <div class="bar-line"><span class="bar-fill" style="width:58.6%; --bar: var(--s1);"></span><span class="bar-val"><span class="win">9.5 ms</span></span></div>
+                <div class="bar-line"><span class="bar-fill" style="width:100%; --bar: var(--s3);"></span><span class="bar-val">16.2 ms</span></div>
+              </div>
+            </div>
+            <div class="bar-row">
+              <div class="bar-lab">Start with the app's imports</div>
+              <div class="bar-track">
+                <div class="bar-line"><span class="bar-fill" style="width:100%; --bar: var(--s1);"></span><span class="bar-val">52.1 ms</span></div>
+                <div class="bar-line"><span class="bar-fill" style="width:86.0%; --bar: var(--s3);"></span><span class="bar-val"><span class="win">44.8 ms</span></span></div>
+              </div>
+            </div>
+          </div>
+          <p class="small mb-0" style="color:var(--ink-3); line-height:1.5;"><strong style="color:var(--ink);">Compile time: 16.7 s against Nuitka's minutes</strong> &mdash; left out of the figure above because &ldquo;minutes&rdquo; is not a number to scale a bar against. Nuitka wins the fourth row, and the binary is a third the size because Nuitka compiles every module it reaches while this compiles the program and ships its dependencies as bytecode &mdash; 7.8 MB of it, which is where most of the 20 MB comes back.</p>
+        </div>
+
+        <!-- benchmark: micro -->
+        <div class="mb-5">
+          <div class="sec-head">
+            <h4 class="h5 fw-bold">Where it wins, and where it does not</h4>
+            <span class="sec-note">median of 5 &middot; lower is better</span>
+          </div>
+          <div class="legend mb-3">
+            <span class="legend-item"><span class="legend-swatch" style="--sw: var(--s1);"></span>py2bin</span>
+            <span class="legend-item"><span class="legend-swatch" style="--sw: var(--s2);"></span>CPython</span>
+            <span class="legend-item"><span class="legend-swatch" style="--sw: var(--s3);"></span>Nuitka</span>
+          </div>
+          <div class="bars mb-3">
+            <div class="bar-row">
+              <div class="bar-lab">Integer arithmetic</div>
+              <div class="bar-track">
+                <div class="bar-line"><span class="bar-fill" style="width:52.6%; --bar: var(--s1);"></span><span class="bar-val"><span class="win">0.050 s</span></span></div>
+                <div class="bar-line"><span class="bar-fill" style="width:88.4%; --bar: var(--s2);"></span><span class="bar-val">0.084 s</span></div>
+                <div class="bar-line"><span class="bar-fill" style="width:100%; --bar: var(--s3);"></span><span class="bar-val">0.095 s</span></div>
+              </div>
+            </div>
+            <div class="bar-row">
+              <div class="bar-lab">Nested loops</div>
+              <div class="bar-track">
+                <div class="bar-line"><span class="bar-fill" style="width:52.4%; --bar: var(--s1);"></span><span class="bar-val"><span class="win">0.022 s</span></span></div>
+                <div class="bar-line"><span class="bar-fill" style="width:83.3%; --bar: var(--s2);"></span><span class="bar-val">0.035 s</span></div>
+                <div class="bar-line"><span class="bar-fill" style="width:100%; --bar: var(--s3);"></span><span class="bar-val">0.042 s</span></div>
+              </div>
+            </div>
+            <div class="bar-row">
+              <div class="bar-lab"><code>while</code> loop</div>
+              <div class="bar-track">
+                <div class="bar-line"><span class="bar-fill" style="width:64.3%; --bar: var(--s1);"></span><span class="bar-val"><span class="win">0.045 s</span></span></div>
+                <div class="bar-line"><span class="bar-fill" style="width:100%; --bar: var(--s2);"></span><span class="bar-val">0.070 s</span></div>
+                <div class="bar-line"><span class="bar-fill" style="width:64.3%; --bar: var(--s3);"></span><span class="bar-val"><span class="win">0.045 s</span></span></div>
+              </div>
+            </div>
+            <div class="bar-row">
+              <div class="bar-lab">Function calls</div>
+              <div class="bar-track">
+                <div class="bar-line"><span class="bar-fill" style="width:100%; --bar: var(--s1);"></span><span class="bar-val">0.065 s</span></div>
+                <div class="bar-line"><span class="bar-fill" style="width:35.4%; --bar: var(--s2);"></span><span class="bar-val">0.023 s</span></div>
+                <div class="bar-line"><span class="bar-fill" style="width:30.8%; --bar: var(--s3);"></span><span class="bar-val"><span class="win">0.020 s</span></span></div>
+              </div>
+            </div>
+            <div class="bar-row">
+              <div class="bar-lab">String building</div>
+              <div class="bar-track">
+                <div class="bar-line"><span class="bar-fill" style="width:100%; --bar: var(--s1);"></span><span class="bar-val">0.025 s</span></div>
+                <div class="bar-line"><span class="bar-fill" style="width:44.0%; --bar: var(--s2);"></span><span class="bar-val">0.011 s</span></div>
+                <div class="bar-line"><span class="bar-fill" style="width:36.0%; --bar: var(--s3);"></span><span class="bar-val"><span class="win">0.009 s</span></span></div>
+              </div>
+            </div>
+          </div>
+          <p class="small mb-0" style="color:var(--ink-3); line-height:1.5;"><strong style="color:var(--ink);">Loops win; calls do not</strong> &mdash; and the reason is worth stating rather than hiding. Since 3.11 CPython rewrites hot instructions into specialised forms, so a <code>+</code> between two ints never reaches <code>PyNumber_Add</code>. Emitting a generic C-API call for every operation produces exactly the code the interpreter has learned to avoid. So py2bin does what CPython does: a local the analysis can claim is held in a machine register, with an overflow check that falls back to unbounded arithmetic when the value leaves the word &mdash; <code>3 ** 200</code> compiled this way is still exact. Calls still lose, and will until a calling convention passes a machine integer as one; today an argument is boxed at the call and unboxed inside.</p>
+        </div>
+
+        <!-- pipeline -->
+        <div class="mb-5">
+          <div class="sec-head">
+            <h4 class="h5 fw-bold">What <code>compile-capi</code> actually does</h4>
+            <span class="sec-note">five stages, all in the package</span>
+          </div>
+          <div class="flow mb-3">
+            <div class="flow-step"><div class="n">01</div><div class="t">capi_emit</div><div class="d">Python AST &rarr; C that calls the CPython C API</div></div>
+            <div class="flow-step"><div class="n">02</div><div class="t">c_preprocessor</div><div class="d"><code>#include</code>, macros, conditionals</div></div>
+            <div class="flow-step"><div class="n">03</div><div class="t">c_frontend</div><div class="d">C &rarr; py2bin IR, then the optimizer</div></div>
+            <div class="flow-step"><div class="n">04</div><div class="t">native.x86_64<br>native.arm64</div><div class="d">IR &rarr; encoded machine instructions</div></div>
+            <div class="flow-step"><div class="n">05</div><div class="t">native.formats</div><div class="d">Mach-O, PE32+, ELF &mdash; written byte by byte</div></div>
+          </div>
+          <p class="small mb-0" style="color:var(--ink-3); line-height:1.5;">There is no <code>import ctypes</code> anywhere on that path, which a test asserts by compiling in a fresh interpreter and listing what got loaded. <code>ctypes</code> is standard library and would pass an imports-only-stdlib check, but it pulls in <code>subprocess</code> &mdash; and there are Pythons, the one on a phone among them, where a subprocess is not something a program may have.</p>
+        </div>
+
+        <!-- language coverage -->
+        <div class="g g-2 mb-5" style="align-items:start;">
+          <div>
+            <div class="sec-head">
+              <h4 class="h5 fw-bold">What compiles</h4>
+              <span class="sec-note">each row run against CPython</span>
+            </div>
+            <ul class="cover mb-0">
+              <li>Classes, inheritance, <code>super()</code>, dunders</li>
+              <li>Closures with Python's late binding</li>
+              <li>Decorators, lambdas, <code>*args</code>/<code>**kwargs</code></li>
+              <li>Unbounded integers &mdash; <code>2 ** 200</code> exact</li>
+              <li>f-strings, format specs, <code>!r</code>/<code>!s</code>/<code>!a</code></li>
+              <li><code>match</code> &mdash; values, sequences, mappings, classes, guards</li>
+              <li>Generators: <code>yield</code>, <code>send</code>, <code>yield from</code></li>
+              <li><code>async def</code>/<code>await</code> on a real event loop</li>
+              <li><code>async for</code> and <code>async with</code></li>
+              <li><code>finally</code> and <code>with</code> around a suspension</li>
+              <li>A <code>finally</code> that itself yields</li>
+              <li>Walrus, starred and nested unpacking</li>
+            </ul>
+          </div>
+          <div>
+            <div class="sec-head">
+              <h4 class="h5 fw-bold">What it is not</h4>
+              <span class="sec-note">stated up front</span>
+            </div>
+            <ul class="cover mb-0">
+              <li class="no">Not a wheel recompiler &mdash; NumPy, Torch and Pillow stay CPython payload, carried rather than translated</li>
+              <li class="no">Not a general Python&rarr;native translator &mdash; the no-CPython <code>compile</code> tier still takes only a static subset</li>
+              <li class="no">Not a PyInstaller wrapper &mdash; every tier has a hard, documented boundary and no silent fallback between them</li>
+              <li class="no">The build machine still needs Python 3.10+; the target does not</li>
+            </ul>
+            <p class="small mt-3 mb-0" style="color:var(--ink-3); line-height:1.5;">A refusal is a <code>file:line:col</code> error, never a silent approximation. A generator becomes a class whose <code>__next__</code> dispatches on which block to run next &mdash; so it is never closed and never finalised by the collector, and cleanup that could silently not happen is refused rather than guessed at.</p>
+          </div>
+        </div>
+
+        <!-- specs + links -->
+        <div class="g g-2 mb-4" style="align-items:start;">
+          <div>
+            <div class="sec-head"><h4 class="h5 fw-bold">Specifications</h4></div>
+            <table class="matrix">
+              <tbody>
+                <tr><th scope="row">Created by</th><td>Yu Yao-Hsing</td></tr>
+                <tr><th scope="row">Category</th><td>Developer tools &mdash; compilers / packaging</td></tr>
+                <tr><th scope="row">Language</th><td>Python, standard library only &middot; 51 modules</td></tr>
+                <tr><th scope="row">Requires</th><td>Python 3.10+ on the build machine</td></tr>
+                <tr><th scope="row">Licence</th><td>MIT</td></tr>
+                <tr><th scope="row">Status</th><td>v0.8.4 &mdash; <code>compile-capi</code> under active work</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div>
+            <div class="sec-head"><h4 class="h5 fw-bold">Install</h4></div>
+            <p class="small mb-2" style="color:var(--ink-2);">From PyPI:</p>
+            <p class="mono mb-3" style="font-size:0.82rem; background:var(--bg-alt); border:1px solid var(--line); border-radius:var(--r); padding:0.7rem 0.9rem; color:var(--ink-2);">pip install python-to-binary<br>py2bin make</p>
+            <p class="small mb-2" style="color:var(--ink-2);">Or from a clone, with nothing installed at all:</p>
+            <p class="mono mb-0" style="font-size:0.82rem; background:var(--bg-alt); border:1px solid var(--line); border-radius:var(--r); padding:0.7rem 0.9rem; color:var(--ink-2);">PYTHONPATH=src python3 -m py2bin make</p>
+          </div>
+        </div>
+
+        <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
+          <a href="https://github.com/yu314-coder/python_to_binary" target="_blank" rel="noopener noreferrer" class="badge-btn">
+            GitHub Repository
+          </a>
+          <a href="https://pypi.org/project/python-to-binary/" target="_blank" rel="noopener noreferrer" class="badge-btn">
+            PyPI package
+          </a>
+          <a href="pypi-stats.html" class="badge-btn">
+            Download stats
+          </a>
+          <a href="mailto:euler.yu@gmail.com" class="badge-btn">
+            Contact developer
+          </a>
+        </div>
+
       </div>
     </div>
     </div><!-- /tab-py2bin -->
