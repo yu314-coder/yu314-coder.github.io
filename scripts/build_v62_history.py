@@ -49,6 +49,12 @@ CACHE = Path(os.environ.get("V62_CFSR_DIR", "/tmp/v62-cfsr"))
 V62_SRC = os.environ.get("V62_SRC_DIR", str(REPO.parent / "typhoon-predict"))
 CFSR = ("https://www.ncei.noaa.gov/oa/prod-cfs-reanalysis/6-hourly-low-resolution/"
         "{y}/{ym}/{ymd}/pgblnl.gdas.{t}.grb2")
+# CFSv2/CDAS takes over on 2011-04-01. There is no low-resolution equivalent and no
+# .idx sidecar, so each analysis is the full 78 MB pressure-level file -- roughly 17x
+# the CFSR era. Ranged self-indexing was measured and is slower than just fetching:
+# walking the GRIB message chain did not clear 40 of ~550 messages in two minutes.
+CDAS = ("https://www.ncei.noaa.gov/data/climate-forecast-system/access/operational-analysis/"
+        "6-hourly-by-pressure/{y}/{ym}/{ymd}/cdas1.t{hh}z.pgrbhanl.grib2")
 UA = {"User-Agent": "typhoon-tracker-history-builder/1.0 (+https://yu314-coder.github.io)"}
 
 LEVELS = (850.0, 500.0, 200.0)
@@ -70,14 +76,23 @@ def log(m):
 
 
 # ---------------------------------------------------------------------------
+def analysis_url(stamp):
+    """CFSR before 2011-04-01, CDAS/CFSv2 from it. The archive changes product
+    mid-season, so this is decided per analysis time, not per year."""
+    when = dt.datetime.strptime(stamp, "%Y%m%d%H").replace(tzinfo=dt.timezone.utc)
+    if when <= CFSR_END:
+        return CFSR.format(y=stamp[:4], ym=stamp[:6], ymd=stamp[:8], t=stamp), "CFSR"
+    return CDAS.format(y=stamp[:4], ym=stamp[:6], ymd=stamp[:8], hh=stamp[8:]), "CDAS"
+
+
 def cfsr_path(stamp):
     """stamp is YYYYMMDDHH. Downloaded once, then reused across every
     initialisation that needs it -- consecutive inits share four of five."""
     CACHE.mkdir(parents=True, exist_ok=True)
-    p = CACHE / f"pgblnl.gdas.{stamp}.grb2"
+    url, kind = analysis_url(stamp)
+    p = CACHE / f"{kind.lower()}.{stamp}.grb2"
     if p.exists() and p.stat().st_size > 500_000:
         return p
-    url = CFSR.format(y=stamp[:4], ym=stamp[:6], ymd=stamp[:8], t=stamp)
     req = urllib.request.Request(url, headers=UA)
     with urllib.request.urlopen(req, timeout=300) as r:
         data = r.read()
@@ -108,7 +123,9 @@ def read_full(stamp):
         u = np.asarray(pr["u"].values, "float32"); v = np.asarray(pr["v"].values, "float32")
         gh = np.asarray(pr["gh"].values, "float32")
         lat = np.asarray(pr.latitude.values, "float32"); lon = np.asarray(pr.longitude.values, "float32")
-        mslp = np.asarray(sf["prmsl"].values, "float32") / 100.0
+        # CFSR names the field prmsl; CDAS/CFSv2 names the same thing msl.
+        key = "prmsl" if "prmsl" in sf.data_vars else "msl"
+        mslp = np.asarray(sf[key].values, "float32") / 100.0
         fields = np.stack([gh[i[1]], u[i[0]], v[i[0]], u[i[1]], v[i[1]], u[i[2]], v[i[2]]], 0)
         # keep the level cube too, so storm patches don't reopen the file
         levels = np.stack([u[i], v[i]], 1).astype("float32")     # (3,2,H,W)
@@ -345,16 +362,12 @@ def main():
     catalogue = {}
     for path in sorted(SEASONS.glob("*.json")):
         year = int(path.stem)
-        if year > CFSR_END.year:
-            continue
+        # both eras are reachable now; CDAS is simply far more expensive per analysis
         for sid, storm in json.loads(path.read_text()).items():
             # the archive switches product mid-2011, so test the storm's own last
             # observation rather than its season
             pts = storm.get("pts") or []
             if not pts:
-                continue
-            last = pts[-1].get("t")
-            if not last or dt.datetime.fromisoformat(last).replace(tzinfo=dt.timezone.utc) > CFSR_END:
                 continue
             catalogue[sid] = (year, storm)
 
@@ -381,7 +394,8 @@ def main():
         payload = {
             "storm": storm.get("name"), "sid": sid, "season": year,
             "model": "v62 causal route + v37G intensity/structure head",
-            "source": "NOAA CFSR 6-hourly low-resolution reanalysis, analyses at or before each issue",
+            "source": ("NOAA CFSR 6-hourly low-resolution reanalysis (to 2011-03-31) / CDAS CFSv2 "
+                       "pressure-level analysis (from 2011-04-01), at or before each issue"),
             "resolution_note": ("2.5 deg CFSR; validated against the 0.5 deg file on the published Tip "
                                 "case at 138.6 km vs 141.2 km mean track error, tracks separating ~15 km"),
             "future_rows_used_for_inference": 0,
