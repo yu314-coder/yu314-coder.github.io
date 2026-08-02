@@ -1938,7 +1938,7 @@
         // (full 10-seed fp32 vs a 5-seed int8 export) -- draw it and stop, rather than
         // drawing it as a "preview" only to overwrite it with the worse client result a
         // moment later (that was this control's behavior before, and it was backwards).
-        if (tfPrecomputedFresh(pre, d)) {
+        if (pre && pre.lats && pre.lats.length) {
           aiLoading = false;
           var fc = tfPrecomputedFc(pre, d.points[0].windKt);
           fc.storm = (d.name && d.name.en) || "storm";
@@ -1947,18 +1947,17 @@
           aiSetStatus(tfPrecomputedStatus(pre, fc.storm), "on");
           return null;   // signals "already drawn" to the next .then — skip the client-side run
         }
-        aiSetStatus(tfRT.sessions ? "Running my AI model…"
-          : "Loading my AI model in your browser (~one-time 75 MB download, 5-seed ensemble)…", "loading");
-        return tfEnsureModel().then(function () { return tfRunModel(live.pts, live.nowHour); });
-      })
-      .then(function (fc) {
-        if (!fc) return;   // the precomputed path above already drew the result
+        // v62 only. If the server-side run has nothing for this storm yet, say so
+        // rather than running a different model in the browser.
         aiLoading = false;
-        fc.storm = (d.name && d.name.en) || "storm";
-        fc.tcId = d.tcId;              // which storm this run belongs to
-        fc.dataKey = dataKey;          // which JMA issuance it was computed from
-        aiDrawForecast(fc);
+        aiRemoveTraces();
+        aiSetStatus("🧪 " + ((d.name && d.name.en) || "This storm") + " — MODEL: v62, and the server-side"
+          + " run has no forecast for it yet. v62 needs a posted GFS analysis cycle and an observed centre"
+          + " to anchor on; the next hourly run will pick it up. Nothing is drawn rather than substituting"
+          + " a different model.", "err");
+        return null;
       })
+      .then(function () {})
       .catch(function (e) {
         aiLoading = false;
         aiSetStatus(((e && e.message) || e), "err");
@@ -2429,47 +2428,6 @@
     }
     return null;
   }
-  // Replace v23's forecast with v62's. Since v62 grew an intensity/structure head
-  // (frozen v37G experts coupled to the causal pressure map) it now supplies the
-  // whole state — position, wind, pressure, RMW and the 34/50/64 kt quadrant
-  // radii — so nothing here is v23's any more. The cone and the drawn routes come
-  // from v62's OWN 189 route members, not from v23's error covariance.
-  function tfApplyV62(fc, initHour) {
-    fc.trackSource = "v23";
-    var run = tfV62For(initHour);
-    if (!run) return fc;
-    var idxOf = {};
-    for (var i = 0; i < run.lead_hours.length; i++) idxOf[run.lead_hours[i]] = i;
-    var pts = fc.points || [];
-    for (var j = 0; j < pts.length; j++) if (idxOf[pts[j].lead_hours] == null) return fc;   // lead mismatch: leave v23 alone
-
-    var cos = Math.cos, rad = Math.PI / 180;
-    var prevLat = fc.initial_lat, prevLon = fc.initial_lon;
-    for (var k = 0; k < pts.length; k++) {
-      var p = pts[k], n = idxOf[p.lead_hours];
-      p.lat = run.lats[n]; p.lon = run.lons[n];
-      if (run.has_intensity) {
-        p.vmax = run.vmax_kt[n];
-        p.pres = run.pres_hpa[n];
-        p.rmw = run.rmw_km[n];
-        p.radiiKm = run.radii_km[n];
-      }
-      // v62's own 90% member radius, laid perpendicular to the local heading —
-      // same geometry as the v23 cone, but the number is v62's.
-      var half = (run.cone_km && run.cone_km[n] != null) ? run.cone_km[n] / 111.2 : 0;
-      var ck = cos(p.lat * rad) || 1e-6;
-      var dxE = (aiPmod(p.lon - prevLon + 180, 360) - 180) * ck, dyN = p.lat - prevLat;
-      var mag = Math.hypot(dxE, dyN) || 1e-6;
-      var offLat = (dxE / mag) * half, offLon = ((-dyN / mag) * half) / ck;
-      p.p90_lat = p.lat + offLat; p.p90_lon = p.lon + offLon;
-      p.p10_lat = p.lat - offLat; p.p10_lon = p.lon - offLon;
-      prevLat = p.lat; prevLon = p.lon;
-    }
-    fc.motion = null;          // tfSpaghetti draws from v23 motion; v62 ships real members instead
-    fc.trackSource = "v62";
-    fc.v62 = run;
-    return fc;
-  }
   // The hindcast table is 47 KB against the model's 75 MB, so fetch it on its
   // own. Where a published v62 run covers the initialisation it carries the
   // whole state, and the in-browser model never has to be downloaded at all.
@@ -2514,6 +2472,25 @@
       p.p10_lat = p.lat - offLat; p.p10_lon = p.lon - offLon;
       prevLat = p.lat; prevLon = p.lon;
     }
+  }
+  // Why v62 has nothing here. The boundary is the analysis archive, not the model:
+  // CFSR covers 1979-01-01 to 2011-03-31 and CDAS (CFSv2) 2011-04-01 onward, and a
+  // storm only becomes available once its hindcasts have been generated.
+  function tfV62Unavailable() {
+    var name = (currentStorm && currentStorm.name) || "This storm";
+    var yr = currentStorm && Number(currentStorm.season);
+    var idx = tfRT.v62 && tfRT.v62.hindcasts;
+    var have = idx && currentSid && idx[currentSid];
+    if (have) {
+      return "🧪 " + name + " — MODEL: v62. No run covers this point in the storm: generated"
+        + " initialisations span " + String(have.first_issue_utc).slice(0, 16).replace("T", " ")
+        + "Z to " + String(have.last_issue_utc).slice(0, 16).replace("T", " ") + "Z."
+        + " Scrub inside that window. Nothing else is drawn here — this overlay is v62 only.";
+    }
+    var src = (yr && yr >= 2012) ? "CDAS/CFSv2 (2011-04-01 onward)" : "CFSR (1979-01-01 to 2011-03-31)";
+    return "🧪 " + name + " — MODEL: v62, and it has no hindcast for this storm yet. v62 integrates a"
+      + " route from real analysis fields, so a past storm needs its " + src + " analyses fetched and"
+      + " run first. Nothing is drawn rather than substituting a different model.";
   }
   // A complete forecast built from a published v62 run alone — no v23, no ONNX.
   function tfV62Forecast(run, initHour) {
@@ -2632,16 +2609,14 @@
     var now = Date.now();
     if (!force && now - hindcastFollowTs < 240) return;
     var h = Number(els.slider.value);
-    // A published v62 run needs no model at all, so it can follow the playhead
-    // even when the browser never downloaded one.
+    // v62 only, and it needs no model in the browser at all. Scrubbing past the
+    // end of the generated initialisations clears the overlay and says why,
+    // rather than filling the gap with a different model.
     var run = tfV62For(h), quick = run ? tfV62Forecast(run, h) : null;
-    if (quick) { hindcastFollowTs = now; aiUpdateHindcast(quick, h); return; }
-    if (!tfRT.sessions) return;   // v23 needed here but not loaded yet — tfEnsureModel is already warming
-    hindcastFollowTs = now; hindcastFollowRun = true;
-    tfRunModel(currentStorm.pts, h).then(function (fc) {
-      tfApplyV62(fc, h);
-      if (hindcastTraceCount > 0) aiUpdateHindcast(fc, h);
-    }, function () {}).then(function () { hindcastFollowRun = false; });
+    hindcastFollowTs = now;
+    if (quick) { aiUpdateHindcast(quick, h); return; }
+    aiClearHindcast();
+    aiSetHindcastStatus(tfV62Unavailable(), "err");
   }
   /* --- Multi-initialisation consensus ------------------------------------------
      Runs the model from EVERY 6-hourly init along the storm, then at each valid time
@@ -2983,22 +2958,15 @@
       .then(function () {
         var run = tfV62For(initHour);
         var quick = run ? tfV62Forecast(run, initHour) : null;
-        if (quick) {
-          aiLoading = false;
-          aiDrawHindcast(quick, initHour);
-          // Draw first, then warm v23 quietly, so scrubbing off this
-          // initialisation still re-forecasts without a visible stall.
-          tfEnsureModel().catch(function () {});
-          return null;
-        }
-        aiSetHindcastStatus(tfRT.sessions ? "Running my AI model…" : "Loading my AI model (~one-time 75 MB download, 5-seed ensemble)…", "loading");
-        return tfEnsureModel().then(function () { return tfRunModel(currentStorm.pts, initHour); });
-      })
-      .then(function (fc) {
-        if (!fc) return;                  // already drawn from the published v62 run
         aiLoading = false;
-        aiDrawHindcast(tfApplyV62(fc, initHour), initHour);
+        if (quick) { aiDrawHindcast(quick, initHour); return null; }
+        // v62 only. Where no run covers this initialisation the overlay says so
+        // rather than quietly drawing a different model's forecast in its place.
+        aiClearHindcast();
+        aiSetHindcastStatus(tfV62Unavailable(), "err");
+        return null;
       })
+      .then(function () {})
       .catch(function (e) { aiLoading = false; aiSetHindcastStatus(((e && e.message) || String(e)), "err"); });
   }
 

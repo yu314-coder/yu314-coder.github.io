@@ -57,7 +57,12 @@ DLM4_SCALE = np.asarray([4.7021923, 3.075009, 9.006815, 4.8768406], dtype="float
 PACIFIC_WEIGHT, LOCAL_WEIGHT = 0.25, 0.75
 KEEP_MEMBERS = 20          # drawn routes kept per initialisation
 CONE_PCT = 90.0
-CFSR_LAST_YEAR = 2011      # the low-resolution reanalysis ends here
+# The analysis archive changes product mid-2011, not at a year boundary:
+#   CFSR   1979-01-01 .. 2011-03-31
+#   CDAS   2011-04-01 onward   (CFSv2; NCEI operational-analysis/6-hourly-by-pressure,
+#                               cdas1.tHHz.pgrbhanl.grib2 -- 78 MB, no .idx sidecar,
+#                               so it is not yet wired up here)
+CFSR_END = dt.datetime(2011, 3, 31, 18, tzinfo=dt.timezone.utc)
 
 
 def log(m):
@@ -340,7 +345,9 @@ def main():
     catalogue = {}
     for path in sorted(SEASONS.glob("*.json")):
         year = int(path.stem)
-        if year > CFSR_LAST_YEAR:
+        # only CFSR-era storms can be generated today
+        last = (storm.get("pts") or [{}])[-1].get("t")
+        if not last or dt.datetime.fromisoformat(last).replace(tzinfo=dt.timezone.utc) > CFSR_END:
             continue
         for sid, storm in json.loads(path.read_text()).items():
             catalogue[sid] = (year, storm)
