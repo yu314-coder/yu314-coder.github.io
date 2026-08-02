@@ -27,35 +27,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # v23 seed checkpoints (~500 MB, git-lfs). Cached under a fixed key so
-      # this doesn't re-pull them every run -- bump the key if the released
-      # weights ever change.
-      - name: Cache v23 model weights
+      # Big weights, cached: the v23 seeds (~500 MB, git-lfs) and the three
+      # frozen v37G structure checkpoints v62's intensity head loads (~26 MB).
+      # Bump the key if either set is re-released.
+      - name: Cache model weights
         id: cache-weights
         uses: actions/cache@v4
         with:
           path: typhoon-predict-models
-          key: v23-weights-v2
+          key: v62-weights-v3
 
-      - name: Checkout v23 weights
+      - name: Checkout weights
         if: steps.cache-weights.outputs.cache-hit != 'true'
         uses: actions/checkout@v4
         with:
           repository: yu314-coder/typhoon-predict
           lfs: true
-          sparse-checkout: models/v23
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            models/v23
+            v37/structure_spatial
           path: typhoon-predict-weights
 
       - name: Move weights into cache path
         if: steps.cache-weights.outputs.cache-hit != 'true'
         run: |
-          mkdir -p typhoon-predict-models
-          mv typhoon-predict-weights/models/v23/* typhoon-predict-models/
+          mkdir -p typhoon-predict-models/v23 typhoon-predict-models/v37
+          mv typhoon-predict-weights/models/v23/* typhoon-predict-models/v23/
+          mv typhoon-predict-weights/v37/* typhoon-predict-models/v37/
           rm -rf typhoon-predict-weights
 
-      # The v62 route modules are three small files at the repo root; always
-      # taken fresh so a change upstream is picked up without a cache bump.
-      - name: Checkout v62 route modules
+      # The v62 source modules are small and always taken fresh, so a change
+      # upstream is picked up without a cache bump.
+      - name: Checkout v62 source modules
         uses: actions/checkout@v4
         with:
           repository: yu314-coder/typhoon-predict
@@ -64,7 +68,14 @@ jobs:
             v62_pacific_domain_route.py
             v61_big_system_route.py
             analysis_level_mean_route.py
+            v62_intensity_structure.py
+            scripts/predict_ibtracs_jma_only.py
           path: typhoon-predict-src
+
+      # The intensity head loads its checkpoints from V62_SRC_DIR/v37, so link
+      # the cached copy in beside the freshly-checked-out source.
+      - name: Link cached v37 weights into the source tree
+        run: ln -sfn "$GITHUB_WORKSPACE/typhoon-predict-models/v37" typhoon-predict-src/v37
 
       # GFS analysis GRIBs, reused across runs so a free public service isn't
       # asked for the same cycle every hour. restore-keys picks up the newest
@@ -95,9 +106,10 @@ jobs:
 
       - name: Run v62 + v23 forecast
         env:
-          V23_MODELS_DIR: ${{ github.workspace }}/typhoon-predict-models
+          V23_MODELS_DIR: ${{ github.workspace }}/typhoon-predict-models/v23
           V62_SRC_DIR: ${{ github.workspace }}/typhoon-predict-src
           V62_GRIB_DIR: /tmp/v62-grib
+          MPLBACKEND: Agg
         run: python scripts/run_v62_forecast.py
 
       - name: Commit if changed

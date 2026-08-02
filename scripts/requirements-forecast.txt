@@ -11,3 +11,6 @@ eccodes
 # it only surfaced in CI, where the v62 route fell back to v23 rather than
 # failing loudly.
 scipy
+# predict_ibtracs_jma_only (the window builder the v37G head was validated with)
+# imports pyplot at module level; MPLBACKEND=Agg keeps it headless.
+matplotlib

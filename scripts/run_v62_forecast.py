@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
-"""Live TrackFormer v62 causal track + v23 intensity, precomputed server-side.
+"""Live TrackFormer v62, precomputed server-side.
 
-v62 is a different kind of model from v23. It builds a broad causal atmospheric
-state over the western Pacific from public GFS f000 *analysis* only, then
-integrates a route out of the evolving pressure and flow field. The shipped
-route is 75% local multi-level + 25% broad Pacific-domain, exactly as
-scripts/run_public_data_v23_v62_comparison.py composes it in the research repo.
+v62 builds a broad causal atmospheric state over the western Pacific from public
+GFS f000 *analysis* only, integrates a route out of the evolving pressure and
+flow field (75% local multi-level + 25% broad Pacific, as the research repo
+composes it), and -- since its structure head landed -- also predicts maximum
+wind, central pressure, RMW and the four-quadrant R34/R50/R64 radii from a
+frozen three-member v37G ensemble coupled to that same causal pressure map.
+The uncertainty cone is the 90th-percentile radius over v62's own route members.
 
-It forecasts position and nothing else -- there is no intensity decoder -- so
-this script pairs it with the v23 10-seed fp32 ensemble, which supplies wind,
-pressure, RMW and the 34/50/64 kt radii. The emitted JSON says which model
-produced which field so nothing is misattributed downstream.
-
-Causality: only f000 analysis cycles valid at or before the storm's own issue
-time are opened. No positive forecast lead, no official JMA/JTWC forecast
-track, and no post-issue observation reaches inference. Every analysis cycle
-used is listed in the output.
+CAUSALITY -- present and past weather only, enforced rather than asserted.
+Every input this run opens is registered with its valid time and checked against
+the storm's issue time before use (see the Causality class). A later-valid input
+raises and the storm falls back rather than shipping a contaminated forecast.
+Specifically refused: any positive GFS lead (only f000 is requested, and the URL
+is verified), JMA's official forecast rows (spec[2:] -- only the Analysis row
+spec[1] is read, and its advancedHours is asserted to be 0), and any observed
+fix later than the issue. The audit ledger of every input opened, with its valid
+time, is written into the output JSON.
 
 If anything in the v62 path fails or is unavailable -- GFS cycle not posted
 yet, storm too young to have 24 h of history, GRIB decode error -- the storm
@@ -63,6 +65,55 @@ LOCAL_WEIGHT = 1.0 - PACIFIC_WEIGHT
 
 def log(msg):
     print(msg, file=sys.stderr, flush=True)
+
+
+# ---------------------------------------------------------------------------
+# Causality guard.
+#
+# "No forecast data, only present and past" is enforced here rather than
+# asserted in the output. Every input this run opens is registered with its
+# valid time and checked against the storm's issue time; a violation raises and
+# the storm falls back rather than shipping a contaminated forecast. The ledger
+# is written into the JSON so the claim can be audited after the fact.
+# ---------------------------------------------------------------------------
+class CausalityError(RuntimeError):
+    pass
+
+
+class Causality:
+    def __init__(self, issue):
+        self.issue = issue
+        self.inputs = []
+
+    def use(self, kind, name, valid_time):
+        """Register an input. Anything valid after the issue time is refused."""
+        if valid_time is not None and valid_time > self.issue:
+            raise CausalityError(
+                f"{kind} '{name}' is valid {valid_time:%Y-%m-%dT%H:%MZ}, after the "
+                f"issue time {self.issue:%Y-%m-%dT%H:%MZ} — refusing to use it")
+        self.inputs.append({
+            "kind": kind, "name": name,
+            "valid_time_utc": valid_time.strftime("%Y-%m-%dT%H:%M:%SZ") if valid_time else None,
+        })
+
+    def use_analysis_url(self, key, url, valid_time):
+        # f000 is the analysis. Any positive lead would be a forecast.
+        if "f000" not in url:
+            raise CausalityError(f"GFS request for {key} is not an f000 analysis: {url}")
+        self.use("gfs_f000_analysis", key, valid_time)
+
+    def ledger(self):
+        latest = max((i["valid_time_utc"] for i in self.inputs if i["valid_time_utc"]), default=None)
+        return {
+            "issue_time_utc": self.issue.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "inputs_opened": self.inputs,
+            "latest_input_valid_time_utc": latest,
+            "future_rows_used_for_inference": 0,
+            "official_forecasts_used_for_inference": False,
+            "forecast_products_used": [],
+            "enforcement": ("every input above was checked against the issue time before use; "
+                            "a later-valid input raises CausalityError and the storm falls back"),
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -206,10 +257,127 @@ def recent_motion(points):
     return (float(np.mean([s[0] for s in samples])), float(np.mean([s[1] for s in samples])))
 
 
+def cone_from_members(local_route, members, base_lat, base_lon, lats, lons, pct=90.0):
+    """Per-lead radius containing `pct` of v62's own route members, measured from
+    the deterministic route. Members are blended with the local route exactly as
+    the deterministic route is, so the spread is the real ensemble's."""
+    members = np.asarray(members, dtype="float32")
+    if members.ndim != 3 or not len(members):
+        return None
+    blended = LOCAL_WEIGHT * np.asarray(local_route, dtype="float32")[None, :, :] + PACIFIC_WEIGHT * members
+    out = []
+    for lead in range(blended.shape[1]):
+        d = []
+        for m in range(blended.shape[0]):
+            la, lo = base_lat, base_lon
+            for k in range(lead + 1):
+                la += float(blended[m, k, 1]) / 111.2
+                lo += float(blended[m, k, 0]) / (111.2 * max(math.cos(math.radians(la)), 0.20))
+            dlon = ((lo - lons[lead] + 180.0) % 360.0) - 180.0
+            d.append(math.hypot(dlon * 111.2 * math.cos(math.radians(0.5 * (la + lats[lead]))),
+                                (la - lats[lead]) * 111.2))
+        d.sort()
+        k = (len(d) - 1) * pct / 100.0
+        lo_i, hi_i = int(math.floor(k)), int(math.ceil(k))
+        out.append(round(d[lo_i] if lo_i == hi_i else d[lo_i] + (d[hi_i] - d[lo_i]) * (k - lo_i), 1))
+    return out
+
+
+# ---------------------------------------------------------------------------
+# v62 intensity / structure head (frozen v37G experts)
+# ---------------------------------------------------------------------------
+_INTENSITY = None
+
+
+def intensity_model():
+    global _INTENSITY
+    if _INTENSITY is None:
+        sys.path.insert(0, V62_SRC)
+        from v62_intensity_structure import V62IntensityEnsemble
+        root = Path(V62_SRC) / "v37" / "structure_spatial"
+        _INTENSITY = V62IntensityEnsemble(root / "checkpoints",
+                                          root / "v37g_intensity_calibration.json",
+                                          device="cpu")
+    return _INTENSITY
+
+
+def field_patch(path_now, path_prev24, center):
+    """The 4x17x17 v23-compatible analysis patch the structure head contracts for:
+    SLP anomaly, 24 h SLP tendency, and the deep-layer-mean u/v — normalised by the
+    dlm4 scale and clipped to +/-4. Both frames are sampled on the SAME storm centre,
+    exactly as build_dolphin_analysis_causal_cache.py does."""
+    u, v, mslp = read_patch(path_now, center[0], center[1])
+    _, _, mslp_prev = read_patch(path_prev24, center[0], center[1])
+    u_dlm = np.tensordot(DLM_WEIGHTS, u, axes=(0, 0))
+    v_dlm = np.tensordot(DLM_WEIGHTS, v, axes=(0, 0))
+    raw = np.stack([mslp - float(mslp.mean()), mslp - mslp_prev, u_dlm, v_dlm], axis=0).astype("float32")
+    return np.clip(raw / DLM4_SCALE[:, None, None], -4.0, 4.0).astype("float32")
+
+
+def intensity_records(fixes):
+    """The v37G record schema. Anything genuinely unobserved for a live storm --
+    RMW, ROCI, the quadrant radii -- is left as None so build_track_window flags it
+    unavailable, rather than being invented."""
+    rows = []
+    for f in fixes:
+        rows.append({
+            "time_utc": f["time"] + ":00Z" if len(f["time"]) == 16 else f["time"],
+            "lat": float(f["lat"]), "lon": float(f["lon"]),
+            "vmax_kt": f["vmax_kt"],
+            "pressure_hpa": f["pres_hpa"],
+            "rmw_nm": None, "roci_nm": None, "dist2land_km": None,
+            "r34_ne_nm": None, "r34_se_nm": None, "r34_sw_nm": None, "r34_nw_nm": None,
+            "r50_ne_nm": None, "r50_se_nm": None, "r50_sw_nm": None, "r50_nw_nm": None,
+            "r64_ne_nm": None, "r64_se_nm": None, "r64_sw_nm": None, "r64_nw_nm": None,
+        })
+    return rows
+
+
+def v62_intensity(fixes, field, state_pressure, state_fields, lat, lon,
+                  base_lat, base_lon, route_points):
+    """vmax / central pressure / RMW / R34-R50-R64, then coupled to v62's own
+    causal pressure-map state. Returns (rows, metadata) or (None, reason)."""
+    sys.path.insert(0, V62_SRC)
+    sys.path.insert(0, str(Path(V62_SRC) / "scripts"))
+    # The window builder the v37G head was validated with. NOT run_v23's: that one
+    # derives the seasonal phase from a numpy datetime64 minutes artefact and sets
+    # 4 availability flags, where this sets 16 and uses a real per-row day-of-year.
+    from predict_ibtracs_jma_only import build_track_window
+    from v62_intensity_structure import couple_forecast_to_pressure_map
+
+    stats = np.load(HERE / "v23" / "v23_norm_stats.npz")
+    terrain = np.load(HERE / "v23" / "v23_terrain_wp.npz")
+    rows_i, cols_i = np.where(terrain["lsm"] > 0.5)
+    land_lat = terrain["lat"][rows_i].astype("float32")
+    land_lon = terrain["lon"][cols_i].astype("float32")
+
+    records = intensity_records(fixes)
+    if len(records) < 2:
+        return None, "fewer than two observed fixes"
+    track, _, _ = build_track_window(records, stats["tmean"].astype("float32"),
+                                     stats["tstd"].astype("float32"), land_lat, land_lon)
+    cur, prev = records[-1], records[-2]
+    if cur["vmax_kt"] is None or cur["pressure_hpa"] is None:
+        return None, "current wind or pressure not reported"
+
+    def fnum(x, fallback):
+        return float(x) if x is not None else float(fallback)
+
+    rows, meta = intensity_model().predict(
+        track, field,
+        float(cur["vmax_kt"]), float(cur["pressure_hpa"]),
+        fnum(prev["vmax_kt"], cur["vmax_kt"]), fnum(prev["pressure_hpa"], cur["pressure_hpa"]))
+    rows, map_meta = couple_forecast_to_pressure_map(
+        rows, state_pressure, state_fields, lat, lon, base_lat, base_lon,
+        route_points, float(cur["vmax_kt"]), float(cur["pressure_hpa"]))
+    meta["pressure_map_coupling"] = map_meta
+    return rows, meta
+
+
 # ---------------------------------------------------------------------------
 # v62
 # ---------------------------------------------------------------------------
-def v62_track(points, issue):
+def v62_track(points, issue, guard):
     """Full v62 route for one storm, or None if it cannot run causally."""
     sys.path.insert(0, V62_SRC)
     from analysis_level_mean_route import build_level_analysis_mean_route
@@ -228,6 +396,7 @@ def v62_track(points, issue):
             continue
         p = fetch_cycle(cand)
         if p is not None:
+            guard.use_analysis_url(cand, gfs_url(cand), key_to_dt(cand))
             c0, paths[cand] = cand, p
             break
     if c0 is None:
@@ -254,6 +423,7 @@ def v62_track(points, issue):
         if p is None:
             log(f"  v62: cycle {key} unavailable")
             return None
+        guard.use_analysis_url(key, gfs_url(key), key_to_dt(key))
         paths[key] = p
 
     # local multi-level cache (the 75% term)
@@ -290,6 +460,8 @@ def v62_track(points, issue):
         fields, pressures, lat, lon, base_lat, base_lon, recent_motion(points))
     pacific_route = weighted_route(members, weights)
 
+    from v62_pacific_domain_route import forecast_pacific_state
+    state_fields, state_pressure, _ = forecast_pacific_state(fields, pressures)
     full = LOCAL_WEIGHT * local_route + PACIFIC_WEIGHT * pacific_route
 
     lats, lons = [], []
@@ -301,6 +473,10 @@ def v62_track(points, issue):
 
     return {
         "lats": lats, "lons": lons,
+        "_state_fields": state_fields, "_state_pressure": state_pressure,
+        "_lat": lat, "_lon": lon, "_members": members, "_weights": weights,
+        "_paths": paths, "_mains": mains, "_prevs": prevs, "_centers": centers,
+        "_local_route": local_route,
         "analysis_cycle": c0,
         "analysis_lag_hours": round(lag_h, 1),
         "cycles_used": sorted(set(mains + prevs)),
@@ -316,9 +492,19 @@ def v62_track(points, issue):
 def process_storm(tc, models):
     tc_id = tc["tropicalCyclone"]
     spec = v23run.get_json(f"{v23run.JMA_BASE}{tc_id}/specifications.json")
+    # spec[1] is JMA's Analysis; spec[2:] are its OFFICIAL FORECAST rows and must
+    # never be read. Assert the row we take really is the analysis rather than
+    # trusting its position.
+    if len(spec) < 2 or (spec[1] or {}).get("advancedHours") not in (0, "0"):
+        raise CausalityError(f"{tc_id}: spec[1] is not the analysis row "
+                             f"(advancedHours={(spec[1] or {}).get('advancedHours')!r})")
     a = v23run.parse_jma(tc_id, spec)
     if not a:
         return None
+    issue = dt.datetime.fromisoformat(a["validUTC"].replace("Z", "+00:00"))
+    guard = Causality(issue)
+    guard.use("jma_analysis", f"{tc_id}/specifications.json[1]", issue)
+
     import re
     dt_id = "20" + a["number"] if re.match(r"^\d{4}$", a["number"] or "") else None
     dt_wind = dt_pres = None
@@ -333,6 +519,12 @@ def process_storm(tc, models):
             log(f"{tc_id}: DT pressure page failed ({e})")
 
     raw = v23run.build_points(a, dt_wind, dt_pres)
+    # Every observed fix must be at or before the issue. Digital Typhoon is a
+    # best-track archive, but this is checked rather than assumed.
+    for o in raw:
+        guard.use("observed_fix", dt.datetime.fromtimestamp(o["ms"] / 1000, dt.timezone.utc)
+                  .strftime("%Y-%m-%dT%H:%MZ"),
+                  dt.datetime.fromtimestamp(o["ms"] / 1000, dt.timezone.utc))
     fixes = v23run.fixes_from_points(raw)
     if not fixes:
         return None
@@ -340,29 +532,75 @@ def process_storm(tc, models):
     out = v23run.run_forecast(models, fixes)
     out["tcId"] = tc_id
     out["name"] = a["name"]
-    # v23 track kept verbatim so the comparison is always available
-    out["v23_lats"] = list(out["lats"])
+    out["v23_lats"] = list(out["lats"])      # kept so the comparison is always available
     out["v23_lons"] = list(out["lons"])
-    out["intensity_source"] = "v23"
 
-    issue = dt.datetime.fromisoformat(a["validUTC"].replace("Z", "+00:00"))
     pts = [{"ms": o["ms"], "lat": o["lat"], "lon": o["lon"]} for o in raw
            if o["lat"] is not None and o["lon"] is not None]
     v62 = None
     try:
-        v62 = v62_track(pts, issue)
+        v62 = v62_track(pts, issue, guard)
+    except CausalityError as e:
+        log(f"{tc_id}: REFUSED — {e}")
     except Exception as e:
-        log(f"{tc_id}: v62 failed ({type(e).__name__}: {e})")
-    if v62:
-        out["lats"] = v62["lats"]
-        out["lons"] = v62["lons"]
-        out["track_source"] = "v62"
-        out["v62"] = v62
-        log(f"{tc_id} ({a['name']}): v62 track from {v62['analysis_cycle']}, v23 intensity")
-    else:
+        log(f"{tc_id}: v62 track failed ({type(e).__name__}: {e})")
+
+    if not v62:
         out["track_source"] = "v23"
+        out["intensity_source"] = "v23"
         out["v62"] = None
-        log(f"{tc_id} ({a['name']}): v62 unavailable, using v23 track")
+        out["causality"] = guard.ledger()
+        log(f"{tc_id} ({a['name']}): v62 unavailable, using v23 for track and intensity")
+        return out
+
+    out["lats"] = v62["lats"]
+    out["lons"] = v62["lons"]
+    out["track_source"] = "v62"
+
+    # --- v62 intensity / structure ---------------------------------------
+    intensity_note = None
+    try:
+        field = field_patch(v62["_paths"][v62["_mains"][0]],
+                            v62["_paths"][v62["_prevs"][0]],
+                            v62["_centers"][0])
+        route_points = [{"lead_hours": h, "lat": la, "lon": lo}
+                        for h, la, lo in zip(out["lead_hours"], v62["lats"], v62["lons"])]
+        rows, meta = v62_intensity(fixes, field, v62["_state_pressure"], v62["_state_fields"],
+                                   v62["_lat"], v62["_lon"],
+                                   float(fixes[-1]["lat"]), float(fixes[-1]["lon"]), route_points)
+        if rows:
+            out["vmax_kt"] = [round(float(r["vmax_kt"]), 1) for r in rows]
+            out["pres_hpa"] = [round(float(r.get("pressure_hpa", r.get("central_pressure_hpa"))), 1) for r in rows]
+            out["rmw_km"] = [round(float(r["rmw_km"]), 1) for r in rows]
+            out["radii_km"] = [[round(float(x), 1) for x in r["wind_radii_km"]] for r in rows]
+            out["intensity_source"] = "v62"
+            v62["intensity_model"] = meta
+        else:
+            intensity_note = meta
+    except Exception as e:
+        intensity_note = f"{type(e).__name__}: {e}"
+
+    if out.get("intensity_source") != "v62":
+        out["intensity_source"] = "v23"
+        v62["intensity_fallback_reason"] = str(intensity_note)
+        log(f"{tc_id}: v62 intensity unavailable ({intensity_note}); keeping v23 intensity")
+
+    # cone from v62's own route members, so the drawn spread is its statistic
+    try:
+        v62["cone_km"] = cone_from_members(v62["_local_route"], v62["_members"],
+                                           float(fixes[-1]["lat"]), float(fixes[-1]["lon"]),
+                                           v62["lats"], v62["lons"])
+        v62["cone_percentile"] = 90.0
+        v62["member_count"] = int(np.asarray(v62["_members"]).shape[0])
+    except Exception as e:
+        log(f"{tc_id}: cone unavailable ({type(e).__name__}: {e})")
+
+    for k in [k for k in v62 if k.startswith("_")]:
+        v62.pop(k)
+    out["v62"] = v62
+    out["causality"] = guard.ledger()
+    log(f"{tc_id} ({a['name']}): v62 track from {v62['analysis_cycle']}, "
+        f"intensity={out['intensity_source']}")
     return out
 
 

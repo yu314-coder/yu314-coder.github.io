@@ -1867,12 +1867,21 @@
   // than faked.
   var TF_LIVE_JSON_URL = "model/v23-live-forecast.json";
   function tfPrecomputedFc(pre, baseW) {
+    var v62 = pre.v62 || {}, full = pre.intensity_source === "v62";
     var pts = pre.lats.map(function (la, i) {
       return { lead_hours: pre.lead_hours[i], lat: la, lon: pre.lons[i],
-        vmax: pre.vmax_kt[i], pres: pre.pres_hpa[i], rmw: null, radiiKm: null,
+        vmax: pre.vmax_kt[i], pres: pre.pres_hpa[i],
+        // RMW and the quadrant radii only exist when v62's structure head ran
+        rmw: full && pre.rmw_km ? pre.rmw_km[i] : null,
+        radiiKm: full && pre.radii_km ? pre.radii_km[i] : null,
         p10_lat: la, p10_lon: pre.lons[i], p90_lat: la, p90_lon: pre.lons[i] };
     });
-    return { initial_lat: pre.base_lat, initial_lon: pre.base_lon, initial_vmax: baseW, points: pts };
+    var fc = { initial_lat: pre.base_lat, initial_lon: pre.base_lon, initial_vmax: baseW,
+               points: pts, trackSource: pre.track_source, v62: v62 };
+    // v62 ships its own 90% member radius, so the live overlay gets a real cone
+    // instead of none. v23-only runs still get none — see tfPrecomputedStatus.
+    if (pre.track_source === "v62" && v62.cone_km) tfV62Cone(fc, v62);
+    return fc;
   }
   // Name both models explicitly. The drawn path and the hovered numbers come
   // from different models, and saying so is the whole point.
@@ -1882,13 +1891,19 @@
     var tail = " No uncertainty cone or wind-radii rings on a server-computed run — that data isn't"
       + " produced there, so none is shown rather than faked. Experimental, not an official forecast.";
     if (pre.track_source === "v62" && pre.v62) {
-      var lag = pre.v62.analysis_lag_hours;
-      return "🧪 " + storm + " — MODEL: v62 for the track, v23 for the intensity. v62 integrates a causal"
-        + " western-Pacific route from the GFS " + pre.v62.analysis_cycle.replace("_", " ") + "Z analysis"
+      var v = pre.v62, lag = v.analysis_lag_hours, full = pre.intensity_source === "v62";
+      var cone = v.member_count ? (" The cone is v62's own " + (v.cone_percentile || 90) + "% radius over "
+        + v.member_count + " route members.") : "";
+      return "🧪 " + storm + " — MODEL: v62"
+        + (full ? " for everything here — track, wind, pressure, RMW and the 34/50/64 kt radii."
+                : " for the track; wind and pressure fall back to v23 because v62's structure head"
+                  + " couldn't run for this storm.")
+        + " The route and the causal pressure state are integrated from the GFS "
+        + v.analysis_cycle.replace("_", " ") + "Z analysis"
         + (lag != null ? " (" + lag + " h before this issuance)" : "")
-        + " — no forecast field and no official track reaches it. This live path does not yet run v62's"
-        + " intensity head, so wind, pressure and category come from v23's 10-seed full-precision"
-        + " ensemble." + tail;
+        + " and earlier cycles only — every input was checked against the issue time before use, so no"
+        + " forecast field, no official JMA/JTWC track and no post-issue observation reaches it."
+        + cone + " Experimental, not an official forecast.";
     }
     return "🧪 " + storm + " — MODEL: v23 for everything here — track, wind and pressure — at full"
       + " precision (10-seed fp32, computed server-side). v62 needs a posted GFS analysis and 24 h of"
