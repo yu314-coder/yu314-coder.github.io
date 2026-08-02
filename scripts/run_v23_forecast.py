@@ -16,7 +16,9 @@ reuses run_v23.py's own build_window/forecast functions by import, not by copy, 
 no way for this script to silently drift from the reference pipeline.
 
 Run by .github/workflows/refresh-typhoon-forecast.yml, which checks out yu314-coder/
-typhoon-predict's models/ dir (git-lfs) alongside this repo and sets V23_MODELS_DIR.
+typhoon-predict's v23 weights alongside this repo and sets V23_MODELS_DIR to them.
+The architecture, norm stats, terrain and inference core are vendored in
+scripts/v23/ so a repo-layout change upstream cannot break this job.
 """
 import json
 import math
@@ -33,10 +35,12 @@ from bs4 import BeautifulSoup
 
 HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parent
-MODELS_DIR = os.environ.get("V23_MODELS_DIR", str(REPO_ROOT.parent / "typhoon-predict" / "models"))
-sys.path.insert(0, MODELS_DIR)
+# Weights are large and fetched by the workflow; everything needed to run them
+# is vendored beside this file.
+MODELS_DIR = os.environ.get("V23_MODELS_DIR", str(REPO_ROOT.parent / "typhoon-predict" / "models" / "v23"))
+sys.path.insert(0, str(HERE / "v23"))
 from trackformer_v23 import build_v23  # noqa: E402
-import run_v23 as ref  # noqa: E402  (build_window/forecast/HIST — the verified reference)
+import v23_core as ref  # noqa: E402  (build_window/run_forecast/HIST — verified equivalent)
 
 JMA_BASE = "https://www.jma.go.jp/bosai/typhoon/data/"
 DT_WIND = "https://agora.ex.nii.ac.jp/digital-typhoon/summary/wnp/k/"
@@ -211,7 +215,7 @@ def run_forecast(models, fixes):
     vmax = np.array([f["vmax_kt"] for f in fixes], dtype="float64")
     pres = np.array([f["pres_hpa"] if f["pres_hpa"] is not None else np.nan for f in fixes], dtype="float64")
     tns = np.array([np.datetime64(t).astype("datetime64[ns]").astype("int64") for t in times])
-    lats, lons, vmaxs, presses, n_padded = ref.forecast(models, times, tns, lat, lon, vmax, pres, None)
+    lats, lons, vmaxs, presses, n_padded = ref.run_forecast(models, times, tns, lat, lon, vmax, pres)
     return {
         "issue_time": times[-1],
         "base_lat": float(lat[-1]), "base_lon": float(lon[-1]),
@@ -253,7 +257,8 @@ def process_storm(tc, models):
 
 
 def load_models():
-    ckpts = sorted(Path(MODELS_DIR).glob("v23_seed*.pt"))
+    root = Path(MODELS_DIR)
+    ckpts = sorted(root.glob("v23_seed*.pt")) or sorted(root.rglob("v23_seed*.pt"))
     if not ckpts:
         sys.exit(f"no v23_seed*.pt checkpoints found in {MODELS_DIR}")
     models = []

@@ -13,3 +13,4 @@ stocks.html
 assets/stocks/
 scripts/refresh_stocks.py
 .github/workflows/refresh-stocks.yml
+__pycache__/

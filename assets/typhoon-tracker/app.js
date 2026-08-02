@@ -1851,13 +1851,16 @@
   // the toggle and the live refresh (which re-runs it on freshly-fetched data so
   // the route reflects the new analysis — genuinely recomputed, not redrawn).
   // Precomputed forecast for the CURRENTLY-displayed JMA issuance, from
-  // .github/workflows/refresh-typhoon-forecast.yml -- the full 10-seed fp32
-  // ensemble, run server-side every 30 min, so a bad connection can show a track
-  // instantly instead of waiting on a 75 MB in-browser model download. Carries no
-  // uncertainty cone or wind-radii data (the reference CLI this reuses doesn't
-  // expose those dims) -- degenerate cone, no radii rings -- so it's drawn as a
-  // quick preview only; the real client-side run below still fires right after
-  // and overwrites it with the full picture, same as before this existed.
+  // .github/workflows/refresh-typhoon-forecast.yml. Two models, and the file
+  // says which produced what:
+  //   track     -- v62, a causal western-Pacific route integrated from GFS f000
+  //                ANALYSIS only (no forecast field, no official track). Falls
+  //                back to v23 when v62 can't run causally, flagged in
+  //                `track_source`.
+  //   intensity -- always v23's 10-seed fp32 ensemble; v62 has no intensity
+  //                decoder at all.
+  // Carries no uncertainty cone or wind-radii data, so neither is drawn rather
+  // than faked.
   var TF_LIVE_JSON_URL = "model/v23-live-forecast.json";
   function tfPrecomputedFc(pre, baseW) {
     var pts = pre.lats.map(function (la, i) {
@@ -1866,6 +1869,26 @@
         p10_lat: la, p10_lon: pre.lons[i], p90_lat: la, p90_lon: pre.lons[i] };
     });
     return { initial_lat: pre.base_lat, initial_lon: pre.base_lon, initial_vmax: baseW, points: pts };
+  }
+  // Name both models explicitly. The drawn path and the hovered numbers come
+  // from different models, and saying so is the whole point.
+  // Plain text only — aiSetStatus assigns to textContent, so tags and entities
+  // would render literally.
+  function tfPrecomputedStatus(pre, storm) {
+    var tail = " No uncertainty cone or wind-radii rings on a server-computed run — that data isn't"
+      + " produced there, so none is shown rather than faked. Experimental, not an official forecast.";
+    if (pre.track_source === "v62" && pre.v62) {
+      var lag = pre.v62.analysis_lag_hours;
+      return "🧪 " + storm + " — track from my v62 causal western-Pacific route, integrated from the GFS "
+        + pre.v62.analysis_cycle.replace("_", " ") + "Z analysis"
+        + (lag != null ? " (" + lag + " h before this issuance)" : "")
+        + ": no forecast field and no official track reaches it. Wind, pressure and category come from v23,"
+        + " the 10-seed full-precision ensemble, because v62 forecasts position only." + tail;
+    }
+    return "🧪 " + storm + " — my TrackFormer v23 model, full precision (10-seed fp32, computed"
+      + " server-side): predicted track with dots coloured by forecast intensity category (hover for wind"
+      + " and pressure). The v62 route needs a posted GFS analysis and 24 h of track history; one of those"
+      + " wasn't available for this storm, so this is v23's own track." + tail;
   }
   // Fresh only if it was computed from the exact same JMA analysis currently on
   // screen -- never show a precomputed forecast that's one issuance behind.
@@ -1895,11 +1918,7 @@
           fc.storm = (d.name && d.name.en) || "storm";
           fc.tcId = d.tcId; fc.dataKey = dataKey;
           aiDrawForecast(fc);
-          aiSetStatus("🧪 " + fc.storm + " — my TrackFormer model, full precision (10-seed fp32, computed "
-            + "server-side every 30 min): predicted track with dots coloured by forecast intensity category "
-            + "(hover a dot for wind &amp; pressure). No uncertainty cone or wind-radii rings on this "
-            + "server-computed run -- that data isn't produced server-side, so none is shown rather than faked. "
-            + "Experimental, not an official forecast.", "on");
+          aiSetStatus(tfPrecomputedStatus(pre, fc.storm), "on");
           return null;   // signals "already drawn" to the next .then — skip the client-side run
         }
         aiSetStatus(tfRT.sessions ? "Running my AI model…"

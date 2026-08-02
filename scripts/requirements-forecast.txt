@@ -1,3 +1,8 @@
 # torch is installed separately (CPU wheel) in the workflow.
 numpy<3
 beautifulsoup4
+# v62 reads GFS f000 analysis GRIB2. The eccodes wheel carries its own ecCodes
+# binaries, so the runner needs no apt package.
+xarray
+cfgrib
+eccodes

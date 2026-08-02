@@ -1,13 +1,17 @@
 name: Refresh typhoon AI forecast
 
-# Precomputes TrackFormer v23 (full 10-seed fp32 ensemble -- no int8 quantization, no seed
-# subset) for every currently-active JMA tropical cyclone, so the browser can show a result
-# instantly instead of downloading the ONNX model and running WASM inference itself. Every
-# 30 minutes -- JMA reissues a few times a day, but this stays responsive to a storm's next
-# real-world observation from Digital Typhoon. Also runnable on demand.
+# Precomputes the live AI forecast server-side: the v62 causal western-Pacific
+# route for the track, and the v23 10-seed fp32 ensemble for intensity and wind
+# field (v62 has no intensity decoder). A storm whose v62 path cannot run
+# causally -- GFS cycle not posted, track shorter than 24 h -- falls back to the
+# v23 track and says so in the output.
+#
+# Hourly rather than half-hourly: v62's inputs are 6-hourly GFS f000 analyses
+# that land ~4 h after their cycle hour, so a faster schedule would only re-
+# download the same files from a free public service for no new information.
 on:
   schedule:
-    - cron: "*/30 * * * *"
+    - cron: "20 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -23,31 +27,60 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # The v23 checkpoints (~500MB, git-lfs) live in yu314-coder/typhoon-predict. Cached
-      # under a fixed key so this doesn't re-pull ~500MB of LFS objects every 30 minutes --
-      # bump the key (v1 -> v2) if the released model ever changes.
+      # v23 seed checkpoints (~500 MB, git-lfs). Cached under a fixed key so
+      # this doesn't re-pull them every run -- bump the key if the released
+      # weights ever change.
       - name: Cache v23 model weights
         id: cache-weights
         uses: actions/cache@v4
         with:
           path: typhoon-predict-models
-          key: v23-weights-v1
+          key: v23-weights-v2
 
-      - name: Checkout typhoon-predict model weights
+      - name: Checkout v23 weights
         if: steps.cache-weights.outputs.cache-hit != 'true'
         uses: actions/checkout@v4
         with:
           repository: yu314-coder/typhoon-predict
           lfs: true
-          sparse-checkout: models
-          path: typhoon-predict-checkout
+          sparse-checkout: models/v23
+          path: typhoon-predict-weights
 
       - name: Move weights into cache path
         if: steps.cache-weights.outputs.cache-hit != 'true'
         run: |
           mkdir -p typhoon-predict-models
-          mv typhoon-predict-checkout/models/* typhoon-predict-models/
-          rm -rf typhoon-predict-checkout
+          mv typhoon-predict-weights/models/v23/* typhoon-predict-models/
+          rm -rf typhoon-predict-weights
+
+      # The v62 route modules are three small files at the repo root; always
+      # taken fresh so a change upstream is picked up without a cache bump.
+      - name: Checkout v62 route modules
+        uses: actions/checkout@v4
+        with:
+          repository: yu314-coder/typhoon-predict
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            v62_pacific_domain_route.py
+            v61_big_system_route.py
+            analysis_level_mean_route.py
+          path: typhoon-predict-src
+
+      # GFS analysis GRIBs, reused across runs so a free public service isn't
+      # asked for the same cycle every hour. restore-keys picks up the newest
+      # previous cache; old cycles are pruned below.
+      - name: Cache GFS analysis files
+        uses: actions/cache@v4
+        with:
+          path: /tmp/v62-grib
+          key: v62-grib-${{ github.run_id }}
+          restore-keys: v62-grib-
+
+      - name: Prune GFS cache older than 3 days
+        run: |
+          mkdir -p /tmp/v62-grib
+          find /tmp/v62-grib -name '*.grib2' -mtime +3 -delete || true
+          echo "cached cycles: $(ls -1 /tmp/v62-grib 2>/dev/null | wc -l)"
 
       - uses: actions/setup-python@v5
         with:
@@ -60,10 +93,12 @@ jobs:
           pip install torch --index-url https://download.pytorch.org/whl/cpu
           pip install -r scripts/requirements-forecast.txt
 
-      - name: Run v23 forecast
+      - name: Run v62 + v23 forecast
         env:
           V23_MODELS_DIR: ${{ github.workspace }}/typhoon-predict-models
-        run: python scripts/run_v23_forecast.py
+          V62_SRC_DIR: ${{ github.workspace }}/typhoon-predict-src
+          V62_GRIB_DIR: /tmp/v62-grib
+        run: python scripts/run_v62_forecast.py
 
       - name: Commit if changed
         run: |
