@@ -1813,7 +1813,11 @@
     aiTraceCount = allTraces.length;
     aiLastFc = fc;   // remember it so a same-storm map rebuild can restore it
     if (els.aiBtn) { els.aiBtn.setAttribute("aria-pressed", "true"); els.aiBtn.classList.add("is-on"); }
-    aiSetStatus("🧪 " + (fc.storm || "AI") + " — my TrackFormer model: predicted track with dots coloured by forecast intensity category, plus wind, pressure & wind-field size (hover a dot) and an uncertainty cone. Experimental, not an official forecast.", "on");
+    aiSetStatus("🧪 " + (fc.storm || "AI") + " — MODEL: v23 for everything here — track, wind, pressure and"
+      + " wind-field size — run in your own browser (5-seed int8 ensemble). v62 is computed server-side and"
+      + " only for the latest JMA issuance; when that precompute is a reissue behind, as now, your device"
+      + " runs v23 instead. Dots are coloured by forecast intensity category, hover one for the full state,"
+      + " and the shaded area is v23's own 90% cone. Experimental, not an official forecast.", "on");
   }
   // Build TrackFormer's history pts from the live storm's recent track: the
   // Digital Typhoon best-track past leg + the current JMA analysis point, put on
@@ -1879,16 +1883,16 @@
       + " produced there, so none is shown rather than faked. Experimental, not an official forecast.";
     if (pre.track_source === "v62" && pre.v62) {
       var lag = pre.v62.analysis_lag_hours;
-      return "🧪 " + storm + " — track from my v62 causal western-Pacific route, integrated from the GFS "
-        + pre.v62.analysis_cycle.replace("_", " ") + "Z analysis"
+      return "🧪 " + storm + " — MODEL: v62 for the track, v23 for the intensity. v62 integrates a causal"
+        + " western-Pacific route from the GFS " + pre.v62.analysis_cycle.replace("_", " ") + "Z analysis"
         + (lag != null ? " (" + lag + " h before this issuance)" : "")
-        + ": no forecast field and no official track reaches it. Wind, pressure and category come from v23,"
-        + " the 10-seed full-precision ensemble, because v62 forecasts position only." + tail;
+        + " — no forecast field and no official track reaches it. This live path does not yet run v62's"
+        + " intensity head, so wind, pressure and category come from v23's 10-seed full-precision"
+        + " ensemble." + tail;
     }
-    return "🧪 " + storm + " — my TrackFormer v23 model, full precision (10-seed fp32, computed"
-      + " server-side): predicted track with dots coloured by forecast intensity category (hover for wind"
-      + " and pressure). The v62 route needs a posted GFS analysis and 24 h of track history; one of those"
-      + " wasn't available for this storm, so this is v23's own track." + tail;
+    return "🧪 " + storm + " — MODEL: v23 for everything here — track, wind and pressure — at full"
+      + " precision (10-seed fp32, computed server-side). v62 needs a posted GFS analysis and 24 h of"
+      + " track history; one of those wasn't available for this storm, so this is v23's own forecast." + tail;
   }
   // Fresh only if it was computed from the exact same JMA analysis currently on
   // screen -- never show a precomputed forecast that's one issuance behind.
@@ -2003,7 +2007,7 @@
   // storm and initialisation on screen. v62 integrates a route from actual analysis
   // fields, which do not exist for most past storms -- NOMADS keeps ~9 days of GFS --
   // so everywhere else this stays on v23, which is field-free by design.
-  var TF_V62_HINDCAST_URL = "model/v62-hindcasts.json?v=20260802v62";
+  var TF_V62_HINDCAST_URL = "model/v62-hindcasts.json?v=20260802v62d";
   var TF_NM = 1.852;                                    // km per nautical mile
   var TF_ENS_N = 40;                                    // ensemble routes to draw
   var TF_NSEED = 5;                                     // seeds actually shipped (of the 10 published)
@@ -2358,12 +2362,10 @@
     var pts = fc.points || [], rev = pts.slice().reverse();
     var meanLat = [fc.initial_lat], meanLon = [fc.initial_lon], meanTxt = ["AI init · " + fmtLatLon(fc.initial_lat, fc.initial_lon)];
     pts.forEach(function (p) { meanLat.push(p.lat); meanLon.push(p.lon); meanTxt.push(tfHover(p)); });
-    // A v62 track gets no cone at all — v23's error covariance doesn't describe
-    // it. Emitting nothing rather than a zero-width polygon, so the status line's
-    // "no cone" is literally what's drawn.
-    var v62Track = fc.trackSource === "v62";
-    var coneLat = v62Track ? [] : [fc.initial_lat].concat(pts.map(function (p) { return p.p90_lat; })).concat(rev.map(function (p) { return p.p10_lat; }));
-    var coneLon = v62Track ? [] : [fc.initial_lon].concat(pts.map(function (p) { return p.p90_lon; })).concat(rev.map(function (p) { return p.p10_lon; }));
+    // The cone is whichever model produced this forecast: v23's error covariance,
+    // or v62's own 90% member radius. Both are laid perpendicular the same way.
+    var coneLat = [fc.initial_lat].concat(pts.map(function (p) { return p.p90_lat; })).concat(rev.map(function (p) { return p.p10_lat; }));
+    var coneLon = [fc.initial_lon].concat(pts.map(function (p) { return p.p90_lon; })).concat(rev.map(function (p) { return p.p10_lon; }));
     var actLat = [fc.initial_lat], actLon = [fc.initial_lon];
     currentStorm.pts.forEach(function (p) { if (p.h > initHour + 0.01 && p.la != null) { actLat.push(p.la); actLon.push(p.lo); } });
     var rings = [24, 72, 120].map(function (L) {
@@ -2405,28 +2407,63 @@
     }
     return null;
   }
-  // Swap v23's positions for v62's, keeping v23's intensity, pressure and radii —
-  // v62 forecasts position only. The cone and the sampled routes are v23's own
-  // error covariance and say nothing about v62's, so both are dropped rather
-  // than drawn around a track they don't describe.
+  // Replace v23's forecast with v62's. Since v62 grew an intensity/structure head
+  // (frozen v37G experts coupled to the causal pressure map) it now supplies the
+  // whole state — position, wind, pressure, RMW and the 34/50/64 kt quadrant
+  // radii — so nothing here is v23's any more. The cone and the drawn routes come
+  // from v62's OWN 189 route members, not from v23's error covariance.
   function tfApplyV62(fc, initHour) {
     fc.trackSource = "v23";
     var run = tfV62For(initHour);
     if (!run) return fc;
-    var byLead = {};
-    for (var i = 0; i < run.lead_hours.length; i++) byLead[run.lead_hours[i]] = [run.lats[i], run.lons[i]];
+    var idxOf = {};
+    for (var i = 0; i < run.lead_hours.length; i++) idxOf[run.lead_hours[i]] = i;
     var pts = fc.points || [];
-    for (var j = 0; j < pts.length; j++) if (!byLead[pts[j].lead_hours]) return fc;   // lead mismatch: leave v23 alone
+    for (var j = 0; j < pts.length; j++) if (idxOf[pts[j].lead_hours] == null) return fc;   // lead mismatch: leave v23 alone
+
+    var cos = Math.cos, rad = Math.PI / 180;
+    var prevLat = fc.initial_lat, prevLon = fc.initial_lon;
     for (var k = 0; k < pts.length; k++) {
-      var v = byLead[pts[k].lead_hours];
-      pts[k].lat = v[0]; pts[k].lon = v[1];
-      pts[k].p10_lat = v[0]; pts[k].p90_lat = v[0];
-      pts[k].p10_lon = v[1]; pts[k].p90_lon = v[1];
+      var p = pts[k], n = idxOf[p.lead_hours];
+      p.lat = run.lats[n]; p.lon = run.lons[n];
+      if (run.has_intensity) {
+        p.vmax = run.vmax_kt[n];
+        p.pres = run.pres_hpa[n];
+        p.rmw = run.rmw_km[n];
+        p.radiiKm = run.radii_km[n];
+      }
+      // v62's own 90% member radius, laid perpendicular to the local heading —
+      // same geometry as the v23 cone, but the number is v62's.
+      var half = (run.cone_km && run.cone_km[n] != null) ? run.cone_km[n] / 111.2 : 0;
+      var ck = cos(p.lat * rad) || 1e-6;
+      var dxE = (aiPmod(p.lon - prevLon + 180, 360) - 180) * ck, dyN = p.lat - prevLat;
+      var mag = Math.hypot(dxE, dyN) || 1e-6;
+      var offLat = (dxE / mag) * half, offLon = ((-dyN / mag) * half) / ck;
+      p.p90_lat = p.lat + offLat; p.p90_lon = p.lon + offLon;
+      p.p10_lat = p.lat - offLat; p.p10_lon = p.lon - offLon;
+      prevLat = p.lat; prevLon = p.lon;
     }
-    fc.motion = null;          // tfSpaghetti already no-ops without motion
+    fc.motion = null;          // tfSpaghetti draws from v23 motion; v62 ships real members instead
     fc.trackSource = "v62";
     fc.v62 = run;
     return fc;
+  }
+  // v62's drawn routes are real ensemble members, not samples from a covariance.
+  function tfSpaghettiFor(fc) {
+    return (fc && fc.trackSource === "v62") ? tfV62Spaghetti(fc) : tfSpaghetti(fc);
+  }
+  function tfV62Spaghetti(fc) {
+    var run = fc && fc.v62;
+    if (!run || !run.members || !run.members.length) return { lat: [], lon: [] };
+    var lat = [], lon = [];
+    for (var m = 0; m < run.members.length; m++) {
+      lat.push(fc.initial_lat); lon.push(fc.initial_lon);
+      for (var k = 0; k < run.members[m].lats.length; k++) {
+        lat.push(run.members[m].lats[k]); lon.push(run.members[m].lons[k]);
+      }
+      lat.push(null); lon.push(null);     // break between members
+    }
+    return { lat: lat, lon: lon };
   }
   function tfHindcastStatusText(fc) {
     var storm = currentStorm.name || "This storm";
@@ -2434,21 +2471,29 @@
       var r = fc.v62 || {}, score = "";
       if (r.track_mae_km != null) {
         score = " On this case it lands " + Math.round(r.track_mae_km) + " km mean from the real track"
-          + (r.persistence_mae_km != null ? " against persistence's " + Math.round(r.persistence_mae_km) + " km" : "") + ".";
+          + (r.persistence_mae_km != null ? ", against persistence's " + Math.round(r.persistence_mae_km) + " km" : "") + ".";
       }
-      return "🧪 " + storm + " — track from my v62 causal route, integrated from real analysis fields at this"
-        + " initialisation; wind, pressure and the 34/50/64 kt radii come from v23, because v62 forecasts"
-        + " position only. White is what actually happened." + score
-        + " No cone or sampled routes here: that spread is v23's own error covariance and doesn't describe"
-        + " v62's, so it isn't drawn around a v62 track. Scrub away from this initialisation and it returns"
-        + " to v23. Experimental, not an official forecast.";
+      var members = r.member_count ? (" The cone is v62's own " + (r.cone_percentile || 90) + "% radius over "
+        + r.member_count + " route members, and the faint lines are those members — real routes, not samples"
+        + " from a covariance.") : "";
+      return "🧪 " + storm + " — MODEL: v62 for everything here — track, wind, pressure, RMW and the"
+        + " 34/50/64 kt radii. The route is integrated from real analysis fields at this initialisation;"
+        + " the intensity and wind structure come from v62's frozen v37G head, coupled to the same causal"
+        + " pressure map. White is what actually happened." + score + members
+        + " Scrub away from this initialisation and it falls back to v23, which is field-free and can run"
+        + " anywhere in a storm's life. Experimental, not an official forecast.";
     }
-    var ens = tfRT.ens ? " Faint green lines are an ensemble of possible tracks sampled from the model's own forecast-error covariance; the shaded cone is the 90% area." : "";
-    return "🧪 " + storm + " — my TrackFormer v23 model forecast from this point, dots coloured by forecast intensity category (hover for wind, pressure & 34/50/64 kt radii; faint rings = predicted gale radius), vs what actually happened (white)." + ens + " Press play and it re-forecasts as the storm moves. Experimental, not an official forecast.";
+    var ens = tfRT.ens ? " Faint green lines are an ensemble of possible tracks sampled from v23's own forecast-error covariance; the shaded cone is the 90% area." : "";
+    return "🧪 " + storm + " — MODEL: v23 for everything here — track, wind, pressure and the 34/50/64 kt"
+      + " radii, from track history alone with no weather fields. Dots are coloured by forecast intensity"
+      + " category (hover for the full state; faint rings = predicted gale radius), against what actually"
+      + " happened (white)." + ens
+      + " v62 would need real analysis fields at this initialisation, and none are published for it."
+      + " Press play and it re-forecasts as the storm moves. Experimental, not an official forecast.";
   }
   function aiDrawHindcast(fc, initHour) {
     aiClearHindcast();
-    var d = tfHindcastData(fc, initHour), sp = tfSpaghetti(fc);
+    var d = tfHindcastData(fc, initHour), sp = tfSpaghettiFor(fc);
     function ring(r) { return { type: "scattergeo", mode: "lines", lat: r.lat, lon: r.lon, fill: "toself", meta: TF_HIND,
       fillcolor: "rgba(52,211,153,0.05)", line: { color: "rgba(52,211,153,0.28)", width: 1 }, hoverinfo: "text", text: r.text, showlegend: false }; }
     // Fixed 7-trace block so the follow-the-playhead restyle stays in place:
@@ -2479,7 +2524,7 @@
   function aiUpdateHindcast(fc, initHour) {
     var block = tfTraceIdx(TF_HIND);
     if (hindcastTraceCount !== 7 || block.length !== 7) { aiDrawHindcast(fc, initHour); return; }
-    var d = tfHindcastData(fc, initHour), sp = tfSpaghetti(fc), i0 = block[0];
+    var d = tfHindcastData(fc, initHour), sp = tfSpaghettiFor(fc), i0 = block[0];
     Plotly.restyle(els.map, {
       lat: [d.coneLat, sp.lat, d.rings[0].lat, d.rings[1].lat, d.rings[2].lat, d.actLat, d.meanLat],
       lon: [d.coneLon, sp.lon, d.rings[0].lon, d.rings[1].lon, d.rings[2].lon, d.actLon, d.meanLon]
