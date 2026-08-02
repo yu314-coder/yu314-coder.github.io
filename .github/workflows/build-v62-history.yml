@@ -14,6 +14,14 @@ name: Build v62 history hindcasts
 # So `count` should be several for old storms and 1 for post-2011 ones. Analyses
 # are pruned after each storm to keep the runner's disk bounded.
 on:
+  # Hourly, CFSR era only. That half is 672 storms / ~158 GB, which at three
+  # storms a run works through in ~9 days at 0.7 GB per run -- modest load on a
+  # public archive. The CDAS era is deliberately NOT scheduled: 78 MB per
+  # analysis with ~98% of each file discarded would be ~1.3 TB pulled from NOAA
+  # to generate 383 storms. Run those deliberately, by id, when a storm is worth
+  # it -- see the `storms` input.
+  schedule:
+    - cron: "40 * * * *"
   workflow_dispatch:
     inputs:
       storms:
@@ -24,6 +32,12 @@ on:
         description: "How many ungenerated storms to take when `storms` is blank (use 1 for post-2011/CDAS storms)"
         required: false
         default: "3"
+      era:
+        description: "Which analysis source to draw from"
+        required: false
+        default: "cfsr"
+        type: choice
+        options: ["cfsr", "cdas", "all"]
 
 permissions:
   contents: write
@@ -106,10 +120,13 @@ jobs:
           V62_CFSR_DIR: /tmp/v62-analysis
           MPLBACKEND: Agg
         run: |
-          if [ -n "${{ inputs.storms }}" ]; then
-            python scripts/build_v62_history.py ${{ inputs.storms }} --prune
+          STORMS="${{ inputs.storms }}"
+          COUNT="${{ inputs.count }}"; COUNT="${COUNT:-3}"
+          ERA="${{ inputs.era }}"; ERA="${ERA:-cfsr}"
+          if [ -n "$STORMS" ]; then
+            python scripts/build_v62_history.py $STORMS --prune
           else
-            python scripts/build_v62_history.py --top "${{ inputs.count }}" --skip-existing --prune
+            python scripts/build_v62_history.py --top "$COUNT" --era "$ERA" --skip-existing --prune
           fi
           df -h / | tail -1
 

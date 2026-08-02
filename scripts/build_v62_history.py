@@ -364,6 +364,9 @@ def main():
     ap.add_argument("--no-intensity", action="store_true")
     ap.add_argument("--skip-existing", action="store_true",
                     help="ignore storms already generated, so --top N resumes across runs")
+    ap.add_argument("--era", choices=("cfsr", "cdas", "all"), default="all",
+                    help="restrict by analysis source. cfsr is ~4.6 MB per analysis, "
+                         "cdas ~78 MB -- the scheduled backfill uses cfsr for that reason")
     ap.add_argument("--prune", action="store_true",
                     help="delete each storm's analyses after it is written (CI: a CDAS storm is ~3.7 GB)")
     args = ap.parse_args()
@@ -379,6 +382,15 @@ def main():
             if not pts:
                 continue
             catalogue[sid] = (year, storm)
+
+    if args.era != "all":
+        want_cfsr = args.era == "cfsr"
+        catalogue = {
+            sid: (yr, st) for sid, (yr, st) in catalogue.items()
+            if ((dt.datetime.fromisoformat(st["pts"][-1]["t"]).replace(tzinfo=dt.timezone.utc)
+                 <= CFSR_END) == want_cfsr)
+        }
+        log(f"{args.era.upper()} era: {len(catalogue)} storms in scope")
 
     done = set(load_index().get("hindcasts", {})) if args.skip_existing else set()
     if args.top:
