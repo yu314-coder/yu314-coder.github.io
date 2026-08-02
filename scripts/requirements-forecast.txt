@@ -6,3 +6,8 @@ beautifulsoup4
 xarray
 cfgrib
 eccodes
+# scipy is NOT a hard xarray dependency, but DataArray.interp() -- how the
+# storm-centred 17x17 patches are sampled -- refuses to run without it. Missing
+# it only surfaced in CI, where the v62 route fell back to v23 rather than
+# failing loudly.
+scipy
