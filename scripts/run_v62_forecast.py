@@ -352,11 +352,15 @@ def v62_intensity(fixes, field, state_pressure, state_fields, lat, lon,
     land_lon = terrain["lon"][cols_i].astype("float32")
 
     records = intensity_records(fixes)
-    if len(records) < 2:
-        return None, "fewer than two observed fixes"
+    if not records:
+        return None, "no observed fixes"
     track, _, _ = build_track_window(records, stats["tmean"].astype("float32"),
                                      stats["tstd"].astype("float32"), land_lat, land_lon)
-    cur, prev = records[-1], records[-2]
+    # A just-formed storm can have a single fix. build_track_window pads the window
+    # by repeating the earliest row, and the reference runner uses the current fix as
+    # its own predecessor in that case -- match it rather than refusing.
+    cur = records[-1]
+    prev = records[-2] if len(records) > 1 else cur
     if cur["vmax_kt"] is None or cur["pressure_hpa"] is None:
         return None, "current wind or pressure not reported"
 
@@ -408,13 +412,22 @@ def v62_track(points, issue, guard):
     mains = [cycle_key(base - dt.timedelta(hours=h)) for h in (0, 12, 24)]
     prevs = [cycle_key(base - dt.timedelta(hours=h)) for h in (24, 36, 48)]
 
-    centers = []
-    for key in mains:
-        c = center_at(points, key_to_dt(key))
-        if c is None:
-            log(f"  v62: no observed centre near {key}; track too short")
-            return None
-        centers.append(c)
+    # The t0 centre is mandatory. A storm younger than 24 h simply has no observed
+    # position at t-12/t-24 -- that is a missing input, not a reason to refuse the
+    # model. build_level_analysis_mean_route takes an availability pair for exactly
+    # this and renormalises its snapshot weights, so the history slots are zero-filled
+    # and flagged rather than fabricated, the same convention used everywhere else here.
+    centers = [center_at(points, key_to_dt(mains[0]))]
+    if centers[0] is None:
+        log(f"  v62: no observed centre near {mains[0]}; cannot anchor the route")
+        return None
+    for key in mains[1:]:
+        centers.append(center_at(points, key_to_dt(key)))
+    available = np.asarray([1.0 if c is not None else 0.0 for c in centers[1:]], dtype="float32")
+    if not available.all():
+        missing = [k for k, c in zip(mains[1:], centers[1:]) if c is None]
+        log(f"  v62: no observed centre at {', '.join(missing)}; "
+            f"running on the current analysis alone (history flagged unavailable)")
 
     for key in sorted(set(mains + prevs)):
         if key in paths:
@@ -427,16 +440,16 @@ def v62_track(points, issue, guard):
         paths[key] = p
 
     # local multi-level cache (the 75% term)
-    cur_levels, hist_levels = None, []
-    for i, (key, center) in enumerate(zip(mains, centers)):
-        u, v, _ = read_patch(paths[key], center[0], center[1])
-        stack = np.stack([u, v], axis=1).astype("float32")   # (3,2,17,17)
-        if i == 0:
-            cur_levels = stack
-        else:
-            hist_levels.append(stack)
-    hist_levels = np.concatenate(hist_levels, axis=0)          # (6,2,17,17)
-    available = np.ones((2,), dtype="float32")
+    u, v, _ = read_patch(paths[mains[0]], centers[0][0], centers[0][1])
+    cur_levels = np.stack([u, v], axis=1).astype("float32")     # (3,2,17,17)
+    hist_levels = []
+    for key, center in zip(mains[1:], centers[1:]):
+        if center is None:
+            hist_levels.append(np.zeros((3, 2, 17, 17), dtype="float32"))
+            continue
+        hu, hv, _ = read_patch(paths[key], center[0], center[1])
+        hist_levels.append(np.stack([hu, hv], axis=1).astype("float32"))
+    hist_levels = np.concatenate(hist_levels, axis=0)           # (6,2,17,17)
 
     base_lat, base_lon = float(points[-1]["lat"]), float(points[-1]["lon"])
     local_states, local_weights, local_diag = build_level_analysis_mean_route(
@@ -482,6 +495,7 @@ def v62_track(points, issue, guard):
         "cycles_used": sorted(set(mains + prevs)),
         "local_weight": LOCAL_WEIGHT, "pacific_weight": PACIFIC_WEIGHT,
         "domain": "100-190E, 0-60N",
+        "history_available": [float(x) for x in available],
         "source": "NOAA NOMADS GFS 0.25 degree f000 analysis only",
         "future_rows_used_for_inference": 0,
         "official_forecasts_used_for_inference": False,

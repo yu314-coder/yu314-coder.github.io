@@ -1894,6 +1894,12 @@
       var v = pre.v62, lag = v.analysis_lag_hours, full = pre.intensity_source === "v62";
       var cone = v.member_count ? (" The cone is v62's own " + (v.cone_percentile || 90) + "% radius over "
         + v.member_count + " route members.") : "";
+      // A storm younger than 24 h has no observed position at t-12/t-24, so those
+      // snapshots are flagged unavailable rather than filled in. Say so.
+      var partial = (v.history_available && v.history_available.indexOf(0) !== -1)
+        ? " This storm is younger than 24 h, so the t-12/t-24 snapshots have no observed centre and are"
+          + " flagged unavailable — the route runs on the current analysis alone rather than on invented history."
+        : "";
       return "🧪 " + storm + " — MODEL: v62"
         + (full ? " for everything here — track, wind, pressure, RMW and the 34/50/64 kt radii."
                 : " for the track; wind and pressure fall back to v23 because v62's structure head"
@@ -1903,11 +1909,12 @@
         + (lag != null ? " (" + lag + " h before this issuance)" : "")
         + " and earlier cycles only — every input was checked against the issue time before use, so no"
         + " forecast field, no official JMA/JTWC track and no post-issue observation reaches it."
-        + cone + " Experimental, not an official forecast.";
+        + cone + partial + " Experimental, not an official forecast.";
     }
     return "🧪 " + storm + " — MODEL: v23 for everything here — track, wind and pressure — at full"
-      + " precision (10-seed fp32, computed server-side). v62 needs a posted GFS analysis and 24 h of"
-      + " track history; one of those wasn't available for this storm, so this is v23's own forecast." + tail;
+      + " precision (10-seed fp32, computed server-side). v62 runs on storms younger than 24 h too, so"
+      + " this only happens when no GFS analysis cycle is posted at all; when that clears, v62 takes"
+      + " over again." + tail;
   }
   // Fresh only if it was computed from the exact same JMA analysis currently on
   // screen -- never show a precomputed forecast that's one issuance behind.
