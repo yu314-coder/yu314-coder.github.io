@@ -1998,11 +1998,18 @@
   // that alone was most of why the browser's forecast pointed in nearly the
   // opposite direction from the reference implementation's.
   var TF_COASTLINE_URL = "model/coastline.json?v=20260730v23";
+  // Published v62 hindcasts, keyed by IBTrACS storm id (scripts/build_v62_hindcasts.py).
+  // History mode uses v62 for the track ONLY where a real published run matches the
+  // storm and initialisation on screen. v62 integrates a route from actual analysis
+  // fields, which do not exist for most past storms -- NOMADS keeps ~9 days of GFS --
+  // so everywhere else this stays on v23, which is field-free by design.
+  var TF_V62_HINDCAST_URL = "model/v62-hindcasts.json?v=20260802v62";
   var TF_NM = 1.852;                                    // km per nautical mile
   var TF_ENS_N = 40;                                    // ensemble routes to draw
   var TF_NSEED = 5;                                     // seeds actually shipped (of the 10 published)
-  var tfRT = { sessions: null, meta: null, ens: null, cons: null, coastline: null };
+  var tfRT = { sessions: null, meta: null, ens: null, cons: null, coastline: null, v62: null };
   var hindcastTraceCount = 0;
+  var hindcastLastSource = null;   // so the status follows the track in and out of v62
   var consensusTraceCount = 0;
   // Overlay tags. Both overlays can be on at once (the consensus stays visible while the
   // hindcast animates), so traces are located by tag, never by position in els.map.data.
@@ -2033,9 +2040,10 @@
         tfLoadSeedsSequential(TF_MODEL_URLS),
         fetch(TF_ENS_URL).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
         fetch(TF_CONS_URL).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
-        fetch(TF_COASTLINE_URL).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
+        fetch(TF_COASTLINE_URL).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
+        fetch(TF_V62_HINDCAST_URL).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
       ]);
-    }).then(function (r) { tfRT.meta = r[0]; tfRT.sessions = r[1]; tfRT.ens = r[2]; tfRT.cons = r[3]; tfRT.coastline = r[4]; });
+    }).then(function (r) { tfRT.meta = r[0]; tfRT.sessions = r[1]; tfRT.ens = r[2]; tfRT.cons = r[3]; tfRT.coastline = r[4]; tfRT.v62 = r[5]; });
   }
   // Deterministic seeded standard-normals (mulberry32 + Box–Muller) so ensemble
   // routes stay stable across follow-the-playhead redraws (no flicker), yet morph
@@ -2350,8 +2358,12 @@
     var pts = fc.points || [], rev = pts.slice().reverse();
     var meanLat = [fc.initial_lat], meanLon = [fc.initial_lon], meanTxt = ["AI init · " + fmtLatLon(fc.initial_lat, fc.initial_lon)];
     pts.forEach(function (p) { meanLat.push(p.lat); meanLon.push(p.lon); meanTxt.push(tfHover(p)); });
-    var coneLat = [fc.initial_lat].concat(pts.map(function (p) { return p.p90_lat; })).concat(rev.map(function (p) { return p.p10_lat; }));
-    var coneLon = [fc.initial_lon].concat(pts.map(function (p) { return p.p90_lon; })).concat(rev.map(function (p) { return p.p10_lon; }));
+    // A v62 track gets no cone at all — v23's error covariance doesn't describe
+    // it. Emitting nothing rather than a zero-width polygon, so the status line's
+    // "no cone" is literally what's drawn.
+    var v62Track = fc.trackSource === "v62";
+    var coneLat = v62Track ? [] : [fc.initial_lat].concat(pts.map(function (p) { return p.p90_lat; })).concat(rev.map(function (p) { return p.p10_lat; }));
+    var coneLon = v62Track ? [] : [fc.initial_lon].concat(pts.map(function (p) { return p.p90_lon; })).concat(rev.map(function (p) { return p.p10_lon; }));
     var actLat = [fc.initial_lat], actLon = [fc.initial_lon];
     currentStorm.pts.forEach(function (p) { if (p.h > initHour + 0.01 && p.la != null) { actLat.push(p.la); actLon.push(p.lo); } });
     var rings = [24, 72, 120].map(function (L) {
@@ -2366,9 +2378,73 @@
     return { coneLat: coneLat, coneLon: coneLon, rings: rings, actLat: actLat, actLon: actLon,
       meanLat: meanLat, meanLon: meanLon, meanTxt: meanTxt, meanColors: tfCatColors(fc) };
   }
-  function tfHindcastStatusText() {
+  // Real UTC time of the storm's own clock at a scrub position.
+  function tfStormTimeAt(hour) {
+    var pts = (currentStorm && currentStorm.pts) || [], best = null, bd = Infinity;
+    for (var i = 0; i < pts.length; i++) {
+      var d = Math.abs(pts[i].h - hour);
+      if (d < bd) { bd = d; best = pts[i]; }
+    }
+    if (!best || !best.t) return null;
+    var t = best.t;
+    if (!/[Zz]$|[+\-]\d\d:?\d\d$/.test(t)) t += "Z";
+    var ms = Date.parse(t);
+    return isFinite(ms) ? ms : null;
+  }
+  // A published v62 run for THIS storm at THIS initialisation, or null.
+  function tfV62For(initHour) {
+    var tbl = tfRT.v62 && tfRT.v62.hindcasts;
+    if (!tbl || !currentSid) return null;
+    var runs = tbl[currentSid];
+    if (!runs || !runs.length) return null;
+    var ms = tfStormTimeAt(initHour);
+    if (ms == null) return null;
+    for (var i = 0; i < runs.length; i++) {
+      var t = Date.parse(runs[i].issue_time_utc);
+      if (isFinite(t) && Math.abs(t - ms) <= 3 * 3600000) return runs[i];
+    }
+    return null;
+  }
+  // Swap v23's positions for v62's, keeping v23's intensity, pressure and radii —
+  // v62 forecasts position only. The cone and the sampled routes are v23's own
+  // error covariance and say nothing about v62's, so both are dropped rather
+  // than drawn around a track they don't describe.
+  function tfApplyV62(fc, initHour) {
+    fc.trackSource = "v23";
+    var run = tfV62For(initHour);
+    if (!run) return fc;
+    var byLead = {};
+    for (var i = 0; i < run.lead_hours.length; i++) byLead[run.lead_hours[i]] = [run.lats[i], run.lons[i]];
+    var pts = fc.points || [];
+    for (var j = 0; j < pts.length; j++) if (!byLead[pts[j].lead_hours]) return fc;   // lead mismatch: leave v23 alone
+    for (var k = 0; k < pts.length; k++) {
+      var v = byLead[pts[k].lead_hours];
+      pts[k].lat = v[0]; pts[k].lon = v[1];
+      pts[k].p10_lat = v[0]; pts[k].p90_lat = v[0];
+      pts[k].p10_lon = v[1]; pts[k].p90_lon = v[1];
+    }
+    fc.motion = null;          // tfSpaghetti already no-ops without motion
+    fc.trackSource = "v62";
+    fc.v62 = run;
+    return fc;
+  }
+  function tfHindcastStatusText(fc) {
+    var storm = currentStorm.name || "This storm";
+    if (fc && fc.trackSource === "v62") {
+      var r = fc.v62 || {}, score = "";
+      if (r.track_mae_km != null) {
+        score = " On this case it lands " + Math.round(r.track_mae_km) + " km mean from the real track"
+          + (r.persistence_mae_km != null ? " against persistence's " + Math.round(r.persistence_mae_km) + " km" : "") + ".";
+      }
+      return "🧪 " + storm + " — track from my v62 causal route, integrated from real analysis fields at this"
+        + " initialisation; wind, pressure and the 34/50/64 kt radii come from v23, because v62 forecasts"
+        + " position only. White is what actually happened." + score
+        + " No cone or sampled routes here: that spread is v23's own error covariance and doesn't describe"
+        + " v62's, so it isn't drawn around a v62 track. Scrub away from this initialisation and it returns"
+        + " to v23. Experimental, not an official forecast.";
+    }
     var ens = tfRT.ens ? " Faint green lines are an ensemble of possible tracks sampled from the model's own forecast-error covariance; the shaded cone is the 90% area." : "";
-    return "🧪 " + (currentStorm.name || "This storm") + " — my TrackFormer model forecast from this point, dots coloured by forecast intensity category (hover for wind, pressure & 34/50/64 kt radii; faint rings = predicted gale radius), vs what actually happened (white)." + ens + " Press play and it re-forecasts as the storm moves. Experimental, not an official forecast.";
+    return "🧪 " + storm + " — my TrackFormer v23 model forecast from this point, dots coloured by forecast intensity category (hover for wind, pressure & 34/50/64 kt radii; faint rings = predicted gale radius), vs what actually happened (white)." + ens + " Press play and it re-forecasts as the storm moves. Experimental, not an official forecast.";
   }
   function aiDrawHindcast(fc, initHour) {
     aiClearHindcast();
@@ -2395,7 +2471,8 @@
     Plotly.addTraces(els.map, traces);
     hindcastTraceCount = traces.length;   // fixed 7, so a follow-update can restyle in place
     if (els.hindcastBtn) { els.hindcastBtn.setAttribute("aria-pressed", "true"); els.hindcastBtn.classList.add("is-on"); }
-    aiSetHindcastStatus(tfHindcastStatusText(), "on");
+    hindcastLastSource = fc && fc.trackSource;
+    aiSetHindcastStatus(tfHindcastStatusText(fc), "on");
   }
   // In-place update (restyle) so the overlay follows the playhead smoothly, no
   // flicker from delete+add. Falls back to a full redraw if the layout drifted.
@@ -2409,6 +2486,10 @@
     }, [i0, i0 + 1, i0 + 2, i0 + 3, i0 + 4, i0 + 5, i0 + 6]);
     Plotly.restyle(els.map, { text: [d.rings[0].text, d.rings[1].text, d.rings[2].text, ACT_HOVER, d.meanTxt] }, [i0 + 2, i0 + 3, i0 + 4, i0 + 5, i0 + 6]);
     Plotly.restyle(els.map, { "marker.color": [d.meanColors] }, [i0 + 6]);
+    if (fc && fc.trackSource !== hindcastLastSource) {
+      hindcastLastSource = fc.trackSource;
+      aiSetHindcastStatus(tfHindcastStatusText(fc), "on");
+    }
   }
   // While the overlay is on, re-forecast from the current playhead as the animation
   // (or a manual scrub) moves — throttled + in-flight-guarded + updated in place.
@@ -2420,6 +2501,7 @@
     hindcastFollowTs = now; hindcastFollowRun = true;
     var h = Number(els.slider.value);
     tfRunModel(currentStorm.pts, h).then(function (fc) {
+      tfApplyV62(fc, h);
       if (hindcastTraceCount > 0) aiUpdateHindcast(fc, h);
     }, function () {}).then(function () { hindcastFollowRun = false; });
   }
@@ -2760,7 +2842,7 @@
       .then(function () { return tfRunModel(currentStorm.pts, initHour); })
       .then(function (fc) {
         aiLoading = false;
-        aiDrawHindcast(fc, initHour);
+        aiDrawHindcast(tfApplyV62(fc, initHour), initHour);
       })
       .catch(function (e) { aiLoading = false; aiSetHindcastStatus(((e && e.message) || String(e)), "err"); });
   }

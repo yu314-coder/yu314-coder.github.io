@@ -1,0 +1,93 @@
+{
+  "generated_at": "2026-08-02T09:08:05Z",
+  "note": "Published v62 runs only. History mode uses v62 for the track where an entry matches the storm and initialisation on screen, and v23 everywhere else -- v62 needs real analysis fields, which do not exist for most past storms.",
+  "intensity_source": "v23 (v62 forecasts position only)",
+  "hindcasts": {
+    "1979275N06159": [
+      {
+        "issue_time_utc": "1979-10-12T00:00:00Z",
+        "lead_hours": [
+          6,
+          12,
+          18,
+          24,
+          30,
+          36,
+          42,
+          48,
+          54,
+          60,
+          66,
+          72,
+          78,
+          84,
+          90,
+          96,
+          102,
+          108,
+          114,
+          120
+        ],
+        "lats": [
+          16.86,
+          17.289,
+          17.675,
+          18.005,
+          18.274,
+          18.484,
+          18.649,
+          18.794,
+          18.949,
+          19.129,
+          19.336,
+          19.569,
+          19.825,
+          20.09,
+          20.352,
+          20.613,
+          20.874,
+          21.133,
+          21.396,
+          21.668
+        ],
+        "lons": [
+          137.717,
+          137.112,
+          136.487,
+          135.849,
+          135.205,
+          134.572,
+          133.965,
+          133.396,
+          132.864,
+          132.361,
+          131.874,
+          131.39,
+          130.905,
+          130.425,
+          129.956,
+          129.499,
+          129.054,
+          128.622,
+          128.203,
+          127.791
+        ],
+        "model": "Latest v62 75% local multi-level + 25% Pacific-domain route",
+        "source": "NOAA CFSR historical analysis at and before the issue time plus the IBTrACS track history through the issue. Later IBTrACS rows are verification truth only. CFSR is a public downloadable analysis/reanalysis source suitable for a GitHub Actions replay.",
+        "track_mae_km": 141.207,
+        "track_error_120h_km": 36.971,
+        "persistence_mae_km": 652.479,
+        "future_rows_used_for_inference": 0,
+        "official_forecasts_used_for_inference": false,
+        "manifest": "track_build/tip_v62_v23_public_data.json"
+      }
+    ]
+  },
+  "skipped": [
+    {
+      "manifest": "track_build/dolphin_v62_v23_public_data.json",
+      "storm": "Dolphin",
+      "reason": "'Dolphin' not in 2026 season data (not archived yet?)"
+    }
+  ]
+}
