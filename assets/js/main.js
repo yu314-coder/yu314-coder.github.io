@@ -831,7 +831,8 @@
     lives: 3,
     level: 1,
     layoutName: '',
-    speed: 4.2,
+    speed: 5,
+    fever: false,
     combo: 0,
     levelFlash: 0,
     tick: 0,
@@ -840,7 +841,13 @@
     BASE_W: 104,
     WIDE_W: 184,
     SHRINK_W: 68,
-    MAX_SPEED: 12,
+    MAX_SPEED: 15,
+    // A frame at top speed covers more than a brick's height, so movement is
+    // sub-stepped at this granularity — otherwise a fast ball tunnels straight
+    // through bricks it should have broken.
+    SUBSTEP: 6,
+    // Eight bricks without touching the paddle and the board catches fire.
+    FEVER_AT: 8,
     // The wall creeps down, so a level is a race rather than an open-ended
     // rally. Generous first grace period, then steady pressure.
     DESCEND_FIRST: 26000,
@@ -942,7 +949,8 @@
     init: function(game) {
       this.lives = 3;
       this.level = 1;
-      this.speed = 4.2;
+      this.speed = 5;
+      this.fever = false;
       this.combo = 0;
       this.tick = 0;
       this.netFlash = 0;
@@ -1160,8 +1168,7 @@
       this.drawBolts(ctx, game);
       this.drawPowerups(ctx, canvas, game);
       this.drawHud(ctx, canvas, now);
-      this.collisionDetection(game, now);
-      this.moveBalls(canvas, game, now);
+      this.stepBalls(canvas, game, now);
       this.movePaddle(canvas);
       this.stepDescent(game, canvas, now);
     },
@@ -1284,8 +1291,16 @@
         return false;
       }
 
-      if (fromBall) this.combo++;
-      const pts = fromBall ? 10 + (this.combo - 1) * 5 : 10;
+      if (fromBall) {
+        this.combo++;
+        if (this.combo >= this.FEVER_AT && !this.fever) {
+          this.fever = true;
+          SFX.seq([784, 988, 1319], 'triangle', 0.13, 0.07);
+          Fx.text(b.x + b.w / 2, b.y - 10, '🔥 FEVER — DOUBLE POINTS', '#f59e0b');
+          game.shake(5, 12);
+        }
+      }
+      const pts = (fromBall ? 10 + (this.combo - 1) * 5 : 10) * (this.fever ? 2 : 1);
       game.updateScore(game.score + pts);
       SFX.brick(fromBall ? this.combo : 1);
       Fx.burst(hitX, b.y + b.h / 2, this.brickColor(b), 12);
@@ -1374,7 +1389,7 @@
     checkLevelClear: function(game) {
       if (this.bricksLeft() > 0) return false;
       this.level++;
-      this.speed = Math.min(this.speed * 1.15, this.MAX_SPEED);
+      this.speed = Math.min(this.speed * 1.16, this.MAX_SPEED);
       SFX.levelUp();
       this.buildLevel(game.canvas);
       this.resetBalls(game.canvas);
@@ -1398,14 +1413,23 @@
       if (this.effects.laserUntil > now) fx += ' 🔫';
       if (this.effects.net > 0) fx += ' 🕸️×' + this.effects.net;
       ctx.textAlign = 'right';
-      ctx.fillText('❤️'.repeat(Math.max(0, this.lives)) + fx, canvas.width - 12, 24);
+      ctx.fillText('❤️'.repeat(Math.max(0, this.lives)), canvas.width - 12, 24);
+
+      // Effects live along the bottom. On the top row they collided with the
+      // combo readout once a few were stacked up.
+      if (fx) {
+        ctx.textAlign = 'left';
+        ctx.fillText(fx.trim(), 12, canvas.height - 22);
+      }
 
       if (this.combo >= 2) {
         ctx.textAlign = 'center';
         ctx.font = 'bold 17px "Segoe UI", Arial, sans-serif';
-        ctx.fillStyle = '#fbbf24';
-        ctx.fillText('COMBO ×' + this.combo + ' · ' + Math.round(this.dropChance() * 100) + '% drops',
-                     canvas.width / 2, 24);
+        ctx.fillStyle = this.fever ? '#f59e0b' : '#fbbf24';
+        ctx.fillText(this.fever
+          ? '🔥 FEVER ×' + this.combo + ' · 2× pts'
+          : 'COMBO ×' + this.combo + ' · ' + Math.round(this.dropChance() * 100) + '% drops',
+          canvas.width / 2, 24);
       }
 
       if (this.levelFlash > 0) {
@@ -1476,6 +1500,7 @@
     drawBalls: function(ctx, now) {
       const slow = this.effects.slowUntil > now;
       const pierce = this.effects.pierceUntil > now;
+      const hot = this.fever;
       this.balls.forEach(ball => {
         // Comet trail — the cheapest possible sense of speed.
         for (let i = 0; i < ball.trail.length; i++) {
@@ -1483,7 +1508,7 @@
           ctx.globalAlpha = t * 0.32;
           ctx.beginPath();
           ctx.arc(ball.trail[i].x, ball.trail[i].y, ball.radius * (0.35 + t * 0.5), 0, Math.PI * 2);
-          ctx.fillStyle = pierce ? '#f472b6' : (slow ? '#fbbf24' : ball.color);
+          ctx.fillStyle = hot ? '#f59e0b' : (pierce ? '#f472b6' : (slow ? '#fbbf24' : ball.color));
           ctx.fill();
         }
         ctx.globalAlpha = 1;
@@ -1492,7 +1517,7 @@
         ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
         const gradient = ctx.createRadialGradient(ball.x - 2, ball.y - 2, 2, ball.x, ball.y, ball.radius);
         gradient.addColorStop(0, '#fff');
-        gradient.addColorStop(1, pierce ? '#f472b6' : (slow ? '#fbbf24' : ball.color));
+        gradient.addColorStop(1, hot ? '#f59e0b' : (pierce ? '#f472b6' : (slow ? '#fbbf24' : ball.color)));
         ctx.fillStyle = gradient;
         ctx.fill();
         ctx.closePath();
@@ -1553,77 +1578,89 @@
       }
     },
 
-    collisionDetection: function(game, now) {
-      const pierce = this.effects.pierceUntil > now;
+    // One brick per sub-step, so a fast ball still registers every hit.
+    hitBricks: function(ball, game, pierce) {
       for (const b of this.bricks) {
         if (b.hp <= 0) continue;
-        for (const ball of this.balls) {
-          if (ball.x > b.x && ball.x < b.x + b.w &&
-              ball.y > b.y && ball.y < b.y + b.h) {
-            // Pierce carries straight through breakable bricks; steel always
-            // bounces, so it stays a wall even at full power.
-            if (!pierce || b.kind === 'steel') ball.dy = -ball.dy;
-            if (b.kind === 'steel') {
-              SFX.beep(160, 0.05, 'square', 0.08);
-              Fx.burst(ball.x, b.y + b.h / 2, '#94a3b8', 4, 1.5);
-            } else if (this.damageBrick(b, game, ball.x, true)) {
-              return;
-            }
-            break; // this brick is done for this frame
+        if (ball.x > b.x && ball.x < b.x + b.w && ball.y > b.y && ball.y < b.y + b.h) {
+          // Pierce carries straight through breakable bricks; steel always
+          // bounces, so it stays a wall even at full power.
+          if (!pierce || b.kind === 'steel') ball.dy = -ball.dy;
+          if (b.kind === 'steel') {
+            SFX.beep(160, 0.05, 'square', 0.08);
+            Fx.burst(ball.x, b.y + b.h / 2, '#94a3b8', 4, 1.5);
+            return false;
           }
+          return this.damageBrick(b, game, ball.x, true);
         }
       }
+      return false;
     },
 
-    moveBalls: function(canvas, game, now) {
+    stepBalls: function(canvas, game, now) {
       const factor = this.ballFactor(now);
+      const pierce = this.effects.pierceUntil > now;
       const paddleTop = canvas.height - this.paddle.height - 4;
 
       for (let i = this.balls.length - 1; i >= 0; i--) {
         const ball = this.balls[i];
-        const dx = ball.dx * factor;
-        const dy = ball.dy * factor;
-
-        if (ball.x + dx > canvas.width - ball.radius || ball.x + dx < ball.radius) {
-          ball.dx = -ball.dx;
-        }
-
-        if (ball.y + dy < ball.radius) {
-          ball.dy = -ball.dy;
-        } else if (ball.dy > 0 &&
-                   ball.y + dy > paddleTop - ball.radius &&
-                   ball.y < paddleTop) {
-          if (ball.x > this.paddle.x - ball.radius &&
-              ball.x < this.paddle.x + this.paddle.width + ball.radius) {
-            const hit = (ball.x - (this.paddle.x + this.paddle.width / 2)) / (this.paddle.width / 2);
-            const angle = hit * (Math.PI / 3);
-            const v = Math.hypot(ball.dx, ball.dy);
-            ball.dx = v * Math.sin(angle);
-            ball.dy = -Math.abs(v * Math.cos(angle));
-            this.combo = 0;
-            SFX.paddle();
-            Fx.burst(ball.x, paddleTop, '#22d3ee', 4, 1.4);
-          }
-        } else if (ball.y + dy > canvas.height - ball.radius) {
-          // Safety net: one free bounce, then it's spent.
-          if (this.effects.net > 0) {
-            this.effects.net--;
-            this.netFlash = 10;
-            ball.dy = -Math.abs(ball.dy);
-            SFX.beep(520, 0.09, 'triangle', 0.11, 760);
-            Fx.burst(ball.x, this.netY(canvas), '#4ade80', 12, 2.4);
-            Fx.text(ball.x, this.netY(canvas) - 18, 'SAVED', '#4ade80');
-          } else {
-            this.balls.splice(i, 1);
-            continue;
-          }
-        }
-
         ball.trail.push({ x: ball.x, y: ball.y });
         if (ball.trail.length > 8) ball.trail.shift();
 
-        ball.x += ball.dx * factor;
-        ball.y += ball.dy * factor;
+        const per = Math.hypot(ball.dx, ball.dy) * factor;
+        const steps = Math.max(1, Math.ceil(per / this.SUBSTEP));
+        let lost = false;
+
+        for (let n = 0; n < steps; n++) {
+          const sx = ball.dx * factor / steps;
+          const sy = ball.dy * factor / steps;
+
+          if (ball.x + sx > canvas.width - ball.radius || ball.x + sx < ball.radius) {
+            ball.dx = -ball.dx;
+          }
+
+          if (ball.y + sy < ball.radius) {
+            ball.dy = -ball.dy;
+          } else if (ball.dy > 0 &&
+                     ball.y + sy > paddleTop - ball.radius &&
+                     ball.y < paddleTop) {
+            if (ball.x > this.paddle.x - ball.radius &&
+                ball.x < this.paddle.x + this.paddle.width + ball.radius) {
+              const hit = (ball.x - (this.paddle.x + this.paddle.width / 2)) / (this.paddle.width / 2);
+              const angle = hit * (Math.PI / 3);
+              const v = Math.hypot(ball.dx, ball.dy);
+              ball.dx = v * Math.sin(angle);
+              ball.dy = -Math.abs(v * Math.cos(angle));
+              this.combo = 0;
+              this.fever = false;
+              SFX.paddle();
+              Fx.burst(ball.x, paddleTop, '#22d3ee', 4, 1.4);
+            }
+          } else if (ball.y + sy > canvas.height - ball.radius) {
+            // Safety net: one free bounce, then it's spent.
+            if (this.effects.net > 0) {
+              this.effects.net--;
+              this.netFlash = 10;
+              ball.dy = -Math.abs(ball.dy);
+              SFX.beep(520, 0.09, 'triangle', 0.11, 760);
+              Fx.burst(ball.x, this.netY(canvas), '#4ade80', 12, 2.4);
+              Fx.text(ball.x, this.netY(canvas) - 18, 'SAVED', '#4ade80');
+            } else {
+              this.balls.splice(i, 1);
+              lost = true;
+              break;
+            }
+          }
+
+          ball.x += ball.dx * factor / steps;
+          ball.y += ball.dy * factor / steps;
+
+          // Clearing the level rebuilds the board and replaces this.balls, so
+          // there is nothing left to iterate.
+          if (this.hitBricks(ball, game, pierce)) return;
+        }
+
+        if (lost) continue;
 
         // Keep the ball from settling into a near-horizontal groove, which used
         // to leave it ricocheting along the walls for ages with nothing to hit.
@@ -1637,6 +1674,7 @@
       if (this.balls.length === 0) {
         this.lives--;
         this.combo = 0;
+        this.fever = false;
         SFX.lifeLost();
         game.shake(7, 14);
         if (this.lives <= 0) {
@@ -1669,7 +1707,7 @@
       const paddleTop = canvas.height - this.paddle.height - 4;
       const half = this.paddle.width / 2;
       const centre = this.paddle.x + half;
-      const step = this.paddle.speed * 1.7;
+      const step = this.paddle.speed * 2.2;
       const factor = this.ballFactor(now);
 
       // Every descending ball, with when it lands and where. The landing x is
@@ -1690,47 +1728,63 @@
 
       let target;
       if (pick) {
-        const detour = this.bestCapsule(canvas, pick.t, pick.x, centre, step);
+        const detour = this.bestCapsule(canvas, pick.t, pick.x, centre, step, now);
         if (detour !== null) target = detour;
-        else target = pick.x - this.aimBias(pick.x, pick.t, canvas);
+        else target = pick.x - this.aimBias(pick.x, pick.t, canvas, now);
       } else {
-        const detour = this.bestCapsule(canvas, Infinity, null, centre, step);
-        target = detour !== null ? detour : this.dodge(canvas, centre);
+        const detour = this.bestCapsule(canvas, Infinity, null, centre, step, now);
+        if (detour !== null) target = detour;
+        else if (this.effects.laserUntil > now) {
+          // Nothing to catch and the cannon is firing: park under the thickest
+          // part of the wall so the bolts aren't wasted on empty space.
+          const dense = this.densestX(canvas);
+          target = dense === null ? this.dodge(canvas, centre) : dense;
+        } else {
+          target = this.dodge(canvas, centre);
+        }
       }
 
       const move = Math.max(-step, Math.min(step, target - centre));
       this.paddle.x = Math.max(0, Math.min(canvas.width - this.paddle.width, this.paddle.x + move));
     },
 
-    // Unfold the wall bounces: the path is a triangle wave over the playable
-    // span, so one modulo gets the landing point without a stepped simulation.
-    predictX: function(ball, frames, canvas, factor) {
-      const lo = ball.radius, hi = canvas.width - ball.radius;
-      const span = hi - lo;
-      if (span <= 0) return canvas.width / 2;
-      const period = span * 2;
-      let p = (ball.x + ball.dx * (factor === undefined ? 1 : factor) * frames) - lo;
-      p = ((p % period) + period) % period;
-      return lo + (p <= span ? p : period - p);
+    // What a capsule is worth *right now*. An extra life is close to priceless
+    // on the last one and nearly worthless on the sixth; a net you already have
+    // three of is not worth crossing the board for.
+    capsuleValue: function(type, now) {
+      switch (type) {
+        case 'H': return this.lives <= 1 ? 100 : (this.lives >= 5 ? 8 : 40);
+        case 'N': return this.effects.net >= 3 ? 4 : 30;
+        case 'M': return this.balls.length >= 5 ? 6 : 26;
+        case 'P': return this.effects.pierceUntil > now ? 5 : 24;
+        case 'W': return this.effects.wide ? 3 : 22;
+        case 'L': return this.effects.laserUntil > now ? 5 : 20;
+        case 'S': return this.effects.slowUntil > now ? 4 : 16;
+        default:  return 0;
+      }
     },
 
     // A capsule is only worth a detour if we can reach it AND still get back
-    // under the ball afterwards. Hazards are never a target — they are the
-    // thing being avoided.
-    bestCapsule: function(canvas, ballT, ballX, centre, step) {
+    // under the ball. How much lateness is acceptable depends on what is in
+    // hand: a safety net makes a gamble cheap, a rushed ball makes it dear.
+    // Hazards are never a target — they are the thing being avoided.
+    bestCapsule: function(canvas, ballT, ballX, centre, step, now) {
       const paddleTop = canvas.height - this.paddle.height - 4;
-      let best = null, bestT = Infinity;
+      const slack = (this.effects.net > 0 ? 55 : 4)
+                  + (this.effects.slowUntil > now ? 10 : 0)
+                  - (this.effects.rushUntil > now ? 8 : 0);
+      let best = null, bestScore = 0;
       for (const p of this.powerups) {
         if (this.isHazard(p.type)) continue;
+        const value = this.capsuleValue(p.type, now);
+        if (value <= 6) continue;                                   // not worth moving for
         const t = (paddleTop - (p.y + p.h)) / p.vy;
         if (t < 0) continue;
         const x = p.x + p.w / 2;
-        if (Math.abs(x - centre) > step * t) continue;              // can't get there in time
-        if (ballX !== null) {
-          const back = Math.abs(ballX - x) / step;
-          if (t + back > ballT - 4) continue;                       // couldn't get back for the ball
-        }
-        if (t < bestT) { bestT = t; best = x; }
+        if (Math.abs(x - centre) > step * t) continue;               // can't get there in time
+        if (ballX !== null && t + Math.abs(ballX - x) / step > ballT - 4 + slack) continue;
+        const score = value / (1 + t / 60);                          // valuable, and soon
+        if (score > bestScore) { bestScore = score; best = x; }
       }
       return best;
     },
@@ -1749,12 +1803,55 @@
       return canvas.width / 2;
     },
 
+    // Where the wall is thickest, weighted by what each brick is worth taking
+    // out. This is both the best place to send a piercing ball and the best
+    // place to stand while the laser is firing.
+    densestX: function(canvas) {
+      const bins = 16, w = canvas.width / bins;
+      const tally = new Array(bins).fill(0);
+      for (const b of this.bricks) {
+        if (b.hp <= 0 || b.kind === 'steel') continue;
+        const i = Math.min(bins - 1, Math.max(0, Math.floor((b.x + b.w / 2) / w)));
+        tally[i] += b.kind === 'boom' ? 4 : (b.kind === 'key' ? 3 : 1);
+      }
+      let bi = -1, bv = 0;
+      for (let i = 0; i < bins; i++) if (tally[i] > bv) { bv = tally[i]; bi = i; }
+      return bi < 0 ? null : (bi + 0.5) * w;
+    },
+
+    // Unfold the wall bounces: the path is a triangle wave over the playable
+    // span, so one modulo gets the landing point without a stepped simulation.
+    predictX: function(ball, frames, canvas, factor) {
+      const lo = ball.radius, hi = canvas.width - ball.radius;
+      const span = hi - lo;
+      if (span <= 0) return canvas.width / 2;
+      const period = span * 2;
+      let p = (ball.x + ball.dx * (factor === undefined ? 1 : factor) * frames) - lo;
+      p = ((p % period) + period) % period;
+      return lo + (p <= span ? p : period - p);
+    },
+
     // Push the bounce toward the bricks worth hitting. Explosives and
     // keystones each take a chunk of the board with them, so they pull harder
     // than a plain brick; steel pulls not at all. Once the wall is close, the
     // lowest bricks are all that matter.
-    aimBias: function(ballX, frames, canvas) {
+    aimBias: function(ballX, frames, canvas, now) {
       if (frames > 70) return 0;   // no time to be fancy — just catch it
+      const goal = this.aimGoal(canvas, now);
+      if (goal === null) return 0;
+      const bias = (goal - ballX) / 240;
+      return Math.max(-1, Math.min(1, bias)) * (this.paddle.width * 0.30);
+    },
+
+    // Where to send the ball next. Piercing changes the answer completely:
+    // instead of the weighted middle of the board, drive it at the thickest
+    // stack, because it will go through all of it rather than bouncing off the
+    // first brick.
+    aimGoal: function(canvas, now) {
+      if (now !== undefined && this.effects.pierceUntil > now) {
+        const dense = this.densestX(canvas);
+        if (dense !== null) return dense;
+      }
       let lowest = 0;
       for (const b of this.bricks) {
         if (b.hp <= 0 || b.kind === 'steel') continue;
@@ -1770,9 +1867,7 @@
         sx += (b.x + b.w / 2) * wt;
         w += wt;
       }
-      if (!w) return 0;
-      const bias = (sx / w - ballX) / 240;
-      return Math.max(-1, Math.min(1, bias)) * (this.paddle.width * 0.30);
+      return w ? sx / w : null;
     },
 
     nearestPowerup: function(canvas) {
