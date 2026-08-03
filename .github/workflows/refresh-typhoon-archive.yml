@@ -1,0 +1,62 @@
+name: Refresh typhoon archive
+
+# The track archive under assets/data/typhoons/ had no refresher and quietly
+# went stale: the 2026 season stopped at Higos on 27 June while IBTrACS already
+# had Bavi, Maysak, Noul and Dolphin. This keeps it current.
+#
+# Daily is plenty. IBTrACS updates its operational best track a few times a
+# week, and the tracker already tops up genuinely active storms live in the
+# browser from NCEI's active-storms feed and the JTWC b-deck -- this job is what
+# turns those into permanent history once a storm is over.
+on:
+  schedule:
+    - cron: "25 5 * * *"
+  workflow_dispatch:
+    inputs:
+      full:
+        description: "Rebuild every season from the full WP file, not just the last three years"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-typhoon-archive
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # No third-party packages: the script is stdlib only (urllib + csv + json),
+      # so there is nothing to install and nothing to pin.
+      - name: Refresh from IBTrACS
+        run: |
+          if [ "${{ inputs.full }}" = "true" ]; then
+            python scripts/refresh_typhoon_archive.py --full
+          else
+            python scripts/refresh_typhoon_archive.py
+          fi
+
+      - name: Commit any new storms
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # The script also bumps the tracker's ?v= data token.
+          git add assets/data/typhoons assets/typhoon-tracker/app.js assets/typhoon-tracker/index.html
+          if git diff --staged --quiet; then
+            echo "archive already current"
+            exit 0
+          fi
+          git commit -m "Refresh typhoon track archive from IBTrACS"
+          git pull --rebase --autostash origin main
+          git push
