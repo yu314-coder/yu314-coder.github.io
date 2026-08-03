@@ -248,11 +248,19 @@
 
   // ===================================
   // Easter Egg Game System
+  //
+  // Three games behind the "easter" sequence. Two cross-cutting features live
+  // here rather than in each game: P pauses, and the autopilot hands the
+  // controls to a per-game algorithm (each game exposes autoPlay()). S gives
+  // control back — it's captured before the games see it, so Dino's duck and
+  // Snake's WASD-down keep working whenever the autopilot is off.
   // ===================================
   const GameSystem = {
     canvas: null,
     ctx: null,
     gameActive: false,
+    paused: false,
+    auto: false,
     currentGame: 'breakout',
     score: 0,
     games: {},
@@ -261,11 +269,14 @@
     shakeFrames: 0,
     shakeTotal: 1,
     shakeMag: 0,
+    pausedAt: 0,
+    pausePainted: false,
+    autoRestartTimer: null,
 
     HINTS: {
-      breakout: 'Arrows / mouse / drag — catch capsules: Wide · Multi-ball · Slow · ❤️',
-      dino: 'Space/⬆️ jump · ⬇️ duck & dive — pterodactyls join at 150!',
-      snake: 'Arrows / WASD / swipe — golden bonus every 5 foods (timed, +50)'
+      breakout: 'Arrows / mouse / drag — Wide/Slow last the whole level · long rallies drop far more',
+      dino: 'Space/⬆️ jump (twice for a double-jump) · ⬇️ duck — grab 🪙 and 🛡️',
+      snake: 'Arrows / WASD / swipe — edges wrap around · gold +50 · ✂️ trims your tail'
     },
 
     init: function() {
@@ -278,6 +289,8 @@
       this.setupControls();
       this.setupPointer();
       this.injectMuteButton();
+      this.injectAutoButton();
+      this.setupSystemKeys();
       this.refreshMeta();
     },
 
@@ -301,6 +314,33 @@
           if (a && a.style.display !== 'none' && a.style.display !== '') window.exitAdmin();
         }
       });
+    },
+
+    // Capture phase, so S reaches the autopilot before the games' own keydown
+    // listeners (Dino ducks on S, Snake turns down on S). Only swallowed while
+    // the autopilot is actually running.
+    setupSystemKeys: function() {
+      document.addEventListener('keydown', (e) => {
+        if (!this.overlayVisible()) return;
+        const k = (e.key || '').toLowerCase();
+
+        if (k === 's' && this.auto) {
+          e.stopPropagation();
+          e.preventDefault();
+          this.setAuto(false);
+          return;
+        }
+        if (k === 'p' && this.gameActive) {
+          e.stopPropagation();
+          e.preventDefault();
+          this.togglePause();
+        }
+      }, true);
+    },
+
+    overlayVisible: function() {
+      const o = document.getElementById('hidden-game');
+      return !!o && o.style.display !== 'none' && o.style.display !== '';
     },
 
     setupControls: function() {
@@ -328,52 +368,62 @@
       controls.appendChild(b);
     },
 
-    setupPointer: function() {
-      const canvas = this.canvas;
-      const pos = (clientX) => {
-        const rect = canvas.getBoundingClientRect();
-        return (clientX - rect.left) * (canvas.width / rect.width);
-      };
-
-      canvas.addEventListener('mousemove', (e) => {
-        if (!this.gameActive) return;
-        const game = this.games[this.currentGame];
-        if (game.onPointerMove) game.onPointerMove(pos(e.clientX), this);
+    injectAutoButton: function() {
+      const controls = document.getElementById('gameControls');
+      if (!controls || document.getElementById('autoToggle')) return;
+      const b = document.createElement('button');
+      b.id = 'autoToggle';
+      b.type = 'button';
+      b.title = 'Let the algorithm play — press S to take back control';
+      b.textContent = '🤖 Autopilot';
+      b.addEventListener('click', () => {
+        this.setAuto(!this.auto);
+        b.blur(); // otherwise Space would re-trigger the button, not restart
       });
+      controls.appendChild(b);
+    },
 
-      canvas.addEventListener('touchmove', (e) => {
-        if (!this.gameActive) return;
-        const game = this.games[this.currentGame];
-        if (game.onPointerMove) {
-          e.preventDefault();
-          game.onPointerMove(pos(e.touches[0].clientX), this);
-        }
-      }, { passive: false });
+    setAuto: function(on) {
+      this.auto = !!on;
+      const b = document.getElementById('autoToggle');
+      if (b) {
+        b.textContent = this.auto ? '🤖 Autopilot ON — S stops' : '🤖 Autopilot';
+        b.classList.toggle('is-on', this.auto);
+      }
+      if (!this.auto) {
+        clearTimeout(this.autoRestartTimer);
+        // Drop any control state the algorithm was holding down.
+        const g = this.games[this.currentGame];
+        if (g && g.releaseControls) g.releaseControls();
+      }
+      if (this.gameActive) {
+        SFX.beep(this.auto ? 660 : 330, 0.09, 'triangle', 0.1);
+        Fx.text(this.canvas.width / 2, 70,
+          this.auto ? '🤖 ALGORITHM TAKING OVER' : '🎮 YOU HAVE CONTROL',
+          this.auto ? '#fbbf24' : '#22d3ee');
+      }
+      this.refreshMeta();
+    },
 
-      const tap = () => {
-        if (!this.gameActive) return;
-        const game = this.games[this.currentGame];
-        if (game.onTap) game.onTap(this);
-      };
-      canvas.addEventListener('mousedown', tap);
-      canvas.addEventListener('touchstart', (e) => {
-        if (!this.gameActive) return;
-        const game = this.games[this.currentGame];
-        if (game.onSwipeStart) game.onSwipeStart(e.touches[0].clientX, e.touches[0].clientY);
-        tap();
-      }, { passive: true });
-      canvas.addEventListener('touchend', (e) => {
-        if (!this.gameActive) return;
-        const game = this.games[this.currentGame];
-        if (game.onSwipeEnd && e.changedTouches.length) {
-          game.onSwipeEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
-        }
-      }, { passive: true });
+    togglePause: function() {
+      this.paused = !this.paused;
+      if (this.paused) {
+        this.pausedAt = performance.now();
+      } else {
+        const elapsed = performance.now() - this.pausedAt;
+        const g = this.games[this.currentGame];
+        if (g && g.onResume) g.onResume(elapsed);
+        this.pausePainted = false;
+      }
+      SFX.beep(this.paused ? 300 : 500, 0.07, 'sine', 0.09);
     },
 
     refreshMeta: function() {
       const hintEl = document.getElementById('gameHint');
-      if (hintEl) hintEl.textContent = this.HINTS[this.currentGame] || '';
+      if (hintEl) {
+        const base = this.HINTS[this.currentGame] || '';
+        hintEl.textContent = base + ' · P pauses · 🤖 autopilot plays for you, S takes over';
+      }
       this.updateScore(this.score);
     },
 
@@ -386,7 +436,10 @@
     startGame: function() {
       const select = document.getElementById('gameSelect');
       this.currentGame = select ? select.value : 'breakout';
+      clearTimeout(this.autoRestartTimer);
       this.gameActive = true;
+      this.paused = false;
+      this.pausePainted = false;
       this.score = 0;
       this.shakeFrames = 0;
       Fx.reset();
@@ -402,9 +455,17 @@
     gameLoop: function(id, ts) {
       if (!this.gameActive || id !== this.loopId) return;
 
+      if (this.paused) {
+        if (!this.pausePainted) { this.drawPaused(); this.pausePainted = true; }
+        requestAnimationFrame((t) => this.gameLoop(id, t));
+        return;
+      }
+
       const game = this.games[this.currentGame];
       if (game) {
-        if (game.update) game.update(this, ts || performance.now());
+        const now = ts || performance.now();
+        if (this.auto && game.autoPlay) game.autoPlay(this, now);
+        if (game.update) game.update(this, now);
         // update() may have ended the game — don't erase the game-over screen
         if (!this.gameActive) return;
 
@@ -422,9 +483,42 @@
 
         // A game may also end inside draw() (Breakout) — overlay already painted
         if (!this.gameActive) return;
+        this.drawAutoDot();
       }
 
       requestAnimationFrame((t) => this.gameLoop(id, t));
+    },
+
+    // Deliberately tiny and hard-cornered: every game already uses the top
+    // strip for its own HUD, so the on-canvas cue stays out of the way and the
+    // button carries the wording.
+    drawAutoDot: function() {
+      if (!this.auto) return;
+      const ctx = this.ctx;
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = 0.55 + 0.45 * Math.sin(performance.now() / 260);
+      ctx.beginPath();
+      ctx.arc(this.canvas.width - 9, 9, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#fbbf24';
+      ctx.fill();
+      ctx.restore();
+    },
+
+    drawPaused: function() {
+      const ctx = this.ctx, canvas = this.canvas;
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = 'rgba(5, 8, 22, 0.72)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 32px "Segoe UI", Arial, sans-serif';
+      ctx.fillStyle = '#fff';
+      ctx.fillText('⏸ Paused', canvas.width / 2, canvas.height / 2 - 6);
+      ctx.font = '17px "Segoe UI", Arial, sans-serif';
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText('Press P to resume', canvas.width / 2, canvas.height / 2 + 28);
+      ctx.restore();
     },
 
     showGameOver: function(message) {
@@ -462,15 +556,23 @@
 
       ctx.font = '17px "Segoe UI", Arial, sans-serif';
       ctx.fillStyle = '#94a3b8';
-      ctx.fillText('Space · Click · Tap to restart', canvas.width / 2, canvas.height / 2 + 70);
+      ctx.fillText(this.auto ? '🤖 Autopilot restarting…  ·  S to take over'
+                             : 'Space · Click · Tap to restart',
+                   canvas.width / 2, canvas.height / 2 + 70);
       ctx.restore();
+
+      // The autopilot is meant to be watched, so it picks itself back up.
+      if (this.auto) {
+        clearTimeout(this.autoRestartTimer);
+        this.autoRestartTimer = setTimeout(() => {
+          if (this.auto && this.overlayVisible() && !this.gameActive) this.startGame();
+        }, 1800);
+      }
 
       if (!this.restartHandlersBound) {
         this.restartHandlersBound = true;
         const tryRestart = () => {
-          const overlay = document.getElementById('hidden-game');
-          const visible = overlay && overlay.style.display !== 'none' && overlay.style.display !== '';
-          if (visible && !this.gameActive) this.startGame();
+          if (this.overlayVisible() && !this.gameActive) this.startGame();
         };
         this.canvas.addEventListener('click', tryRestart);
         this.canvas.addEventListener('touchstart', tryRestart, { passive: true });
@@ -478,6 +580,49 @@
           if (e.code === 'Space') tryRestart();
         });
       }
+    },
+
+    setupPointer: function() {
+      const canvas = this.canvas;
+      const pos = (clientX) => {
+        const rect = canvas.getBoundingClientRect();
+        return (clientX - rect.left) * (canvas.width / rect.width);
+      };
+
+      canvas.addEventListener('mousemove', (e) => {
+        if (!this.gameActive || this.auto || this.paused) return;
+        const game = this.games[this.currentGame];
+        if (game.onPointerMove) game.onPointerMove(pos(e.clientX), this);
+      });
+
+      canvas.addEventListener('touchmove', (e) => {
+        if (!this.gameActive || this.auto || this.paused) return;
+        const game = this.games[this.currentGame];
+        if (game.onPointerMove) {
+          e.preventDefault();
+          game.onPointerMove(pos(e.touches[0].clientX), this);
+        }
+      }, { passive: false });
+
+      const tap = () => {
+        if (!this.gameActive || this.auto || this.paused) return;
+        const game = this.games[this.currentGame];
+        if (game.onTap) game.onTap(this);
+      };
+      canvas.addEventListener('mousedown', tap);
+      canvas.addEventListener('touchstart', (e) => {
+        if (!this.gameActive || this.auto || this.paused) return;
+        const game = this.games[this.currentGame];
+        if (game.onSwipeStart) game.onSwipeStart(e.touches[0].clientX, e.touches[0].clientY);
+        tap();
+      }, { passive: true });
+      canvas.addEventListener('touchend', (e) => {
+        if (!this.gameActive || this.auto || this.paused) return;
+        const game = this.games[this.currentGame];
+        if (game.onSwipeEnd && e.changedTouches.length) {
+          game.onSwipeEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+        }
+      }, { passive: true });
     },
 
     updateScore: function(newScore) {
@@ -490,23 +635,27 @@
   };
 
   // ===================================
-  // Breakout — power-ups, multi-ball, combos, 2-hit bricks, levels
+  // Breakout — power-ups, multi-ball, lasers, safety net, combos, levels
   // ===================================
   const Breakout = {
     balls: [],
+    bolts: [],
     paddle: null,
     bricks: [],
     powerups: [],
     rightPressed: false,
     leftPressed: false,
-    lives: 3,
+    lives: 4,
     level: 1,
-    speed: 4,
+    speed: 3.6,
     combo: 0,
     levelFlash: 0,
-    effects: { wideUntil: 0, slowUntil: 0 },
-    BASE_W: 90,
-    WIDE_W: 150,
+    tick: 0,
+    netFlash: 0,
+    effects: { wide: false, slow: false, laserUntil: 0, net: 0 },
+    BASE_W: 104,
+    WIDE_W: 184,
+    MAX_SPEED: 10,
     keyDownHandler: null,
     keyUpHandler: null,
     config: {
@@ -520,19 +669,22 @@
     },
 
     init: function(game) {
-      this.lives = 3;
+      this.lives = 4;
       this.level = 1;
-      this.speed = 4;
+      this.speed = 3.6;
       this.combo = 0;
+      this.tick = 0;
+      this.netFlash = 0;
       this.powerups = [];
-      this.effects = { wideUntil: 0, slowUntil: 0 };
+      this.bolts = [];
+      this.effects = { wide: false, slow: false, laserUntil: 0, net: 0 };
       game.updateScore(0);
       this.paddle = {
         width: this.BASE_W,
         height: 12,
         x: (game.canvas.width - this.BASE_W) / 2,
         color: '#22d3ee',
-        speed: 8
+        speed: 9
       };
       this.buildLevel();
       this.resetBalls(game.canvas);
@@ -548,9 +700,19 @@
       document.addEventListener('keyup', this.keyUpHandler);
     },
 
+    releaseControls: function() {
+      this.rightPressed = false;
+      this.leftPressed = false;
+    },
+
+    onResume: function(ms) {
+      // Timed power-ups shouldn't burn down while the game is paused.
+      if (this.effects.laserUntil) this.effects.laserUntil += ms;
+    },
+
     buildLevel: function() {
-      // Top rows become 2-hit bricks as levels climb (max 3 hardened rows)
-      const hardRows = Math.min(Math.max(this.level - 1, 0), 3);
+      // Top rows become 2-hit bricks as levels climb (max 2 hardened rows)
+      const hardRows = Math.min(Math.max(this.level - 1, 0), 2);
       this.bricks = [];
       for (let c = 0; c < this.config.brickColumnCount; c++) {
         this.bricks[c] = [];
@@ -558,6 +720,9 @@
           this.bricks[c][r] = { x: 0, y: 0, hp: r < hardRows ? 2 : 1 };
         }
       }
+      // Wide/slow run to the end of the level, so a new one starts clean.
+      this.effects.wide = false;
+      this.effects.slow = false;
       this.levelFlash = 90;
     },
 
@@ -566,6 +731,7 @@
     },
 
     resetBalls: function(canvas) {
+      this.bolts = [];
       this.balls = [ this.newBall(
         canvas.width / 2,
         canvas.height - 60,
@@ -596,13 +762,27 @@
       return n;
     },
 
+    // Capsules are earned by the rally, not by luck alone: the chance climbs
+    // with the combo — the run of bricks broken before the ball next touches
+    // the paddle — so keeping the ball up top is what showers you with them.
+    DROP_BASE: 0.30,
+    DROP_PER_COMBO: 0.11,
+    DROP_MAX: 0.85,
+
+    dropChance: function() {
+      return Math.min(this.DROP_MAX,
+        this.DROP_BASE + Math.max(0, this.combo - 1) * this.DROP_PER_COMBO);
+    },
+
     maybeDropPowerup: function(x, y) {
-      if (Math.random() > 0.18) return;
+      if (Math.random() > this.dropChance()) return;
       const roll = Math.random();
       let type;
-      if (roll < 0.32) type = 'W';        // wide paddle
-      else if (roll < 0.62) type = 'S';   // slow ball
-      else if (roll < 0.88) type = 'M';   // multi-ball
+      if (roll < 0.26) type = 'W';        // wide paddle
+      else if (roll < 0.50) type = 'S';   // slow ball
+      else if (roll < 0.74) type = 'M';   // multi-ball
+      else if (roll < 0.86) type = 'L';   // laser paddle
+      else if (roll < 0.95) type = 'N';   // safety net
       else type = 'H';                    // extra life
       this.powerups.push({ x: x, y: y, w: 36, h: 17, vy: 2.3, type: type });
     },
@@ -612,10 +792,10 @@
       SFX.powerup();
       Fx.burst(p.x + p.w / 2, p.y, '#fbbf24', 14, 3);
       if (p.type === 'W') {
-        this.effects.wideUntil = now + 12000;
+        this.effects.wide = true;
         Fx.text(p.x + p.w / 2, p.y - 6, 'WIDE!', '#22d3ee');
       } else if (p.type === 'S') {
-        this.effects.slowUntil = now + 8000;
+        this.effects.slow = true;
         Fx.text(p.x + p.w / 2, p.y - 6, 'SLOW', '#fbbf24');
       } else if (p.type === 'M') {
         const src = this.balls[0] || this.newBall(p.x, p.y - 40, 2, -this.speed);
@@ -624,8 +804,14 @@
         this.balls.push(this.newBall(src.x, src.y, -v * 0.6, -Math.abs(v * 0.8)));
         if (this.balls.length > 7) this.balls.length = 7;
         Fx.text(p.x + p.w / 2, p.y - 6, 'MULTI!', '#a855f7');
+      } else if (p.type === 'L') {
+        this.effects.laserUntil = now + 11000;
+        Fx.text(p.x + p.w / 2, p.y - 6, 'LASER!', '#f97316');
+      } else if (p.type === 'N') {
+        this.effects.net = Math.min(this.effects.net + 1, 3);
+        Fx.text(p.x + p.w / 2, p.y - 6, 'NET', '#4ade80');
       } else if (p.type === 'H') {
-        if (this.lives < 5) this.lives++;
+        if (this.lives < 6) this.lives++;
         Fx.text(p.x + p.w / 2, p.y - 6, '+1 ❤️', '#ec4899');
       }
     },
@@ -634,18 +820,22 @@
       const ctx = game.ctx;
       const canvas = game.canvas;
       const now = performance.now();
+      this.tick++;
 
       // Animate paddle width toward its target
-      const targetW = this.effects.wideUntil > now ? this.WIDE_W : this.BASE_W;
+      const targetW = this.effects.wide ? this.WIDE_W : this.BASE_W;
       if (Math.abs(this.paddle.width - targetW) > 1) {
         const cx = this.paddle.x + this.paddle.width / 2;
         this.paddle.width += (targetW - this.paddle.width) * 0.2;
         this.paddle.x = Math.max(0, Math.min(canvas.width - this.paddle.width, cx - this.paddle.width / 2));
       }
 
+      this.drawNet(ctx, canvas);
       this.drawBricks(ctx);
       this.drawBalls(ctx, now);
       this.drawPaddle(ctx, canvas, now);
+      this.fireLasers(canvas, now);
+      this.drawBolts(ctx, game);
       this.drawPowerups(ctx, canvas, game);
       this.drawHud(ctx, canvas, now);
       this.collisionDetection(game);
@@ -653,21 +843,115 @@
       this.movePaddle(canvas);
     },
 
+    netY: function(canvas) { return canvas.height - 3; },
+
+    drawNet: function(ctx, canvas) {
+      if (this.netFlash > 0) this.netFlash--;
+      if (this.effects.net <= 0 && this.netFlash <= 0) return;
+      const y = this.netY(canvas);
+      ctx.save();
+      ctx.globalAlpha = this.netFlash > 0 ? 1 : 0.42 + 0.12 * Math.sin(this.tick / 12);
+      ctx.strokeStyle = this.netFlash > 0 ? '#fff' : '#4ade80';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([9, 7]);
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvas.width, y);
+      ctx.stroke();
+      ctx.restore();
+    },
+
+    fireLasers: function(canvas, now) {
+      if (this.effects.laserUntil <= now) return;
+      if (this.tick % 15 !== 0) return;
+      const y = canvas.height - this.paddle.height - 8;
+      this.bolts.push({ x: this.paddle.x + 8, y: y });
+      this.bolts.push({ x: this.paddle.x + this.paddle.width - 8, y: y });
+      SFX.beep(880, 0.04, 'square', 0.05, 1400);
+    },
+
+    drawBolts: function(ctx, game) {
+      for (let i = this.bolts.length - 1; i >= 0; i--) {
+        const b = this.bolts[i];
+        b.y -= 9;
+        if (b.y < -10) { this.bolts.splice(i, 1); continue; }
+        const hit = this.boltHitsBrick(b, game);
+        // A bolt can take the last brick, and the level reset empties this.bolts
+        // out from under us — stop rather than index into the new array.
+        if (hit === 'cleared') return;
+        if (hit) { this.bolts.splice(i, 1); continue; }
+        ctx.fillStyle = '#f97316';
+        ctx.fillRect(b.x - 1.5, b.y, 3, 11);
+      }
+    },
+
+    boltHitsBrick: function(b, game) {
+      for (let c = 0; c < this.config.brickColumnCount; c++) {
+        for (let r = 0; r < this.config.brickRowCount; r++) {
+          const brick = this.bricks[c][r];
+          if (brick.hp <= 0) continue;
+          if (b.x > brick.x && b.x < brick.x + this.config.brickWidth &&
+              b.y > brick.y && b.y < brick.y + this.config.brickHeight) {
+            return this.damageBrick(c, r, game, b.x, false) ? 'cleared' : true;
+          }
+        }
+      }
+      return false;
+    },
+
+    // Shared by ball hits and laser bolts. Returns true when the level cleared.
+    damageBrick: function(c, r, game, hitX, fromBall) {
+      const b = this.bricks[c][r];
+      const colors = ['#ec4899', '#a855f7', '#7c3aed', '#06b6d4', '#22d3ee'];
+      const color = colors[r % colors.length];
+      b.hp--;
+
+      if (b.hp <= 0) {
+        if (fromBall) this.combo++;
+        const pts = fromBall ? 10 + (this.combo - 1) * 5 : 10;
+        game.updateScore(game.score + pts);
+        SFX.brick(fromBall ? this.combo : 1);
+        Fx.burst(hitX, b.y + this.config.brickHeight / 2, color, 12);
+        if (fromBall && this.combo >= 2) {
+          Fx.text(b.x + this.config.brickWidth / 2, b.y, `+${pts}`, '#fbbf24');
+        }
+        this.maybeDropPowerup(b.x + this.config.brickWidth / 2 - 18, b.y);
+      } else {
+        SFX.beep(240, 0.05, 'square', 0.09);
+        Fx.burst(hitX, b.y + this.config.brickHeight, 'rgba(255,255,255,0.7)', 5, 1.6);
+      }
+
+      if (this.bricksLeft() === 0) {
+        this.level++;
+        this.speed = Math.min(this.speed * 1.12, this.MAX_SPEED);
+        SFX.levelUp();
+        this.buildLevel();
+        this.resetBalls(game.canvas);
+        this.powerups = [];
+        return true;
+      }
+      return false;
+    },
+
     drawHud: function(ctx, canvas, now) {
       ctx.font = '16px "Segoe UI", Arial, sans-serif';
       ctx.textAlign = 'left';
       ctx.fillStyle = '#a5b4fc';
       let hud = `Level ${this.level}`;
-      if (this.effects.slowUntil > now) hud += ' · 🐢';
+      if (this.effects.wide) hud += ' · 📏';
+      if (this.effects.slow) hud += ' · 🐢';
+      if (this.effects.laserUntil > now) hud += ' · 🔫';
+      if (this.effects.net > 0) hud += ` · 🕸️×${this.effects.net}`;
       ctx.fillText(hud, 12, 24);
       ctx.textAlign = 'right';
       ctx.fillText('❤️'.repeat(Math.max(0, this.lives)), canvas.width - 12, 24);
 
-      if (this.combo >= 3) {
+      if (this.combo >= 2) {
         ctx.textAlign = 'center';
         ctx.font = 'bold 17px "Segoe UI", Arial, sans-serif';
         ctx.fillStyle = '#fbbf24';
-        ctx.fillText(`COMBO ×${this.combo}`, canvas.width / 2, 24);
+        ctx.fillText(`COMBO ×${this.combo} · ${Math.round(this.dropChance() * 100)}% drops`,
+                     canvas.width / 2, 24);
       }
 
       if (this.levelFlash > 0) {
@@ -711,7 +995,7 @@
     },
 
     drawBalls: function(ctx, now) {
-      const slow = this.effects.slowUntil > now;
+      const slow = this.effects.slow;
       this.balls.forEach(ball => {
         ctx.beginPath();
         ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
@@ -729,14 +1013,19 @@
       const pX = this.paddle.x;
       const pY = canvas.height - this.paddle.height - 4;
       ctx.roundRect ? ctx.roundRect(pX, pY, this.paddle.width, this.paddle.height, 6) : ctx.rect(pX, pY, this.paddle.width, this.paddle.height);
-      ctx.fillStyle = this.effects.wideUntil > now ? '#67e8f9' : this.paddle.color;
+      ctx.fillStyle = this.effects.wide ? '#67e8f9' : this.paddle.color;
       ctx.fill();
       ctx.closePath();
+      if (this.effects.laserUntil > now) {
+        ctx.fillStyle = '#f97316';
+        ctx.fillRect(pX + 5, pY - 5, 6, 5);
+        ctx.fillRect(pX + this.paddle.width - 11, pY - 5, 6, 5);
+      }
     },
 
     drawPowerups: function(ctx, canvas, game) {
-      const labels = { W: 'W', S: 'S', M: 'M', H: '♥' };
-      const colors = { W: '#22d3ee', S: '#fbbf24', M: '#a855f7', H: '#ec4899' };
+      const labels = { W: 'W', S: 'S', M: 'M', L: 'L', N: 'N', H: '♥' };
+      const colors = { W: '#22d3ee', S: '#fbbf24', M: '#a855f7', L: '#f97316', N: '#4ade80', H: '#ec4899' };
       const paddleTop = canvas.height - this.paddle.height - 4;
 
       for (let i = this.powerups.length - 1; i >= 0; i--) {
@@ -773,32 +1062,7 @@
             if (ball.x > b.x && ball.x < b.x + this.config.brickWidth &&
                 ball.y > b.y && ball.y < b.y + this.config.brickHeight) {
               ball.dy = -ball.dy;
-              b.hp--;
-              const colors = ['#ec4899', '#a855f7', '#7c3aed', '#06b6d4', '#22d3ee'];
-              const color = colors[r % colors.length];
-
-              if (b.hp <= 0) {
-                this.combo++;
-                const pts = 10 + (this.combo - 1) * 5;
-                game.updateScore(game.score + pts);
-                SFX.brick(this.combo);
-                Fx.burst(ball.x, b.y + this.config.brickHeight / 2, color, 12);
-                if (this.combo >= 2) Fx.text(b.x + this.config.brickWidth / 2, b.y, `+${pts}`, '#fbbf24');
-                this.maybeDropPowerup(b.x + this.config.brickWidth / 2 - 18, b.y);
-              } else {
-                SFX.beep(240, 0.05, 'square', 0.09);
-                Fx.burst(ball.x, b.y + this.config.brickHeight, 'rgba(255,255,255,0.7)', 5, 1.6);
-              }
-
-              if (this.bricksLeft() === 0) {
-                this.level++;
-                this.speed = Math.min(this.speed * 1.18, 11);
-                SFX.levelUp();
-                this.buildLevel();
-                this.resetBalls(game.canvas);
-                this.powerups = [];
-                return;
-              }
+              if (this.damageBrick(c, r, game, ball.x, true)) return;
               break; // this brick is done for this frame
             }
           }
@@ -807,7 +1071,10 @@
     },
 
     moveBalls: function(canvas, game, now) {
-      const factor = this.effects.slowUntil > now ? 0.55 : 1;
+      // Gentler than the old timed version (0.55): now that Slow runs to the end
+      // of the level it's active most of the time, so a deep cut would just be
+      // the game's normal pace rather than a rescue.
+      const factor = this.effects.slow ? 0.70 : 1;
       const paddleTop = canvas.height - this.paddle.height - 4;
 
       for (let i = this.balls.length - 1; i >= 0; i--) {
@@ -836,12 +1103,30 @@
             Fx.burst(ball.x, paddleTop, '#22d3ee', 4, 1.4);
           }
         } else if (ball.y + dy > canvas.height - ball.radius) {
-          this.balls.splice(i, 1);
-          continue;
+          // Safety net: one free bounce, then it's spent.
+          if (this.effects.net > 0) {
+            this.effects.net--;
+            this.netFlash = 10;
+            ball.dy = -Math.abs(ball.dy);
+            SFX.beep(520, 0.09, 'triangle', 0.11, 760);
+            Fx.burst(ball.x, this.netY(canvas), '#4ade80', 12, 2.4);
+            Fx.text(ball.x, this.netY(canvas) - 18, 'SAVED', '#4ade80');
+          } else {
+            this.balls.splice(i, 1);
+            continue;
+          }
         }
 
         ball.x += ball.dx * factor;
         ball.y += ball.dy * factor;
+
+        // Keep the ball from settling into a near-horizontal groove, which used
+        // to leave it ricocheting along the walls for ages with nothing to hit.
+        const v = Math.hypot(ball.dx, ball.dy) || this.speed;
+        if (Math.abs(ball.dy) < v * 0.30) {
+          ball.dy = Math.sign(ball.dy || -1) * v * 0.30;
+          ball.dx = Math.sign(ball.dx || 1) * Math.sqrt(Math.max(0, v * v - ball.dy * ball.dy));
+        }
       }
 
       if (this.balls.length === 0) {
@@ -863,29 +1148,108 @@
       } else if (this.leftPressed && this.paddle.x > 0) {
         this.paddle.x -= this.paddle.speed;
       }
+    },
+
+    // --- Autopilot -------------------------------------------------------
+    // Predicts where the soonest-arriving ball crosses the paddle line
+    // (reflecting off the side walls analytically rather than stepping the
+    // simulation), then biases the contact point so the bounce heads for the
+    // bricks that are still standing. With no ball on the way down it goes
+    // shopping for whichever capsule is falling.
+    autoPlay: function(game) {
+      const canvas = game.canvas;
+      const paddleTop = canvas.height - this.paddle.height - 4;
+      const half = this.paddle.width / 2;
+
+      let ball = null, soonest = Infinity;
+      for (const b of this.balls) {
+        if (b.dy <= 0) continue;
+        const t = (paddleTop - b.radius - b.y) / b.dy;
+        if (t >= 0 && t < soonest) { soonest = t; ball = b; }
+      }
+
+      let target;
+      if (ball) {
+        target = this.predictX(ball, soonest, canvas);
+        // Only chase power-ups when the ball is still a long way off.
+        const p = this.nearestPowerup(canvas);
+        if (p && soonest > 90) target = p;
+        else target -= this.aimBias(target, soonest);
+      } else {
+        target = this.nearestPowerup(canvas);
+        if (target === null) target = canvas.width / 2;
+      }
+
+      const centre = this.paddle.x + half;
+      const step = this.paddle.speed * 1.7;
+      const move = Math.max(-step, Math.min(step, target - centre));
+      this.paddle.x = Math.max(0, Math.min(canvas.width - this.paddle.width, this.paddle.x + move));
+    },
+
+    // Unfold the wall bounces: the path is a triangle wave over the playable
+    // span, so one modulo gets the landing point without a stepped simulation.
+    predictX: function(ball, frames, canvas) {
+      const lo = ball.radius, hi = canvas.width - ball.radius;
+      const span = hi - lo;
+      if (span <= 0) return canvas.width / 2;
+      const period = span * 2;
+      let p = (ball.x + ball.dx * frames) - lo;
+      p = ((p % period) + period) % period;
+      return lo + (p <= span ? p : period - p);
+    },
+
+    // Push the bounce toward the surviving bricks — a hit left of centre sends
+    // the ball left, so the paddle sits slightly to the far side of the ball.
+    aimBias: function(ballX, frames) {
+      let sx = 0, n = 0;
+      for (let c = 0; c < this.config.brickColumnCount; c++) {
+        for (let r = 0; r < this.config.brickRowCount; r++) {
+          if (this.bricks[c][r].hp > 0) { sx += this.bricks[c][r].x + this.config.brickWidth / 2; n++; }
+        }
+      }
+      if (!n || frames > 70) return 0; // no time to be fancy — just catch it
+      const bias = (sx / n - ballX) / 240;
+      return Math.max(-1, Math.min(1, bias)) * (this.paddle.width * 0.30);
+    },
+
+    nearestPowerup: function(canvas) {
+      let best = null, bestY = -Infinity;
+      for (const p of this.powerups) {
+        if (p.y > bestY) { bestY = p.y; best = p; }
+      }
+      return best ? best.x + best.w / 2 : null;
     }
   };
 
   // ===================================
-  // Dino — duck & dive, pterodactyls, day/night, milestones
+  // Dino — double jump, coyote time, shields, coins, day/night
   // ===================================
   const DinoGame = {
     dino: null,
     obstacles: [],
+    coins: [],
     clouds: [],
     stars: [],
     distance: 0,
-    speed: 5,
+    speed: 4.6,
     spawnGap: 0,
+    coinGap: 0,
     night: 0,
     lastMilestone: 0,
     ducking: false,
     downPressed: false,
     wasOnGround: true,
+    jumpsLeft: 2,
+    coyote: 0,
+    jumpBuffer: 0,
+    shield: 0,
+    shieldFlash: 0,
     keyDownH: null,
     keyUpH: null,
     STAND_H: 44,
     DUCK_H: 24,
+    COYOTE_FRAMES: 7,   // still jumpable just after walking off a ledge/landing
+    BUFFER_FRAMES: 9,   // a jump pressed just before landing still fires
 
     init: function(game) {
       const canvas = game.canvas;
@@ -901,6 +1265,7 @@
         onGround: true
       };
       this.obstacles = [];
+      this.coins = [];
       this.clouds = [
         { x: 120, y: 70, s: 0.4 },
         { x: 380, y: 110, s: 0.55 },
@@ -912,19 +1277,25 @@
         this.stars.push({ x: (i * 97 + 31) % canvas.width, y: 20 + ((i * 53) % 150), tw: i % 3 });
       }
       this.distance = 0;
-      this.speed = 5;
-      this.spawnGap = 90;
+      this.speed = 4.6;
+      this.spawnGap = 110;
+      this.coinGap = 150;
       this.night = 0;
       this.lastMilestone = 0;
       this.ducking = false;
       this.downPressed = false;
       this.wasOnGround = true;
+      this.jumpsLeft = 2;
+      this.coyote = this.COYOTE_FRAMES;
+      this.jumpBuffer = 0;
+      this.shield = 0;
+      this.shieldFlash = 0;
       game.updateScore(0);
 
       if (this.keyDownH) document.removeEventListener('keydown', this.keyDownH);
       if (this.keyUpH) document.removeEventListener('keyup', this.keyUpH);
       this.keyDownH = (e) => {
-        if (e.key === ' ' || e.key === 'ArrowUp') this.doJump();
+        if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') this.doJump();
         if (e.key === 'ArrowDown' || e.key.toLowerCase() === 's') this.downPressed = true;
       };
       this.keyUpH = (e) => {
@@ -934,11 +1305,24 @@
       document.addEventListener('keyup', this.keyUpH);
     },
 
+    releaseControls: function() { this.downPressed = false; },
+
     doJump: function() {
-      if (this.dino.onGround && !this.ducking) {
+      if (this.ducking) return;
+      const grounded = this.dino.onGround || this.coyote > 0;
+      if (grounded) {
         this.dino.dy = this.dino.jumpForce;
         this.dino.onGround = false;
+        this.coyote = 0;
+        this.jumpsLeft = 1;          // one mid-air jump still in hand
         SFX.jump();
+      } else if (this.jumpsLeft > 0) {
+        this.dino.dy = this.dino.jumpForce * 0.86;
+        this.jumpsLeft--;
+        SFX.beep(520, 0.11, 'triangle', 0.08, 820);
+        Fx.burst(this.dino.x + this.dino.width / 2, this.dino.y + this.dino.height, '#a855f7', 8, 2);
+      } else {
+        this.jumpBuffer = this.BUFFER_FRAMES; // fire it the instant we land
       }
     },
 
@@ -946,10 +1330,10 @@
 
     spawnObstacle: function(canvas) {
       const groundY = canvas.height - 20;
-      const allowPtero = this.distance > 150;
+      const allowPtero = this.distance > 200;
       const roll = Math.random();
 
-      if (allowPtero && roll < 0.32) {
+      if (allowPtero && roll < 0.28) {
         // Pterodactyl: low (jump it) or head-height (duck it)
         const high = Math.random() < 0.55;
         this.obstacles.push({
@@ -964,9 +1348,9 @@
       } else {
         const type = Math.random();
         let w, h;
-        if (type < 0.45)      { w = 20; h = 45; }
-        else if (type < 0.75) { w = 42; h = 45; }
-        else                  { w = 22; h = 65; }
+        if (type < 0.5)       { w = 20; h = 45; }
+        else if (type < 0.82) { w = 42; h = 45; }
+        else                  { w = 22; h = 62; }
         this.obstacles.push({
           x: canvas.width + 10,
           y: groundY - h,
@@ -975,8 +1359,29 @@
           color: '#ec4899'
         });
       }
-      const minGap = Math.max(46, 95 - this.speed * 4);
-      this.spawnGap = minGap + Math.random() * 70;
+      const minGap = Math.max(62, 115 - this.speed * 4);
+      this.spawnGap = minGap + Math.random() * 80;
+    },
+
+    // Coins arc through the air so they're worth jumping for; every so often
+    // the arc carries a shield instead.
+    spawnCoins: function(canvas) {
+      const groundY = canvas.height - 20;
+      const n = 3 + Math.floor(Math.random() * 3);
+      const peak = 70 + Math.random() * 45;
+      const shieldAt = Math.random() < 0.22 ? Math.floor(n / 2) : -1;
+      for (let i = 0; i < n; i++) {
+        const f = n === 1 ? 0.5 : i / (n - 1);
+        const lift = Math.sin(f * Math.PI) * peak;
+        this.coins.push({
+          x: canvas.width + 20 + i * 34,
+          y: groundY - 46 - lift,
+          r: 9,
+          spin: i * 0.7,
+          shield: i === shieldAt
+        });
+      }
+      this.coinGap = 190 + Math.random() * 220;
     },
 
     update: function(game) {
@@ -987,7 +1392,13 @@
       const wantDuck = this.downPressed && this.dino.onGround;
       if (wantDuck && !this.ducking) { this.ducking = true; SFX.duck(); }
       if (!wantDuck && this.ducking) this.ducking = false;
+      const prevH = this.dino.height;
       this.dino.height = this.ducking ? this.DUCK_H : this.STAND_H;
+      // The dino is anchored by its feet, not its top edge. Without this the
+      // crouch shrank it from the bottom, leaving its top above the new ground
+      // line — so it counted as airborne, dropped onGround, and un-ducked on
+      // the very next frame. Ducking under a pterodactyl never actually held.
+      if (this.dino.onGround) this.dino.y += prevH - this.dino.height;
 
       // Physics (+ fast-fall when holding down mid-air)
       if (!this.dino.onGround && this.downPressed) this.dino.dy += 1.3;
@@ -995,7 +1406,9 @@
       const groundY = groundLine - this.dino.height;
       if (this.dino.y < groundY) {
         this.dino.dy += this.dino.gravity;
+        if (this.dino.onGround) this.coyote = this.COYOTE_FRAMES;
         this.dino.onGround = false;
+        if (this.coyote > 0) this.coyote--;
       } else {
         this.dino.y = groundY;
         this.dino.dy = 0;
@@ -1003,14 +1416,19 @@
           Fx.burst(this.dino.x + this.dino.width / 2, groundLine - 2, 'rgba(180,180,200,0.8)', 6, 1.8);
         }
         this.dino.onGround = true;
+        this.coyote = this.COYOTE_FRAMES;
+        this.jumpsLeft = 2;
+        if (this.jumpBuffer > 0) { this.jumpBuffer = 0; this.doJump(); }
       }
+      if (this.jumpBuffer > 0) this.jumpBuffer--;
       this.wasOnGround = this.dino.onGround;
+      if (this.shieldFlash > 0) this.shieldFlash--;
 
-      // Distance score + speed ramp
+      // Distance score + speed ramp (gentler than it used to be)
       this.distance += this.speed / 10;
       const score = Math.floor(this.distance);
       if (score !== game.score) game.updateScore(score);
-      this.speed = Math.min(5 + this.distance / 180, 13);
+      this.speed = Math.min(4.6 + this.distance / 230, 11.5);
 
       // Milestone every 100
       if (Math.floor(score / 100) > this.lastMilestone) {
@@ -1029,6 +1447,31 @@
         if (c.x < -60) { c.x = canvas.width + 40; c.y = 40 + Math.random() * 90; }
       });
 
+      // Coins
+      this.coinGap -= this.speed / 4;
+      if (this.coinGap <= 0) this.spawnCoins(canvas);
+      for (let i = this.coins.length - 1; i >= 0; i--) {
+        const c = this.coins[i];
+        c.x -= this.speed;
+        c.spin += 0.16;
+        if (c.x < -20) { this.coins.splice(i, 1); continue; }
+        if (Math.abs(c.x - (this.dino.x + this.dino.width / 2)) < 24 &&
+            Math.abs(c.y - (this.dino.y + this.dino.height / 2)) < 26) {
+          this.coins.splice(i, 1);
+          if (c.shield) {
+            this.shield = Math.min(this.shield + 1, 2);
+            SFX.bonus();
+            Fx.text(c.x, c.y - 10, '🛡️ SHIELD', '#4ade80');
+            Fx.burst(c.x, c.y, '#4ade80', 16, 3);
+          } else {
+            game.updateScore(game.score + 25);
+            SFX.beep(1050, 0.06, 'triangle', 0.1);
+            Fx.text(c.x, c.y - 8, '+25', '#fbbf24');
+            Fx.burst(c.x, c.y, '#fbbf24', 8, 2);
+          }
+        }
+      }
+
       // Obstacles
       this.spawnGap -= this.speed / 4;
       if (this.spawnGap <= 0) this.spawnObstacle(canvas);
@@ -1039,10 +1482,21 @@
         if (o.ptero) o.flap++;
         if (o.x + o.width < 0) { this.obstacles.splice(i, 1); continue; }
 
-        if (this.dino.x + 6 < o.x + o.width &&
-            this.dino.x + this.dino.width - 6 > o.x &&
-            this.dino.y + 6 < o.y + o.height &&
-            this.dino.y + this.dino.height - 4 > o.y) {
+        // Slightly kinder hitbox than the drawn sprite.
+        if (this.dino.x + 9 < o.x + o.width &&
+            this.dino.x + this.dino.width - 9 > o.x &&
+            this.dino.y + 9 < o.y + o.height &&
+            this.dino.y + this.dino.height - 6 > o.y) {
+          if (this.shield > 0) {
+            this.shield--;
+            this.shieldFlash = 18;
+            this.obstacles.splice(i, 1);
+            SFX.beep(300, 0.18, 'sawtooth', 0.1, 900);
+            Fx.burst(o.x + o.width / 2, o.y + o.height / 2, '#4ade80', 20, 3.4);
+            Fx.text(this.dino.x + 20, this.dino.y - 12, 'BLOCKED!', '#4ade80');
+            game.shake(5, 10);
+            continue;
+          }
           game.shake(8, 16);
           game.showGameOver('Game Over');
           return;
@@ -1095,6 +1549,19 @@
       ctx.lineWidth = 2;
       ctx.stroke();
 
+      // Coins / shields (squashed circle so they read as spinning)
+      this.coins.forEach(c => {
+        const w = Math.abs(Math.cos(c.spin)) * c.r + 2;
+        ctx.beginPath();
+        ctx.ellipse(c.x, c.y, w, c.r, 0, 0, Math.PI * 2);
+        ctx.fillStyle = c.shield ? '#4ade80' : '#fbbf24';
+        ctx.fill();
+        ctx.fillStyle = c.shield ? '#052e16' : '#7c5a06';
+        ctx.font = 'bold 10px "Segoe UI", Arial, sans-serif';
+        ctx.textAlign = 'center';
+        if (w > 5) ctx.fillText(c.shield ? 'S' : '$', c.x, c.y + 3.5);
+      });
+
       // Dino (squat when ducking, legs animate on ground)
       ctx.fillStyle = this.dino.color;
       ctx.fillRect(this.dino.x, this.dino.y, this.dino.width, this.dino.height);
@@ -1104,6 +1571,19 @@
         const step = Math.floor(this.distance * 2) % 2 === 0;
         ctx.fillStyle = this.dino.color;
         ctx.fillRect(this.dino.x + (step ? 4 : 22), this.dino.y + this.dino.height, 8, 6);
+      }
+
+      // Shield bubble
+      if (this.shield > 0 || this.shieldFlash > 0) {
+        ctx.save();
+        ctx.globalAlpha = this.shieldFlash > 0 ? 1 : 0.45 + 0.2 * Math.sin(performance.now() / 180);
+        ctx.strokeStyle = '#4ade80';
+        ctx.lineWidth = this.shieldFlash > 0 ? 4 : 2;
+        ctx.beginPath();
+        ctx.ellipse(this.dino.x + this.dino.width / 2, this.dino.y + this.dino.height / 2,
+                    this.dino.width * 0.85, this.dino.height * 0.8, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
       }
 
       // Obstacles
@@ -1134,14 +1614,99 @@
           ctx.fillRect(o.x + o.width, o.y + 10, 6, 10);
         }
       });
+
+      // HUD
+      ctx.font = '16px "Segoe UI", Arial, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#a5b4fc';
+      let hud = `${this.speed.toFixed(1)}× speed`;
+      if (this.shield > 0) hud += ` · 🛡️×${this.shield}`;
+      ctx.fillText(hud, 12, 24);
+    },
+
+    // --- Autopilot -------------------------------------------------------
+    // Duck under head-height pterodactyls; for everything else, roll the real
+    // physics forward and jump only when doing nothing would hit and jumping
+    // now wouldn't. Timing this by eye ("jump when the gap is under N") kept
+    // stranding the dino: it would come down from one jump already inside the
+    // next cactus, and the mid-air rescue only noticed once it was too low to
+    // help. Simulating answers both questions exactly and early.
+    autoPlay: function(game) {
+      const canvas = game.canvas;
+      const groundLine = canvas.height - 20;
+      const d = this.dino;
+
+      let next = null;
+      for (const o of this.obstacles) {
+        if (o.x + o.width <= d.x) continue;              // already behind us
+        if (!next || o.x < next.x) next = o;
+      }
+
+      this.downPressed = false;
+      if (!next) { this.autoCoin(game, groundLine); return; }
+
+      // Head-height pterodactyl: ducking clears it, jumping flies into it.
+      // Holding down works airborne too — it fast-falls, which is the only way
+      // out when one shows up while we're still coming down from a jump.
+      if (next.ptero && next.y + next.height < groundLine - this.DUCK_H) {
+        const gap = next.x - (d.x + d.width);
+        if (gap < this.speed * 1.15 * 18) this.downPressed = true;
+        return;
+      }
+
+      if (!this.willHit(next, groundLine, d.y, d.dy)) return;   // already safe
+
+      const fromGround = d.onGround || this.coyote > 0;
+      if (!fromGround && this.jumpsLeft <= 0) return;           // nothing left to spend
+      const lift = fromGround ? d.jumpForce : d.jumpForce * 0.86;
+      // If jumping this frame still runs us into it, hold — a slightly later
+      // jump may clear it, and re-checking every frame finds that moment.
+      if (this.willHit(next, groundLine, d.y, lift)) return;
+      this.doJump();
+    },
+
+    // Forward-simulate the dino's arc and the obstacle's approach with the same
+    // numbers update() uses, and report whether they intersect.
+    willHit: function(o, groundLine, y0, dy0) {
+      const d = this.dino;
+      const h = this.STAND_H;
+      const gy = groundLine - h;
+      const closing = this.speed * (o.ptero ? 1.15 : 1);
+      let y = y0, dy = dy0, ox = o.x;
+
+      for (let t = 0; t < 70; t++) {
+        y += dy;
+        if (y < gy) dy += d.gravity; else { y = gy; dy = 0; }
+        ox -= closing;
+        if (ox + o.width < d.x) return false;            // it went by
+        if (d.x + 9 < ox + o.width && d.x + d.width - 9 > ox &&
+            y + 9 < o.y + o.height && y + h - 6 > o.y) return true;
+      }
+      return false;
+    },
+
+    autoCoin: function(game, groundLine) {
+      const d = this.dino;
+      let target = null;
+      for (const c of this.coins) {
+        if (c.x < d.x) continue;
+        if (!target || c.x < target.x) target = c;
+      }
+      if (!target) return;
+      const gap = target.x - (d.x + d.width / 2);
+      // Rise takes ~19 frames; start early enough to be at height on arrival.
+      if (d.onGround && gap > 0 && gap < this.speed * 19 && target.y < groundLine - 60) {
+        this.doJump();
+      }
     }
   };
 
   // ===================================
-  // Snake — golden bonus food, eyes, popups, grid
+  // Snake — wrap-around edges, golden bonus, tail trims, streak scoring
   // ===================================
   const SnakeGame = {
     CELL: 20,
+    DIRS: [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }],
     cols: 0,
     rows: 0,
     snake: [],
@@ -1150,10 +1715,14 @@
     food: null,
     bonus: null,
     foodsEaten: 0,
-    tickMs: 110,
+    streak: 0,
+    lastEatAt: 0,
+    tickMs: 125,
     lastTick: 0,
+    wrapFlash: 0,
     keyHandler: null,
     swipeStart: null,
+    autoKey: '',
 
     init: function(game) {
       const canvas = game.canvas;
@@ -1164,10 +1733,14 @@
       this.snake = [ { x: cx, y: cy }, { x: cx - 1, y: cy }, { x: cx - 2, y: cy } ];
       this.dir = { x: 1, y: 0 };
       this.nextDir = { x: 1, y: 0 };
-      this.tickMs = 110;
+      this.tickMs = 125;
       this.lastTick = 0;
       this.bonus = null;
       this.foodsEaten = 0;
+      this.streak = 0;
+      this.lastEatAt = 0;
+      this.wrapFlash = 0;
+      this.autoKey = '';
       this.placeFood();
       game.updateScore(0);
 
@@ -1180,6 +1753,12 @@
         else if (k === 'arrowright' || k === 'd') this.turn(1, 0);
       };
       document.addEventListener('keydown', this.keyHandler);
+    },
+
+    onResume: function(ms) {
+      if (this.bonus) this.bonus.expiresAt += ms;
+      this.lastTick += ms;
+      this.lastEatAt += ms;
     },
 
     turn: function(x, y) {
@@ -1199,6 +1778,14 @@
       else this.turn(0, dy > 0 ? 1 : -1);
     },
 
+    // Edges wrap, so only the snake itself can kill it.
+    step: function(cell, d) {
+      return {
+        x: (cell.x + d.x + this.cols) % this.cols,
+        y: (cell.y + d.y + this.rows) % this.rows
+      };
+    },
+
     freeCell: function() {
       let spot;
       do {
@@ -1216,15 +1803,20 @@
     update: function(game, ts) {
       // Bonus expiry
       if (this.bonus && ts > this.bonus.expiresAt) this.bonus = null;
+      if (this.wrapFlash > 0) this.wrapFlash--;
 
       if (ts - this.lastTick < this.tickMs) return;
       this.lastTick = ts;
 
       this.dir = this.nextDir;
-      const head = { x: this.snake[0].x + this.dir.x, y: this.snake[0].y + this.dir.y };
+      const head = this.step(this.snake[0], this.dir);
+      if (head.x !== this.snake[0].x + this.dir.x || head.y !== this.snake[0].y + this.dir.y) {
+        this.wrapFlash = 8;
+      }
 
-      if (head.x < 0 || head.x >= this.cols || head.y < 0 || head.y >= this.rows ||
-          this.snake.some(s => s.x === head.x && s.y === head.y)) {
+      // The tail cell vacates on this same tick, so running into it is fine.
+      const body = this.snake.slice(0, this.snake.length - 1);
+      if (body.some(s => s.x === head.x && s.y === head.y)) {
         game.shake(7, 14);
         game.showGameOver('Game Over');
         return;
@@ -1234,24 +1826,38 @@
 
       const C = this.CELL;
       if (head.x === this.food.x && head.y === this.food.y) {
-        game.updateScore(game.score + 10);
+        // Eating again quickly keeps a streak alive and pays a bonus.
+        this.streak = (ts - this.lastEatAt < 3500) ? this.streak + 1 : 1;
+        this.lastEatAt = ts;
+        const pts = 10 + Math.min(this.streak - 1, 5) * 4;
+        game.updateScore(game.score + pts);
         this.foodsEaten++;
         SFX.eat(this.snake.length);
         Fx.burst(head.x * C + C / 2, head.y * C + C / 2, '#ec4899', 9, 2.2);
-        Fx.text(head.x * C + C / 2, head.y * C - 4, '+10', '#ec4899');
-        this.tickMs = Math.max(60, this.tickMs - 2);
+        Fx.text(head.x * C + C / 2, head.y * C - 4, `+${pts}`, this.streak > 1 ? '#fbbf24' : '#ec4899');
+        this.tickMs = Math.max(70, this.tickMs - 1.6);
         this.placeFood();
 
-        // Every 5 foods → timed golden bonus
+        // Every 5 foods → a timed bonus. Once the snake is long the bonus
+        // becomes a tail trim, which is what actually makes it survivable.
         if (this.foodsEaten % 5 === 0 && !this.bonus) {
           const spot = this.freeCell();
-          this.bonus = { x: spot.x, y: spot.y, expiresAt: ts + 5200, born: ts };
+          const trim = this.snake.length > 14;
+          this.bonus = { x: spot.x, y: spot.y, expiresAt: ts + 6200, born: ts, trim: trim };
         }
       } else if (this.bonus && head.x === this.bonus.x && head.y === this.bonus.y) {
-        game.updateScore(game.score + 50);
+        if (this.bonus.trim) {
+          const cut = Math.min(5, this.snake.length - 4);
+          if (cut > 0) this.snake.length -= cut;
+          game.updateScore(game.score + 20);
+          Fx.text(head.x * C + C / 2, head.y * C - 4, '✂️ +20', '#4ade80');
+          Fx.burst(head.x * C + C / 2, head.y * C + C / 2, '#4ade80', 16, 3);
+        } else {
+          game.updateScore(game.score + 50);
+          Fx.text(head.x * C + C / 2, head.y * C - 4, '+50', '#fbbf24');
+          Fx.burst(head.x * C + C / 2, head.y * C + C / 2, '#fbbf24', 16, 3);
+        }
         SFX.bonus();
-        Fx.burst(head.x * C + C / 2, head.y * C + C / 2, '#fbbf24', 16, 3);
-        Fx.text(head.x * C + C / 2, head.y * C - 4, '+50', '#fbbf24');
         this.bonus = null;
         // bonus also grows the snake (keep tail)
       } else {
@@ -1272,27 +1878,38 @@
         }
       }
 
+      // Wrap-around edges, drawn so it's obvious they're portals not walls
+      const gw = this.cols * C, gh = this.rows * C;
+      ctx.save();
+      ctx.globalAlpha = this.wrapFlash > 0 ? 0.9 : 0.3;
+      ctx.strokeStyle = '#a855f7';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([6, 8]);
+      ctx.strokeRect(1.5, 1.5, gw - 3, gh - 3);
+      ctx.restore();
+
       // Food
       ctx.beginPath();
       ctx.arc(this.food.x * C + C / 2, this.food.y * C + C / 2, C / 2 - 3, 0, Math.PI * 2);
       ctx.fillStyle = '#ec4899';
       ctx.fill();
 
-      // Golden bonus: blink + countdown ring
+      // Timed bonus: blink + countdown ring (green when it's a tail trim)
       if (this.bonus) {
         const bx = this.bonus.x * C + C / 2;
         const by = this.bonus.y * C + C / 2;
-        const frac = Math.max(0, (this.bonus.expiresAt - now) / 5200);
+        const frac = Math.max(0, (this.bonus.expiresAt - now) / 6200);
         const blink = 0.55 + 0.45 * Math.sin(now / 110);
+        const tint = this.bonus.trim ? '#4ade80' : '#fbbf24';
         ctx.globalAlpha = blink;
         ctx.beginPath();
         ctx.arc(bx, by, C / 2 - 2, 0, Math.PI * 2);
-        ctx.fillStyle = '#fbbf24';
+        ctx.fillStyle = tint;
         ctx.fill();
         ctx.globalAlpha = 1;
         ctx.beginPath();
         ctx.arc(bx, by, C / 2 + 2.5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac);
-        ctx.strokeStyle = '#fbbf24';
+        ctx.strokeStyle = tint;
         ctx.lineWidth = 2;
         ctx.stroke();
       }
@@ -1322,6 +1939,124 @@
           ctx.fill();
         }
       });
+
+      // HUD
+      if (this.streak > 1) {
+        ctx.font = 'bold 15px "Segoe UI", Arial, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillText(`STREAK ×${this.streak}`, 10, 20);
+      }
+    },
+
+    // --- Autopilot -------------------------------------------------------
+    // Greedy-but-checked: breadth-first to the food, then reject the move if
+    // it would leave the head unable to reach its own tail (the classic way a
+    // pure-greedy snake seals itself in). When there's no safe route to food
+    // it takes whichever legal move leaves the most open space.
+    autoPlay: function() {
+      // BFS once per grid step, not once per animation frame.
+      const h = this.snake[0];
+      const key = h.x + ',' + h.y;
+      if (key === this.autoKey) return;
+      this.autoKey = key;
+
+      const goal = this.bonus || this.food;
+      const back = { x: -this.dir.x, y: -this.dir.y };
+      let choice = null;
+
+      const d = this.pathDir(h, goal, this.snake);
+      if (d && !(d.x === back.x && d.y === back.y)) {
+        const after = this.advance(this.snake, d);
+        if (this.snake.length <= 4 || this.pathDir(after[0], after[after.length - 1], after)) {
+          choice = d;
+        }
+      }
+
+      if (!choice) {
+        let best = -1;
+        for (const cand of this.DIRS) {
+          if (cand.x === back.x && cand.y === back.y) continue;
+          const room = this.openSpace(this.snake, cand);
+          if (room > best) { best = room; choice = cand; }
+        }
+      }
+
+      if (choice) this.turn(choice.x, choice.y);
+    },
+
+    // First step of a shortest path from `start` to `goal`, or null.
+    // The tail cell is walkable — it moves out of the way on the same tick.
+    pathDir: function(start, goal, body) {
+      const W = this.cols, H = this.rows, N = W * H;
+      const blocked = new Uint8Array(N);
+      for (let i = 0; i < body.length - 1; i++) blocked[body[i].y * W + body[i].x] = 1;
+
+      const from = new Int32Array(N).fill(-1);
+      const seen = new Uint8Array(N);
+      const si = start.y * W + start.x, gi = goal.y * W + goal.x;
+      if (si === gi) return null;
+      seen[si] = 1;
+      const q = [si];
+
+      for (let qi = 0; qi < q.length; qi++) {
+        const ci = q[qi];
+        if (ci === gi) break;
+        const cx = ci % W, cy = (ci - cx) / W;
+        for (const d of this.DIRS) {
+          const nx = (cx + d.x + W) % W, ny = (cy + d.y + H) % H;
+          const ni = ny * W + nx;
+          if (seen[ni] || blocked[ni]) continue;
+          seen[ni] = 1; from[ni] = ci; q.push(ni);
+        }
+      }
+      if (!seen[gi]) return null;
+
+      let cur = gi;
+      while (from[cur] !== si) {
+        if (from[cur] === -1) return null;
+        cur = from[cur];
+      }
+      const cx = cur % W, cy = (cur - cx) / W;
+      let dx = cx - start.x, dy = cy - start.y;
+      if (dx > 1) dx = -1; else if (dx < -1) dx = 1;
+      if (dy > 1) dy = -1; else if (dy < -1) dy = 1;
+      return { x: dx, y: dy };
+    },
+
+    advance: function(body, d) {
+      const next = [this.step(body[0], d)].concat(body);
+      next.pop();
+      return next;
+    },
+
+    // Flood-fill reachable cells after taking `d` — the tie-breaker that keeps
+    // the snake out of pockets it can't get back out of. -1 means instant death.
+    openSpace: function(body, d) {
+      const W = this.cols, H = this.rows, N = W * H;
+      const next = this.advance(body, d);
+      const head = next[0];
+      for (let i = 1; i < next.length; i++) {
+        if (next[i].x === head.x && next[i].y === head.y) return -1;
+      }
+      const blocked = new Uint8Array(N);
+      for (let i = 0; i < next.length - 1; i++) blocked[next[i].y * W + next[i].x] = 1;
+
+      const seen = new Uint8Array(N);
+      const si = head.y * W + head.x;
+      seen[si] = 1;
+      const q = [si];
+      for (let qi = 0; qi < q.length; qi++) {
+        const ci = q[qi];
+        const cx = ci % W, cy = (ci - cx) / W;
+        for (const dd of this.DIRS) {
+          const nx = (cx + dd.x + W) % W, ny = (cy + dd.y + H) % H;
+          const ni = ny * W + nx;
+          if (seen[ni] || blocked[ni]) continue;
+          seen[ni] = 1; q.push(ni);
+        }
+      }
+      return q.length;
     }
   };
 
@@ -1389,12 +2124,18 @@
   function consoleHint() {
     try {
       console.log(
-        '%c🎮 Secret Arcade %c\n\nThere are hidden pages on this site…\n  · type %ceaster%c anywhere for the arcade (Breakout · Dino · Snake)\n  · type %cadmin%c for the visitor panel\n  · Esc closes them\n',
+        '%c🎮 Secret Arcade %c\n\nThere are hidden pages on this site…\n  · type %ceaster%c anywhere for the arcade (Breakout · Dino · Snake)\n  · type %cadmin%c for the visitor panel\n  · in a game: %cP%c pauses, %c🤖 Autopilot%c hands over to the algorithm, %cS%c takes control back\n  · Esc closes them\n',
         'font-size:18px; font-weight:bold; background:linear-gradient(90deg,#22d3ee,#a855f7,#ec4899); -webkit-background-clip:text; color:transparent;',
         'color:#94a3b8; font-size:12px;',
         'color:#22d3ee; font-weight:bold; font-size:12px;',
         'color:#94a3b8; font-size:12px;',
         'color:#22d3ee; font-weight:bold; font-size:12px;',
+        'color:#94a3b8; font-size:12px;',
+        'color:#fbbf24; font-weight:bold; font-size:12px;',
+        'color:#94a3b8; font-size:12px;',
+        'color:#fbbf24; font-weight:bold; font-size:12px;',
+        'color:#94a3b8; font-size:12px;',
+        'color:#fbbf24; font-weight:bold; font-size:12px;',
         'color:#94a3b8; font-size:12px;'
       );
     } catch (e) { /* console styling unsupported — fine */ }

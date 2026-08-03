@@ -687,6 +687,11 @@ html.js .reveal:not(.is-visible) { opacity: 0; transform: translateY(16px); }
 }
 
 #hidden-game {
+  /* Opened by setting an inline display:flex, which this rule was never written
+     for — the default row direction strung the controls, canvas, score and hint
+     out side by side and squeezed each into its own narrow column. Stack them. */
+  flex-direction: column;
+  align-items: center;
   text-align: center;
   color: #eef2ff;
   overflow: auto;
@@ -775,6 +780,23 @@ html.js .reveal:not(.is-visible) { opacity: 0; transform: translateY(16px); }
 #gameControls button:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 22px rgba(124, 58, 237, 0.5);
+}
+
+/* Autopilot: unmistakable while the algorithm has the controls. */
+#gameControls button#autoToggle.is-on {
+  background: linear-gradient(120deg, #f59e0b 0%, #fbbf24 55%, #f97316 100%);
+  color: #201400;
+  box-shadow: 0 4px 18px rgba(251, 191, 36, 0.55);
+  animation: autopilotPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes autopilotPulse {
+  0%, 100% { box-shadow: 0 4px 14px rgba(251, 191, 36, 0.40); }
+  50%      { box-shadow: 0 4px 24px rgba(251, 191, 36, 0.85); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #gameControls button#autoToggle.is-on { animation: none; }
 }
 
 #gameCanvas {
