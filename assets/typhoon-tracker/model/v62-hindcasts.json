@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-02T23:50:30Z",
+  "generated_at": "2026-08-03T01:30:09Z",
   "note": "Per-storm v62 hindcasts, loaded lazily. History mode uses v62 wherever a run covers the initialisation on screen and v23 elsewhere.",
   "hindcasts": {
     "1979275N06159": {
@@ -181,6 +181,36 @@
       "intensity_runs": 40,
       "mean_track_mae_km": 342.8,
       "file": "v62/1985284N05159.json"
+    },
+    "1986134N08149": {
+      "storm": "Lola",
+      "season": 1986,
+      "runs": 38,
+      "first_issue_utc": "1986-05-15T00:00:00Z",
+      "last_issue_utc": "1986-05-25T00:00:00Z",
+      "intensity_runs": 27,
+      "mean_track_mae_km": 972.1,
+      "file": "v62/1986134N08149.json"
+    },
+    "1990310N07152": {
+      "storm": "Mike",
+      "season": 1990,
+      "runs": 46,
+      "first_issue_utc": "1990-11-07T00:00:00Z",
+      "last_issue_utc": "1990-11-18T06:00:00Z",
+      "intensity_runs": 46,
+      "mean_track_mae_km": 400.2,
+      "file": "v62/1990310N07152.json"
+    },
+    "1991320N06171": {
+      "storm": "Yuri",
+      "season": 1991,
+      "runs": 66,
+      "first_issue_utc": "1991-11-17T00:00:00Z",
+      "last_issue_utc": "1991-12-03T06:00:00Z",
+      "intensity_runs": 40,
+      "mean_track_mae_km": 944.2,
+      "file": "v62/1991320N06171.json"
     }
   }
 }
