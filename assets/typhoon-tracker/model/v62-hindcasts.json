@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-03T01:30:09Z",
+  "generated_at": "2026-08-03T05:46:20Z",
   "note": "Per-storm v62 hindcasts, loaded lazily. History mode uses v62 wherever a run covers the initialisation on screen and v23 elsewhere.",
   "hindcasts": {
     "1979275N06159": {
@@ -211,6 +211,36 @@
       "intensity_runs": 40,
       "mean_track_mae_km": 944.2,
       "file": "v62/1991320N06171.json"
+    },
+    "1994222N11267": {
+      "storm": "John",
+      "season": 1994,
+      "runs": 120,
+      "first_issue_utc": "1994-08-11T06:00:00Z",
+      "last_issue_utc": "1994-09-10T00:00:00Z",
+      "intensity_runs": 85,
+      "mean_track_mae_km": 531.2,
+      "file": "v62/1994222N11267.json"
+    },
+    "2003247N10153": {
+      "storm": "Maemi",
+      "season": 2003,
+      "runs": 44,
+      "first_issue_utc": "2003-09-05T00:00:00Z",
+      "last_issue_utc": "2003-09-15T18:00:00Z",
+      "intensity_runs": 36,
+      "mean_track_mae_km": 807.1,
+      "file": "v62/2003247N10153.json"
+    },
+    "2009272N07164": {
+      "storm": "Melor",
+      "season": 2009,
+      "runs": 46,
+      "first_issue_utc": "2009-09-29T12:00:00Z",
+      "last_issue_utc": "2009-10-10T18:00:00Z",
+      "intensity_runs": 39,
+      "mean_track_mae_km": 1131.5,
+      "file": "v62/2009272N07164.json"
     }
   }
 }
