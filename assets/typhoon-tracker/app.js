@@ -619,11 +619,25 @@
     }).join("");
   }
 
+  // Ordered by formation, the way agencies number a season (JMA's T2601, T2602, …)
+  // rather than by peak intensity, so the list reads as the season actually unfolded.
+  //
+  // The leading number is a position in THIS list, not an official designation, and
+  // deliberately so: JMA numbers only systems reaching tropical-storm strength and its
+  // count does not track IBTrACS's. Haiyan 2013 is the 29th qualifying storm here but
+  // JMA called it T1330, so printing "T1329" would state someone else's identifier
+  // wrongly. The bare ordinal gives the same scannability without the false claim.
   function populateStorms(season) {
     var storms = indexData.filter(function (s) { return s.season === Number(season); });
-    storms.sort(function (a, b) { return (b.maxWind || 0) - (a.maxWind || 0); });
-    els.storm.innerHTML = storms.map(function (s) {
-      return '<option value="' + s.sid + '">' + s.name + (s.nameZh ? " " + s.nameZh : "") +
+    storms.sort(function (a, b) {
+      var d = String(a.start || "").localeCompare(String(b.start || ""));
+      return d !== 0 ? d : String(a.sid).localeCompare(String(b.sid));
+    });
+    var pad = String(storms.length).length;
+    els.storm.innerHTML = storms.map(function (s, i) {
+      var n = String(i + 1);
+      while (n.length < pad) n = "0" + n;
+      return '<option value="' + s.sid + '">' + n + " · " + s.name + (s.nameZh ? " " + s.nameZh : "") +
         " — " + s.cat + " (" + Math.round(s.maxWind || 0) + "kt" +
         (s.ace != null ? " · ACE " + s.ace : "") + ")" +
         (s.live ? " · LIVE" : "") +
