@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-03T05:46:20Z",
+  "generated_at": "2026-08-03T09:10:58Z",
   "note": "Per-storm v62 hindcasts, loaded lazily. History mode uses v62 wherever a run covers the initialisation on screen and v23 elsewhere.",
   "hindcasts": {
     "1979275N06159": {
@@ -241,6 +241,36 @@
       "intensity_runs": 39,
       "mean_track_mae_km": 1131.5,
       "file": "v62/2009272N07164.json"
+    },
+    "1987320N03171": {
+      "storm": "Nina",
+      "season": 1987,
+      "runs": 53,
+      "first_issue_utc": "1987-11-17T00:00:00Z",
+      "last_issue_utc": "1987-11-30T00:00:00Z",
+      "intensity_runs": 44,
+      "mean_track_mae_km": 540.7,
+      "file": "v62/1987320N03171.json"
+    },
+    "1990251N06171": {
+      "storm": "Flo",
+      "season": 1990,
+      "runs": 53,
+      "first_issue_utc": "1990-09-09T00:00:00Z",
+      "last_issue_utc": "1990-09-22T00:00:00Z",
+      "intensity_runs": 41,
+      "mean_track_mae_km": 1056.1,
+      "file": "v62/1990251N06171.json"
+    },
+    "1991289N06156": {
+      "storm": "Ruth",
+      "season": 1991,
+      "runs": 68,
+      "first_issue_utc": "1991-10-17T00:00:00Z",
+      "last_issue_utc": "1991-11-02T18:00:00Z",
+      "intensity_runs": 48,
+      "mean_track_mae_km": 723.2,
+      "file": "v62/1991289N06156.json"
     }
   }
 }
