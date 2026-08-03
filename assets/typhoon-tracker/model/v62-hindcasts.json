@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-03T19:52:26Z",
+  "generated_at": "2026-08-03T21:14:22Z",
   "note": "Per-storm v62 hindcasts, loaded lazily. History mode uses v62 wherever a run covers the initialisation on screen and v23 elsewhere.",
   "hindcasts": {
     "1979275N06159": {
@@ -501,6 +501,106 @@
       "intensity_runs": 56,
       "mean_track_mae_km": 858.8,
       "file": "v62/1996192N19152.json"
+    },
+    "1996203N12152": {
+      "storm": "Herb",
+      "season": 1996,
+      "runs": 53,
+      "first_issue_utc": "1996-07-22T06:00:00Z",
+      "last_issue_utc": "1996-08-04T06:00:00Z",
+      "intensity_runs": 47,
+      "mean_track_mae_km": 318.2,
+      "file": "v62/1996203N12152.json"
+    },
+    "1996246N08148": {
+      "storm": "Sally",
+      "season": 1996,
+      "runs": 31,
+      "first_issue_utc": "1996-09-03T00:00:00Z",
+      "last_issue_utc": "1996-09-10T12:00:00Z",
+      "intensity_runs": 23,
+      "mean_track_mae_km": 517.3,
+      "file": "v62/1996246N08148.json"
+    },
+    "1996307N09154": {
+      "storm": "Dale",
+      "season": 1996,
+      "runs": 42,
+      "first_issue_utc": "1996-11-03T00:00:00Z",
+      "last_issue_utc": "1996-11-14T00:00:00Z",
+      "intensity_runs": 39,
+      "mean_track_mae_km": 908.1,
+      "file": "v62/1996307N09154.json"
+    },
+    "1997152N06171": {
+      "storm": "Nestor",
+      "season": 1997,
+      "runs": 58,
+      "first_issue_utc": "1997-06-02T06:00:00Z",
+      "last_issue_utc": "1997-06-16T12:00:00Z",
+      "intensity_runs": 43,
+      "mean_track_mae_km": 833.4,
+      "file": "v62/1997152N06171.json"
+    },
+    "1997196N08142": {
+      "storm": "Rosie",
+      "season": 1997,
+      "runs": 61,
+      "first_issue_utc": "1997-07-16T00:00:00Z",
+      "last_issue_utc": "1997-07-31T00:00:00Z",
+      "intensity_runs": 45,
+      "mean_track_mae_km": 560.0,
+      "file": "v62/1997196N08142.json"
+    },
+    "1997217N06168": {
+      "storm": "Winnie",
+      "season": 1997,
+      "runs": 77,
+      "first_issue_utc": "1997-08-06T00:00:00Z",
+      "last_issue_utc": "1997-08-25T00:00:00Z",
+      "intensity_runs": 68,
+      "mean_track_mae_km": 689.0,
+      "file": "v62/1997217N06168.json"
+    },
+    "1997240N12193": {
+      "storm": "Oliwa",
+      "season": 1997,
+      "runs": 85,
+      "first_issue_utc": "1997-08-29T06:00:00Z",
+      "last_issue_utc": "1997-09-19T06:00:00Z",
+      "intensity_runs": 53,
+      "mean_track_mae_km": 761.4,
+      "file": "v62/1997240N12193.json"
+    },
+    "1999260N20130": {
+      "storm": "Bart",
+      "season": 1999,
+      "runs": 45,
+      "first_issue_utc": "1999-09-18T00:00:00Z",
+      "last_issue_utc": "1999-09-29T00:00:00Z",
+      "intensity_runs": 29,
+      "mean_track_mae_km": 948.6,
+      "file": "v62/1999260N20130.json"
+    },
+    "2000230N08139": {
+      "storm": "Bilis",
+      "season": 2000,
+      "runs": 36,
+      "first_issue_utc": "2000-08-18T06:00:00Z",
+      "last_issue_utc": "2000-08-27T00:00:00Z",
+      "intensity_runs": 24,
+      "mean_track_mae_km": 601.3,
+      "file": "v62/2000230N08139.json"
+    },
+    "2000245N14157": {
+      "storm": "Saomai",
+      "season": 2000,
+      "runs": 69,
+      "first_issue_utc": "2000-09-01T18:00:00Z",
+      "last_issue_utc": "2000-09-18T18:00:00Z",
+      "intensity_runs": 59,
+      "mean_track_mae_km": 575.8,
+      "file": "v62/2000245N14157.json"
     }
   }
 }
