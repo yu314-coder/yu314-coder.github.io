@@ -831,6 +831,11 @@
     lives: 3,
     level: 1,
     layoutName: '',
+    cols: 11,
+    initialBricks: 0,
+    // Tunnel only while at least this fraction of the board is still up;
+    // digging a channel through a nearly-cleared board is wasted effort.
+    TUNNEL_UNTIL: 0.55,
     speed: 5,
     fever: false,
     combo: 0,
@@ -846,6 +851,11 @@
     // sub-stepped at this granularity — otherwise a fast ball tunnels straight
     // through bricks it should have broken.
     SUBSTEP: 6,
+    // How far off-centre the autopilot will stand to steer the bounce, as a
+    // fraction of paddle width. The paddle edge gives the sharpest angle, so
+    // higher means more aggressive aiming and a faster clear -- at the cost of
+    // less margin on the catch. Swept empirically; see the commit message.
+    AIM_AUTHORITY: 0.55,
     // Eight bricks without touching the paddle and the board catches fire.
     FEVER_AT: 8,
     // The wall creeps down, so a level is a race rather than an open-ended
@@ -1005,6 +1015,7 @@
       const left = Math.round((canvas.width - gridW) / 2);
 
       this.layoutName = spec.name;
+      this.cols = cols;
       this.bricks = [];
       spec.rows.forEach((line, row) => {
         for (let col = 0; col < line.length; col++) {
@@ -1027,6 +1038,7 @@
       this.effects.wide = false;
       this.descendAt = performance.now() + this.DESCEND_FIRST;
       this.descendFlash = 0;
+      this.initialBricks = this.bricksLeft();
       this.levelFlash = 90;
     },
 
@@ -1726,11 +1738,30 @@
       // beyond saving must not pull the paddle off one that isn't.
       const pick = arrivals.find((a) => a.reachable) || arrivals[0] || null;
 
+      // Multi-ball: if a second ball lands at nearly the same moment and close
+      // enough, stand between them and take both on one paddle instead of
+      // catching one and writing the other off.
+      let stand = pick ? pick.x : null;
+      if (pick) {
+        const mate = arrivals.find((a) => a !== pick && a.reachable &&
+                                          Math.abs(a.t - pick.t) < 12 &&
+                                          Math.abs(a.x - pick.x) < this.paddle.width * 0.8);
+        if (mate) stand = (pick.x + mate.x) / 2;
+      }
+
       let target;
       if (pick) {
-        const detour = this.bestCapsule(canvas, pick.t, pick.x, centre, step, now);
-        if (detour !== null) target = detour;
-        else target = pick.x - this.aimBias(pick.x, pick.t, canvas, now);
+        const detour = this.bestCapsule(canvas, pick.t, stand, centre, step, now);
+        const dense = this.effects.laserUntil > now ? this.densestX(canvas) : null;
+        if (detour !== null) {
+          target = detour;
+        } else if (dense !== null && this.canReturn(dense, stand, centre, step, pick.t)) {
+          // The cannon is firing and the ball is still a long way off: spend
+          // the wait standing where the bolts will actually land.
+          target = dense;
+        } else {
+          target = stand - this.aimBias(stand, pick.t, canvas, now);
+        }
       } else {
         const detour = this.bestCapsule(canvas, Infinity, null, centre, step, now);
         if (detour !== null) target = detour;
@@ -1746,6 +1777,12 @@
 
       const move = Math.max(-step, Math.min(step, target - centre));
       this.paddle.x = Math.max(0, Math.min(canvas.width - this.paddle.width, this.paddle.x + move));
+    },
+
+    // Enough time to go somewhere and still get back under the ball?
+    canReturn: function(x, ballX, centre, step, ballT) {
+      if (x === null || ballX === null) return false;
+      return Math.abs(x - centre) / step + Math.abs(ballX - x) / step < ballT - 8;
     },
 
     // What a capsule is worth *right now*. An extra life is close to priceless
@@ -1837,20 +1874,30 @@
     // lowest bricks are all that matter.
     aimBias: function(ballX, frames, canvas, now) {
       if (frames > 70) return 0;   // no time to be fancy — just catch it
-      const goal = this.aimGoal(canvas, now);
+      const goal = this.aimGoal(canvas, now, ballX);
       if (goal === null) return 0;
       const bias = (goal - ballX) / 240;
-      return Math.max(-1, Math.min(1, bias)) * (this.paddle.width * 0.30);
+      return Math.max(-1, Math.min(1, bias)) * (this.paddle.width * this.AIM_AUTHORITY);
     },
 
-    // Where to send the ball next. Piercing changes the answer completely:
-    // instead of the weighted middle of the board, drive it at the thickest
-    // stack, because it will go through all of it rather than bouncing off the
+    // Where to send the ball next.
+    //
+    // A weighted centre of what is left, not a single chosen brick: aiming at
+    // one specific brick was tried and measured worse (median level 5 against
+    // 12), because the pick jumps frame to frame as bricks break and the
+    // paddle chases it instead of settling into a stable angle.
+    //
+    // Piercing changes the answer completely: drive at the thickest stack,
+    // because the ball will pass through all of it rather than bounce off the
     // first brick.
-    aimGoal: function(canvas, now) {
+    aimGoal: function(canvas, now, ballX) {
       if (now !== undefined && this.effects.pierceUntil > now) {
         const dense = this.densestX(canvas);
         if (dense !== null) return dense;
+      }
+      if (this.initialBricks && this.bricksLeft() >= this.initialBricks * this.TUNNEL_UNTIL) {
+        const tunnel = this.tunnelGoal(canvas);
+        if (tunnel !== null) return tunnel;
       }
       let lowest = 0;
       for (const b of this.bricks) {
@@ -1863,11 +1910,51 @@
       for (const b of this.bricks) {
         if (b.hp <= 0 || b.kind === 'steel') continue;
         if (urgent && b.y < lowest - this.DESCEND_STEP * 1.5) continue;
-        const wt = b.kind === 'boom' ? 5 : (b.kind === 'key' ? 4 : (b.kind === 'mystery' ? 3 : 1));
+        // Explosives and keystones take a chunk of the board with them, and a
+        // brick that dies in one hit is worth more than one that needs three.
+        const wt = (b.kind === 'boom' ? 5 : b.kind === 'key' ? 4 : b.kind === 'mystery' ? 3 : 1) / b.hp;
         sx += (b.x + b.w / 2) * wt;
         w += wt;
       }
       return w ? sx / w : null;
+    },
+
+    // The strategy a good human plays and the bot did not: punch a channel
+    // through one column, and the ball ends up *above* the wall, rattling
+    // between the ceiling and the brick tops. From up there it clears several
+    // bricks a trip instead of one or two, and never risks the paddle.
+    //
+    // Pick the cheapest column to break through, preferring the edges — a ball
+    // that enters at the side stays above the wall longer. Steel columns can
+    // never be dug, so they are ruled out.
+    tunnelGoal: function(canvas) {
+      const cost = {};
+      for (const b of this.bricks) {
+        if (b.hp <= 0) continue;
+        if (b.kind === 'steel') { cost[b.col] = Infinity; continue; }
+        if (cost[b.col] === Infinity) continue;
+        cost[b.col] = (cost[b.col] || 0) + b.hp;
+      }
+      // Nothing left worth tunnelling for; go back to the weighted centre.
+      const live = Object.keys(cost).filter((c) => cost[c] !== Infinity);
+      if (live.length < 3) return null;
+
+      let bestCol = null, bestCost = Infinity;
+      for (const c of live) {
+        const col = Number(c);
+        const edge = Math.min(col, this.cols - 1 - col);
+        const score = cost[c] * 2 + edge;       // shallow first, then edge-most
+        if (score < bestCost) { bestCost = score; bestCol = col; }
+      }
+      if (bestCol === null) return null;
+
+      const cfg = this.config;
+      const anchorBrick = this.bricks.find((b) => b.col === bestCol);
+      if (anchorBrick) return anchorBrick.x + anchorBrick.w / 2;
+      // Column already cleared — keep feeding the ball up the channel.
+      const gridW = this.cols * cfg.brickWidth + (this.cols - 1) * cfg.brickPadding;
+      const left = Math.round((canvas.width - gridW) / 2);
+      return left + bestCol * (cfg.brickWidth + cfg.brickPadding) + cfg.brickWidth / 2;
     },
 
     nearestPowerup: function(canvas) {
