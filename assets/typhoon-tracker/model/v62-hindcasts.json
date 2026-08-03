@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-03T09:10:58Z",
+  "generated_at": "2026-08-03T13:02:21Z",
   "note": "Per-storm v62 hindcasts, loaded lazily. History mode uses v62 wherever a run covers the initialisation on screen and v23 elsewhere.",
   "hindcasts": {
     "1979275N06159": {
@@ -271,6 +271,36 @@
       "intensity_runs": 48,
       "mean_track_mae_km": 723.2,
       "file": "v62/1991289N06156.json"
+    },
+    "1992302N06150": {
+      "storm": "Elsie",
+      "season": 1992,
+      "runs": 44,
+      "first_issue_utc": "1992-10-28T12:00:00Z",
+      "last_issue_utc": "1992-11-09T00:00:00Z",
+      "intensity_runs": 41,
+      "mean_track_mae_km": 737.9,
+      "file": "v62/1992302N06150.json"
+    },
+    "1997099N06153": {
+      "storm": "Isa",
+      "season": 1997,
+      "runs": 58,
+      "first_issue_utc": "1997-04-10T00:00:00Z",
+      "last_issue_utc": "1997-04-24T06:00:00Z",
+      "intensity_runs": 48,
+      "mean_track_mae_km": 755.4,
+      "file": "v62/1997099N06153.json"
+    },
+    "1997265N10175": {
+      "storm": "Ginger",
+      "season": 1997,
+      "runs": 34,
+      "first_issue_utc": "1997-09-22T12:00:00Z",
+      "last_issue_utc": "1997-09-30T18:00:00Z",
+      "intensity_runs": 31,
+      "mean_track_mae_km": 762.4,
+      "file": "v62/1997265N10175.json"
     }
   }
 }
