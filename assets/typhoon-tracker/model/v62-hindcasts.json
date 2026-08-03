@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-03T21:14:22Z",
+  "generated_at": "2026-08-03T22:28:07Z",
   "note": "Per-storm v62 hindcasts, loaded lazily. History mode uses v62 wherever a run covers the initialisation on screen and v23 elsewhere.",
   "hindcasts": {
     "1979275N06159": {
@@ -601,6 +601,106 @@
       "intensity_runs": 59,
       "mean_track_mae_km": 575.8,
       "file": "v62/2000245N14157.json"
+    },
+    "2001291N05158": {
+      "storm": "Podul",
+      "season": 2001,
+      "runs": 44,
+      "first_issue_utc": "2001-10-18T12:00:00Z",
+      "last_issue_utc": "2001-10-29T06:00:00Z",
+      "intensity_runs": 39,
+      "mean_track_mae_km": 1028.3,
+      "file": "v62/2001291N05158.json"
+    },
+    "2002057N06156": {
+      "storm": "Mitag",
+      "season": 2002,
+      "runs": 39,
+      "first_issue_utc": "2002-02-27T06:00:00Z",
+      "last_issue_utc": "2002-03-08T18:00:00Z",
+      "intensity_runs": 38,
+      "mean_track_mae_km": 595.2,
+      "file": "v62/2002057N06156.json"
+    },
+    "2002133N03150": {
+      "storm": "Hagibis",
+      "season": 2002,
+      "runs": 32,
+      "first_issue_utc": "2002-05-14T06:00:00Z",
+      "last_issue_utc": "2002-05-22T00:00:00Z",
+      "intensity_runs": 30,
+      "mean_track_mae_km": 1143.6,
+      "file": "v62/2002133N03150.json"
+    },
+    "2004134N07132": {
+      "storm": "Nida",
+      "season": 2004,
+      "runs": 35,
+      "first_issue_utc": "2004-05-14T00:00:00Z",
+      "last_issue_utc": "2004-05-22T12:00:00Z",
+      "intensity_runs": 30,
+      "mean_track_mae_km": 860.9,
+      "file": "v62/2004134N07132.json"
+    },
+    "2004275N14139": {
+      "storm": "Ma-On",
+      "season": 2004,
+      "runs": 31,
+      "first_issue_utc": "2004-10-02T06:00:00Z",
+      "last_issue_utc": "2004-10-09T18:00:00Z",
+      "intensity_runs": 31,
+      "mean_track_mae_km": 690.4,
+      "file": "v62/2004275N14139.json"
+    },
+    "2005192N22155": {
+      "storm": "Haitang",
+      "season": 2005,
+      "runs": 40,
+      "first_issue_utc": "2005-07-11T12:00:00Z",
+      "last_issue_utc": "2005-07-21T06:00:00Z",
+      "intensity_runs": 35,
+      "mean_track_mae_km": 389.7,
+      "file": "v62/2005192N22155.json"
+    },
+    "2005241N15155": {
+      "storm": "Nabi",
+      "season": 2005,
+      "runs": 44,
+      "first_issue_utc": "2005-08-29T18:00:00Z",
+      "last_issue_utc": "2005-09-09T12:00:00Z",
+      "intensity_runs": 38,
+      "mean_track_mae_km": 1020.2,
+      "file": "v62/2005241N15155.json"
+    },
+    "2006216N07151": {
+      "storm": "Saomai",
+      "season": 2006,
+      "runs": 29,
+      "first_issue_utc": "2006-08-05T00:00:00Z",
+      "last_issue_utc": "2006-08-12T00:00:00Z",
+      "intensity_runs": 29,
+      "mean_track_mae_km": 429.2,
+      "file": "v62/2006216N07151.json"
+    },
+    "2006228N10218": {
+      "storm": "Ioke",
+      "season": 2006,
+      "runs": 86,
+      "first_issue_utc": "2006-08-17T00:00:00Z",
+      "last_issue_utc": "2006-09-07T06:00:00Z",
+      "intensity_runs": 83,
+      "mean_track_mae_km": 616.3,
+      "file": "v62/2006228N10218.json"
+    },
+    "2006259N19155": {
+      "storm": "Yagi",
+      "season": 2006,
+      "runs": 41,
+      "first_issue_utc": "2006-09-17T00:00:00Z",
+      "last_issue_utc": "2006-09-27T00:00:00Z",
+      "intensity_runs": 34,
+      "mean_track_mae_km": 1169.0,
+      "file": "v62/2006259N19155.json"
     }
   }
 }
