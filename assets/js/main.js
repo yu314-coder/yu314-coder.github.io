@@ -291,14 +291,14 @@
     autoRestartTimer: null,
 
     HINTS: {
-      breakout: 'Arrows / mouse / drag — Wide/Slow last the whole level · long rallies drop far more',
+      breakout: 'Arrows / mouse / drag — 8 layouts with steel & 💥 bricks · Wide/Slow last the level · rallies drop more',
       dino: 'Space/⬆️ jump (twice for a double-jump) · ⬇️ duck — grab 🪙 and 🛡️',
       snake: 'Arrows / WASD / swipe — edges wrap around · gold +50 · ✂️ trims your tail'
     },
 
     // Same games, described in the gestures a phone actually has.
     TOUCH_HINTS: {
-      breakout: 'Drag the paddle or hold ⬅ ➡ — Wide/Slow last the level · long rallies drop far more',
+      breakout: 'Drag or hold ⬅ ➡ — 8 layouts with steel & 💥 bricks · Wide/Slow last the level · rallies drop more',
       dino: 'Tap to jump, tap again to double-jump · hold ⬇ to duck — grab 🪙 and 🛡️',
       snake: 'Swipe or use the pad — edges wrap around · gold +50 · ✂️ trims your tail'
     },
@@ -830,26 +830,89 @@
     leftPressed: false,
     lives: 4,
     level: 1,
+    layoutName: '',
     speed: 3.6,
     combo: 0,
     levelFlash: 0,
     tick: 0,
     netFlash: 0,
-    effects: { wide: false, slow: false, laserUntil: 0, net: 0 },
+    effects: { wide: false, slow: false, laserUntil: 0, pierceUntil: 0, net: 0 },
     BASE_W: 104,
     WIDE_W: 184,
     MAX_SPEED: 10,
     keyDownHandler: null,
     keyUpHandler: null,
     config: {
-      brickRowCount: 5,
-      brickColumnCount: 7,
-      brickWidth: 75,
-      brickHeight: 20,
-      brickPadding: 10,
-      brickOffsetTop: 40,
-      brickOffsetLeft: 30
+      brickWidth: 48,
+      brickHeight: 18,
+      brickPadding: 6,
+      brickOffsetTop: 44
     },
+
+    // Hand-drawn levels, cycled in order. Every level used to be the same 5x7
+    // wall with more hardened rows, which is the least interesting knob there
+    // is. One character per brick:
+    //   .  empty        1/2/3  hit points
+    //   X  steel — never breaks, never blocks completion
+    //   *  explosive — takes its neighbours with it, and chains
+    LAYOUTS: [
+      { name: 'Wall', rows: [
+        '11111111111',
+        '11111111111',
+        '22222222222',
+        '11111111111',
+        '11111111111'
+      ] },
+      { name: 'Pyramid', rows: [
+        '.....3.....',
+        '....323....',
+        '...32223...',
+        '..3222223..',
+        '.311111113.'
+      ] },
+      { name: 'Checkers', rows: [
+        '1.2.1.2.1.2',
+        '.2.1.2.1.2.',
+        '2.1.2.1.2.1',
+        '.1.2.1.2.1.',
+        '1.2.1.2.1.2'
+      ] },
+      { name: 'Fortress', rows: [
+        'X111111111X',
+        'X1*22222*1X',
+        'X111111111X',
+        '.XX11111XX.',
+        '...11111...'
+      ] },
+      { name: 'Arch', rows: [
+        '..1111111..',
+        '.113333311.',
+        '11332*23311',
+        '11.......11',
+        '11.......11'
+      ] },
+      { name: 'Rain', rows: [
+        '2.2.2.2.2.2',
+        '1.1.1.1.1.1',
+        '...........',
+        '3.3.3.3.3.3',
+        '1.1.1.1.1.1'
+      ] },
+      { name: 'Diamond', rows: [
+        '.....2.....',
+        '...22122...',
+        '.1122*2211.',
+        '...22122...',
+        '.....2.....'
+      ] },
+      { name: 'Vault', rows: [
+        'X.X.X.X.X.X',
+        '33333333333',
+        '2*2*2*2*2*2',
+        '33333333333',
+        '.1.1.1.1.1.'
+      ] }
+    ],
 
     init: function(game) {
       this.lives = 4;
@@ -860,7 +923,7 @@
       this.netFlash = 0;
       this.powerups = [];
       this.bolts = [];
-      this.effects = { wide: false, slow: false, laserUntil: 0, net: 0 };
+      this.effects = { wide: false, slow: false, laserUntil: 0, pierceUntil: 0, net: 0 };
       game.updateScore(0);
       this.paddle = {
         width: this.BASE_W,
@@ -869,7 +932,7 @@
         color: '#22d3ee',
         speed: 9
       };
-      this.buildLevel();
+      this.buildLevel(game.canvas);
       this.resetBalls(game.canvas);
 
       this.rightPressed = false;
@@ -889,20 +952,40 @@
     },
 
     onResume: function(ms) {
-      // Timed power-ups shouldn't burn down while the game is paused.
+      // Only the countdown effects need compensating; wide/slow are level-scoped.
       if (this.effects.laserUntil) this.effects.laserUntil += ms;
+      if (this.effects.pierceUntil) this.effects.pierceUntil += ms;
     },
 
-    buildLevel: function() {
-      // Top rows become 2-hit bricks as levels climb (max 2 hardened rows)
-      const hardRows = Math.min(Math.max(this.level - 1, 0), 2);
+    // Positions are baked in here rather than during draw, so collision no
+    // longer depends on drawBricks() having run first this frame.
+    buildLevel: function(canvas) {
+      const spec = this.LAYOUTS[(this.level - 1) % this.LAYOUTS.length];
+      // Once the set has been round-tripped, everything breakable gets tougher.
+      const bonus = Math.min(Math.floor((this.level - 1) / this.LAYOUTS.length), 2);
+      const cfg = this.config;
+      const cols = spec.rows[0].length;
+      const gridW = cols * cfg.brickWidth + (cols - 1) * cfg.brickPadding;
+      const left = Math.round((canvas.width - gridW) / 2);
+
+      this.layoutName = spec.name;
       this.bricks = [];
-      for (let c = 0; c < this.config.brickColumnCount; c++) {
-        this.bricks[c] = [];
-        for (let r = 0; r < this.config.brickRowCount; r++) {
-          this.bricks[c][r] = { x: 0, y: 0, hp: r < hardRows ? 2 : 1 };
+      spec.rows.forEach((line, row) => {
+        for (let col = 0; col < line.length; col++) {
+          const ch = line[col];
+          if (ch === '.') continue;
+          const kind = ch === 'X' ? 'steel' : (ch === '*' ? 'boom' : 'normal');
+          let hp = 1;
+          if (kind === 'normal') hp = Math.min(parseInt(ch, 10) + bonus, 4);
+          this.bricks.push({
+            col: col, row: row, kind: kind, hp: hp, max: hp,
+            x: left + col * (cfg.brickWidth + cfg.brickPadding),
+            y: cfg.brickOffsetTop + row * (cfg.brickHeight + cfg.brickPadding),
+            w: cfg.brickWidth, h: cfg.brickHeight
+          });
         }
-      }
+      });
+
       // Wide/slow run to the end of the level, so a new one starts clean.
       this.effects.wide = false;
       this.effects.slow = false;
@@ -910,7 +993,7 @@
     },
 
     newBall: function(x, y, dx, dy) {
-      return { x: x, y: y, dx: dx, dy: dy, radius: 10, color: '#ec4899' };
+      return { x: x, y: y, dx: dx, dy: dy, radius: 10, color: '#ec4899', trail: [] };
     },
 
     resetBalls: function(canvas) {
@@ -937,11 +1020,10 @@
       this.paddle.x = Math.max(0, Math.min(game.canvas.width - this.paddle.width, x - this.paddle.width / 2));
     },
 
+    // Steel is scenery, not an objective — it must never gate the level.
     bricksLeft: function() {
       let n = 0;
-      for (let c = 0; c < this.config.brickColumnCount; c++)
-        for (let r = 0; r < this.config.brickRowCount; r++)
-          if (this.bricks[c][r].hp > 0) n++;
+      for (const b of this.bricks) if (b.kind !== 'steel' && b.hp > 0) n++;
       return n;
     },
 
@@ -961,11 +1043,12 @@
       if (Math.random() > this.dropChance()) return;
       const roll = Math.random();
       let type;
-      if (roll < 0.26) type = 'W';        // wide paddle
-      else if (roll < 0.50) type = 'S';   // slow ball
-      else if (roll < 0.74) type = 'M';   // multi-ball
-      else if (roll < 0.86) type = 'L';   // laser paddle
-      else if (roll < 0.95) type = 'N';   // safety net
+      if (roll < 0.24) type = 'W';        // wide paddle
+      else if (roll < 0.47) type = 'S';   // slow ball
+      else if (roll < 0.70) type = 'M';   // multi-ball
+      else if (roll < 0.80) type = 'P';   // pierce
+      else if (roll < 0.89) type = 'L';   // laser paddle
+      else if (roll < 0.96) type = 'N';   // safety net
       else type = 'H';                    // extra life
       this.powerups.push({ x: x, y: y, w: 36, h: 17, vy: 2.3, type: type });
     },
@@ -988,6 +1071,9 @@
         this.balls.push(this.newBall(src.x, src.y, -v * 0.6, -Math.abs(v * 0.8)));
         if (this.balls.length > 7) this.balls.length = 7;
         Fx.text(p.x + p.w / 2, p.y - 6, 'MULTI!', '#a855f7');
+      } else if (p.type === 'P') {
+        this.effects.pierceUntil = now + 7000;
+        Fx.text(p.x + p.w / 2, p.y - 6, 'PIERCE!', '#f472b6');
       } else if (p.type === 'L') {
         this.effects.laserUntil = now + 11000;
         Fx.text(p.x + p.w / 2, p.y - 6, 'LASER!', '#f97316');
@@ -1015,14 +1101,14 @@
       }
 
       this.drawNet(ctx, canvas);
-      this.drawBricks(ctx);
+      this.drawBricks(ctx, now);
       this.drawBalls(ctx, now);
       this.drawPaddle(ctx, canvas, now);
       this.fireLasers(canvas, now);
       this.drawBolts(ctx, game);
       this.drawPowerups(ctx, canvas, game);
       this.drawHud(ctx, canvas, now);
-      this.collisionDetection(game);
+      this.collisionDetection(game, now);
       this.moveBalls(canvas, game, now);
       this.movePaddle(canvas);
     },
@@ -1069,72 +1155,104 @@
       }
     },
 
-    boltHitsBrick: function(b, game) {
-      for (let c = 0; c < this.config.brickColumnCount; c++) {
-        for (let r = 0; r < this.config.brickRowCount; r++) {
-          const brick = this.bricks[c][r];
-          if (brick.hp <= 0) continue;
-          if (b.x > brick.x && b.x < brick.x + this.config.brickWidth &&
-              b.y > brick.y && b.y < brick.y + this.config.brickHeight) {
-            return this.damageBrick(c, r, game, b.x, false) ? 'cleared' : true;
-          }
+    boltHitsBrick: function(bolt, game) {
+      for (const brick of this.bricks) {
+        if (brick.hp <= 0) continue;
+        if (bolt.x > brick.x && bolt.x < brick.x + brick.w &&
+            bolt.y > brick.y && bolt.y < brick.y + brick.h) {
+          if (brick.kind === 'steel') return true;   // absorbed, undamaged
+          return this.damageBrick(brick, game, bolt.x, false) ? 'cleared' : true;
         }
       }
       return false;
     },
 
+    brickColor: function(b) {
+      if (b.kind === 'steel') return '#64748b';
+      if (b.kind === 'boom') return '#f97316';
+      return ['#22d3ee', '#a855f7', '#ec4899', '#f43f5e'][Math.min(b.hp, 4) - 1];
+    },
+
     // Shared by ball hits and laser bolts. Returns true when the level cleared.
-    damageBrick: function(c, r, game, hitX, fromBall) {
-      const b = this.bricks[c][r];
-      const colors = ['#ec4899', '#a855f7', '#7c3aed', '#06b6d4', '#22d3ee'];
-      const color = colors[r % colors.length];
+    damageBrick: function(b, game, hitX, fromBall) {
+      if (b.kind === 'steel') return false;
       b.hp--;
 
-      if (b.hp <= 0) {
-        if (fromBall) this.combo++;
-        const pts = fromBall ? 10 + (this.combo - 1) * 5 : 10;
-        game.updateScore(game.score + pts);
-        SFX.brick(fromBall ? this.combo : 1);
-        Fx.burst(hitX, b.y + this.config.brickHeight / 2, color, 12);
-        if (fromBall && this.combo >= 2) {
-          Fx.text(b.x + this.config.brickWidth / 2, b.y, `+${pts}`, '#fbbf24');
-        }
-        this.maybeDropPowerup(b.x + this.config.brickWidth / 2 - 18, b.y);
-      } else {
+      if (b.hp > 0) {
         SFX.beep(240, 0.05, 'square', 0.09);
-        Fx.burst(hitX, b.y + this.config.brickHeight, 'rgba(255,255,255,0.7)', 5, 1.6);
+        Fx.burst(hitX, b.y + b.h, 'rgba(255,255,255,0.7)', 5, 1.6);
+        return false;
       }
 
-      if (this.bricksLeft() === 0) {
-        this.level++;
-        this.speed = Math.min(this.speed * 1.12, this.MAX_SPEED);
-        SFX.levelUp();
-        this.buildLevel();
-        this.resetBalls(game.canvas);
-        this.powerups = [];
-        return true;
+      if (fromBall) this.combo++;
+      const pts = fromBall ? 10 + (this.combo - 1) * 5 : 10;
+      game.updateScore(game.score + pts);
+      SFX.brick(fromBall ? this.combo : 1);
+      Fx.burst(hitX, b.y + b.h / 2, this.brickColor(b), 12);
+      if (fromBall && this.combo >= 2) {
+        Fx.text(b.x + b.w / 2, b.y, '+' + pts, '#fbbf24');
       }
-      return false;
+      this.maybeDropPowerup(b.x + b.w / 2 - 18, b.y);
+
+      if (b.kind === 'boom') this.explode(b, game);
+
+      return this.checkLevelClear(game);
+    },
+
+    // Explosive bricks take their eight neighbours with them and chain through
+    // other explosives. Steel shrugs it off, which is what makes the Fortress
+    // and Vault layouts hold their shape.
+    explode: function(origin, game) {
+      game.shake(6, 12);
+      const queue = [origin];
+      while (queue.length) {
+        const src = queue.shift();
+        SFX.beep(140, 0.16, 'sawtooth', 0.12, 60);
+        Fx.burst(src.x + src.w / 2, src.y + src.h / 2, '#f97316', 18, 3.4);
+        for (const n of this.bricks) {
+          if (n === src || n.hp <= 0 || n.kind === 'steel') continue;
+          if (Math.abs(n.col - src.col) > 1 || Math.abs(n.row - src.row) > 1) continue;
+          n.hp = 0;
+          game.updateScore(game.score + 15);
+          Fx.burst(n.x + n.w / 2, n.y + n.h / 2, this.brickColor(n), 8, 2.4);
+          this.maybeDropPowerup(n.x + n.w / 2 - 18, n.y);
+          if (n.kind === 'boom') queue.push(n);
+        }
+      }
+    },
+
+    checkLevelClear: function(game) {
+      if (this.bricksLeft() > 0) return false;
+      this.level++;
+      this.speed = Math.min(this.speed * 1.12, this.MAX_SPEED);
+      SFX.levelUp();
+      this.buildLevel(game.canvas);
+      this.resetBalls(game.canvas);
+      this.powerups = [];
+      return true;
     },
 
     drawHud: function(ctx, canvas, now) {
       ctx.font = '16px "Segoe UI", Arial, sans-serif';
       ctx.textAlign = 'left';
       ctx.fillStyle = '#a5b4fc';
-      let hud = `Level ${this.level}`;
-      if (this.effects.wide) hud += ' · 📏';
-      if (this.effects.slow) hud += ' · 🐢';
-      if (this.effects.laserUntil > now) hud += ' · 🔫';
-      if (this.effects.net > 0) hud += ` · 🕸️×${this.effects.net}`;
+      let hud = 'Level ' + this.level + ' · ' + this.layoutName + ' · ' + this.bricksLeft() + ' left';
       ctx.fillText(hud, 12, 24);
+
+      let fx = '';
+      if (this.effects.wide) fx += ' 📏';
+      if (this.effects.slow) fx += ' 🐢';
+      if (this.effects.pierceUntil > now) fx += ' ⚡';
+      if (this.effects.laserUntil > now) fx += ' 🔫';
+      if (this.effects.net > 0) fx += ' 🕸️×' + this.effects.net;
       ctx.textAlign = 'right';
-      ctx.fillText('❤️'.repeat(Math.max(0, this.lives)), canvas.width - 12, 24);
+      ctx.fillText('❤️'.repeat(Math.max(0, this.lives)) + fx, canvas.width - 12, 24);
 
       if (this.combo >= 2) {
         ctx.textAlign = 'center';
         ctx.font = 'bold 17px "Segoe UI", Arial, sans-serif';
         ctx.fillStyle = '#fbbf24';
-        ctx.fillText(`COMBO ×${this.combo} · ${Math.round(this.dropChance() * 100)}% drops`,
+        ctx.fillText('COMBO ×' + this.combo + ' · ' + Math.round(this.dropChance() * 100) + '% drops',
                      canvas.width / 2, 24);
       }
 
@@ -1144,48 +1262,69 @@
         ctx.textAlign = 'center';
         ctx.font = 'bold 40px "Segoe UI", Arial, sans-serif';
         ctx.fillStyle = '#a855f7';
-        ctx.fillText(`LEVEL ${this.level}`, canvas.width / 2, canvas.height / 2);
+        ctx.fillText('LEVEL ' + this.level, canvas.width / 2, canvas.height / 2 - 18);
+        ctx.font = 'bold 20px "Segoe UI", Arial, sans-serif';
+        ctx.fillStyle = '#22d3ee';
+        ctx.fillText(this.layoutName, canvas.width / 2, canvas.height / 2 + 12);
         ctx.globalAlpha = 1;
       }
     },
 
-    drawBricks: function(ctx) {
-      const colors = ['#ec4899', '#a855f7', '#7c3aed', '#06b6d4', '#22d3ee'];
-      for (let c = 0; c < this.config.brickColumnCount; c++) {
-        for (let r = 0; r < this.config.brickRowCount; r++) {
-          const b = this.bricks[c][r];
-          if (b.hp > 0) {
-            const brickX = (c * (this.config.brickWidth + this.config.brickPadding)) + this.config.brickOffsetLeft;
-            const brickY = (r * (this.config.brickHeight + this.config.brickPadding)) + this.config.brickOffsetTop;
-            b.x = brickX;
-            b.y = brickY;
+    drawBricks: function(ctx, now) {
+      for (const b of this.bricks) {
+        if (b.hp <= 0) continue;
+        ctx.beginPath();
+        ctx.roundRect ? ctx.roundRect(b.x, b.y, b.w, b.h, 4) : ctx.rect(b.x, b.y, b.w, b.h);
+        ctx.fillStyle = this.brickColor(b);
+        ctx.fill();
 
-            ctx.beginPath();
-            ctx.roundRect ? ctx.roundRect(brickX, brickY, this.config.brickWidth, this.config.brickHeight, 4) : ctx.rect(brickX, brickY, this.config.brickWidth, this.config.brickHeight);
-            ctx.fillStyle = colors[r % colors.length];
-            ctx.fill();
-            if (b.hp >= 2) {
-              // Hardened brick: darker veil + rivet dots
-              ctx.fillStyle = 'rgba(0,0,0,0.35)';
-              ctx.fill();
-              ctx.fillStyle = 'rgba(255,255,255,0.5)';
-              ctx.fillRect(brickX + 6, brickY + this.config.brickHeight / 2 - 1.5, 3, 3);
-              ctx.fillRect(brickX + this.config.brickWidth - 9, brickY + this.config.brickHeight / 2 - 1.5, 3, 3);
-            }
-            ctx.closePath();
-          }
+        if (b.kind === 'steel') {
+          // Riveted plate — reads as scenery rather than a target.
+          ctx.fillStyle = 'rgba(255,255,255,0.22)';
+          ctx.fillRect(b.x + 3, b.y + 3, b.w - 6, 2);
+          ctx.fillStyle = 'rgba(0,0,0,0.35)';
+          ctx.fillRect(b.x + 3, b.y + b.h - 5, b.w - 6, 2);
+        } else if (b.kind === 'boom') {
+          const pulse = 0.5 + 0.5 * Math.sin(now / 160 + b.col);
+          ctx.globalAlpha = 0.45 + 0.55 * pulse;
+          ctx.fillStyle = '#fde047';
+          ctx.beginPath();
+          ctx.arc(b.x + b.w / 2, b.y + b.h / 2, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        } else if (b.hp < b.max) {
+          // Chipped: a crack that deepens with each hit.
+          ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(b.x + b.w * 0.3, b.y + 2);
+          ctx.lineTo(b.x + b.w * 0.45, b.y + b.h - 3);
+          ctx.stroke();
         }
+        ctx.closePath();
       }
     },
 
     drawBalls: function(ctx, now) {
       const slow = this.effects.slow;
+      const pierce = this.effects.pierceUntil > now;
       this.balls.forEach(ball => {
+        // Comet trail — the cheapest possible sense of speed.
+        for (let i = 0; i < ball.trail.length; i++) {
+          const t = (i + 1) / (ball.trail.length + 1);
+          ctx.globalAlpha = t * 0.32;
+          ctx.beginPath();
+          ctx.arc(ball.trail[i].x, ball.trail[i].y, ball.radius * (0.35 + t * 0.5), 0, Math.PI * 2);
+          ctx.fillStyle = pierce ? '#f472b6' : (slow ? '#fbbf24' : ball.color);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
         ctx.beginPath();
         ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
         const gradient = ctx.createRadialGradient(ball.x - 2, ball.y - 2, 2, ball.x, ball.y, ball.radius);
         gradient.addColorStop(0, '#fff');
-        gradient.addColorStop(1, slow ? '#fbbf24' : ball.color);
+        gradient.addColorStop(1, pierce ? '#f472b6' : (slow ? '#fbbf24' : ball.color));
         ctx.fillStyle = gradient;
         ctx.fill();
         ctx.closePath();
@@ -1208,8 +1347,8 @@
     },
 
     drawPowerups: function(ctx, canvas, game) {
-      const labels = { W: 'W', S: 'S', M: 'M', L: 'L', N: 'N', H: '♥' };
-      const colors = { W: '#22d3ee', S: '#fbbf24', M: '#a855f7', L: '#f97316', N: '#4ade80', H: '#ec4899' };
+      const labels = { W: 'W', S: 'S', M: 'M', P: 'P', L: 'L', N: 'N', H: '♥' };
+      const colors = { W: '#22d3ee', S: '#fbbf24', M: '#a855f7', P: '#f472b6', L: '#f97316', N: '#4ade80', H: '#ec4899' };
       const paddleTop = canvas.height - this.paddle.height - 4;
 
       for (let i = this.powerups.length - 1; i >= 0; i--) {
@@ -1237,18 +1376,23 @@
       }
     },
 
-    collisionDetection: function(game) {
-      for (let c = 0; c < this.config.brickColumnCount; c++) {
-        for (let r = 0; r < this.config.brickRowCount; r++) {
-          const b = this.bricks[c][r];
-          if (b.hp <= 0) continue;
-          for (const ball of this.balls) {
-            if (ball.x > b.x && ball.x < b.x + this.config.brickWidth &&
-                ball.y > b.y && ball.y < b.y + this.config.brickHeight) {
-              ball.dy = -ball.dy;
-              if (this.damageBrick(c, r, game, ball.x, true)) return;
-              break; // this brick is done for this frame
+    collisionDetection: function(game, now) {
+      const pierce = this.effects.pierceUntil > now;
+      for (const b of this.bricks) {
+        if (b.hp <= 0) continue;
+        for (const ball of this.balls) {
+          if (ball.x > b.x && ball.x < b.x + b.w &&
+              ball.y > b.y && ball.y < b.y + b.h) {
+            // Pierce carries straight through breakable bricks; steel always
+            // bounces, so it stays a wall even at full power.
+            if (!pierce || b.kind === 'steel') ball.dy = -ball.dy;
+            if (b.kind === 'steel') {
+              SFX.beep(160, 0.05, 'square', 0.08);
+              Fx.burst(ball.x, b.y + b.h / 2, '#94a3b8', 4, 1.5);
+            } else if (this.damageBrick(b, game, ball.x, true)) {
+              return;
             }
+            break; // this brick is done for this frame
           }
         }
       }
@@ -1300,6 +1444,9 @@
             continue;
           }
         }
+
+        ball.trail.push({ x: ball.x, y: ball.y });
+        if (ball.trail.length > 8) ball.trail.shift();
 
         ball.x += ball.dx * factor;
         ball.y += ball.dy * factor;
@@ -1384,12 +1531,12 @@
 
     // Push the bounce toward the surviving bricks — a hit left of centre sends
     // the ball left, so the paddle sits slightly to the far side of the ball.
+    // Steel is excluded: aiming at a brick that can never break is wasted.
     aimBias: function(ballX, frames) {
       let sx = 0, n = 0;
-      for (let c = 0; c < this.config.brickColumnCount; c++) {
-        for (let r = 0; r < this.config.brickRowCount; r++) {
-          if (this.bricks[c][r].hp > 0) { sx += this.bricks[c][r].x + this.config.brickWidth / 2; n++; }
-        }
+      for (const b of this.bricks) {
+        if (b.kind === 'steel' || b.hp <= 0) continue;
+        sx += b.x + b.w / 2; n++;
       }
       if (!n || frames > 70) return 0; // no time to be fancy — just catch it
       const bias = (sx / n - ballX) / 240;
