@@ -291,14 +291,14 @@
     autoRestartTimer: null,
 
     HINTS: {
-      breakout: 'Arrows / mouse / drag — 8 layouts with steel & 💥 bricks · Wide/Slow last the level · rallies drop more',
+      breakout: 'Arrows / mouse / drag — 10 boards · ? = mystery, KEY clears a row · dodge the red capsules · the wall creeps down',
       dino: 'Space/⬆️ jump (twice for a double-jump) · ⬇️ duck — grab 🪙 and 🛡️',
       snake: 'Arrows / WASD / swipe — edges wrap around · gold +50 · ✂️ trims your tail'
     },
 
     // Same games, described in the gestures a phone actually has.
     TOUCH_HINTS: {
-      breakout: 'Drag or hold ⬅ ➡ — 8 layouts with steel & 💥 bricks · Wide/Slow last the level · rallies drop more',
+      breakout: 'Drag or hold ⬅ ➡ — 10 boards · ? = mystery, KEY clears a row · dodge the red capsules · the wall creeps down',
       dino: 'Tap to jump, tap again to double-jump · hold ⬇ to duck — grab 🪙 and 🛡️',
       snake: 'Swipe or use the pad — edges wrap around · gold +50 · ✂️ trims your tail'
     },
@@ -828,18 +828,27 @@
     powerups: [],
     rightPressed: false,
     leftPressed: false,
-    lives: 4,
+    lives: 3,
     level: 1,
     layoutName: '',
-    speed: 3.6,
+    speed: 4.2,
     combo: 0,
     levelFlash: 0,
     tick: 0,
     netFlash: 0,
-    effects: { wide: false, slow: false, laserUntil: 0, pierceUntil: 0, net: 0 },
+    effects: { wide: false, slowUntil: 0, laserUntil: 0, pierceUntil: 0, shrinkUntil: 0, rushUntil: 0, net: 0 },
     BASE_W: 104,
     WIDE_W: 184,
-    MAX_SPEED: 10,
+    SHRINK_W: 68,
+    MAX_SPEED: 12,
+    // The wall creeps down, so a level is a race rather than an open-ended
+    // rally. Generous first grace period, then steady pressure.
+    DESCEND_FIRST: 26000,
+    DESCEND_EVERY: 15000,
+    DESCEND_STEP: 22,
+    descendAt: 0,
+    descendFlash: 0,
+    HAZARD: { X: true, R: true },
     keyDownHandler: null,
     keyUpHandler: null,
     config: {
@@ -855,17 +864,19 @@
     //   .  empty        1/2/3  hit points
     //   X  steel — never breaks, never blocks completion
     //   *  explosive — takes its neighbours with it, and chains
+    //   ?  mystery — unknown payoff, mostly good, occasionally not
+    //   K  keystone — collapses the whole row it sits in
     LAYOUTS: [
       { name: 'Wall', rows: [
         '11111111111',
-        '11111111111',
+        '1111?1?1111',
         '22222222222',
         '11111111111',
         '11111111111'
       ] },
       { name: 'Pyramid', rows: [
         '.....3.....',
-        '....323....',
+        '....3?3....',
         '...32223...',
         '..3222223..',
         '.311111113.'
@@ -873,57 +884,71 @@
       { name: 'Checkers', rows: [
         '1.2.1.2.1.2',
         '.2.1.2.1.2.',
-        '2.1.2.1.2.1',
+        '2.1.K.1.2.1',
         '.1.2.1.2.1.',
         '1.2.1.2.1.2'
       ] },
       { name: 'Fortress', rows: [
         'X111111111X',
-        'X1*22222*1X',
+        'X1*22?22*1X',
         'X111111111X',
         '.XX11111XX.',
-        '...11111...'
+        '...1K1K1...'
       ] },
       { name: 'Arch', rows: [
         '..1111111..',
         '.113333311.',
         '11332*23311',
-        '11.......11',
+        '11...?...11',
         '11.......11'
       ] },
       { name: 'Rain', rows: [
         '2.2.2.2.2.2',
         '1.1.1.1.1.1',
-        '...........',
+        '.....?.....',
         '3.3.3.3.3.3',
         '1.1.1.1.1.1'
       ] },
       { name: 'Diamond', rows: [
         '.....2.....',
-        '...22122...',
+        '...22?22...',
         '.1122*2211.',
-        '...22122...',
+        '...22K22...',
         '.....2.....'
+      ] },
+      { name: 'Gauntlet', rows: [
+        'X1X1X1X1X1X',
+        '1?1213121?1',
+        'X1X1K1X1X1X',
+        '12221*22221',
+        '.111111111.'
+      ] },
+      { name: 'Hive', rows: [
+        '.2.2.2.2.2.',
+        '2?2323232?2',
+        '.2.2*K*2.2.',
+        '23212?21232',
+        '.1.1.1.1.1.'
       ] },
       { name: 'Vault', rows: [
         'X.X.X.X.X.X',
         '33333333333',
-        '2*2*2*2*2*2',
+        '2*2*?*2*2*2',
         '33333333333',
-        '.1.1.1.1.1.'
+        '.1.K.1.K.1.'
       ] }
     ],
 
     init: function(game) {
-      this.lives = 4;
+      this.lives = 3;
       this.level = 1;
-      this.speed = 3.6;
+      this.speed = 4.2;
       this.combo = 0;
       this.tick = 0;
       this.netFlash = 0;
       this.powerups = [];
       this.bolts = [];
-      this.effects = { wide: false, slow: false, laserUntil: 0, pierceUntil: 0, net: 0 };
+      this.effects = { wide: false, slowUntil: 0, laserUntil: 0, pierceUntil: 0, shrinkUntil: 0, rushUntil: 0, net: 0 };
       game.updateScore(0);
       this.paddle = {
         width: this.BASE_W,
@@ -952,9 +977,12 @@
     },
 
     onResume: function(ms) {
-      // Only the countdown effects need compensating; wide/slow are level-scoped.
-      if (this.effects.laserUntil) this.effects.laserUntil += ms;
-      if (this.effects.pierceUntil) this.effects.pierceUntil += ms;
+      // Everything time-based has to slide, including the descent clock —
+      // otherwise pausing would hand you free progress on the wall.
+      ['slowUntil', 'laserUntil', 'pierceUntil', 'shrinkUntil', 'rushUntil'].forEach((k) => {
+        if (this.effects[k]) this.effects[k] += ms;
+      });
+      if (this.descendAt) this.descendAt += ms;
     },
 
     // Positions are baked in here rather than during draw, so collision no
@@ -962,7 +990,7 @@
     buildLevel: function(canvas) {
       const spec = this.LAYOUTS[(this.level - 1) % this.LAYOUTS.length];
       // Once the set has been round-tripped, everything breakable gets tougher.
-      const bonus = Math.min(Math.floor((this.level - 1) / this.LAYOUTS.length), 2);
+      const bonus = Math.min(Math.floor((this.level - 1) / this.LAYOUTS.length), 3);
       const cfg = this.config;
       const cols = spec.rows[0].length;
       const gridW = cols * cfg.brickWidth + (cols - 1) * cfg.brickPadding;
@@ -974,8 +1002,8 @@
         for (let col = 0; col < line.length; col++) {
           const ch = line[col];
           if (ch === '.') continue;
-          const kind = ch === 'X' ? 'steel' : (ch === '*' ? 'boom' : 'normal');
-          let hp = 1;
+          const kind = { 'X': 'steel', '*': 'boom', '?': 'mystery', 'K': 'key' }[ch] || 'normal';
+          let hp = kind === 'key' ? 2 : 1;
           if (kind === 'normal') hp = Math.min(parseInt(ch, 10) + bonus, 4);
           this.bricks.push({
             col: col, row: row, kind: kind, hp: hp, max: hp,
@@ -986,9 +1014,11 @@
         }
       });
 
-      // Wide/slow run to the end of the level, so a new one starts clean.
+      // Only Wide runs to the end of the level (the paddle never shrinks back
+      // mid-board); everything else is a countdown.
       this.effects.wide = false;
-      this.effects.slow = false;
+      this.descendAt = performance.now() + this.DESCEND_FIRST;
+      this.descendFlash = 0;
       this.levelFlash = 90;
     },
 
@@ -1043,13 +1073,15 @@
       if (Math.random() > this.dropChance()) return;
       const roll = Math.random();
       let type;
-      if (roll < 0.24) type = 'W';        // wide paddle
-      else if (roll < 0.47) type = 'S';   // slow ball
-      else if (roll < 0.70) type = 'M';   // multi-ball
-      else if (roll < 0.80) type = 'P';   // pierce
-      else if (roll < 0.89) type = 'L';   // laser paddle
-      else if (roll < 0.96) type = 'N';   // safety net
-      else type = 'H';                    // extra life
+      if (roll < 0.21) type = 'W';        // wide paddle
+      else if (roll < 0.40) type = 'S';   // slow ball
+      else if (roll < 0.59) type = 'M';   // multi-ball
+      else if (roll < 0.67) type = 'P';   // pierce
+      else if (roll < 0.74) type = 'L';   // laser paddle
+      else if (roll < 0.80) type = 'N';   // safety net
+      else if (roll < 0.84) type = 'H';   // extra life
+      else if (roll < 0.93) type = 'X';   // HAZARD: shrink the paddle
+      else type = 'R';                    // HAZARD: rush the ball
       this.powerups.push({ x: x, y: y, w: 36, h: 17, vy: 2.3, type: type });
     },
 
@@ -1062,7 +1094,7 @@
         this.effects.wide = true;
         Fx.text(p.x + p.w / 2, p.y - 6, 'WIDE!', '#22d3ee');
       } else if (p.type === 'S') {
-        this.effects.slow = true;
+        this.effects.slowUntil = now + 9000;
         Fx.text(p.x + p.w / 2, p.y - 6, 'SLOW', '#fbbf24');
       } else if (p.type === 'M') {
         const src = this.balls[0] || this.newBall(p.x, p.y - 40, 2, -this.speed);
@@ -1083,7 +1115,25 @@
       } else if (p.type === 'H') {
         if (this.lives < 6) this.lives++;
         Fx.text(p.x + p.w / 2, p.y - 6, '+1 ❤️', '#ec4899');
+      } else if (p.type === 'X') {
+        this.effects.shrinkUntil = now + 9000;
+        Fx.text(p.x + p.w / 2, p.y - 6, 'SHRUNK!', '#ef4444');
+      } else if (p.type === 'R') {
+        this.effects.rushUntil = now + 8000;
+        Fx.text(p.x + p.w / 2, p.y - 6, 'RUSH!', '#ef4444');
       }
+    },
+
+    // Hazards get their own cue — they should feel like a mistake, not a win.
+    isHazard: function(type) { return !!this.HAZARD[type]; },
+
+    // One source of truth for ball speed, so the autopilot's predictions and
+    // the simulation can't drift apart.
+    ballFactor: function(now) {
+      let f = 1;
+      if (this.effects.slowUntil > now) f *= 0.55;
+      if (this.effects.rushUntil > now) f *= 1.35;
+      return f;
     },
 
     draw: function(game) {
@@ -1093,7 +1143,8 @@
       this.tick++;
 
       // Animate paddle width toward its target
-      const targetW = this.effects.wide ? this.WIDE_W : this.BASE_W;
+      const targetW = this.effects.shrinkUntil > now ? this.SHRINK_W
+                    : (this.effects.wide ? this.WIDE_W : this.BASE_W);
       if (Math.abs(this.paddle.width - targetW) > 1) {
         const cx = this.paddle.x + this.paddle.width / 2;
         this.paddle.width += (targetW - this.paddle.width) * 0.2;
@@ -1101,6 +1152,7 @@
       }
 
       this.drawNet(ctx, canvas);
+      this.drawDangerLine(ctx, canvas);
       this.drawBricks(ctx, now);
       this.drawBalls(ctx, now);
       this.drawPaddle(ctx, canvas, now);
@@ -1111,6 +1163,52 @@
       this.collisionDetection(game, now);
       this.moveBalls(canvas, game, now);
       this.movePaddle(canvas);
+      this.stepDescent(game, canvas, now);
+    },
+
+    dangerY: function(canvas) {
+      return canvas.height - this.paddle.height - 4 - 26;
+    },
+
+    // The wall steps down on a clock, so a level is a race rather than an
+    // open-ended rally. Called at the very end of draw() because it can end
+    // the run, and the game-over overlay has to be the last thing painted.
+    stepDescent: function(game, canvas, now) {
+      if (this.descendFlash > 0) this.descendFlash--;
+      if (!this.descendAt || now < this.descendAt) return;
+      this.descendAt = now + this.DESCEND_EVERY;
+      for (const b of this.bricks) b.y += this.DESCEND_STEP;
+      this.descendFlash = 26;
+      SFX.beep(120, 0.22, 'sawtooth', 0.11, 70);
+      game.shake(5, 10);
+
+      const limit = this.dangerY(canvas);
+      for (const b of this.bricks) {
+        if (b.hp > 0 && b.kind !== 'steel' && b.y + b.h > limit) {
+          game.showGameOver('Overrun!');
+          return;
+        }
+      }
+    },
+
+    // Only drawn once the wall is genuinely close, so it means something.
+    drawDangerLine: function(ctx, canvas) {
+      let lowest = 0;
+      for (const b of this.bricks) {
+        if (b.hp > 0 && b.kind !== 'steel' && b.y + b.h > lowest) lowest = b.y + b.h;
+      }
+      const limit = this.dangerY(canvas);
+      if (lowest < limit - this.DESCEND_STEP * 3) return;
+      ctx.save();
+      ctx.globalAlpha = this.descendFlash > 0 ? 0.95 : 0.4 + 0.25 * Math.sin(this.tick / 9);
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([10, 8]);
+      ctx.beginPath();
+      ctx.moveTo(0, limit);
+      ctx.lineTo(canvas.width, limit);
+      ctx.stroke();
+      ctx.restore();
     },
 
     netY: function(canvas) { return canvas.height - 3; },
@@ -1170,6 +1268,8 @@
     brickColor: function(b) {
       if (b.kind === 'steel') return '#64748b';
       if (b.kind === 'boom') return '#f97316';
+      if (b.kind === 'mystery') return '#fbbf24';
+      if (b.kind === 'key') return '#10b981';
       return ['#22d3ee', '#a855f7', '#ec4899', '#f43f5e'][Math.min(b.hp, 4) - 1];
     },
 
@@ -1195,6 +1295,8 @@
       this.maybeDropPowerup(b.x + b.w / 2 - 18, b.y);
 
       if (b.kind === 'boom') this.explode(b, game);
+      else if (b.kind === 'key') this.collapseRow(b, game);
+      else if (b.kind === 'mystery') this.rollMystery(b, game);
 
       return this.checkLevelClear(game);
     },
@@ -1221,10 +1323,58 @@
       }
     },
 
+    // Keystone: taking it out collapses everything left in its row. It gives
+    // the board a target order beyond "whatever the ball happens to reach".
+    collapseRow: function(origin, game) {
+      game.shake(7, 14);
+      SFX.levelUp();
+      Fx.text(origin.x + origin.w / 2, origin.y - 6, 'ROW CLEARED', '#10b981');
+      for (const n of this.bricks) {
+        if (n === origin || n.hp <= 0 || n.kind === 'steel' || n.row !== origin.row) continue;
+        n.hp = 0;
+        game.updateScore(game.score + 20);
+        Fx.burst(n.x + n.w / 2, n.y + n.h / 2, this.brickColor(n), 10, 2.6);
+        if (n.kind === 'boom') this.explode(n, game);
+      }
+    },
+
+    // Mystery: unknown until it breaks. Mostly generous, occasionally not —
+    // which is exactly what makes an otherwise ordinary brick worth aiming at.
+    rollMystery: function(b, game) {
+      const cx = b.x + b.w / 2, cy = b.y;
+      const roll = Math.random();
+      if (roll < 0.26) {
+        game.updateScore(game.score + 150);
+        Fx.text(cx, cy - 6, 'JACKPOT +150', '#fbbf24');
+        SFX.bonus();
+      } else if (roll < 0.50) {
+        const src = this.balls[0];
+        if (src && this.balls.length < 7) {
+          const v = Math.hypot(src.dx, src.dy) || this.speed;
+          this.balls.push(this.newBall(src.x, src.y, -src.dx, -Math.abs(v * 0.9)));
+        }
+        Fx.text(cx, cy - 6, 'EXTRA BALL', '#a855f7');
+        SFX.powerup();
+      } else if (roll < 0.74) {
+        this.powerups.push({ x: cx - 18, y: cy, w: 36, h: 17, vy: 2.3, type: 'M' });
+        Fx.text(cx, cy - 6, 'CAPSULE', '#22d3ee');
+      } else if (roll < 0.88) {
+        this.effects.pierceUntil = performance.now() + 7000;
+        Fx.text(cx, cy - 6, 'PIERCE!', '#f472b6');
+        SFX.powerup();
+      } else {
+        // The reason you hesitate before aiming at one.
+        this.powerups.push({ x: cx - 18, y: cy, w: 36, h: 17, vy: 2.6,
+                             type: Math.random() < 0.5 ? 'X' : 'R' });
+        Fx.text(cx, cy - 6, 'UH OH…', '#ef4444');
+        SFX.beep(180, 0.18, 'sawtooth', 0.1, 90);
+      }
+    },
+
     checkLevelClear: function(game) {
       if (this.bricksLeft() > 0) return false;
       this.level++;
-      this.speed = Math.min(this.speed * 1.12, this.MAX_SPEED);
+      this.speed = Math.min(this.speed * 1.15, this.MAX_SPEED);
       SFX.levelUp();
       this.buildLevel(game.canvas);
       this.resetBalls(game.canvas);
@@ -1241,7 +1391,9 @@
 
       let fx = '';
       if (this.effects.wide) fx += ' 📏';
-      if (this.effects.slow) fx += ' 🐢';
+      if (this.effects.slowUntil > now) fx += ' 🐢';
+      if (this.effects.shrinkUntil > now) fx += ' 🤏';
+      if (this.effects.rushUntil > now) fx += ' 💨';
       if (this.effects.pierceUntil > now) fx += ' ⚡';
       if (this.effects.laserUntil > now) fx += ' 🔫';
       if (this.effects.net > 0) fx += ' 🕸️×' + this.effects.net;
@@ -1292,6 +1444,22 @@
           ctx.arc(b.x + b.w / 2, b.y + b.h / 2, 4.5, 0, Math.PI * 2);
           ctx.fill();
           ctx.globalAlpha = 1;
+        } else if (b.kind === 'mystery') {
+          ctx.globalAlpha = 0.55 + 0.45 * Math.sin(now / 220 + b.col * 0.7);
+          ctx.fillStyle = '#422006';
+          ctx.font = 'bold 14px "Segoe UI", Arial, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('?', b.x + b.w / 2, b.y + b.h - 4);
+          ctx.globalAlpha = 1;
+        } else if (b.kind === 'key') {
+          ctx.fillStyle = '#022c22';
+          ctx.font = 'bold 12px "Segoe UI", Arial, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('KEY', b.x + b.w / 2, b.y + b.h - 5);
+          if (b.hp < b.max) {
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.fillRect(b.x + 3, b.y + 3, b.w - 6, 2);
+          }
         } else if (b.hp < b.max) {
           // Chipped: a crack that deepens with each hit.
           ctx.strokeStyle = 'rgba(0,0,0,0.4)';
@@ -1306,7 +1474,7 @@
     },
 
     drawBalls: function(ctx, now) {
-      const slow = this.effects.slow;
+      const slow = this.effects.slowUntil > now;
       const pierce = this.effects.pierceUntil > now;
       this.balls.forEach(ball => {
         // Comet trail — the cheapest possible sense of speed.
@@ -1336,7 +1504,8 @@
       const pX = this.paddle.x;
       const pY = canvas.height - this.paddle.height - 4;
       ctx.roundRect ? ctx.roundRect(pX, pY, this.paddle.width, this.paddle.height, 6) : ctx.rect(pX, pY, this.paddle.width, this.paddle.height);
-      ctx.fillStyle = this.effects.wide ? '#67e8f9' : this.paddle.color;
+      ctx.fillStyle = this.effects.shrinkUntil > now ? '#ef4444'
+                    : (this.effects.wide ? '#67e8f9' : this.paddle.color);
       ctx.fill();
       ctx.closePath();
       if (this.effects.laserUntil > now) {
@@ -1347,8 +1516,8 @@
     },
 
     drawPowerups: function(ctx, canvas, game) {
-      const labels = { W: 'W', S: 'S', M: 'M', P: 'P', L: 'L', N: 'N', H: '♥' };
-      const colors = { W: '#22d3ee', S: '#fbbf24', M: '#a855f7', P: '#f472b6', L: '#f97316', N: '#4ade80', H: '#ec4899' };
+      const labels = { W: 'W', S: 'S', M: 'M', P: 'P', L: 'L', N: 'N', H: '♥', X: '✕', R: '»' };
+      const colors = { W: '#22d3ee', S: '#fbbf24', M: '#a855f7', P: '#f472b6', L: '#f97316', N: '#4ade80', H: '#ec4899', X: '#ef4444', R: '#ef4444' };
       const paddleTop = canvas.height - this.paddle.height - 4;
 
       for (let i = this.powerups.length - 1; i >= 0; i--) {
@@ -1364,11 +1533,19 @@
         }
         if (p.y > canvas.height + 20) { this.powerups.splice(i, 1); continue; }
 
+        // Hazards are square-cornered and red so they read as "dodge me" at a
+        // glance — catching one has to be a decision, not a surprise.
+        const hazard = this.isHazard(p.type);
         ctx.beginPath();
-        ctx.roundRect ? ctx.roundRect(p.x, p.y, p.w, p.h, 8) : ctx.rect(p.x, p.y, p.w, p.h);
+        ctx.roundRect ? ctx.roundRect(p.x, p.y, p.w, p.h, hazard ? 2 : 8) : ctx.rect(p.x, p.y, p.w, p.h);
         ctx.fillStyle = colors[p.type];
         ctx.fill();
         ctx.closePath();
+        if (hazard) {
+          ctx.strokeStyle = '#fecaca';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(p.x + 2, p.y + 2, p.w - 4, p.h - 4);
+        }
         ctx.font = 'bold 12px "Segoe UI", Arial, sans-serif';
         ctx.textAlign = 'center';
         ctx.fillStyle = '#0a0820';
@@ -1399,10 +1576,7 @@
     },
 
     moveBalls: function(canvas, game, now) {
-      // Gentler than the old timed version (0.55): now that Slow runs to the end
-      // of the level it's active most of the time, so a deep cut would just be
-      // the game's normal pace rather than a rescue.
-      const factor = this.effects.slow ? 0.70 : 1;
+      const factor = this.ballFactor(now);
       const paddleTop = canvas.height - this.paddle.height - 4;
 
       for (let i = this.balls.length - 1; i >= 0; i--) {
@@ -1482,70 +1656,129 @@
     },
 
     // --- Autopilot -------------------------------------------------------
-    // Predicts where the soonest-arriving ball crosses the paddle line
-    // (reflecting off the side walls analytically rather than stepping the
-    // simulation), then biases the contact point so the bounce heads for the
-    // bricks that are still standing. With no ball on the way down it goes
-    // shopping for whichever capsule is falling.
+    // Three jobs, in priority order: don't lose a ball, don't catch a hazard,
+    // and hit something worth hitting.
+    //
+    // The old version tracked whichever ball arrived soonest and moved at it
+    // flat out. That loses balls it didn't need to: with multi-ball running,
+    // an unreachable ball would drag the paddle away from one still in reach,
+    // and it would happily collect a capsule that turned out to be a trap.
     autoPlay: function(game) {
       const canvas = game.canvas;
+      const now = performance.now();
       const paddleTop = canvas.height - this.paddle.height - 4;
       const half = this.paddle.width / 2;
-
-      let ball = null, soonest = Infinity;
-      for (const b of this.balls) {
-        if (b.dy <= 0) continue;
-        const t = (paddleTop - b.radius - b.y) / b.dy;
-        if (t >= 0 && t < soonest) { soonest = t; ball = b; }
-      }
-
-      let target;
-      if (ball) {
-        target = this.predictX(ball, soonest, canvas);
-        // Only chase power-ups when the ball is still a long way off.
-        const p = this.nearestPowerup(canvas);
-        if (p && soonest > 90) target = p;
-        else target -= this.aimBias(target, soonest);
-      } else {
-        target = this.nearestPowerup(canvas);
-        if (target === null) target = canvas.width / 2;
-      }
-
       const centre = this.paddle.x + half;
       const step = this.paddle.speed * 1.7;
+      const factor = this.ballFactor(now);
+
+      // Every descending ball, with when it lands and where. The landing x is
+      // independent of the speed factor (it cancels), but the deadline is not.
+      const arrivals = [];
+      for (const b of this.balls) {
+        if (b.dy <= 0) continue;
+        const t = (paddleTop - b.radius - b.y) / (b.dy * factor);
+        if (t < 0) continue;
+        arrivals.push({ t: t, x: this.predictX(b, t, canvas, factor) });
+      }
+      arrivals.sort((a, b) => a.t - b.t);
+      for (const a of arrivals) a.reachable = Math.abs(a.x - centre) <= step * a.t + half * 0.8;
+
+      // Prefer the soonest ball we can actually get to. A ball that is already
+      // beyond saving must not pull the paddle off one that isn't.
+      const pick = arrivals.find((a) => a.reachable) || arrivals[0] || null;
+
+      let target;
+      if (pick) {
+        const detour = this.bestCapsule(canvas, pick.t, pick.x, centre, step);
+        if (detour !== null) target = detour;
+        else target = pick.x - this.aimBias(pick.x, pick.t, canvas);
+      } else {
+        const detour = this.bestCapsule(canvas, Infinity, null, centre, step);
+        target = detour !== null ? detour : this.dodge(canvas, centre);
+      }
+
       const move = Math.max(-step, Math.min(step, target - centre));
       this.paddle.x = Math.max(0, Math.min(canvas.width - this.paddle.width, this.paddle.x + move));
     },
 
     // Unfold the wall bounces: the path is a triangle wave over the playable
     // span, so one modulo gets the landing point without a stepped simulation.
-    predictX: function(ball, frames, canvas) {
+    predictX: function(ball, frames, canvas, factor) {
       const lo = ball.radius, hi = canvas.width - ball.radius;
       const span = hi - lo;
       if (span <= 0) return canvas.width / 2;
       const period = span * 2;
-      let p = (ball.x + ball.dx * frames) - lo;
+      let p = (ball.x + ball.dx * (factor === undefined ? 1 : factor) * frames) - lo;
       p = ((p % period) + period) % period;
       return lo + (p <= span ? p : period - p);
     },
 
-    // Push the bounce toward the surviving bricks — a hit left of centre sends
-    // the ball left, so the paddle sits slightly to the far side of the ball.
-    // Steel is excluded: aiming at a brick that can never break is wasted.
-    aimBias: function(ballX, frames) {
-      let sx = 0, n = 0;
-      for (const b of this.bricks) {
-        if (b.kind === 'steel' || b.hp <= 0) continue;
-        sx += b.x + b.w / 2; n++;
+    // A capsule is only worth a detour if we can reach it AND still get back
+    // under the ball afterwards. Hazards are never a target — they are the
+    // thing being avoided.
+    bestCapsule: function(canvas, ballT, ballX, centre, step) {
+      const paddleTop = canvas.height - this.paddle.height - 4;
+      let best = null, bestT = Infinity;
+      for (const p of this.powerups) {
+        if (this.isHazard(p.type)) continue;
+        const t = (paddleTop - (p.y + p.h)) / p.vy;
+        if (t < 0) continue;
+        const x = p.x + p.w / 2;
+        if (Math.abs(x - centre) > step * t) continue;              // can't get there in time
+        if (ballX !== null) {
+          const back = Math.abs(ballX - x) / step;
+          if (t + back > ballT - 4) continue;                       // couldn't get back for the ball
+        }
+        if (t < bestT) { bestT = t; best = x; }
       }
-      if (!n || frames > 70) return 0; // no time to be fancy — just catch it
-      const bias = (sx / n - ballX) / 240;
+      return best;
+    },
+
+    // Nothing to catch: stand clear of anything red on its way down.
+    dodge: function(canvas, centre) {
+      const paddleTop = canvas.height - this.paddle.height - 4;
+      for (const p of this.powerups) {
+        if (!this.isHazard(p.type)) continue;
+        if (p.y + p.h > paddleTop) continue;
+        const x = p.x + p.w / 2;
+        if (Math.abs(x - centre) < this.paddle.width) {
+          return x < canvas.width / 2 ? canvas.width * 0.8 : canvas.width * 0.2;
+        }
+      }
+      return canvas.width / 2;
+    },
+
+    // Push the bounce toward the bricks worth hitting. Explosives and
+    // keystones each take a chunk of the board with them, so they pull harder
+    // than a plain brick; steel pulls not at all. Once the wall is close, the
+    // lowest bricks are all that matter.
+    aimBias: function(ballX, frames, canvas) {
+      if (frames > 70) return 0;   // no time to be fancy — just catch it
+      let lowest = 0;
+      for (const b of this.bricks) {
+        if (b.hp <= 0 || b.kind === 'steel') continue;
+        if (b.y > lowest) lowest = b.y;
+      }
+      const urgent = canvas ? lowest > this.dangerY(canvas) - this.DESCEND_STEP * 4 : false;
+
+      let sx = 0, w = 0;
+      for (const b of this.bricks) {
+        if (b.hp <= 0 || b.kind === 'steel') continue;
+        if (urgent && b.y < lowest - this.DESCEND_STEP * 1.5) continue;
+        const wt = b.kind === 'boom' ? 5 : (b.kind === 'key' ? 4 : (b.kind === 'mystery' ? 3 : 1));
+        sx += (b.x + b.w / 2) * wt;
+        w += wt;
+      }
+      if (!w) return 0;
+      const bias = (sx / w - ballX) / 240;
       return Math.max(-1, Math.min(1, bias)) * (this.paddle.width * 0.30);
     },
 
     nearestPowerup: function(canvas) {
       let best = null, bestY = -Infinity;
       for (const p of this.powerups) {
+        if (this.isHazard(p.type)) continue;
         if (p.y > bestY) { bestY = p.y; best = p; }
       }
       return best ? best.x + best.w / 2 : null;
