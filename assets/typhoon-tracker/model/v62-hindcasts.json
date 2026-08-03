@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-03T17:01:25Z",
+  "generated_at": "2026-08-03T19:52:26Z",
   "note": "Per-storm v62 hindcasts, loaded lazily. History mode uses v62 wherever a run covers the initialisation on screen and v23 elsewhere.",
   "hindcasts": {
     "1979275N06159": {
@@ -401,6 +401,106 @@
       "intensity_runs": 34,
       "mean_track_mae_km": 341.3,
       "file": "v62/1989286N14137.json"
+    },
+    "1989305N07105": {
+      "storm": "Gay",
+      "season": 1989,
+      "runs": 35,
+      "first_issue_utc": "1989-11-01T12:00:00Z",
+      "last_issue_utc": "1989-11-10T00:00:00Z",
+      "intensity_runs": 10,
+      "mean_track_mae_km": 336.6,
+      "file": "v62/1989305N07105.json"
+    },
+    "1989324N17174": {
+      "storm": "Irma",
+      "season": 1989,
+      "runs": 58,
+      "first_issue_utc": "1989-11-21T00:00:00Z",
+      "last_issue_utc": "1989-12-05T06:00:00Z",
+      "intensity_runs": 55,
+      "mean_track_mae_km": 599.9,
+      "file": "v62/1989324N17174.json"
+    },
+    "1990309N08167": {
+      "storm": "Page",
+      "season": 1990,
+      "runs": 109,
+      "first_issue_utc": "1990-11-06T06:00:00Z",
+      "last_issue_utc": "1990-12-03T06:00:00Z",
+      "intensity_runs": 41,
+      "mean_track_mae_km": 721.2,
+      "file": "v62/1990309N08167.json"
+    },
+    "1990319N07197": {
+      "storm": "Owen",
+      "season": 1990,
+      "runs": 78,
+      "first_issue_utc": "1990-11-15T12:00:00Z",
+      "last_issue_utc": "1990-12-04T18:00:00Z",
+      "intensity_runs": 56,
+      "mean_track_mae_km": 464.5,
+      "file": "v62/1990319N07197.json"
+    },
+    "1991124N05152": {
+      "storm": "Walt",
+      "season": 1991,
+      "runs": 53,
+      "first_issue_utc": "1991-05-05T00:00:00Z",
+      "last_issue_utc": "1991-05-18T00:00:00Z",
+      "intensity_runs": 45,
+      "mean_track_mae_km": 876.4,
+      "file": "v62/1991124N05152.json"
+    },
+    "1993270N07153": {
+      "storm": "Ed",
+      "season": 1993,
+      "runs": 44,
+      "first_issue_utc": "1993-09-28T06:00:00Z",
+      "last_issue_utc": "1993-10-09T00:00:00Z",
+      "intensity_runs": 37,
+      "mean_track_mae_km": 730.2,
+      "file": "v62/1993270N07153.json"
+    },
+    "1994211N12152": {
+      "storm": "Doug",
+      "season": 1994,
+      "runs": 53,
+      "first_issue_utc": "1994-07-31T00:00:00Z",
+      "last_issue_utc": "1994-08-13T00:00:00Z",
+      "intensity_runs": 48,
+      "mean_track_mae_km": 480.0,
+      "file": "v62/1994211N12152.json"
+    },
+    "1995250N09161": {
+      "storm": "Oscar",
+      "season": 1995,
+      "runs": 44,
+      "first_issue_utc": "1995-09-08T06:00:00Z",
+      "last_issue_utc": "1995-09-19T00:00:00Z",
+      "intensity_runs": 27,
+      "mean_track_mae_km": 1048.5,
+      "file": "v62/1995250N09161.json"
+    },
+    "1995287N08163": {
+      "storm": "Ward",
+      "season": 1995,
+      "runs": 38,
+      "first_issue_utc": "1995-10-14T18:00:00Z",
+      "last_issue_utc": "1995-10-24T00:00:00Z",
+      "intensity_runs": 30,
+      "mean_track_mae_km": 1310.8,
+      "file": "v62/1995287N08163.json"
+    },
+    "1996192N19152": {
+      "storm": "Eve",
+      "season": 1996,
+      "runs": 66,
+      "first_issue_utc": "1996-07-11T06:00:00Z",
+      "last_issue_utc": "1996-07-27T12:00:00Z",
+      "intensity_runs": 56,
+      "mean_track_mae_km": 858.8,
+      "file": "v62/1996192N19152.json"
     }
   }
 }
