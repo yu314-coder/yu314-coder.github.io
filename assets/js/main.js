@@ -193,6 +193,23 @@
   };
 
   // ===================================
+  // Arcade: Haptics
+  // Phones have no speaker cue worth relying on and iOS Safari ignores
+  // navigator.vibrate entirely, so every call here is best-effort and silent
+  // when unsupported.
+  // ===================================
+  const Haptics = {
+    on: (function() { try { return localStorage.getItem('arcadeHaptics') !== '0'; } catch (e) { return true; } })(),
+    fire: function(pattern) {
+      if (!this.on || !navigator.vibrate) return;
+      try { navigator.vibrate(pattern); } catch (e) {}
+    },
+    tap:   function() { this.fire(10); },
+    power: function() { this.fire([12, 26, 12]); },
+    over:  function() { this.fire([40, 55, 90]); }
+  };
+
+  // ===================================
   // Arcade: Particles + Floating Score Text
   // ===================================
   const Fx = {
@@ -279,6 +296,23 @@
       snake: 'Arrows / WASD / swipe — edges wrap around · gold +50 · ✂️ trims your tail'
     },
 
+    // Same games, described in the gestures a phone actually has.
+    TOUCH_HINTS: {
+      breakout: 'Drag the paddle or hold ⬅ ➡ — Wide/Slow last the level · long rallies drop far more',
+      dino: 'Tap to jump, tap again to double-jump · hold ⬇ to duck — grab 🪙 and 🛡️',
+      snake: 'Swipe or use the pad — edges wrap around · gold +50 · ✂️ trims your tail'
+    },
+
+    touchPad: null,
+    bestsEl: null,
+
+    // Coarse pointer => show the on-screen pad. Checked live rather than cached
+    // so a hybrid laptop that gets touched mid-session still gets it.
+    isTouch: function() {
+      return (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
+             ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+    },
+
     init: function() {
       this.canvas = document.getElementById('gameCanvas');
       if (!this.canvas) return;
@@ -290,7 +324,10 @@
       this.setupPointer();
       this.injectMuteButton();
       this.injectAutoButton();
+      this.injectTouchPad();
+      this.injectBests();
       this.setupSystemKeys();
+      this.setupMobileEntry();
       this.refreshMeta();
     },
 
@@ -304,8 +341,7 @@
           keySequence.shift();
         }
         if (secretGameSequence.every((l, i) => l === keySequence[i])) {
-          document.getElementById('hidden-game').style.display = 'flex';
-          this.refreshMeta();
+          this.openArcade();
         }
         if (event.key === 'Escape') {
           const g = document.getElementById('hidden-game');
@@ -343,11 +379,151 @@
       return !!o && o.style.display !== 'none' && o.style.display !== '';
     },
 
+    openArcade: function() {
+      const g = document.getElementById('hidden-game');
+      if (!g) return false;
+      g.style.display = 'flex';
+      this.refreshMeta();
+      this.refreshBests();
+      return true;
+    },
+
+    // Typing "easter" needs a keyboard, which is exactly what a phone hasn't
+    // got — so the arcade was desktop-only in practice. Two keyboard-free ways
+    // in: the #arcade hash (shareable, works anywhere) and a long-press on the
+    // site name in the navbar.
+    setupMobileEntry: function() {
+      const fromHash = () => {
+        if ((location.hash || '').toLowerCase() === '#arcade') this.openArcade();
+      };
+      window.addEventListener('hashchange', fromHash);
+      fromHash();
+
+      const brand = document.querySelector('.navbar-brand');
+      if (!brand) return;
+      let timer = null, fired = false;
+      const start = () => {
+        fired = false;
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          fired = true;
+          Haptics.power();
+          this.openArcade();
+        }, 600);
+      };
+      const cancel = () => clearTimeout(timer);
+      brand.addEventListener('touchstart', start, { passive: true });
+      brand.addEventListener('touchmove', cancel, { passive: true });
+      brand.addEventListener('touchcancel', cancel, { passive: true });
+      brand.addEventListener('touchend', (e) => {
+        cancel();
+        if (fired && e.cancelable) e.preventDefault();   // don't also follow the link
+      }, { passive: false });
+      brand.addEventListener('mousedown', start);
+      brand.addEventListener('mouseup', cancel);
+      brand.addEventListener('mouseleave', cancel);
+      brand.addEventListener('click', (e) => {
+        if (fired) { e.preventDefault(); fired = false; }
+      });
+    },
+
+    // --- On-screen controls ---------------------------------------------
+    // Touch had no duck (so Dino's head-height pterodactyls were undodgeable
+    // on a phone) and no pause. The pad supplies both, per game.
+    injectTouchPad: function() {
+      if (document.getElementById('gameTouch')) return;
+      const pad = document.createElement('div');
+      pad.id = 'gameTouch';
+      pad.setAttribute('role', 'group');
+      pad.setAttribute('aria-label', 'Touch controls');
+      this.canvas.parentNode.insertBefore(pad, this.canvas.nextSibling);
+      this.touchPad = pad;
+      this.buildTouchPad();
+    },
+
+    padButton: function(label, aria, onDown, onUp, always) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tp-btn';
+      b.textContent = label;
+      b.setAttribute('aria-label', aria);
+      const down = (e) => {
+        if (e.cancelable) e.preventDefault();       // no scroll, no double-tap zoom
+        if (!always && (!this.gameActive || this.paused || this.auto)) return;
+        b.classList.add('is-down');
+        Haptics.tap();
+        onDown();
+      };
+      const up = (e) => {
+        if (e && e.cancelable) e.preventDefault();
+        b.classList.remove('is-down');
+        if (onUp) onUp();
+      };
+      b.addEventListener('touchstart', down, { passive: false });
+      b.addEventListener('touchend', up, { passive: false });
+      b.addEventListener('touchcancel', up, { passive: false });
+      b.addEventListener('mousedown', down);
+      b.addEventListener('mouseup', up);
+      b.addEventListener('mouseleave', up);
+      return b;
+    },
+
+    buildTouchPad: function() {
+      const pad = this.touchPad;
+      if (!pad) return;
+      pad.innerHTML = '';
+      pad.hidden = !this.isTouch();
+
+      if (this.currentGame === 'dino') {
+        pad.appendChild(this.padButton('⬆', 'Jump', () => DinoGame.doJump()));
+        pad.appendChild(this.padButton('⬇', 'Duck and fast-fall',
+          () => { DinoGame.downPressed = true; },
+          () => { DinoGame.downPressed = false; }));
+      } else if (this.currentGame === 'snake') {
+        pad.appendChild(this.padButton('⬅', 'Turn left',  () => SnakeGame.turn(-1, 0)));
+        pad.appendChild(this.padButton('⬆', 'Turn up',    () => SnakeGame.turn(0, -1)));
+        pad.appendChild(this.padButton('⬇', 'Turn down',  () => SnakeGame.turn(0, 1)));
+        pad.appendChild(this.padButton('➡', 'Turn right', () => SnakeGame.turn(1, 0)));
+      } else {
+        pad.appendChild(this.padButton('⬅', 'Move paddle left',
+          () => { Breakout.leftPressed = true; }, () => { Breakout.leftPressed = false; }));
+        pad.appendChild(this.padButton('➡', 'Move paddle right',
+          () => { Breakout.rightPressed = true; }, () => { Breakout.rightPressed = false; }));
+      }
+
+      // Pause stays live while paused (it's the only way back) and while the
+      // autopilot is driving, so it skips the usual input guard.
+      const pause = this.padButton('⏸', 'Pause or resume',
+        () => { if (this.gameActive) this.togglePause(); }, null, true);
+      pause.classList.add('tp-btn--wide');
+      pad.appendChild(pause);
+    },
+
+    injectBests: function() {
+      if (document.getElementById('gameBests')) return;
+      const hint = document.getElementById('gameHint');
+      if (!hint || !hint.parentNode) return;
+      const el = document.createElement('p');
+      el.id = 'gameBests';
+      hint.parentNode.insertBefore(el, hint);
+      this.bestsEl = el;
+      this.refreshBests();
+    },
+
+    refreshBests: function() {
+      const el = this.bestsEl || document.getElementById('gameBests');
+      if (!el) return;
+      const names = { breakout: 'Breakout', dino: 'Dino', snake: 'Snake' };
+      el.textContent = '🏆 ' + Object.keys(names)
+        .map((k) => names[k] + ' ' + HighScores.get(k)).join('   ·   ');
+    },
+
     setupControls: function() {
       const gameSelect = document.getElementById('gameSelect');
       if (gameSelect) {
         gameSelect.addEventListener('change', (e) => {
           this.currentGame = e.target.value;
+          this.buildTouchPad();
           this.refreshMeta();
         });
       }
@@ -421,9 +597,13 @@
     refreshMeta: function() {
       const hintEl = document.getElementById('gameHint');
       if (hintEl) {
-        const base = this.HINTS[this.currentGame] || '';
-        hintEl.textContent = base + ' · P pauses · 🤖 autopilot plays for you, S takes over';
+        const touch = this.isTouch();
+        const base = (touch ? this.TOUCH_HINTS : this.HINTS)[this.currentGame] || '';
+        hintEl.textContent = base + (touch
+          ? ' · ⏸ pauses · 🤖 autopilot plays for you, tap it again to take over'
+          : ' · P pauses · 🤖 autopilot plays for you, S takes over');
       }
+      this.refreshBests();
       this.updateScore(this.score);
     },
 
@@ -447,6 +627,7 @@
       const game = this.games[this.currentGame];
       if (game) game.init(this);
 
+      this.buildTouchPad();
       this.refreshMeta();
       this.loopId++;
       this.gameLoop(this.loopId);
@@ -529,6 +710,8 @@
       this.updateScore(this.score);
 
       if (isRecord && this.score > 0) SFX.highScore(); else SFX.gameOver();
+      Haptics.over();
+      this.refreshBests();
 
       ctx.save();
       ctx.setTransform(1, 0, 0, 1, 0, 0); // ignore any active shake transform
@@ -790,6 +973,7 @@
     applyPowerup: function(p, game) {
       const now = performance.now();
       SFX.powerup();
+      Haptics.power();
       Fx.burst(p.x + p.w / 2, p.y, '#fbbf24', 14, 3);
       if (p.type === 'W') {
         this.effects.wide = true;
@@ -2070,6 +2254,9 @@
   window.exitGame = function() {
     GameSystem.gameActive = false;
     document.getElementById('hidden-game').style.display = 'none';
+    if ((location.hash || '').toLowerCase() === '#arcade') {
+      history.replaceState(null, '', location.pathname + location.search);
+    }
   };
 
   // ===================================
@@ -2124,10 +2311,12 @@
   function consoleHint() {
     try {
       console.log(
-        '%c🎮 Secret Arcade %c\n\nThere are hidden pages on this site…\n  · type %ceaster%c anywhere for the arcade (Breakout · Dino · Snake)\n  · type %cadmin%c for the visitor panel\n  · in a game: %cP%c pauses, %c🤖 Autopilot%c hands over to the algorithm, %cS%c takes control back\n  · Esc closes them\n',
+        '%c🎮 Secret Arcade %c\n\nThere are hidden pages on this site…\n  · type %ceaster%c anywhere for the arcade (Breakout · Dino · Snake)\n  · no keyboard? open %c#arcade%c or long-press the site name\n  · type %cadmin%c for the visitor panel\n  · in a game: %cP%c pauses, %c🤖 Autopilot%c hands over to the algorithm, %cS%c takes control back\n  · Esc closes them\n',
         'font-size:18px; font-weight:bold; background:linear-gradient(90deg,#22d3ee,#a855f7,#ec4899); -webkit-background-clip:text; color:transparent;',
         'color:#94a3b8; font-size:12px;',
         'color:#22d3ee; font-weight:bold; font-size:12px;',
+        'color:#94a3b8; font-size:12px;',
+        'color:#4ade80; font-weight:bold; font-size:12px;',
         'color:#94a3b8; font-size:12px;',
         'color:#22d3ee; font-weight:bold; font-size:12px;',
         'color:#94a3b8; font-size:12px;',

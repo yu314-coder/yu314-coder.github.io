@@ -979,6 +979,109 @@ html.js .reveal:not(.is-visible) { opacity: 0; transform: translateY(16px); }
   touch-action: none;
 }
 
+/* ---------------------------------------------------------------------------
+   Arcade: on-screen controls
+   The arcade was keyboard-only in practice. Dino's duck had no touch binding
+   at all, which made head-height pterodactyls literally undodgeable on a
+   phone, and there was no way to pause. JS unhides this pad only where the
+   pointer is coarse, so desktop is untouched.
+   ------------------------------------------------------------------------- */
+#gameTouch {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin: 2px auto 0;
+  padding: 0 8px;
+  max-width: 96vw;
+}
+
+#gameTouch[hidden] { display: none; }
+
+.tp-btn {
+  min-width: 64px;
+  min-height: 52px;          /* comfortably over Apple's 44px minimum */
+  padding: 0 14px;
+  font-size: 1.35rem;
+  line-height: 1;
+  color: #eef2ff;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(168, 85, 247, 0.45);
+  border-radius: 14px;
+  cursor: pointer;
+  touch-action: manipulation;   /* no 300ms delay, no double-tap zoom */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  transition: transform 0.06s ease, background 0.15s ease;
+}
+
+.tp-btn.is-down {
+  background: rgba(124, 58, 237, 0.55);
+  border-color: #22d3ee;
+  transform: scale(0.94);
+}
+
+.tp-btn--wide { min-width: 96px; font-size: 1.05rem; }
+
+#gameBests {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: #fbbf24;
+  margin: 10px auto 0;
+  letter-spacing: 0.3px;
+  opacity: 0.85;
+}
+
+/* Fit the board in the viewport, not just the width — in landscape a 480px
+   canvas otherwise pushes the score and pad off-screen. */
+#gameCanvas { max-height: 62vh; }
+
+body[data-device="phone"] #hidden-game { padding-top: 10px; }
+body[data-device="phone"] #gameCanvas { max-width: 96vw; max-height: 44vh; }
+body[data-device="phone"] #gameControls { gap: 8px; padding: 10px 12px; margin: 12px auto; }
+body[data-device="phone"] #gameControls label { font-size: 0.82rem; }
+body[data-device="phone"] #gameControls button,
+body[data-device="phone"] #gameControls select { min-height: 44px; font-size: 0.86rem; padding: 10px 14px; }
+body[data-device="phone"] #scoreDisplay { font-size: 1.1rem; margin-top: 12px; }
+body[data-device="phone"] #gameBests { font-size: 0.72rem; }
+body[data-device="phone"] #gameHint { font-size: 0.7rem; margin-bottom: 16px; padding: 0 12px; }
+body[data-device="phone"] #exitGame {
+  top: calc(8px + env(safe-area-inset-top, 0px));
+  right: calc(8px + env(safe-area-inset-right, 0px));
+  min-height: 44px;
+  padding: 10px 16px;
+}
+
+/* The exit button is fixed to the top-right, so on a narrow screen the centred
+   arcade header ran underneath it. Shrink the wordmark and bias it left by the
+   width of the button. */
+@media (max-width: 520px) {
+  #hidden-game::before {
+    font-size: 0.62rem;
+    letter-spacing: 0.22em;
+    padding-right: 92px;
+  }
+}
+
+/* Short/landscape phones: trade chrome for board. The selectors mirror the
+   body[data-device="phone"] specificity above, otherwise those portrait sizes
+   win here and the board stays needlessly small in landscape. */
+@media (max-height: 520px) {
+  #hidden-game::before { display: none; }
+  body[data-device="phone"] #gameCanvas,
+  #gameCanvas { max-height: 50vh; margin: 8px auto; }
+  body[data-device="phone"] #gameControls,
+  #gameControls { margin: 8px auto; padding: 7px 12px; gap: 7px; }
+  body[data-device="phone"] #gameControls button,
+  body[data-device="phone"] #gameControls select { padding: 8px 12px; font-size: 0.8rem; }
+  body[data-device="phone"] #scoreDisplay,
+  #scoreDisplay { margin-top: 6px; font-size: 1rem; }
+  #gameHint, #gameBests { margin-bottom: 8px; }
+  body[data-device="phone"] #gameHint { font-size: 0.66rem; }
+  .tp-btn { min-height: 46px; min-width: 56px; }
+}
+
 /* Device-Aware Theming (tablet / phone / desktop) */
 body[data-device="desktop"] {
   --device-accent: #4c1d95;
