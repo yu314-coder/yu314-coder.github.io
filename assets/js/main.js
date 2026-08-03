@@ -306,6 +306,11 @@
     touchPad: null,
     bestsEl: null,
 
+    // Keys the three games consume. Held here rather than in each game so the
+    // page-scroll suppression can't drift out of sync with the bindings.
+    PLAY_KEYS: new Set([' ', 'spacebar', 'arrowup', 'arrowdown', 'arrowleft',
+                        'arrowright', 'w', 'a', 's', 'd']),
+
     // Coarse pointer => show the on-screen pad. Checked live rather than cached
     // so a hybrid laptop that gets touched mid-session still gets it.
     isTouch: function() {
@@ -370,7 +375,17 @@
           e.stopPropagation();
           e.preventDefault();
           this.togglePause();
+          return;
         }
+
+        // While the arcade is open its keys belong to the game, not the page.
+        // Space and the arrows were still scrolling the overlay underneath —
+        // jumping in Dino scrolled the board out from under you.
+        if (!this.PLAY_KEYS.has(k) && e.code !== 'Space') return;
+        const tag = e.target && e.target.tagName;
+        // ...except in the controls, where arrows pick a game and space clicks.
+        if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || tag === 'BUTTON') return;
+        e.preventDefault();
       }, true);
     },
 
@@ -836,7 +851,7 @@
     // Tunnel only while at least this fraction of the board is still up;
     // digging a channel through a nearly-cleared board is wasted effort.
     TUNNEL_UNTIL: 0.55,
-    speed: 5,
+    speed: 6.5,
     fever: false,
     combo: 0,
     levelFlash: 0,
@@ -846,7 +861,7 @@
     BASE_W: 104,
     WIDE_W: 184,
     SHRINK_W: 68,
-    MAX_SPEED: 15,
+    MAX_SPEED: 18,
     // A frame at top speed covers more than a brick's height, so movement is
     // sub-stepped at this granularity — otherwise a fast ball tunnels straight
     // through bricks it should have broken.
@@ -959,7 +974,7 @@
     init: function(game) {
       this.lives = 3;
       this.level = 1;
-      this.speed = 5;
+      this.speed = 6.5;
       this.fever = false;
       this.combo = 0;
       this.tick = 0;
@@ -973,7 +988,7 @@
         height: 12,
         x: (game.canvas.width - this.BASE_W) / 2,
         color: '#22d3ee',
-        speed: 9
+        speed: 11
       };
       this.buildLevel(game.canvas);
       this.resetBalls(game.canvas);
@@ -1151,7 +1166,7 @@
     // the simulation can't drift apart.
     ballFactor: function(now) {
       let f = 1;
-      if (this.effects.slowUntil > now) f *= 0.55;
+      if (this.effects.slowUntil > now) f *= 0.66;
       if (this.effects.rushUntil > now) f *= 1.35;
       return f;
     },
@@ -1401,7 +1416,7 @@
     checkLevelClear: function(game) {
       if (this.bricksLeft() > 0) return false;
       this.level++;
-      this.speed = Math.min(this.speed * 1.16, this.MAX_SPEED);
+      this.speed = Math.min(this.speed * 1.18, this.MAX_SPEED);
       SFX.levelUp();
       this.buildLevel(game.canvas);
       this.resetBalls(game.canvas);
@@ -1738,15 +1753,24 @@
       // beyond saving must not pull the paddle off one that isn't.
       const pick = arrivals.find((a) => a.reachable) || arrivals[0] || null;
 
-      // Multi-ball: if a second ball lands at nearly the same moment and close
-      // enough, stand between them and take both on one paddle instead of
-      // catching one and writing the other off.
+      // Multi-ball: rather than commit to one ball and write the rest off,
+      // find the standing point that covers the most of them at once, and take
+      // the centre of that group. With four balls down it is often possible to
+      // catch two or three on one paddle.
       let stand = pick ? pick.x : null;
-      if (pick) {
-        const mate = arrivals.find((a) => a !== pick && a.reachable &&
-                                          Math.abs(a.t - pick.t) < 12 &&
-                                          Math.abs(a.x - pick.x) < this.paddle.width * 0.8);
-        if (mate) stand = (pick.x + mate.x) / 2;
+      if (pick && arrivals.length > 1) {
+        let best = 0, bestT = Infinity;
+        for (const a of arrivals) {
+          if (!a.reachable) continue;
+          const group = arrivals.filter((o) => o.reachable &&
+                                               Math.abs(o.x - a.x) < half * 0.9 &&
+                                               Math.abs(o.t - a.t) < 14);
+          if (group.length > best || (group.length === best && a.t < bestT)) {
+            best = group.length;
+            bestT = a.t;
+            stand = group.reduce((sum, o) => sum + o.x, 0) / group.length;
+          }
+        }
       }
 
       let target;
@@ -1759,6 +1783,13 @@
           // The cannon is firing and the ball is still a long way off: spend
           // the wait standing where the bolts will actually land.
           target = dense;
+        } else if (dense !== null) {
+          // Not enough time to park properly, but the cannon is still firing —
+          // drift toward the wall with half the spare movement, so the bolts
+          // are aimed at something without risking the catch.
+          const spare = Math.max(0, (pick.t - 8) * step - Math.abs(stand - centre)) * 0.5;
+          const drift = Math.max(-spare, Math.min(spare, dense - stand));
+          target = stand + drift - this.aimBias(stand, pick.t, canvas, now);
         } else {
           target = stand - this.aimBias(stand, pick.t, canvas, now);
         }
@@ -1789,13 +1820,18 @@
     // on the last one and nearly worthless on the sixth; a net you already have
     // three of is not worth crossing the board for.
     capsuleValue: function(type, now) {
+      // Multi, Laser and Pierce are clear-rate multipliers: worth a lot with a
+      // full board in front of you and almost nothing with four bricks left,
+      // where an extra life or a net is the only thing that still matters.
+      const board = Math.min(1, this.bricksLeft() / 24);
       switch (type) {
         case 'H': return this.lives <= 1 ? 100 : (this.lives >= 5 ? 8 : 40);
         case 'N': return this.effects.net >= 3 ? 4 : 30;
-        case 'M': return this.balls.length >= 5 ? 6 : 26;
-        case 'P': return this.effects.pierceUntil > now ? 5 : 24;
+        // A seventh ball is chaos, not throughput.
+        case 'M': return this.balls.length >= 4 ? 6 : 8 + 30 * board;
+        case 'L': return this.effects.laserUntil > now ? 5 : 5 + 26 * board;
+        case 'P': return this.effects.pierceUntil > now ? 5 : 6 + 24 * board;
         case 'W': return this.effects.wide ? 3 : 22;
-        case 'L': return this.effects.laserUntil > now ? 5 : 20;
         case 'S': return this.effects.slowUntil > now ? 4 : 16;
         default:  return 0;
       }

@@ -552,8 +552,11 @@ def process_storm(tc, models):
     out = v23run.run_forecast(models, fixes)
     out["tcId"] = tc_id
     out["name"] = a["name"]
-    out["v23_lats"] = list(out["lats"])      # kept so the comparison is always available
-    out["v23_lons"] = list(out["lons"])
+    # v23's own track is not published: nothing on the site reads it, and
+    # shipping it under a "v23_" key made the payload look like v23 was still
+    # in play. Its run_forecast() is still the scaffold that gives `out` its
+    # lead_hours/seeds/precision shape; v62 overwrites the track below, and a
+    # storm v62 cannot forecast is dropped entirely rather than falling back.
 
     pts = [{"ms": o["ms"], "lat": o["lat"], "lon": o["lon"]} for o in raw
            if o["lat"] is not None and o["lon"] is not None]

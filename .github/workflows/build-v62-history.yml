@@ -14,9 +14,12 @@ name: Build v62 history hindcasts
 # So `count` should be several for old storms and 1 for post-2011 ones. Analyses
 # are pruned after each storm to keep the runner's disk bounded.
 on:
-  # Hourly, CFSR era only. That half is 672 storms / ~158 GB, which at three
-  # storms a run works through in ~9 days at 0.7 GB per run -- modest load on a
-  # public archive. The CDAS era is deliberately NOT scheduled: 78 MB per
+  # Hourly, CFSR era only -- though GitHub delivers scheduled events on a best
+  # effort basis and in practice this fires roughly every four hours. Three
+  # storms a run only used 15-25 minutes of the 350-minute budget, so the
+  # backfill was moving at ~18 storms a day against 672 in the CFSR era. Ten a
+  # run fits comfortably in the same window and still keeps the load on a
+  # public archive modest. The CDAS era is deliberately NOT scheduled: 78 MB per
   # analysis with ~98% of each file discarded would be ~1.3 TB pulled from NOAA
   # to generate 383 storms. Run those deliberately, by id, when a storm is worth
   # it -- see the `storms` input.
@@ -31,7 +34,7 @@ on:
       count:
         description: "How many ungenerated storms to take when `storms` is blank (use 1 for post-2011/CDAS storms)"
         required: false
-        default: "3"
+        default: "10"
       era:
         description: "Which analysis source to draw from"
         required: false
@@ -121,7 +124,7 @@ jobs:
           MPLBACKEND: Agg
         run: |
           STORMS="${{ inputs.storms }}"
-          COUNT="${{ inputs.count }}"; COUNT="${COUNT:-3}"
+          COUNT="${{ inputs.count }}"; COUNT="${COUNT:-10}"
           ERA="${{ inputs.era }}"; ERA="${ERA:-cfsr}"
           if [ -n "$STORMS" ]; then
             python scripts/build_v62_history.py $STORMS --prune
