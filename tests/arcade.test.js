@@ -806,6 +806,71 @@ const buildPlain = (B, h, name) => {
 }
 
 
+// -------------------------------------------------------------- chain jumping
+{
+  const { h, A } = boot('dino');
+  const D = A.DinoGame;
+  const air = (dy, used) => { D.dino.onGround = false; D.coyote = 0; D.dino.dy = dy; D.jumpsUsed = used; D.ducking = false; D.jumpBuffer = 0; };
+  const takes = () => { const b = D.jumpsUsed; D.doJump(); return D.jumpsUsed > b; };
+
+  D.dino.onGround = true; D.coyote = 0; D.jumpsUsed = 0; D.ducking = false; D.jumpBuffer = 0;
+  check('a ground jump is always available', takes() && D.jumpsUsed === 1);
+
+  air(9, 1);
+  check('the second jump is free, timing or not', takes(), 'mistimed mid-air');
+
+  air(9, 2);
+  check('a third jump while falling fast is refused', !takes(), `|dy| 9 vs window ${D.APEX_WINDOW}`);
+
+  air(0.5, 2);
+  check('a third jump at the top of the arc is allowed', takes());
+
+  // Chain to the ceiling and no further.
+  let used = 3;
+  const got = [];
+  for (let n = 4; n <= D.MAX_JUMPS + 1; n++) {
+    air(0.4, used);
+    const ok = takes();
+    got.push(ok);
+    if (ok) used = D.jumpsUsed;
+  }
+  check(`the chain runs to ${D.MAX_JUMPS} and stops`,
+        got.slice(0, -1).every(Boolean) && got[got.length - 1] === false,
+        got.map((g, i) => `#${i + 4}:${g ? 'y' : 'n'}`).join(' '));
+
+  // Each one is worth less than the last, so a chain is reach, not flight.
+  air(0.4, 1); D.doJump(); const second = D.dino.dy;
+  air(0.4, 3); D.doJump(); const fifth = D.dino.dy;
+  check('each chained jump gives less than the last', Math.abs(fifth) < Math.abs(second),
+        `2nd ${second.toFixed(2)} vs 5th ${fifth.toFixed(2)}`);
+
+  // Landing clears it — with no press held over, or the buffer would refire.
+  D.dino.onGround = false; D.jumpsUsed = 5; D.chain = 5; D.jumpBuffer = 0;
+  D.dino.y = (h.canvas.height - 20) - D.STAND_H + 40; D.dino.dy = 5;
+  D.update(fakeGame(h));
+  check('landing resets the chain', D.jumpsUsed === 0 && D.chain === 0,
+        `used ${D.jumpsUsed} chain ${D.chain}`);
+
+  // A refused jump is held and fired on landing rather than dropped.
+  air(9, D.MAX_JUMPS);
+  D.doJump();
+  check('a refused chain jump is buffered, not swallowed', D.jumpBuffer > 0, `buffer ${D.jumpBuffer}`);
+}
+{
+  // The autopilot must plan with the lift it will actually get, not a constant.
+  const { A } = boot('dino', true);
+  const D = A.DinoGame;
+  D.dino.onGround = true; D.coyote = 0; D.jumpsUsed = 0; D.ducking = false;
+  check('nextLift reports the ground jump', D.nextLift() === D.dino.jumpForce);
+  D.dino.onGround = false; D.dino.dy = 9; D.jumpsUsed = 2;
+  check('nextLift is zero when a chain jump is mistimed', D.nextLift() === 0);
+  D.dino.dy = 0.5;
+  check('nextLift is non-zero at the apex', D.nextLift() !== 0);
+  D.jumpsUsed = D.MAX_JUMPS;
+  check('nextLift is zero at the ceiling', D.nextLift() === 0);
+}
+
+
 let failed = 0;
 for (const r of results) {
   if (!r.pass) failed++;

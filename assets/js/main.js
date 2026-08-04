@@ -400,14 +400,14 @@
 
     HINTS: {
       breakout: 'Arrows / mouse / drag — 10 boards, each rolling a modifier · ? = mystery, KEY clears a row · dodge the red capsules · the wall creeps down',
-      dino: 'Space/⬆️ jump (twice for a double-jump) · ⬇️ duck — grab 🪙 and 🛡️',
+      dino: 'Space/⬆️ jump · a 2nd is free; a 3rd to 5th only at the top of the arc · ⬇️ duck',
       snake: 'Arrows / WASD / swipe — edges wrap around · gold +50 · ✂️ trims your tail'
     },
 
     // Same games, described in the gestures a phone actually has.
     TOUCH_HINTS: {
       breakout: 'Drag or hold ⬅ ➡ — 10 boards, each rolling a modifier · ? = mystery, KEY clears a row · dodge the red capsules · the wall creeps down',
-      dino: 'Tap to jump, tap again to double-jump · hold ⬇ to duck — grab 🪙 and 🛡️',
+      dino: 'Tap to jump · a 2nd is free; a 3rd to 5th only at the top of the arc · hold ⬇ to duck',
       snake: 'Swipe or use the pad — edges wrap around · gold +50 · ✂️ trims your tail'
     },
 
@@ -2376,7 +2376,15 @@
     ducking: false,
     downPressed: false,
     wasOnGround: true,
-    jumpsLeft: 2,
+    jumpsUsed: 0,
+    chain: 0,
+    chainFlash: 0,
+    // Two jumps come free. Anything past that has to be bought with timing:
+    // the tap must land near the top of the arc, where the dino is barely
+    // moving vertically. Five is the ceiling, and each one gives a little less
+    // than the last, so a chain is for reach and recovery rather than flight.
+    MAX_JUMPS: 5,
+    APEX_WINDOW: 2.6,
     coyote: 0,
     jumpBuffer: 0,
     shield: 0,
@@ -2429,7 +2437,9 @@
       this.ducking = false;
       this.downPressed = false;
       this.wasOnGround = true;
-      this.jumpsLeft = 2;
+      this.jumpsUsed = 0;
+      this.chain = 0;
+      this.chainFlash = 0;
       this.coyote = this.COYOTE_FRAMES;
       this.jumpBuffer = 0;
       this.shield = 0;
@@ -2461,6 +2471,28 @@
       this.ducking = false;
     },
 
+    // At the top of the arc, where a chained jump is allowed.
+    atApex: function() {
+      return Math.abs(this.dino.dy) <= this.APEX_WINDOW;
+    },
+
+    // What the next jump would be worth, or 0 if there isn't one. The autopilot
+    // simulates with this, so its predictions match what actually happens.
+    // ignoreDuck: the autopilot stands up before it jumps, so when it is
+    // costing an option it needs the lift it *would* get, not zero because the
+    // dino happens to be crouched this frame.
+    nextLift: function(ignoreDuck) {
+      if (this.ducking && !ignoreDuck) return 0;
+      if (this.dino.onGround || this.coyote > 0) return this.dino.jumpForce;
+      if (this.jumpsUsed >= this.MAX_JUMPS) return 0;
+      const apex = this.atApex();
+      if (this.jumpsUsed >= 2 && !apex) return 0;      // past the freebie, timing only
+      const falloff = Math.pow(0.9, Math.max(0, this.jumpsUsed - 1));
+      return this.dino.jumpForce * (apex ? 0.94 : 0.86) * falloff;
+    },
+
+    canJumpNow: function() { return this.nextLift() !== 0; },
+
     doJump: function() {
       if (this.ducking) return;
       const grounded = this.dino.onGround || this.coyote > 0;
@@ -2468,15 +2500,35 @@
         this.dino.dy = this.dino.jumpForce;
         this.dino.onGround = false;
         this.coyote = 0;
-        this.jumpsLeft = 1;          // one mid-air jump still in hand
+        this.jumpsUsed = 1;
+        this.chain = 0;
         SFX.jump();
-      } else if (this.jumpsLeft > 0) {
-        this.dino.dy = this.dino.jumpForce * 0.86;
-        this.jumpsLeft--;
-        SFX.beep(520, 0.11, 'triangle', 0.08, 820);
-        Fx.burst(this.dino.x + this.dino.width / 2, this.dino.y + this.dino.height, '#a855f7', 8, 2);
+        return;
+      }
+
+      const apex = this.atApex();
+      const lift = this.nextLift();
+      if (!lift) {
+        // Either out of jumps or mistimed — hold it and fire on landing.
+        this.jumpBuffer = this.BUFFER_FRAMES;
+        return;
+      }
+
+      this.jumpsUsed++;
+      this.dino.dy = lift;
+      const cx = this.dino.x + this.dino.width / 2;
+      const cy = this.dino.y + this.dino.height;
+
+      if (this.jumpsUsed > 2) {
+        // Earned by timing, so it gets to feel earned.
+        this.chain = this.jumpsUsed;
+        this.chainFlash = 26;
+        SFX.seq([700, 950, 1250], 'triangle', 0.12, 0.05);
+        Fx.text(cx, this.dino.y - 8, 'CHAIN ×' + this.jumpsUsed, '#fbbf24');
+        Fx.burst(cx, cy, '#fbbf24', 14, 2.6);
       } else {
-        this.jumpBuffer = this.BUFFER_FRAMES; // fire it the instant we land
+        SFX.beep(520, 0.11, 'triangle', 0.08, 820);
+        Fx.burst(cx, cy, '#a855f7', 8, 2);
       }
     },
 
@@ -2571,7 +2623,8 @@
         }
         this.dino.onGround = true;
         this.coyote = this.COYOTE_FRAMES;
-        this.jumpsLeft = 2;
+        this.jumpsUsed = 0;
+        this.chain = 0;
         if (this.jumpBuffer > 0) { this.jumpBuffer = 0; this.doJump(); }
       }
       if (this.jumpBuffer > 0) this.jumpBuffer--;
@@ -2792,7 +2845,24 @@
       ctx.fillStyle = '#a5b4fc';
       let hud = `${this.speed.toFixed(1)}× speed`;
       if (this.shield > 0) hud += ` · 🛡️×${this.shield}`;
+      if (this.jumpsUsed > 2) hud += ` · CHAIN ×${this.jumpsUsed}`;
       ctx.fillText(hud, 12, 24);
+
+      // A ring at the top of the arc, so the window you have to hit is a thing
+      // you can see rather than a number in a changelog.
+      if (!this.dino.onGround && this.jumpsUsed >= 2 && this.jumpsUsed < this.MAX_JUMPS) {
+        const open = this.atApex();
+        ctx.save();
+        ctx.globalAlpha = open ? 0.95 : 0.28;
+        ctx.strokeStyle = open ? '#fbbf24' : '#64748b';
+        ctx.lineWidth = open ? 3 : 2;
+        ctx.beginPath();
+        ctx.arc(this.dino.x + this.dino.width / 2, this.dino.y + this.dino.height / 2,
+                this.dino.width * 0.85, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+      if (this.chainFlash > 0) this.chainFlash--;
     },
 
     // An actual creature rather than a rectangle with an eye: tail, haunch,
@@ -2872,8 +2942,8 @@
 
       this.downPressed = false;
       const fromGround = d.onGround || this.coyote > 0;
-      const canJump = fromGround || this.jumpsLeft > 0;
-      const lift = fromGround ? d.jumpForce : d.jumpForce * 0.86;
+      const lift = this.nextLift(true);
+      const canJump = lift !== 0;
 
       // Three options, each rolled forward against the whole scene: stand,
       // hold down, jump. -1 means nothing hits within the horizon.
