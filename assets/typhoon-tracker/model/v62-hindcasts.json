@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-04T05:05:42Z",
+  "generated_at": "2026-08-04T08:34:14Z",
   "note": "Per-storm v62 hindcasts, loaded lazily. History mode uses v62 wherever a run covers the initialisation on screen and v23 elsewhere.",
   "hindcasts": {
     "1979275N06159": {
@@ -901,6 +901,106 @@
       "intensity_runs": 67,
       "mean_track_mae_km": 447.7,
       "file": "v62/2009270N10148.json"
+    },
+    "1987188N10151": {
+      "storm": "Thelma",
+      "season": 1987,
+      "runs": 42,
+      "first_issue_utc": "1987-07-07T12:00:00Z",
+      "last_issue_utc": "1987-07-17T18:00:00Z",
+      "intensity_runs": 37,
+      "mean_track_mae_km": 639.8,
+      "file": "v62/1987188N10151.json"
+    },
+    "1987231N10159": {
+      "storm": "Dinah",
+      "season": 1987,
+      "runs": 58,
+      "first_issue_utc": "1987-08-20T06:00:00Z",
+      "last_issue_utc": "1987-09-03T12:00:00Z",
+      "intensity_runs": 43,
+      "mean_track_mae_km": 819.4,
+      "file": "v62/1987231N10159.json"
+    },
+    "1989271N12142": {
+      "storm": "Angela",
+      "season": 1989,
+      "runs": 48,
+      "first_issue_utc": "1989-09-29T00:00:00Z",
+      "last_issue_utc": "1989-10-10T18:00:00Z",
+      "intensity_runs": 48,
+      "mean_track_mae_km": 159.3,
+      "file": "v62/1989271N12142.json"
+    },
+    "1991256N13171": {
+      "storm": "Mireille",
+      "season": 1991,
+      "runs": 68,
+      "first_issue_utc": "1991-09-14T00:00:00Z",
+      "last_issue_utc": "1991-09-30T18:00:00Z",
+      "intensity_runs": 57,
+      "mean_track_mae_km": 887.2,
+      "file": "v62/1991256N13171.json"
+    },
+    "1991301N08173": {
+      "storm": "Seth",
+      "season": 1991,
+      "runs": 68,
+      "first_issue_utc": "1991-10-29T06:00:00Z",
+      "last_issue_utc": "1991-11-15T00:00:00Z",
+      "intensity_runs": 57,
+      "mean_track_mae_km": 337.3,
+      "file": "v62/1991301N08173.json"
+    },
+    "1992216N06182": {
+      "storm": "Kent",
+      "season": 1992,
+      "runs": 63,
+      "first_issue_utc": "1992-08-04T06:00:00Z",
+      "last_issue_utc": "1992-08-19T18:00:00Z",
+      "intensity_runs": 58,
+      "mean_track_mae_km": 324.7,
+      "file": "v62/1992216N06182.json"
+    },
+    "1992236N07159": {
+      "storm": "Omar",
+      "season": 1992,
+      "runs": 64,
+      "first_issue_utc": "1992-08-24T00:00:00Z",
+      "last_issue_utc": "1992-09-08T18:00:00Z",
+      "intensity_runs": 52,
+      "mean_track_mae_km": 426.4,
+      "file": "v62/1992236N07159.json"
+    },
+    "1993164N04160": {
+      "storm": "Koryn",
+      "season": 1993,
+      "runs": 60,
+      "first_issue_utc": "1993-06-14T06:00:00Z",
+      "last_issue_utc": "1993-06-29T00:00:00Z",
+      "intensity_runs": 53,
+      "mean_track_mae_km": 435.8,
+      "file": "v62/1993164N04160.json"
+    },
+    "1993240N17142": {
+      "storm": "Yancy",
+      "season": 1993,
+      "runs": 40,
+      "first_issue_utc": "1993-08-28T12:00:00Z",
+      "last_issue_utc": "1993-09-07T06:00:00Z",
+      "intensity_runs": 30,
+      "mean_track_mae_km": 605.2,
+      "file": "v62/1993240N17142.json"
+    },
+    "1994192N05139": {
+      "storm": "Walt",
+      "season": 1994,
+      "runs": 66,
+      "first_issue_utc": "1994-07-12T00:00:00Z",
+      "last_issue_utc": "1994-07-28T06:00:00Z",
+      "intensity_runs": 58,
+      "mean_track_mae_km": 452.8,
+      "file": "v62/1994192N05139.json"
     }
   }
 }
