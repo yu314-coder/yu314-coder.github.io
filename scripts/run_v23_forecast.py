@@ -25,8 +25,10 @@ import math
 import os
 import re
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 import numpy as np
@@ -49,14 +51,37 @@ OUT_PATH = REPO_ROOT / "assets" / "typhoon-tracker" / "model" / "v23-live-foreca
 UA = {"User-Agent": "typhoon-tracker-forecast-bot/1.0 (+https://yu314-coder.github.io)"}
 
 
+def _fetch(url, tries=4):
+    """Read a URL, retrying a few times before giving up.
+
+    These endpoints are third-party and occasionally blink: a scheduled run
+    died on a bare 404 from JMA's targetTc.json, a file that always exists and
+    was serving normally either side of it. One transient response should not
+    lose the cycle. A genuine outage still fails the job rather than quietly
+    shipping yesterday's forecast."""
+    wait = 2
+    last = None
+    for attempt in range(tries):
+        try:
+            with urlopen(Request(url, headers=UA), timeout=25) as r:
+                return r.read()
+        except (HTTPError, URLError, TimeoutError, OSError) as e:
+            last = e
+            if attempt == tries - 1:
+                break
+            print(f"  {url} -> {e}; retrying in {wait}s "
+                  f"({attempt + 1}/{tries - 1})", file=sys.stderr, flush=True)
+            time.sleep(wait)
+            wait *= 2.5
+    raise last
+
+
 def get_json(url):
-    with urlopen(Request(url, headers=UA), timeout=25) as r:
-        return json.load(r)
+    return json.loads(_fetch(url))
 
 
 def get_text(url):
-    with urlopen(Request(url, headers=UA), timeout=25) as r:
-        return r.read().decode("utf-8", "replace")
+    return _fetch(url).decode("utf-8", "replace")
 
 
 def num(v):
