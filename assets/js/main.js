@@ -291,14 +291,14 @@
     autoRestartTimer: null,
 
     HINTS: {
-      breakout: 'Arrows / mouse / drag — 10 boards · ? = mystery, KEY clears a row · dodge the red capsules · the wall creeps down',
+      breakout: 'Arrows / mouse / drag — 10 boards, each rolling a modifier · ? = mystery, KEY clears a row · dodge the red capsules · the wall creeps down',
       dino: 'Space/⬆️ jump (twice for a double-jump) · ⬇️ duck — grab 🪙 and 🛡️',
       snake: 'Arrows / WASD / swipe — edges wrap around · gold +50 · ✂️ trims your tail'
     },
 
     // Same games, described in the gestures a phone actually has.
     TOUCH_HINTS: {
-      breakout: 'Drag or hold ⬅ ➡ — 10 boards · ? = mystery, KEY clears a row · dodge the red capsules · the wall creeps down',
+      breakout: 'Drag or hold ⬅ ➡ — 10 boards, each rolling a modifier · ? = mystery, KEY clears a row · dodge the red capsules · the wall creeps down',
       dino: 'Tap to jump, tap again to double-jump · hold ⬇ to duck — grab 🪙 and 🛡️',
       snake: 'Swipe or use the pad — edges wrap around · gold +50 · ✂️ trims your tail'
     },
@@ -848,6 +848,21 @@
     layoutName: '',
     cols: 11,
     initialBricks: 0,
+    mutator: null,
+    driftPhase: 0,
+    GALE: 0.045,
+
+    // Every level from the third rolls a modifier, announced with the board
+    // name. Ten layouts times six modifiers is enough that you stop being able
+    // to predict what you are walking into.
+    MUTATORS: [
+      { key: 'iron',     name: 'IRON',     blurb: 'every brick is tougher' },
+      { key: 'frenzy',   name: 'FRENZY',   blurb: 'capsules everywhere' },
+      { key: 'drift',    name: 'DRIFT',    blurb: 'the wall slides' },
+      { key: 'gale',     name: 'GALE',     blurb: 'a crosswind pushes the ball' },
+      { key: 'blackout', name: 'BLACKOUT', blurb: 'only the ball lights the wall' },
+      { key: 'brittle',  name: 'BRITTLE',  blurb: 'one hit kills anything' }
+    ],
     // Tunnel only while at least this fraction of the board is still up;
     // digging a channel through a nearly-cleared board is wasted effort.
     TUNNEL_UNTIL: 0.55,
@@ -1053,7 +1068,24 @@
       this.effects.wide = false;
       this.descendAt = performance.now() + this.DESCEND_FIRST;
       this.descendFlash = 0;
+      // Levels 1 and 2 are played straight, so the first thing you meet is the
+      // game rather than a gimmick.
+      this.mutator = null;
+      this.driftPhase = 0;
+      if (this.level >= 3 && Math.random() < 0.72) {
+        this.mutator = this.MUTATORS[Math.floor(Math.random() * this.MUTATORS.length)];
+        if (this.mutator.key === 'iron') {
+          for (const b of this.bricks) {
+            if (b.kind === 'normal') b.hp = b.max = Math.min(b.hp + 1, 5);
+          }
+        } else if (this.mutator.key === 'brittle') {
+          for (const b of this.bricks) {
+            if (b.kind !== 'steel') b.hp = b.max = 1;
+          }
+        }
+      }
       this.initialBricks = this.bricksLeft();
+      this._planX = null;
       this.levelFlash = 90;
     },
 
@@ -1100,8 +1132,9 @@
     DROP_MAX: 0.85,
 
     dropChance: function() {
-      return Math.min(this.DROP_MAX,
-        this.DROP_BASE + Math.max(0, this.combo - 1) * this.DROP_PER_COMBO);
+      const frenzy = this.mutator && this.mutator.key === 'frenzy' ? 0.28 : 0;
+      return Math.min(this.DROP_MAX + frenzy,
+        this.DROP_BASE + frenzy + Math.max(0, this.combo - 1) * this.DROP_PER_COMBO);
     },
 
     maybeDropPowerup: function(x, y) {
@@ -1186,6 +1219,7 @@
         this.paddle.x = Math.max(0, Math.min(canvas.width - this.paddle.width, cx - this.paddle.width / 2));
       }
 
+      this.stepDrift();
       this.drawNet(ctx, canvas);
       this.drawDangerLine(ctx, canvas);
       this.drawBricks(ctx, now);
@@ -1243,6 +1277,20 @@
       ctx.lineTo(canvas.width, limit);
       ctx.stroke();
       ctx.restore();
+    },
+
+    // DRIFT: the whole wall slides side to side. Amplitude stays inside the
+    // 26px margin the grid is centred in, so nothing leaves the board.
+    stepDrift: function() {
+      if (!this.mutator || this.mutator.key !== 'drift') return;
+      const next = this.driftPhase + 0.012;
+      const delta = 19 * (Math.sin(next) - Math.sin(this.driftPhase));
+      this.driftPhase = next;
+      for (const b of this.bricks) b.x += delta;
+    },
+
+    galeAccel: function() {
+      return this.mutator && this.mutator.key === 'gale' ? this.GALE : 0;
     },
 
     netY: function(canvas) { return canvas.height - 3; },
@@ -1428,7 +1476,9 @@
       ctx.font = '16px "Segoe UI", Arial, sans-serif';
       ctx.textAlign = 'left';
       ctx.fillStyle = '#a5b4fc';
-      let hud = 'Level ' + this.level + ' · ' + this.layoutName + ' · ' + this.bricksLeft() + ' left';
+      let hud = 'Level ' + this.level + ' · ' + this.layoutName +
+                (this.mutator ? ' · ' + this.mutator.name : '') +
+                ' · ' + this.bricksLeft() + ' left';
       ctx.fillText(hud, 12, 24);
 
       let fx = '';
@@ -1465,17 +1515,33 @@
         ctx.textAlign = 'center';
         ctx.font = 'bold 40px "Segoe UI", Arial, sans-serif';
         ctx.fillStyle = '#a855f7';
-        ctx.fillText('LEVEL ' + this.level, canvas.width / 2, canvas.height / 2 - 18);
+        ctx.fillText('LEVEL ' + this.level, canvas.width / 2, canvas.height / 2 - 26);
         ctx.font = 'bold 20px "Segoe UI", Arial, sans-serif';
         ctx.fillStyle = '#22d3ee';
-        ctx.fillText(this.layoutName, canvas.width / 2, canvas.height / 2 + 12);
+        ctx.fillText(this.layoutName, canvas.width / 2, canvas.height / 2 + 4);
+        if (this.mutator) {
+          ctx.font = 'bold 17px "Segoe UI", Arial, sans-serif';
+          ctx.fillStyle = '#f59e0b';
+          ctx.fillText(this.mutator.name + ' — ' + this.mutator.blurb,
+                       canvas.width / 2, canvas.height / 2 + 32);
+        }
         ctx.globalAlpha = 1;
       }
     },
 
     drawBricks: function(ctx, now) {
+      const dark = this.mutator && this.mutator.key === 'blackout';
       for (const b of this.bricks) {
         if (b.hp <= 0) continue;
+        if (dark) {
+          // Lit by proximity to the nearest ball, floored so the board is
+          // readable rather than a guessing game.
+          let d = Infinity;
+          for (const ball of this.balls) {
+            d = Math.min(d, Math.hypot(ball.x - (b.x + b.w / 2), ball.y - (b.y + b.h / 2)));
+          }
+          ctx.globalAlpha = Math.max(0.18, Math.min(1, 1 - (d - 90) / 240));
+        }
         ctx.beginPath();
         ctx.roundRect ? ctx.roundRect(b.x, b.y, b.w, b.h, 4) : ctx.rect(b.x, b.y, b.w, b.h);
         ctx.fillStyle = this.brickColor(b);
@@ -1522,6 +1588,7 @@
         }
         ctx.closePath();
       }
+      ctx.globalAlpha = 1;
     },
 
     drawBalls: function(ctx, now) {
@@ -1636,6 +1703,7 @@
 
         const per = Math.hypot(ball.dx, ball.dy) * factor;
         const steps = Math.max(1, Math.ceil(per / this.SUBSTEP));
+        const gale = this.galeAccel();
         let lost = false;
 
         for (let n = 0; n < steps; n++) {
@@ -1678,6 +1746,8 @@
               break;
             }
           }
+
+          if (gale) ball.dx += gale / steps;
 
           ball.x += ball.dx * factor / steps;
           ball.y += ball.dy * factor / steps;
@@ -1744,7 +1814,8 @@
         if (b.dy <= 0) continue;
         const t = (paddleTop - b.radius - b.y) / (b.dy * factor);
         if (t < 0) continue;
-        arrivals.push({ t: t, x: this.predictX(b, t, canvas, factor) });
+        arrivals.push({ t: t, x: this.predictX(b, t, canvas, factor),
+                        v: Math.hypot(b.dx, b.dy) });
       }
       arrivals.sort((a, b) => a.t - b.t);
       for (const a of arrivals) a.reachable = Math.abs(a.x - centre) <= step * a.t + half * 0.8;
@@ -1791,7 +1862,18 @@
           const drift = Math.max(-spare, Math.min(spare, dense - stand));
           target = stand + drift - this.aimBias(stand, pick.t, canvas, now);
         } else {
-          target = stand - this.aimBias(stand, pick.t, canvas, now);
+          // Two strategies, each used where it measures better. While the
+          // board is dense the tunnel wins: opening a channel to the top is
+          // worth more than any single shot, and it is aimGoal that steers
+          // there. Once the board has thinned there is no channel left to dig,
+          // and playing the shot out beats aiming at a weighted average.
+          const digging = this.initialBricks &&
+                          this.bricksLeft() >= this.initialBricks * this.TUNNEL_UNTIL;
+          const planned = (!digging && arrivals.length === 1 && pick.t > 14)
+            ? this.plannedShot(canvas, pick, centre, step, now)
+            : null;
+          target = planned !== null ? planned
+                                    : stand - this.aimBias(stand, pick.t, canvas, now);
         }
       } else {
         const detour = this.bestCapsule(canvas, Infinity, null, centre, step, now);
@@ -1890,6 +1972,92 @@
       let bi = -1, bv = 0;
       for (let i = 0; i < bins; i++) if (tally[i] > bv) { bv = tally[i]; bi = i; }
       return bi < 0 ? null : (bi + 0.5) * w;
+    },
+
+    // --- Shot planning ---------------------------------------------------
+    // The paddle's contact point sets the outgoing angle, and that is the only
+    // decision available — so rather than nudge the bounce toward a weighted
+    // average of the board, play the shot out. For each place the paddle could
+    // stand, run the real physics forward (walls, bricks, pierce, gale) and
+    // count what the ball breaks before it comes back down. One-ply search
+    // over the actual game, instead of a heuristic standing in for it.
+    SHOT_CANDIDATES: 9,
+    SHOT_HORIZON: 200,
+    REPLAN_EVERY: 12,
+
+    plannedShot: function(canvas, arrival, centre, step, now) {
+      // Simulating is not free, so it runs on a cadence; between plans the
+      // paddle simply travels to the point already chosen.
+      if (this._planX != null && this.tick - this._planTick < this.REPLAN_EVERY) {
+        return this._planX;
+      }
+      const half = this.paddle.width / 2;
+      const reach = step * arrival.t;
+      // Contact has to land somewhere on the paddle, and the paddle has to be
+      // somewhere it can actually get to in time.
+      const lo = Math.max(half, arrival.x - half * 0.92, centre - reach);
+      const hi = Math.min(canvas.width - half, arrival.x + half * 0.92, centre + reach);
+      if (!(hi > lo)) { this._planX = null; return null; }
+
+      let best = null, bestScore = -1;
+      for (let i = 0; i < this.SHOT_CANDIDATES; i++) {
+        const px = lo + (hi - lo) * (i / (this.SHOT_CANDIDATES - 1));
+        const sc = this.scoreShot(canvas, arrival, px, now);
+        if (sc > bestScore) { bestScore = sc; best = px; }
+      }
+      this._planTick = this.tick;
+      this._planX = best;
+      return best;
+    },
+
+    scoreShot: function(canvas, arrival, px, now) {
+      const half = this.paddle.width / 2;
+      const paddleTop = canvas.height - this.paddle.height - 4;
+      const hit = Math.max(-1, Math.min(1, (arrival.x - px) / half));
+      const angle = hit * (Math.PI / 3);
+      const v = arrival.v || this.speed;
+
+      let x = arrival.x, y = paddleTop - 12;
+      let dx = v * Math.sin(angle);
+      let dy = -Math.abs(v * Math.cos(angle));
+
+      const pierce = this.effects.pierceUntil > now;
+      const gale = this.galeAccel();
+      const factor = this.ballFactor(now);
+      const bricks = this.bricks;
+      const hp = [];
+      for (let i = 0; i < bricks.length; i++) hp.push(bricks[i].hp);
+
+      let score = 0;
+      for (let f = 0; f < this.SHOT_HORIZON; f++) {
+        const steps = Math.max(1, Math.ceil(Math.hypot(dx, dy) * factor / this.SUBSTEP));
+        for (let n = 0; n < steps; n++) {
+          if (x + dx * factor / steps > canvas.width - 10 || x + dx * factor / steps < 10) dx = -dx;
+          if (y + dy * factor / steps < 10) dy = -dy;
+          if (gale) dx += gale / steps;
+          x += dx * factor / steps;
+          y += dy * factor / steps;
+          if (y > paddleTop) return score;      // shot is over, it is coming back
+          for (let i = 0; i < bricks.length; i++) {
+            if (hp[i] <= 0) continue;
+            const b = bricks[i];
+            if (x > b.x && x < b.x + b.w && y > b.y && y < b.y + b.h) {
+              if (b.kind === 'steel') { dy = -dy; break; }
+              if (!pierce) dy = -dy;
+              hp[i]--;
+              score += 1;                        // credit for chipping it
+              if (hp[i] <= 0) {
+                // What the kill is worth: explosives and keystones take a
+                // chunk of the board with them.
+                score += b.kind === 'boom' ? 9 : b.kind === 'key' ? 7
+                       : b.kind === 'mystery' ? 4 : 2;
+              }
+              break;
+            }
+          }
+        }
+      }
+      return score;
     },
 
     // Unfold the wall bounces: the path is a triangle wave over the playable
