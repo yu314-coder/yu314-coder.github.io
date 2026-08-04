@@ -49,12 +49,17 @@ CACHE = Path(os.environ.get("V62_CFSR_DIR", "/tmp/v62-cfsr"))
 V62_SRC = os.environ.get("V62_SRC_DIR", str(REPO.parent / "typhoon-predict"))
 CFSR = ("https://www.ncei.noaa.gov/oa/prod-cfs-reanalysis/6-hourly-low-resolution/"
         "{y}/{ym}/{ymd}/pgblnl.gdas.{t}.grb2")
-# CFSv2/CDAS takes over on 2011-04-01. There is no low-resolution equivalent and no
-# .idx sidecar, so each analysis is the full 78 MB pressure-level file -- roughly 17x
-# the CFSR era. Ranged self-indexing was measured and is slower than just fetching:
-# walking the GRIB message chain did not clear 40 of ~550 messages in two minutes.
-CDAS = ("https://www.ncei.noaa.gov/data/climate-forecast-system/access/operational-analysis/"
-        "6-hourly-by-pressure/{y}/{ym}/{ymd}/cdas1.t{hh}z.pgrbhanl.grib2")
+# CFSv2/CDAS takes over on 2011-04-01. It publishes the same two resolutions the
+# reanalysis does, and this used to fetch only the high-resolution one -- 75 MB an
+# analysis, ~17x the CFSR era, which is why the post-2011 backfill was never put on
+# a schedule and why almost no modern storm had a hindcast. The low-resolution
+# product is the same 73x144 2.5-degree grid as the CFSR file already validated
+# against, carries the same fields, and is 4.3 MB. Prefer it; fall back to the big
+# file only where the small one is missing.
+CDAS_LOW = ("https://www.ncei.noaa.gov/data/climate-forecast-system/access/operational-analysis/"
+            "6-hourly-low-resolution/{y}/{ym}/{ymd}/cdas1.t{hh}z.pgrblanl.grib2")
+CDAS_HIGH = ("https://www.ncei.noaa.gov/data/climate-forecast-system/access/operational-analysis/"
+             "6-hourly-by-pressure/{y}/{ym}/{ymd}/cdas1.t{hh}z.pgrbhanl.grib2")
 UA = {"User-Agent": "typhoon-tracker-history-builder/1.0 (+https://yu314-coder.github.io)"}
 
 LEVELS = (850.0, 500.0, 200.0)
@@ -78,28 +83,39 @@ def log(m):
 # ---------------------------------------------------------------------------
 def analysis_url(stamp):
     """CFSR before 2011-04-01, CDAS/CFSv2 from it. The archive changes product
-    mid-season, so this is decided per analysis time, not per year."""
+    mid-season, so this is decided per analysis time, not per year. For the CDAS
+    era two URLs come back: the cheap one first, the 75 MB one as a fallback."""
     when = dt.datetime.strptime(stamp, "%Y%m%d%H").replace(tzinfo=dt.timezone.utc)
     if when <= CFSR_END:
-        return CFSR.format(y=stamp[:4], ym=stamp[:6], ymd=stamp[:8], t=stamp), "CFSR"
-    return CDAS.format(y=stamp[:4], ym=stamp[:6], ymd=stamp[:8], hh=stamp[8:]), "CDAS"
+        return [CFSR.format(y=stamp[:4], ym=stamp[:6], ymd=stamp[:8], t=stamp)], "CFSR"
+    parts = dict(y=stamp[:4], ym=stamp[:6], ymd=stamp[:8], hh=stamp[8:])
+    return [CDAS_LOW.format(**parts), CDAS_HIGH.format(**parts)], "CDAS"
 
 
 def cfsr_path(stamp):
     """stamp is YYYYMMDDHH. Downloaded once, then reused across every
     initialisation that needs it -- consecutive inits share four of five."""
     CACHE.mkdir(parents=True, exist_ok=True)
-    url, kind = analysis_url(stamp)
+    urls, kind = analysis_url(stamp)
     p = CACHE / f"{kind.lower()}.{stamp}.grb2"
     if p.exists() and p.stat().st_size > 500_000:
         return p
-    req = urllib.request.Request(url, headers=UA)
-    with urllib.request.urlopen(req, timeout=300) as r:
-        data = r.read()
-    if len(data) < 500_000 or data[:4] != b"GRIB":
-        raise RuntimeError(f"CFSR {stamp}: not a GRIB file ({len(data)} bytes)")
-    p.write_bytes(data)
-    return p
+
+    last = None
+    for url in urls:
+        try:
+            req = urllib.request.Request(url, headers=UA)
+            with urllib.request.urlopen(req, timeout=300) as r:
+                data = r.read()
+        except Exception as e:                      # try the fallback product
+            last = e
+            continue
+        if len(data) < 500_000 or data[:4] != b"GRIB":
+            last = RuntimeError(f"{kind} {stamp}: not a GRIB file ({len(data)} bytes)")
+            continue
+        p.write_bytes(data)
+        return p
+    raise RuntimeError(f"{kind} {stamp}: no analysis available ({last})")
 
 
 _FULL = {}
@@ -419,9 +435,12 @@ def main():
             "storm": storm.get("name"), "sid": sid, "season": year,
             "model": "v62 causal route + v37G intensity/structure head",
             "source": ("NOAA CFSR 6-hourly low-resolution reanalysis (to 2011-03-31) / CDAS CFSv2 "
-                       "pressure-level analysis (from 2011-04-01), at or before each issue"),
-            "resolution_note": ("2.5 deg CFSR; validated against the 0.5 deg file on the published Tip "
-                                "case at 138.6 km vs 141.2 km mean track error, tracks separating ~15 km"),
+                       "6-hourly low-resolution analysis (from 2011-04-01, falling back to the "
+                       "0.5 deg pressure file where it is missing), at or before each issue"),
+            "resolution_note": ("2.5 deg throughout. CFSR checked against its 0.5 deg file on the "
+                                "published Tip case at 138.6 km vs 141.2 km mean track error; CDAS "
+                                "checked the same way on Meranti 2016 at 594.9 km vs 584.8 km, the "
+                                "two tracks separating 39 km on average"),
             "future_rows_used_for_inference": 0,
             "official_forecasts_used_for_inference": False,
             "truth_used_for": "scoring only",

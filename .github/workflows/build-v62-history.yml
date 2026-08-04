@@ -9,20 +9,19 @@ name: Build v62 history hindcasts
 # the time limit still lands the storms it finished.
 #
 # Cost is dominated by the analysis archive, and the two eras are very different:
-#   CFSR  (to 2011-03-31)  4.6 MB per analysis  -> ~220-410 MB per storm
-#   CDAS  (from 2011-04-01) 78 MB per analysis  -> ~3.7 GB per storm
-# So `count` should be several for old storms and 1 for post-2011 ones. Analyses
-# are pruned after each storm to keep the runner's disk bounded.
+#   CFSR  (to 2011-03-31)   4.6 MB per analysis -> ~220-410 MB per storm
+#   CDAS  (from 2011-04-01)  4.3 MB per analysis -> about the same
+# The CDAS era used to be 78 MB an analysis because only the 0.5 degree pressure
+# file was being fetched; it also publishes a 2.5 degree analysis on the same
+# grid as CFSR, so both halves now cost the same. Analyses are pruned after each
+# storm to keep the runner's disk bounded.
 on:
-  # Hourly, CFSR era only -- though GitHub delivers scheduled events on a best
-  # effort basis and in practice this fires roughly every four hours. Three
-  # storms a run only used 15-25 minutes of the 350-minute budget, so the
-  # backfill was moving at ~18 storms a day against 672 in the CFSR era. Ten a
-  # run fits comfortably in the same window and still keeps the load on a
-  # public archive modest. The CDAS era is deliberately NOT scheduled: 78 MB per
-  # analysis with ~98% of each file discarded would be ~1.3 TB pulled from NOAA
-  # to generate 383 storms. Run those deliberately, by id, when a storm is worth
-  # it -- see the `storms` input.
+  # Hourly. Both eras are now in scope: the CDAS half used to be excluded
+  # because the only product being fetched was the 75 MB pressure file, ~1.3 TB
+  # to cover 383 storms. It publishes a 4.3 MB low-resolution analysis on the
+  # same 2.5-degree grid the CFSR era already uses, which brings the modern half
+  # to the same cost as the old one. GitHub delivers these events best-effort
+  # and in practice this fires about every four hours.
   schedule:
     - cron: "40 * * * *"
   workflow_dispatch:
@@ -38,9 +37,9 @@ on:
       era:
         description: "Which analysis source to draw from"
         required: false
-        default: "cfsr"
+        default: "all"
         type: choice
-        options: ["cfsr", "cdas", "all"]
+        options: ["all", "cfsr", "cdas"]
 
 permissions:
   contents: write
@@ -125,7 +124,7 @@ jobs:
         run: |
           STORMS="${{ inputs.storms }}"
           COUNT="${{ inputs.count }}"; COUNT="${COUNT:-10}"
-          ERA="${{ inputs.era }}"; ERA="${ERA:-cfsr}"
+          ERA="${{ inputs.era }}"; ERA="${ERA:-all}"
           if [ -n "$STORMS" ]; then
             python scripts/build_v62_history.py $STORMS --prune
           else
