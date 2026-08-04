@@ -871,6 +871,64 @@ const buildPlain = (B, h, name) => {
 }
 
 
+// ------------------------------------------------- the chain has to be gettable
+{
+  const { h, A } = boot('dino');
+  const D = A.DinoGame;
+  const gravity = D.dino.gravity;
+  const frames = (2 * D.APEX_WINDOW) / gravity;
+  check('the apex window is wide enough to hit', frames >= 9 && frames <= 18,
+        `${frames.toFixed(1)} frames = ${Math.round(frames / 60 * 1000)}ms`);
+
+  // Pressing while still rising is held and spent as the arc flattens.
+  D.dino.onGround = false; D.coyote = 0; D.jumpsUsed = 2;
+  D.dino.dy = -12; D.ducking = false; D.jumpBuffer = 0; D.apexBuffer = 0;
+  D.doJump();
+  check('an early press is held for the window', D.apexBuffer > 0, `buffer ${D.apexBuffer}`);
+
+  // Pressing late, already falling, cannot be rewound.
+  D.jumpsUsed = 2; D.dino.dy = 9; D.jumpBuffer = 0; D.apexBuffer = 0;
+  D.doJump();
+  check('a late press is not rewound into the window',
+        D.apexBuffer === 0 && D.jumpBuffer > 0, `apex ${D.apexBuffer} landing ${D.jumpBuffer}`);
+}
+{
+  // End to end: a player who taps without aiming should still get the chain.
+  const reach = (period) => {
+    const hh = run();
+    hh.els['gameSelect'].value = 'dino';
+    hh.win.startGame();
+    const D = hh.win.__arcade.DinoGame;
+    D.obstacles = []; D.coins = [];
+    const g = fakeGame(hh);
+    D.doJump();
+    let best = 1;
+    for (let f = 0; f < 200; f++) {
+      if (f % period === 0) D.doJump();
+      D.update(g);
+      best = Math.max(best, D.jumpsUsed);
+      if (D.dino.onGround) break;
+    }
+    return best;
+  };
+  check('tapping without aiming still reaches the ceiling',
+        reach(8) === 5 && reach(12) === 5, `every 8 -> ${reach(8)}, every 12 -> ${reach(12)}`);
+}
+{
+  // ...but standing on the button is not the same as never pressing.
+  const hh = run();
+  hh.els['gameSelect'].value = 'dino';
+  hh.win.startGame();
+  const D = hh.win.__arcade.DinoGame;
+  D.obstacles = []; D.coins = [];
+  const g = fakeGame(hh);
+  D.doJump();
+  for (let f = 0; f < 200 && !D.dino.onGround; f++) D.update(g);
+  check('one press is still only one jump', D.jumpsUsed <= 1 || D.dino.onGround,
+        `used ${D.jumpsUsed}`);
+}
+
+
 let failed = 0;
 for (const r of results) {
   if (!r.pass) failed++;

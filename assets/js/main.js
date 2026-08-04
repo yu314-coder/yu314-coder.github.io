@@ -2384,7 +2384,16 @@
     // moving vertically. Five is the ceiling, and each one gives a little less
     // than the last, so a chain is for reach and recovery rather than flight.
     MAX_JUMPS: 5,
-    APEX_WINDOW: 2.6,
+    // |dy| under this counts as the top of the arc. At 0.85 gravity, 2.6 was a
+    // 102ms window -- tighter than a fighting-game link, and not something you
+    // could hit four times in one arc. 5.0 gives ~196ms.
+    APEX_WINDOW: 5.0,
+    // Pressing while still rising is the natural mistake, and it is the one
+    // worth forgiving: the press is held and spent the moment the window
+    // opens. Pressing late, already falling, cannot be rewound, so that still
+    // falls through to the landing buffer.
+    APEX_BUFFER: 10,
+    apexBuffer: 0,
     coyote: 0,
     jumpBuffer: 0,
     shield: 0,
@@ -2440,6 +2449,7 @@
       this.jumpsUsed = 0;
       this.chain = 0;
       this.chainFlash = 0;
+      this.apexBuffer = 0;
       this.coyote = this.COYOTE_FRAMES;
       this.jumpBuffer = 0;
       this.shield = 0;
@@ -2509,10 +2519,17 @@
       const apex = this.atApex();
       const lift = this.nextLift();
       if (!lift) {
-        // Either out of jumps or mistimed — hold it and fire on landing.
-        this.jumpBuffer = this.BUFFER_FRAMES;
+        if (this.jumpsUsed < this.MAX_JUMPS && this.dino.dy < -this.APEX_WINDOW) {
+          // Too early: still on the way up. Hold the press and spend it as the
+          // arc flattens out, which is what the player meant.
+          this.apexBuffer = this.APEX_BUFFER;
+        } else {
+          // Out of jumps, or already falling past the window.
+          this.jumpBuffer = this.BUFFER_FRAMES;
+        }
         return;
       }
+      this.apexBuffer = 0;
 
       this.jumpsUsed++;
       this.dino.dy = lift;
@@ -2625,9 +2642,17 @@
         this.coyote = this.COYOTE_FRAMES;
         this.jumpsUsed = 0;
         this.chain = 0;
+        this.apexBuffer = 0;
         if (this.jumpBuffer > 0) { this.jumpBuffer = 0; this.doJump(); }
       }
       if (this.jumpBuffer > 0) this.jumpBuffer--;
+      if (this.apexBuffer > 0) {
+        this.apexBuffer--;
+        if (!this.dino.onGround && this.atApex() && this.nextLift()) {
+          this.apexBuffer = 0;
+          this.doJump();
+        }
+      }
       this.wasOnGround = this.dino.onGround;
       if (this.shieldFlash > 0) this.shieldFlash--;
 
@@ -2852,10 +2877,11 @@
       // you can see rather than a number in a changelog.
       if (!this.dino.onGround && this.jumpsUsed >= 2 && this.jumpsUsed < this.MAX_JUMPS) {
         const open = this.atApex();
+        const armed = this.apexBuffer > 0;
         ctx.save();
-        ctx.globalAlpha = open ? 0.95 : 0.28;
-        ctx.strokeStyle = open ? '#fbbf24' : '#64748b';
-        ctx.lineWidth = open ? 3 : 2;
+        ctx.globalAlpha = open ? 0.95 : (armed ? 0.8 : 0.28);
+        ctx.strokeStyle = open ? '#fbbf24' : (armed ? '#22d3ee' : '#64748b');
+        ctx.lineWidth = open ? 3 : (armed ? 3 : 2);
         ctx.beginPath();
         ctx.arc(this.dino.x + this.dino.width / 2, this.dino.y + this.dino.height / 2,
                 this.dino.width * 0.85, 0, Math.PI * 2);
