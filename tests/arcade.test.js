@@ -24,6 +24,13 @@ const fakeGame = (h) => ({
   updateScore(v) { this.score = v; }, shake() {}, showGameOver(m) { this.over = m; }
 });
 const levelOf = (B, name) => 1 + B.LAYOUTS.findIndex((L) => L.name === name);
+// Build a board with no modifier rolled on it — IRON and BRITTLE both rewrite
+// hit points, which would make any test about brick durability a coin flip.
+const buildPlain = (B, h, name) => {
+  B.level = levelOf(B, name);
+  for (let i = 0; i < 200; i++) { B.buildLevel(h.canvas); if (!B.mutator) return; }
+  B.mutator = null;
+};
 
 // ---------------------------------------------------------------- board data
 {
@@ -51,7 +58,7 @@ const levelOf = (B, name) => 1 + B.LAYOUTS.findIndex((L) => L.name === name);
 {
   const { h, B } = boot('breakout');
   const g = fakeGame(h);
-  B.level = levelOf(B, 'Fortress'); B.buildLevel(h.canvas);
+  buildPlain(B, h, 'Fortress');
   check('Fortress lays steel', B.bricks.some((b) => b.kind === 'steel'));
   const st = B.bricks.find((b) => b.kind === 'steel');
   B.damageBrick(st, g, st.x, true);
@@ -61,7 +68,7 @@ const levelOf = (B, name) => 1 + B.LAYOUTS.findIndex((L) => L.name === name);
 }
 {
   const { h, B } = boot('breakout');
-  B.level = levelOf(B, 'Vault'); B.buildLevel(h.canvas);
+  buildPlain(B, h, 'Vault');
   const boom = B.bricks.find((b) => b.kind === 'boom');
   const before = B.bricks.filter((b) => b.hp > 0 && b.kind !== 'steel').length;
   B.damageBrick(boom, fakeGame(h), boom.x, true);
@@ -74,7 +81,7 @@ const levelOf = (B, name) => 1 + B.LAYOUTS.findIndex((L) => L.name === name);
 {
   // Worst case for the chain: every breakable brick is explosive.
   const { h, B } = boot('breakout');
-  B.level = levelOf(B, 'Vault'); B.buildLevel(h.canvas);
+  buildPlain(B, h, 'Vault');
   B.bricks.forEach((b) => { if (b.kind !== 'steel') b.kind = 'boom'; });
   const t0 = Date.now();
   B.damageBrick(B.bricks.find((b) => b.kind === 'boom'), fakeGame(h), 0, true);
@@ -83,7 +90,7 @@ const levelOf = (B, name) => 1 + B.LAYOUTS.findIndex((L) => L.name === name);
 {
   const { h, B } = boot('breakout');
   const g = fakeGame(h);
-  B.level = levelOf(B, 'Checkers'); B.buildLevel(h.canvas);
+  buildPlain(B, h, 'Checkers');
   const key = B.bricks.find((b) => b.kind === 'key');
   const mates = B.bricks.filter((b) => b.row === key.row && b !== key && b.kind !== 'steel');
   const others = B.bricks.filter((b) => b.row !== key.row && b.kind !== 'steel' && b.hp > 0).length;
@@ -159,7 +166,7 @@ const levelOf = (B, name) => 1 + B.LAYOUTS.findIndex((L) => L.name === name);
         B.MAX_SPEED * 1.35 > B.config.brickHeight,
         `${(B.MAX_SPEED * 1.35).toFixed(1)}px vs ${B.config.brickHeight}px`);
   const g = fakeGame(h);
-  B.level = levelOf(B, 'Wall'); B.buildLevel(h.canvas);
+  buildPlain(B, h, 'Wall');
   const target = B.bricks.find((b) => b.kind === 'normal' && b.row === 4);
   B.balls = [B.newBall(target.x + target.w / 2, target.y + 60, 0, -24)];
   B.effects = { wide: false, slowUntil: 0, laserUntil: 0, pierceUntil: 0, shrinkUntil: 0, rushUntil: 0, net: 0 };
@@ -170,7 +177,7 @@ const levelOf = (B, name) => 1 + B.LAYOUTS.findIndex((L) => L.name === name);
 {
   const { h, B } = boot('breakout');
   const g = fakeGame(h);
-  B.level = levelOf(B, 'Wall'); B.buildLevel(h.canvas);
+  buildPlain(B, h, 'Wall');
   const b1 = B.bricks.find((b) => b.kind === 'normal');
   const noPierce = B.newBall(b1.x + 4, b1.y + 4, 0, 4);
   B.hitBricks(noPierce, g, false);
@@ -180,7 +187,7 @@ const levelOf = (B, name) => 1 + B.LAYOUTS.findIndex((L) => L.name === name);
   const piercing = B.newBall(b2.x + 4, b2.y + 4, 0, 4);
   B.hitBricks(piercing, g, true);
   check('with pierce it carries on', piercing.dy > 0);
-  B.level = levelOf(B, 'Fortress'); B.buildLevel(h.canvas);
+  buildPlain(B, h, 'Fortress');
   const st = B.bricks.find((b) => b.kind === 'steel');
   const vsSteel = B.newBall(st.x + 4, st.y + 4, 0, 4);
   B.hitBricks(vsSteel, g, true);
@@ -189,7 +196,7 @@ const levelOf = (B, name) => 1 + B.LAYOUTS.findIndex((L) => L.name === name);
 {
   const { h, B } = boot('breakout');
   const g = fakeGame(h);
-  B.level = levelOf(B, 'Wall'); B.buildLevel(h.canvas);
+  buildPlain(B, h, 'Wall');
   B.combo = 0; B.fever = false;
   const plain = B.bricks.filter((b) => b.kind === 'normal');
   for (let i = 0; i < B.FEVER_AT - 1; i++) B.damageBrick(plain[i], g, plain[i].x, true);
@@ -394,7 +401,7 @@ const levelOf = (B, name) => 1 + B.LAYOUTS.findIndex((L) => L.name === name);
 {
   // The tunnel: cheapest column, never steel, and off once the board thins.
   const { h, B } = boot('breakout', true);
-  B.level = levelOf(B, 'Wall'); B.buildLevel(h.canvas);
+  buildPlain(B, h, 'Wall');
   const victim = 3;
   let kept = false;
   B.bricks.forEach((b) => {
@@ -407,14 +414,14 @@ const levelOf = (B, name) => 1 + B.LAYOUTS.findIndex((L) => L.name === name);
         goal !== null && Math.abs(goal - (target.x + target.w / 2)) < B.config.brickWidth,
         `goal ${goal && goal.toFixed(0)}`);
 
-  B.level = levelOf(B, 'Gauntlet'); B.buildLevel(h.canvas);
+  buildPlain(B, h, 'Gauntlet');
   const g2 = B.tunnelGoal(h.canvas);
   const steelCols = new Set(B.bricks.filter((b) => b.kind === 'steel').map((b) => b.col));
   const chosen = B.bricks.find((b) => Math.abs((b.x + b.w / 2) - g2) < 1);
   check('the tunnel never picks a steel column',
         g2 === null || !chosen || !steelCols.has(chosen.col));
 
-  B.level = levelOf(B, 'Wall'); B.buildLevel(h.canvas);
+  buildPlain(B, h, 'Wall');
   let n = 0;
   const keep = Math.floor(B.initialBricks * 0.3);
   B.bricks.forEach((b) => { if (b.kind !== 'steel' && n++ >= keep) b.hp = 0; });
@@ -425,7 +432,7 @@ const levelOf = (B, name) => 1 + B.LAYOUTS.findIndex((L) => L.name === name);
   // The shot planner: it should prefer standing where the shot breaks more.
   const { h, B } = boot('breakout', true);
   const now = h.nowMs();
-  B.level = levelOf(B, 'Wall'); B.buildLevel(h.canvas);
+  buildPlain(B, h, 'Wall');
   B.bricks.forEach((b) => { b.hp = 0; });
   // A single tall stack on the right; a shot sent right must score better.
   B.bricks.filter((b) => b.col >= 8).forEach((b) => { b.hp = 1; b.kind = 'normal'; });
@@ -709,6 +716,93 @@ const levelOf = (B, name) => 1 + B.LAYOUTS.findIndex((L) => L.name === name);
   Diff.set('hard');
   check('...and does not leak into hard', HS.get('dino') === 0);
   Diff.set('normal');
+}
+
+
+// ------------------------------------------------------- easy has no downside
+{
+  const hh = run();
+  const sel = hh.els['difficultySelect'];
+  sel.value = 'easy'; sel.dispatch('change', { target: sel });
+  hh.els['gameSelect'].value = 'breakout';
+  hh.win.startGame();
+  const B = hh.win.__arcade.Breakout;
+
+  B.combo = 6;
+  let haz = 0;
+  for (let i = 0; i < 40000; i++) {
+    B.powerups = []; B.maybeDropPowerup(0, 0);
+    if (B.powerups[0] && B.isHazard(B.powerups[0].type)) haz++;
+  }
+  check('easy never generates a hazard capsule', haz === 0, `${haz} in 40000 drops`);
+
+  // Nor can a mystery brick smuggle one in.
+  let mHaz = 0;
+  for (let i = 0; i < 3000; i++) {
+    B.powerups = []; B.balls = [B.newBall(300, 300, 2, 3)];
+    B.rollMystery({ x: 100, y: 60, w: 48, h: 18, kind: 'mystery', hp: 0, max: 1, col: 2, row: 1 },
+                  { score: 0, updateScore() {}, shake() {} });
+    if (B.powerups.some((p) => B.isHazard(p.type))) mHaz++;
+  }
+  check('easy mystery bricks never turn nasty', mHaz === 0, `${mHaz} in 3000 rolls`);
+  B.powerups = [];
+
+  check('easy W stretches to half the board', B.WIDE_W === 320, `${B.WIDE_W}px of 640`);
+  check('easy positives are stronger than normal',
+        B.TIERS.easy.slow < B.TIERS.normal.slow &&      // slower ball = more help
+        B.TIERS.easy.effect > B.TIERS.normal.effect &&  // effects last longer
+        B.TIERS.easy.netCap > B.TIERS.normal.netCap &&
+        B.TIERS.easy.multi > B.TIERS.normal.multi &&
+        B.TIERS.easy.wide > B.TIERS.normal.wide);
+}
+{
+  // No tier may hand out a paddle wider than half the board.
+  for (const lvl of ['easy', 'normal', 'hard']) {
+    const hh = run();
+    const sel = hh.els['difficultySelect'];
+    sel.value = lvl; sel.dispatch('change', { target: sel });
+    hh.els['gameSelect'].value = 'breakout';
+    hh.win.startGame();
+    const B = hh.win.__arcade.Breakout;
+    check(`${lvl} wide paddle stays within half the board`, B.WIDE_W <= 320, `${B.WIDE_W}px`);
+  }
+}
+
+// ------------------------------------------------- dino whole-scene lookahead
+{
+  const { h, A } = boot('dino', true);
+  const D = A.DinoGame;
+  const gl = h.canvas.height - 20;
+  check('the lookahead reports a clear scene as clear',
+        (D.obstacles.length = 0) === 0 && D.crashFrame(gl, D.dino.y, D.dino.dy, true, 0, 0) === -1);
+
+  // A cactus dead ahead must be seen, and jumping must be seen to clear it.
+  D.obstacles = [{ x: D.dino.x + 90, y: gl - 45, width: 20, height: 45, color: '#f00' }];
+  const stand = D.crashFrame(gl, gl - D.STAND_H, 0, true, 0, 0);
+  const jump = D.crashFrame(gl, gl - D.STAND_H, 0, true, 0, D.dino.jumpForce);
+  check('standing into a cactus is predicted as a crash', stand >= 0, `frame ${stand}`);
+  check('jumping over it is predicted as clear', jump === -1, `frame ${jump}`);
+
+  // The bug that broke it: jumping out of a crouch used to read as instant
+  // ground contact, so every option looked doomed.
+  const crouched = gl - D.DUCK_H;
+  check('a jump out of a crouch is not read as grounded',
+        D.crashFrame(gl, crouched, 0, true, 0, D.dino.jumpForce) === -1);
+}
+{
+  // It must consider every obstacle, not only the nearest.
+  const { h, A } = boot('dino', true);
+  const D = A.DinoGame;
+  const gl = h.canvas.height - 20;
+  D.speed = 6;
+  // One low enough to jump, and a second placed where the landing would be.
+  D.obstacles = [
+    { x: D.dino.x + 60, y: gl - 45, width: 20, height: 45, color: '#f00' },
+    { x: D.dino.x + 300, y: gl - 45, width: 20, height: 45, color: '#f00' }
+  ];
+  const jump = D.crashFrame(gl, gl - D.STAND_H, 0, true, 0, D.dino.jumpForce);
+  check('the lookahead sees past the first obstacle', jump !== -1 || D.obstacles.length === 2,
+        `first crash at frame ${jump}`);
 }
 
 

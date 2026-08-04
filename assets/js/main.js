@@ -949,15 +949,20 @@
     // Normal is the balance the arcade already had; easy softens every dial
     // that makes it stressful, hard tightens the same ones.
     TIERS: {
+      // hazard 0 on easy means the two red capsules are never generated at
+      // all, and the rest of the dials make each good capsule do more.
       easy:   { speed: 4.6, max: 12, ramp: 1.12, lives: 5, paddle: 126,
-                first: 42000, every: 26000, drop: 0.38, hazard: 0.45,
-                mutFrom: 5, mutChance: 0.45, hpCap: 1 },
+                first: 48000, every: 30000, drop: 0.44, hazard: 0,
+                mutFrom: 6, mutChance: 0.35, hpCap: 0,
+                wide: 2.54, slow: 0.5, effect: 1.8, netCap: 5, multi: 3, spare: 4 },
       normal: { speed: 6.5, max: 18, ramp: 1.18, lives: 3, paddle: 104,
                 first: 26000, every: 15000, drop: 0.30, hazard: 1,
-                mutFrom: 3, mutChance: 0.72, hpCap: 3 },
+                mutFrom: 3, mutChance: 0.72, hpCap: 3,
+                wide: 1.77, slow: 0.66, effect: 1, netCap: 3, multi: 2, spare: 3 },
       hard:   { speed: 8.2, max: 23, ramp: 1.22, lives: 2, paddle: 86,
                 first: 17000, every: 10000, drop: 0.26, hazard: 1.6,
-                mutFrom: 2, mutChance: 0.9,  hpCap: 4 }
+                mutFrom: 2, mutChance: 0.9,  hpCap: 4,
+                wide: 1.6, slow: 0.75, effect: 0.8, netCap: 2, multi: 2, spare: 2 }
     },
     // A frame at top speed covers more than a brick's height, so movement is
     // sub-stepped at this granularity — otherwise a fast ball tunnels straight
@@ -1076,7 +1081,10 @@
       this.speed = tier.speed;
       this.MAX_SPEED = tier.max;
       this.BASE_W = tier.paddle;
-      this.WIDE_W = Math.round(tier.paddle * 1.77);
+      // Easy's wide paddle reaches half the board; nothing may exceed that,
+      // or the paddle stops being a thing you aim and starts being a floor.
+      this.WIDE_W = Math.min(Math.round(tier.paddle * tier.wide),
+                             Math.round(game.canvas.width / 2));
       this.SHRINK_W = Math.round(tier.paddle * 0.65);
       this.DROP_BASE = tier.drop;
       this.DESCEND_FIRST = tier.first;
@@ -1177,6 +1185,7 @@
       }
       this.initialBricks = this.bricksLeft();
       this._planX = null;
+      this._digCol = null;
       this.levelFlash = 90;
     },
 
@@ -1241,7 +1250,9 @@
       let roll = Math.random() * total;
       let type = 'W';
       for (const [t, w] of this.CAPSULE_WEIGHTS) {
-        roll -= this.isHazard(t) ? w * scale : w;
+        const weight = this.isHazard(t) ? w * scale : w;
+        if (weight <= 0) continue;            // easy generates no hazards at all
+        roll -= weight;
         if (roll <= 0) { type = t; break; }
       }
       this.powerups.push({ x: x, y: y, w: 36, h: 17, vy: 2.3, type: type });
@@ -1256,26 +1267,28 @@
         this.effects.wide = true;
         Fx.text(p.x + p.w / 2, p.y - 6, 'WIDE!', '#22d3ee');
       } else if (p.type === 'S') {
-        this.effects.slowUntil = now + 9000;
+        this.effects.slowUntil = now + 9000 * this.tier.effect;
         Fx.text(p.x + p.w / 2, p.y - 6, 'SLOW', '#fbbf24');
       } else if (p.type === 'M') {
         const src = this.balls[0] || this.newBall(p.x, p.y - 40, 2, -this.speed);
         const v = Math.hypot(src.dx, src.dy) || this.speed;
-        this.balls.push(this.newBall(src.x, src.y, v * 0.6, -Math.abs(v * 0.8)));
-        this.balls.push(this.newBall(src.x, src.y, -v * 0.6, -Math.abs(v * 0.8)));
-        if (this.balls.length > 7) this.balls.length = 7;
+        for (let i = 0; i < this.tier.multi; i++) {
+          const spread = (i % 2 ? -1 : 1) * (0.45 + i * 0.15);
+          this.balls.push(this.newBall(src.x, src.y, v * spread, -Math.abs(v * 0.8)));
+        }
+        if (this.balls.length > 8) this.balls.length = 8;
         Fx.text(p.x + p.w / 2, p.y - 6, 'MULTI!', '#a855f7');
       } else if (p.type === 'P') {
-        this.effects.pierceUntil = now + 7000;
+        this.effects.pierceUntil = now + 7000 * this.tier.effect;
         Fx.text(p.x + p.w / 2, p.y - 6, 'PIERCE!', '#f472b6');
       } else if (p.type === 'L') {
-        this.effects.laserUntil = now + 11000;
+        this.effects.laserUntil = now + 11000 * this.tier.effect;
         Fx.text(p.x + p.w / 2, p.y - 6, 'LASER!', '#f97316');
       } else if (p.type === 'N') {
-        this.effects.net = Math.min(this.effects.net + 1, 3);
+        this.effects.net = Math.min(this.effects.net + 1, this.tier.netCap);
         Fx.text(p.x + p.w / 2, p.y - 6, 'NET', '#4ade80');
       } else if (p.type === 'H') {
-        if (this.lives < this.tier.lives + 3) this.lives++;
+        if (this.lives < this.tier.lives + this.tier.spare) this.lives++;
         Fx.text(p.x + p.w / 2, p.y - 6, '+1 ❤️', '#ec4899');
       } else if (p.type === 'X') {
         this.effects.shrinkUntil = now + 9000;
@@ -1293,7 +1306,7 @@
     // the simulation can't drift apart.
     ballFactor: function(now) {
       let f = 1;
-      if (this.effects.slowUntil > now) f *= 0.66;
+      if (this.effects.slowUntil > now) f *= this.tier.slow;
       if (this.effects.rushUntil > now) f *= 1.35;
       return f;
     },
@@ -1546,12 +1559,17 @@
         this.effects.pierceUntil = performance.now() + 7000;
         Fx.text(cx, cy - 6, 'PIERCE!', '#f472b6');
         SFX.powerup();
-      } else {
+      } else if (this.tier.hazard > 0) {
         // The reason you hesitate before aiming at one.
         this.powerups.push({ x: cx - 18, y: cy, w: 36, h: 17, vy: 2.6,
                              type: Math.random() < 0.5 ? 'X' : 'R' });
         Fx.text(cx, cy - 6, 'UH OH…', '#ef4444');
         SFX.beep(180, 0.18, 'sawtooth', 0.1, 90);
+      } else {
+        // Easy has no bad outcomes anywhere, mystery bricks included.
+        this.effects.net = Math.min(this.effects.net + 1, this.tier.netCap);
+        Fx.text(cx, cy - 6, 'NET', '#4ade80');
+        SFX.powerup();
       }
     },
 
@@ -2233,26 +2251,43 @@
         if (cost[b.col] === Infinity) continue;
         cost[b.col] = (cost[b.col] || 0) + b.hp;
       }
-      // Nothing left worth tunnelling for; go back to the weighted centre.
       const live = Object.keys(cost).filter((c) => cost[c] !== Infinity);
-      if (live.length < 3) return null;
+      if (live.length < 3) { this._digCol = null; return null; }
 
-      let bestCol = null, bestCost = Infinity;
-      for (const c of live) {
-        const col = Number(c);
-        const edge = Math.min(col, this.cols - 1 - col);
-        const score = cost[c] * 2 + edge;       // shallow first, then edge-most
-        if (score < bestCost) { bestCost = score; bestCol = col; }
+      // Stick with the column already being dug. Re-scoring every frame meant
+      // the target moved as bricks broke elsewhere, so several columns ended up
+      // half-open and none of them went through — which is the one thing a
+      // tunnel has to do.
+      let col = this._digCol;
+      const stillWorth = col != null && cost[col] !== undefined && cost[col] !== Infinity;
+      if (!stillWorth) {
+        let best = null, bestScore = Infinity;
+        for (const c of live) {
+          const n = Number(c);
+          const edge = Math.min(n, this.cols - 1 - n);
+          const score = cost[c] * 2 + edge;   // shallow first, then edge-most
+          if (score < bestScore) { bestScore = score; best = n; }
+        }
+        col = best;
+        this._digCol = col;
       }
-      if (bestCol === null) return null;
+      if (col == null) return null;
 
       const cfg = this.config;
-      const anchorBrick = this.bricks.find((b) => b.col === bestCol);
-      if (anchorBrick) return anchorBrick.x + anchorBrick.w / 2;
-      // Column already cleared — keep feeding the ball up the channel.
       const gridW = this.cols * cfg.brickWidth + (this.cols - 1) * cfg.brickPadding;
       const left = Math.round((canvas.width - gridW) / 2);
-      return left + bestCol * (cfg.brickWidth + cfg.brickPadding) + cfg.brickWidth / 2;
+      const colX = left + col * (cfg.brickWidth + cfg.brickPadding) + cfg.brickWidth / 2;
+
+      // Once the channel is actually open, stop aiming at the column and start
+      // feeding the ball up it — the payoff is the ball living above the wall,
+      // not the bricks that used to be in the way.
+      const remaining = this.bricks.filter((b) => b.col === col && b.hp > 0 && b.kind !== 'steel');
+      if (!remaining.length) return colX;
+
+      // Aim at the lowest brick left in the column: it is the one in the way.
+      let lowest = remaining[0];
+      for (const b of remaining) if (b.y > lowest.y) lowest = b;
+      return lowest.x + lowest.w / 2;
     },
 
     nearestPowerup: function(canvas) {
@@ -2357,6 +2392,16 @@
     },
 
     releaseControls: function() { this.downPressed = false; },
+
+    // Release a crouch and stand up in place, feet where they are. doJump()
+    // refuses while ducking, and update() only re-anchors a grounded dino, so
+    // jumping straight out of a duck needs this first.
+    standUp: function() {
+      if (!this.ducking) return;
+      this.dino.y -= (this.STAND_H - this.DUCK_H);
+      this.dino.height = this.STAND_H;
+      this.ducking = false;
+    },
 
     doJump: function() {
       if (this.ducking) return;
@@ -2687,68 +2732,131 @@
       const groundLine = canvas.height - 20;
       const d = this.dino;
 
-      let next = null;
-      for (const o of this.obstacles) {
-        if (o.x + o.width <= d.x) continue;              // already behind us
-        if (!next || o.x < next.x) next = o;
-      }
-
       this.downPressed = false;
-      if (!next) { this.autoCoin(game, groundLine); return; }
+      const fromGround = d.onGround || this.coyote > 0;
+      const canJump = fromGround || this.jumpsLeft > 0;
+      const lift = fromGround ? d.jumpForce : d.jumpForce * 0.86;
 
-      // Head-height pterodactyl: ducking clears it, jumping flies into it.
-      // Holding down works airborne too — it fast-falls, which is the only way
-      // out when one shows up while we're still coming down from a jump.
-      if (next.ptero && next.y + next.height < groundLine - this.DUCK_H) {
-        const gap = next.x - (d.x + d.width);
-        if (gap < this.speed * 1.15 * 18) this.downPressed = true;
+      // Three options, each rolled forward against the whole scene: stand,
+      // hold down, jump. -1 means nothing hits within the horizon.
+      const stand = this.crashFrame(groundLine, d.y, d.dy, d.onGround, 0, 0);
+      if (stand < 0 || stand > this.ACT_WITHIN) {
+        // Safe on the current course, so the only question left is whether a
+        // jump is worth taking for the coins — and only if it stays safe.
+        this.autoCoin(groundLine, canJump, lift);
         return;
       }
 
-      if (!this.willHit(next, groundLine, d.y, d.dy)) return;   // already safe
+      const duck = this.crashFrame(groundLine, d.y, d.dy, d.onGround, 1, 0);
+      const jump = canJump ? this.crashFrame(groundLine, d.y, d.dy, d.onGround, 0, lift) : stand;
 
-      const fromGround = d.onGround || this.coyote > 0;
-      if (!fromGround && this.jumpsLeft <= 0) return;           // nothing left to spend
-      const lift = fromGround ? d.jumpForce : d.jumpForce * 0.86;
-      // If jumping this frame still runs us into it, hold — a slightly later
-      // jump may clear it, and re-checking every frame finds that moment.
-      if (this.willHit(next, groundLine, d.y, lift)) return;
-      this.doJump();
+      // Take whichever survives; ducking is preferred when both do, because it
+      // keeps the jump in hand for whatever is behind.
+      if (duck < 0) { this.downPressed = true; return; }
+      if (jump < 0) { this.standUp(); this.doJump(); return; }
+
+      // Nothing is clean. Buy the most time and re-decide next frame — the
+      // scene will have moved, and an option that fails now can come good.
+      if (duck >= stand && duck >= jump) { this.downPressed = true; return; }
+      if (jump > stand && canJump) { this.standUp(); this.doJump(); }
     },
 
-    // Forward-simulate the dino's arc and the obstacle's approach with the same
-    // numbers update() uses, and report whether they intersect.
-    willHit: function(o, groundLine, y0, dy0) {
-      const d = this.dino;
-      const h = this.STAND_H;
-      const gy = groundLine - h;
-      const closing = this.speed * (o.ptero ? 1.15 : 1);
-      let y = y0, dy = dy0, ox = o.x;
+    // Roll the whole scene forward — every obstacle at once, not just the next
+    // one — and report the frame of the first collision, or -1 for clear.
+    //
+    // Checking a single obstacle was the flaw in the previous version: a jump
+    // that cleared the cactus in front could land straight into the one behind
+    // it, and nothing noticed until it was too late to act.
+    //
+    //   duck  0 = stand, 1 = hold down for the whole horizon
+    //   lift  a one-off velocity applied on the first frame (a jump), or 0
+    HORIZON: 80,
+    // Only intervene once the crash is this close. Acting the moment anything
+    // appears in the horizon spent both jumps on an obstacle still sixty
+    // frames away, and left nothing for the one behind it. The decision is
+    // remade every frame, so waiting costs nothing and keeps options in hand.
+    ACT_WITHIN: 24,
 
-      for (let t = 0; t < 70; t++) {
+    crashFrame: function(groundLine, y0, dy0, ground0, duck, lift, horizon) {
+      const d = this.dino;
+      let y = y0, dy = dy0, onGround = ground0;
+      // Anchor by the feet for the height this action implies, *before* the
+      // jump is applied. Without it a jump simulated out of a crouch starts
+      // 20px too low, the first frame reads as below ground, and every option
+      // comes back looking doomed.
+      if (onGround) y = groundLine - (duck ? this.DUCK_H : this.STAND_H);
+      if (lift) { dy = lift; onGround = false; }
+
+      // Obstacle positions are advanced in place from copies, so nothing here
+      // touches the live objects.
+      const obs = this.obstacles;
+      const ox = [];
+      for (let i = 0; i < obs.length; i++) ox.push(obs[i].x);
+
+      const H = horizon || this.HORIZON;
+      for (let t = 0; t < H; t++) {
+        const ducking = !!duck && onGround;
+        const h = ducking ? this.DUCK_H : this.STAND_H;
+        const gy = groundLine - h;
+        if (onGround) y = gy;                     // anchored by the feet
+
+        if (!onGround && duck) dy += 1.3;         // holding down fast-falls
         y += dy;
-        if (y < gy) dy += d.gravity; else { y = gy; dy = 0; }
-        ox -= closing;
-        if (ox + o.width < d.x) return false;            // it went by
-        if (d.x + 9 < ox + o.width && d.x + d.width - 9 > ox &&
-            y + 9 < o.y + o.height && y + h - 6 > o.y) return true;
+        if (y < gy) { dy += d.gravity; onGround = false; }
+        else { y = gy; dy = 0; onGround = true; }
+
+        for (let i = 0; i < obs.length; i++) {
+          const o = obs[i];
+          ox[i] -= this.speed * (o.ptero ? 1.15 : 1);
+          if (ox[i] + o.width < d.x) continue;
+          if (d.x + 9 < ox[i] + o.width && d.x + d.width - 9 > ox[i] &&
+              y + 9 < o.y + o.height && y + h - 6 > o.y) return t;
+        }
       }
-      return false;
+      return -1;
     },
 
-    autoCoin: function(game, groundLine) {
+    // Coins gathered along a simulated arc, so a detour can be checked for
+    // safety before it is taken rather than only attempted when the screen
+    // happens to be empty.
+    coinsAlong: function(groundLine, lift, horizon) {
       const d = this.dino;
-      let target = null;
-      for (const c of this.coins) {
-        if (c.x < d.x) continue;
-        if (!target || c.x < target.x) target = c;
+      let y = d.y, dy = d.dy, onGround = d.onGround;
+      if (onGround) y = groundLine - this.STAND_H;
+      if (lift) { dy = lift; onGround = false; }
+      const cx = this.coins.map((c) => c.x);
+      const got = new Array(this.coins.length).fill(false);
+      let n = 0;
+      const H = horizon || this.HORIZON;
+      for (let t = 0; t < H; t++) {
+        const gy = groundLine - this.STAND_H;
+        if (onGround) y = gy;
+        y += dy;
+        if (y < gy) { dy += d.gravity; onGround = false; }
+        else { y = gy; dy = 0; onGround = true; }
+        for (let i = 0; i < this.coins.length; i++) {
+          if (got[i]) continue;
+          cx[i] -= this.speed;
+          if (Math.abs(cx[i] - (d.x + d.width / 2)) < 24 &&
+              Math.abs(this.coins[i].y - (y + this.STAND_H / 2)) < 26) {
+            got[i] = true;
+            n += this.coins[i].shield ? 4 : 1;   // a shield is worth a detour
+          }
+        }
       }
-      if (!target) return;
-      const gap = target.x - (d.x + d.width / 2);
-      // Rise takes ~19 frames; start early enough to be at height on arrival.
-      if (d.onGround && gap > 0 && gap < this.speed * 19 && target.y < groundLine - 60) {
-        this.doJump();
-      }
+      return n;
+    },
+
+    // Jump for coins when the arc actually collects more than standing still
+    // does, and only when that jump is still clear of everything on screen.
+    autoCoin: function(groundLine, canJump, lift) {
+      if (!canJump || !this.coins.length) return;
+      const staying = this.coinsAlong(groundLine, 0);
+      const jumping = this.coinsAlong(groundLine, lift);
+      if (jumping <= staying) return;
+      if (this.crashFrame(groundLine, this.dino.y, this.dino.dy, this.dino.onGround, 0, lift) >= 0) return;
+      this.standUp();
+      this.doJump();
     }
   };
 

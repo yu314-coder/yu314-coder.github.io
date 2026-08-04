@@ -12,8 +12,10 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const SRC = process.env.MAIN_JS ||
-  path.join(__dirname, '..', 'assets', 'js', 'main.js');
+// Resolved per run, not at module load: arcade-bench.js switches builds
+// between calls, and capturing this once meant it compared a build to itself.
+const DEFAULT_SRC = path.join(__dirname, '..', 'assets', 'js', 'main.js');
+const srcPath = () => process.env.MAIN_JS || DEFAULT_SRC;
 
 function makeCtx() {
   const noop = () => {};
@@ -179,7 +181,7 @@ function install(opts) {
 function run(opts) {
   const h = install(opts);
   // Test-only: hoist the closure's objects out. Injected here, never shipped.
-  const code = fs.readFileSync(SRC, 'utf8').replace(
+  const code = fs.readFileSync(srcPath(), 'utf8').replace(
     "  document.addEventListener('DOMContentLoaded', function() {",
     "  window.__arcade = { GameSystem, Breakout, DinoGame, SnakeGame, Haptics, HighScores, Difficulty };\n" +
     "  document.addEventListener('DOMContentLoaded', function() {"
