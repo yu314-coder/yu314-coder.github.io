@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-04T16:53:19Z",
+  "generated_at": "2026-08-04T18:28:12Z",
   "note": "Per-storm v62 hindcasts, loaded lazily. History mode uses v62 wherever a run covers the initialisation on screen and v23 elsewhere.",
   "hindcasts": {
     "1979275N06159": {
@@ -1371,6 +1371,86 @@
       "intensity_runs": 29,
       "mean_track_mae_km": 849.1,
       "file": "v62/2012254N09135.json"
+    },
+    "2014275N06166": {
+      "storm": "Vongfong",
+      "season": 2014,
+      "runs": 55,
+      "first_issue_utc": "2014-10-02T18:00:00Z",
+      "last_issue_utc": "2014-10-16T06:00:00Z",
+      "intensity_runs": 45,
+      "mean_track_mae_km": 1212.0,
+      "file": "v62/2014275N06166.json"
+    },
+    "2014303N13141": {
+      "storm": "Nuri",
+      "season": 2014,
+      "runs": 29,
+      "first_issue_utc": "2014-10-31T00:00:00Z",
+      "last_issue_utc": "2014-11-07T00:00:00Z",
+      "intensity_runs": 27,
+      "mean_track_mae_km": 957.9,
+      "file": "v62/2014303N13141.json"
+    },
+    "2014334N02156": {
+      "storm": "Hagupit",
+      "season": 2014,
+      "runs": 45,
+      "first_issue_utc": "2014-12-01T06:00:00Z",
+      "last_issue_utc": "2014-12-12T06:00:00Z",
+      "intensity_runs": 45,
+      "mean_track_mae_km": 295.4,
+      "file": "v62/2014334N02156.json"
+    },
+    "2015211N13162": {
+      "storm": "Soudelor",
+      "season": 2015,
+      "runs": 50,
+      "first_issue_utc": "2015-07-30T18:00:00Z",
+      "last_issue_utc": "2015-08-12T00:00:00Z",
+      "intensity_runs": 41,
+      "mean_track_mae_km": 558.3,
+      "file": "v62/2015211N13162.json"
+    },
+    "2016185N08145": {
+      "storm": "Nepartak",
+      "season": 2016,
+      "runs": 26,
+      "first_issue_utc": "2016-07-03T12:00:00Z",
+      "last_issue_utc": "2016-07-09T18:00:00Z",
+      "intensity_runs": 25,
+      "mean_track_mae_km": 261.6,
+      "file": "v62/2016185N08145.json"
+    },
+    "2018239N11161": {
+      "storm": "Jebi",
+      "season": 2018,
+      "runs": 42,
+      "first_issue_utc": "2018-08-27T18:00:00Z",
+      "last_issue_utc": "2018-09-07T00:00:00Z",
+      "intensity_runs": 33,
+      "mean_track_mae_km": 812.5,
+      "file": "v62/2018239N11161.json"
+    },
+    "2018250N12170": {
+      "storm": "Mangkhut",
+      "season": 2018,
+      "runs": 41,
+      "first_issue_utc": "2018-09-07T12:00:00Z",
+      "last_issue_utc": "2018-09-17T12:00:00Z",
+      "intensity_runs": 41,
+      "mean_track_mae_km": 493.3,
+      "file": "v62/2018250N12170.json"
+    },
+    "2021248N12141": {
+      "storm": "Chanthu",
+      "season": 2021,
+      "runs": 55,
+      "first_issue_utc": "2021-09-06T06:00:00Z",
+      "last_issue_utc": "2021-09-19T18:00:00Z",
+      "intensity_runs": 49,
+      "mean_track_mae_km": 695.0,
+      "file": "v62/2021248N12141.json"
     }
   }
 }
