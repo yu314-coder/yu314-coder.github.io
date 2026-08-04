@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-03T22:28:07Z",
+  "generated_at": "2026-08-04T01:08:19Z",
   "note": "Per-storm v62 hindcasts, loaded lazily. History mode uses v62 wherever a run covers the initialisation on screen and v23 elsewhere.",
   "hindcasts": {
     "1979275N06159": {
@@ -701,6 +701,106 @@
       "intensity_runs": 34,
       "mean_track_mae_km": 1169.0,
       "file": "v62/2006259N19155.json"
+    },
+    "2006298N12143": {
+      "storm": "Cimaron",
+      "season": 2006,
+      "runs": 50,
+      "first_issue_utc": "2006-10-26T00:00:00Z",
+      "last_issue_utc": "2006-11-07T06:00:00Z",
+      "intensity_runs": 50,
+      "mean_track_mae_km": 371.9,
+      "file": "v62/2006298N12143.json"
+    },
+    "2007223N19136": {
+      "storm": "Sepat",
+      "season": 2007,
+      "runs": 49,
+      "first_issue_utc": "2007-08-12T00:00:00Z",
+      "last_issue_utc": "2007-08-24T00:00:00Z",
+      "intensity_runs": 32,
+      "mean_track_mae_km": 338.8,
+      "file": "v62/2007223N19136.json"
+    },
+    "2008268N12140": {
+      "storm": "Jangmi",
+      "season": 2008,
+      "runs": 42,
+      "first_issue_utc": "2008-09-24T12:00:00Z",
+      "last_issue_utc": "2008-10-04T18:00:00Z",
+      "intensity_runs": 27,
+      "mean_track_mae_km": 770.8,
+      "file": "v62/2008268N12140.json"
+    },
+    "2009255N13155": {
+      "storm": "Choi-Wan",
+      "season": 2009,
+      "runs": 33,
+      "first_issue_utc": "2009-09-12T12:00:00Z",
+      "last_issue_utc": "2009-09-20T12:00:00Z",
+      "intensity_runs": 32,
+      "mean_track_mae_km": 703.0,
+      "file": "v62/2009255N13155.json"
+    },
+    "2009287N10154": {
+      "storm": "Lupit",
+      "season": 2009,
+      "runs": 64,
+      "first_issue_utc": "2009-10-14T18:00:00Z",
+      "last_issue_utc": "2009-10-30T12:00:00Z",
+      "intensity_runs": 50,
+      "mean_track_mae_km": 993.4,
+      "file": "v62/2009287N10154.json"
+    },
+    "1986330N05173": {
+      "storm": "Kim",
+      "season": 1986,
+      "runs": 65,
+      "first_issue_utc": "1986-11-27T00:00:00Z",
+      "last_issue_utc": "1986-12-13T00:00:00Z",
+      "intensity_runs": 60,
+      "mean_track_mae_km": 372.6,
+      "file": "v62/1986330N05173.json"
+    },
+    "1994251N10180": {
+      "storm": "Melissa",
+      "season": 1994,
+      "runs": 51,
+      "first_issue_utc": "1994-09-09T00:00:00Z",
+      "last_issue_utc": "1994-09-21T12:00:00Z",
+      "intensity_runs": 35,
+      "mean_track_mae_km": 712.7,
+      "file": "v62/1994251N10180.json"
+    },
+    "1994259N12128": {
+      "storm": "Orchid",
+      "season": 1994,
+      "runs": 62,
+      "first_issue_utc": "1994-09-17T00:00:00Z",
+      "last_issue_utc": "1994-10-02T06:00:00Z",
+      "intensity_runs": 57,
+      "mean_track_mae_km": 648.4,
+      "file": "v62/1994259N12128.json"
+    },
+    "1994298N25161": {
+      "storm": "Zelda",
+      "season": 1994,
+      "runs": 61,
+      "first_issue_utc": "1994-10-26T00:00:00Z",
+      "last_issue_utc": "1994-11-10T00:00:00Z",
+      "intensity_runs": 58,
+      "mean_track_mae_km": 720.5,
+      "file": "v62/1994298N25161.json"
+    },
+    "1997236N10172": {
+      "storm": "Bing",
+      "season": 1997,
+      "runs": 48,
+      "first_issue_utc": "1997-08-25T00:00:00Z",
+      "last_issue_utc": "1997-09-05T18:00:00Z",
+      "intensity_runs": 43,
+      "mean_track_mae_km": 938.8,
+      "file": "v62/1997236N10172.json"
     }
   }
 }
