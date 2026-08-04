@@ -233,6 +233,74 @@
   };
 
   // ===================================
+  // Arcade: Paint
+  // Shared shading so the three games stop looking like flat swatches. Every
+  // solid shape goes through bevel(), which lights the top edge and shadows
+  // the bottom, so a brick reads as an object with a thickness to it.
+  // ===================================
+  const Paint = {
+    _cache: {},
+
+    // Scale a #rrggbb toward white (t > 0) or black (t < 0).
+    shade: function(hex, t) {
+      const key = hex + '|' + t;
+      if (this._cache[key]) return this._cache[key];
+      let r = 128, g = 128, b = 128;
+      if (/^#[0-9a-f]{6}$/i.test(hex)) {
+        r = parseInt(hex.slice(1, 3), 16);
+        g = parseInt(hex.slice(3, 5), 16);
+        b = parseInt(hex.slice(5, 7), 16);
+      }
+      const mix = (c) => Math.max(0, Math.min(255, Math.round(t > 0 ? c + (255 - c) * t : c * (1 + t))));
+      const out = 'rgb(' + mix(r) + ',' + mix(g) + ',' + mix(b) + ')';
+      this._cache[key] = out;
+      return out;
+    },
+
+    path: function(ctx, x, y, w, h, r) {
+      if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); return; }
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    },
+
+    bevel: function(ctx, x, y, w, h, r, color, lift) {
+      const up = lift === undefined ? 0.34 : lift;
+      const g = ctx.createLinearGradient(0, y, 0, y + h);
+      g.addColorStop(0, this.shade(color, up));
+      g.addColorStop(0.45, color);
+      g.addColorStop(1, this.shade(color, -0.34));
+      this.path(ctx, x, y, w, h, r);
+      ctx.fillStyle = g;
+      ctx.fill();
+      // A thin gloss along the top edge sells the curve.
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      this.path(ctx, x + 1.5, y + 1.5, Math.max(0, w - 3), Math.max(0, h * 0.34), Math.max(1, r - 1));
+      ctx.fillStyle = this.shade(color, 0.65);
+      ctx.fill();
+      ctx.restore();
+    },
+
+    // A soft ball with a highlight offset toward the light.
+    orb: function(ctx, x, y, radius, color) {
+      const g = ctx.createRadialGradient(x - radius * 0.35, y - radius * 0.4, radius * 0.15,
+                                         x, y, radius);
+      g.addColorStop(0, '#ffffff');
+      g.addColorStop(0.45, this.shade(color, 0.25));
+      g.addColorStop(1, this.shade(color, -0.25));
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fillStyle = g;
+      ctx.fill();
+    }
+  };
+
+  // ===================================
   // Arcade: Haptics
   // Phones have no speaker cue worth relying on and iOS Safari ignores
   // navigator.vibrate entirely, so every call here is best-effort and silent
@@ -1654,10 +1722,8 @@
           }
           ctx.globalAlpha = Math.max(0.18, Math.min(1, 1 - (d - 90) / 240));
         }
-        ctx.beginPath();
-        ctx.roundRect ? ctx.roundRect(b.x, b.y, b.w, b.h, 4) : ctx.rect(b.x, b.y, b.w, b.h);
-        ctx.fillStyle = this.brickColor(b);
-        ctx.fill();
+        Paint.bevel(ctx, b.x, b.y, b.w, b.h, 4, this.brickColor(b),
+                    b.kind === 'steel' ? 0.22 : 0.34);
 
         if (b.kind === 'steel') {
           // Riveted plate — reads as scenery rather than a target.
@@ -1719,26 +1785,22 @@
         }
         ctx.globalAlpha = 1;
 
-        ctx.beginPath();
-        ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-        const gradient = ctx.createRadialGradient(ball.x - 2, ball.y - 2, 2, ball.x, ball.y, ball.radius);
-        gradient.addColorStop(0, '#fff');
-        gradient.addColorStop(1, hot ? '#f59e0b' : (pierce ? '#f472b6' : (slow ? '#fbbf24' : ball.color)));
-        ctx.fillStyle = gradient;
-        ctx.fill();
-        ctx.closePath();
+        Paint.orb(ctx, ball.x, ball.y, ball.radius,
+                  hot ? '#f59e0b' : (pierce ? '#f472b6' : (slow ? '#fbbf24' : ball.color)));
       });
     },
 
     drawPaddle: function(ctx, canvas, now) {
-      ctx.beginPath();
       const pX = this.paddle.x;
       const pY = canvas.height - this.paddle.height - 4;
-      ctx.roundRect ? ctx.roundRect(pX, pY, this.paddle.width, this.paddle.height, 6) : ctx.rect(pX, pY, this.paddle.width, this.paddle.height);
-      ctx.fillStyle = this.effects.shrinkUntil > now ? '#ef4444'
-                    : (this.effects.wide ? '#67e8f9' : this.paddle.color);
-      ctx.fill();
-      ctx.closePath();
+      const pc = this.effects.shrinkUntil > now ? '#ef4444'
+               : (this.effects.wide ? '#67e8f9' : this.paddle.color);
+      // A glow under the paddle so it reads as lit rather than pasted on.
+      ctx.save();
+      ctx.shadowColor = pc;
+      ctx.shadowBlur = 14;
+      Paint.bevel(ctx, pX, pY, this.paddle.width, this.paddle.height, 6, pc, 0.5);
+      ctx.restore();
       if (this.effects.laserUntil > now) {
         ctx.fillStyle = '#f97316';
         ctx.fillRect(pX + 5, pY - 5, 6, 5);
@@ -1767,11 +1829,7 @@
         // Hazards are square-cornered and red so they read as "dodge me" at a
         // glance — catching one has to be a decision, not a surprise.
         const hazard = this.isHazard(p.type);
-        ctx.beginPath();
-        ctx.roundRect ? ctx.roundRect(p.x, p.y, p.w, p.h, hazard ? 2 : 8) : ctx.rect(p.x, p.y, p.w, p.h);
-        ctx.fillStyle = colors[p.type];
-        ctx.fill();
-        ctx.closePath();
+        Paint.bevel(ctx, p.x, p.y, p.w, p.h, hazard ? 2 : 8, colors[p.type], 0.4);
         if (hazard) {
           ctx.strokeStyle = '#fecaca';
           ctx.lineWidth = 2;
@@ -2637,13 +2695,27 @@
         ctx.fill();
       });
 
-      // Ground
+      // Ground: a lit edge, a band of soil, and pebbles that scroll with the
+      // world, so the dino reads as running rather than hovering.
+      const gY = canvas.height - 20;
+      const soil = ctx.createLinearGradient(0, gY, 0, canvas.height);
+      soil.addColorStop(0, this.night > 0.5 ? 'rgba(120,125,150,0.55)' : 'rgba(140,140,150,0.45)');
+      soil.addColorStop(1, 'rgba(20,22,40,0)');
+      ctx.fillStyle = soil;
+      ctx.fillRect(0, gY, canvas.width, 20);
       ctx.beginPath();
-      ctx.moveTo(0, canvas.height - 20);
-      ctx.lineTo(canvas.width, canvas.height - 20);
-      ctx.strokeStyle = this.night > 0.5 ? '#aab' : '#888';
+      ctx.moveTo(0, gY);
+      ctx.lineTo(canvas.width, gY);
+      ctx.strokeStyle = this.night > 0.5 ? '#aab' : '#8a8a96';
       ctx.lineWidth = 2;
       ctx.stroke();
+      ctx.fillStyle = this.night > 0.5 ? 'rgba(190,195,220,0.5)' : 'rgba(110,110,125,0.6)';
+      const scroll = (this.distance * 10) % 48;
+      for (let i = -1; i < canvas.width / 48 + 1; i++) {
+        const px = i * 48 - scroll;
+        ctx.fillRect(px, gY + 6, 11, 2);
+        ctx.fillRect(px + 22, gY + 12, 6, 2);
+      }
 
       // Coins / shields (squashed circle so they read as spinning)
       this.coins.forEach(c => {
@@ -2658,16 +2730,7 @@
         if (w > 5) ctx.fillText(c.shield ? 'S' : '$', c.x, c.y + 3.5);
       });
 
-      // Dino (squat when ducking, legs animate on ground)
-      ctx.fillStyle = this.dino.color;
-      ctx.fillRect(this.dino.x, this.dino.y, this.dino.width, this.dino.height);
-      ctx.fillStyle = '#222';
-      ctx.fillRect(this.dino.x + this.dino.width - 12, this.dino.y + 5, 6, 6);
-      if (this.dino.onGround) {
-        const step = Math.floor(this.distance * 2) % 2 === 0;
-        ctx.fillStyle = this.dino.color;
-        ctx.fillRect(this.dino.x + (step ? 4 : 22), this.dino.y + this.dino.height, 8, 6);
-      }
+      this.drawDino(ctx);
 
       // Shield bubble
       if (this.shield > 0 || this.shieldFlash > 0) {
@@ -2705,9 +2768,21 @@
           ctx.closePath();
           ctx.fill();
         } else {
-          ctx.fillRect(o.x, o.y, o.width, o.height);
-          ctx.fillRect(o.x - 6, o.y + 15, 6, 10);
-          ctx.fillRect(o.x + o.width, o.y + 10, 6, 10);
+          Paint.bevel(ctx, o.x, o.y, o.width, o.height, 5, o.color, 0.28);
+          Paint.bevel(ctx, o.x - 6, o.y + 15, 7, 10, 3, o.color, 0.18);
+          Paint.bevel(ctx, o.x + o.width - 1, o.y + 10, 7, 10, 3, o.color, 0.18);
+          // ribs
+          ctx.save();
+          ctx.globalAlpha = 0.25;
+          ctx.strokeStyle = '#000';
+          ctx.lineWidth = 1;
+          for (let k = 1; k < 3; k++) {
+            ctx.beginPath();
+            ctx.moveTo(o.x + (o.width * k) / 3, o.y + 4);
+            ctx.lineTo(o.x + (o.width * k) / 3, o.y + o.height - 4);
+            ctx.stroke();
+          }
+          ctx.restore();
         }
       });
 
@@ -2718,6 +2793,69 @@
       let hud = `${this.speed.toFixed(1)}× speed`;
       if (this.shield > 0) hud += ` · 🛡️×${this.shield}`;
       ctx.fillText(hud, 12, 24);
+    },
+
+    // An actual creature rather than a rectangle with an eye: tail, haunch,
+    // body, neck, snout and a running pair of legs, all built from the same
+    // rounded-box vocabulary so it stays crisp at any size.
+    drawDino: function(ctx) {
+      const d = this.dino;
+      const x = d.x, y = d.y, w = d.width, h = d.height;
+      const duck = this.ducking;
+      const c = d.color;
+      const dark = Paint.shade(c, -0.32);
+
+      ctx.save();
+      // tail
+      ctx.fillStyle = dark;
+      Paint.path(ctx, x - 9, y + h * (duck ? 0.10 : 0.30), 12, h * 0.26, 3);
+      ctx.fill();
+      // body
+      Paint.bevel(ctx, x, y + h * (duck ? 0.02 : 0.24), w * 0.72, h * (duck ? 0.96 : 0.76), 7, c);
+      // haunch
+      ctx.fillStyle = Paint.shade(c, -0.14);
+      Paint.path(ctx, x + 1, y + h * (duck ? 0.30 : 0.46), w * 0.34, h * (duck ? 0.6 : 0.46), 6);
+      ctx.fill();
+
+      if (duck) {
+        // Head thrust forward, level with the back.
+        Paint.bevel(ctx, x + w * 0.62, y, w * 0.42, h * 0.68, 5, c);
+        ctx.fillStyle = '#0d1b2a';
+        ctx.beginPath();
+        ctx.arc(x + w * 0.86, y + h * 0.26, 2.4, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        // neck + head + snout
+        Paint.bevel(ctx, x + w * 0.42, y + h * 0.06, w * 0.30, h * 0.34, 4, c);
+        Paint.bevel(ctx, x + w * 0.52, y, w * 0.48, h * 0.30, 5, c);
+        ctx.fillStyle = Paint.shade(c, -0.1);
+        Paint.path(ctx, x + w * 0.86, y + h * 0.14, w * 0.22, h * 0.12, 2);
+        ctx.fill();
+        // eye
+        ctx.fillStyle = '#0d1b2a';
+        ctx.beginPath();
+        ctx.arc(x + w * 0.80, y + h * 0.12, 2.6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.beginPath();
+        ctx.arc(x + w * 0.785, y + h * 0.105, 0.9, 0, Math.PI * 2);
+        ctx.fill();
+        // arm
+        ctx.fillStyle = dark;
+        Paint.path(ctx, x + w * 0.52, y + h * 0.44, w * 0.20, h * 0.10, 2);
+        ctx.fill();
+      }
+
+      // legs: two when running, tucked when airborne or crouched
+      ctx.fillStyle = dark;
+      if (d.onGround && !duck) {
+        const step = Math.floor(this.distance * 3) % 2 === 0;
+        Paint.path(ctx, x + w * 0.10, y + h, w * 0.20, step ? 7 : 3, 2); ctx.fill();
+        Paint.path(ctx, x + w * 0.42, y + h, w * 0.20, step ? 3 : 7, 2); ctx.fill();
+      } else if (!duck) {
+        Paint.path(ctx, x + w * 0.16, y + h - 1, w * 0.40, 5, 2); ctx.fill();
+      }
+      ctx.restore();
     },
 
     // --- Autopilot -------------------------------------------------------
@@ -3054,10 +3192,19 @@
       ctx.strokeRect(1.5, 1.5, gw - 3, gh - 3);
       ctx.restore();
 
-      // Food
+      // Food: an apple with a highlight and a leaf, which reads at 14px far
+      // better than a flat dot does.
+      const fx = this.food.x * C + C / 2, fy = this.food.y * C + C / 2;
+      Paint.orb(ctx, fx, fy, C / 2 - 3, '#ec4899');
+      ctx.strokeStyle = '#166534';
+      ctx.lineWidth = 1.6;
       ctx.beginPath();
-      ctx.arc(this.food.x * C + C / 2, this.food.y * C + C / 2, C / 2 - 3, 0, Math.PI * 2);
-      ctx.fillStyle = '#ec4899';
+      ctx.moveTo(fx, fy - C / 2 + 3);
+      ctx.lineTo(fx + 1, fy - C / 2 - 1);
+      ctx.stroke();
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath();
+      ctx.ellipse(fx + 4, fy - C / 2 - 1, 3.2, 1.8, -0.6, 0, Math.PI * 2);
       ctx.fill();
 
       // Timed bonus: blink + countdown ring (green when it's a tail trim)
@@ -3068,10 +3215,7 @@
         const blink = 0.55 + 0.45 * Math.sin(now / 110);
         const tint = this.bonus.trim ? '#4ade80' : '#fbbf24';
         ctx.globalAlpha = blink;
-        ctx.beginPath();
-        ctx.arc(bx, by, C / 2 - 2, 0, Math.PI * 2);
-        ctx.fillStyle = tint;
-        ctx.fill();
+        Paint.orb(ctx, bx, by, C / 2 - 2, tint);
         ctx.globalAlpha = 1;
         ctx.beginPath();
         ctx.arc(bx, by, C / 2 + 2.5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac);
@@ -3080,31 +3224,74 @@
         ctx.stroke();
       }
 
-      // Snake — head with eyes, body fades down the tail
-      this.snake.forEach((s, i) => {
-        const t = i / Math.max(1, this.snake.length - 1);
-        ctx.fillStyle = i === 0 ? '#22d3ee' : `rgba(124, 58, 237, ${1 - t * 0.55})`;
-        const pad = i === 0 ? 1 : 2;
-        if (ctx.roundRect) {
-          ctx.beginPath();
-          ctx.roundRect(s.x * C + pad, s.y * C + pad, C - pad * 2, C - pad * 2, 5);
-          ctx.fill();
+      // Snake — a jointed body rather than loose tiles: each segment is
+      // bevelled and the gaps between neighbours are filled, so it reads as one
+      // animal instead of a row of squares.
+      const body = this.snake;
+      const tone = (i) => i === 0 ? '#22d3ee'
+        : Paint.shade('#7c3aed', 0.22 - (i / Math.max(1, body.length - 1)) * 0.5);
+
+      // Two passes. The joins have to go down first: drawing each segment's
+      // join as it went meant the next one painted flat over the previous
+      // segment's bevel, and the whole snake came out looking like a bar.
+      for (let i = body.length - 1; i > 0; i--) {
+        const a = body[i], b = body[i - 1];
+        const dx = b.x - a.x, dy = b.y - a.y;
+        if (Math.abs(dx) > 1 || Math.abs(dy) > 1) continue;   // a wrap, not a join
+        ctx.fillStyle = tone(i);
+        const pad = 2;
+        if (dx !== 0) {
+          ctx.fillRect(Math.min(a.x, b.x) * C + C / 2, a.y * C + pad, C, C - pad * 2);
         } else {
-          ctx.fillRect(s.x * C + pad, s.y * C + pad, C - pad * 2, C - pad * 2);
+          ctx.fillRect(a.x * C + pad, Math.min(a.y, b.y) * C + C / 2, C - pad * 2, C);
         }
+      }
+
+      for (let i = body.length - 1; i >= 0; i--) {
+        const seg = body[i];
+        const t = i / Math.max(1, body.length - 1);
+        const pad = i === 0 ? 1 : 2;
+        const sx = seg.x * C + pad, sy = seg.y * C + pad, sw = C - pad * 2;
+
+        Paint.bevel(ctx, sx, sy, sw, sw, i === 0 ? 7 : 5, tone(i), i === 0 ? 0.45 : 0.3);
+
+        // Scales down the back, fading out toward the tail.
+        if (i > 0 && i % 2 === 0 && t < 0.8) {
+          ctx.save();
+          ctx.globalAlpha = 0.18 * (1 - t);
+          ctx.fillStyle = '#fff';
+          ctx.beginPath();
+          ctx.arc(sx + sw / 2, sy + sw / 2, sw * 0.22, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
         if (i === 0) {
-          // Eyes face the travel direction
-          const ex = s.x * C + C / 2 + this.dir.x * 4;
-          const ey = s.y * C + C / 2 + this.dir.y * 4;
-          const ox = this.dir.y !== 0 ? 4.5 : 0;
-          const oy = this.dir.x !== 0 ? 4.5 : 0;
+          const cx0 = seg.x * C + C / 2, cy0 = seg.y * C + C / 2;
+          const ex = cx0 + this.dir.x * 3.5, ey = cy0 + this.dir.y * 3.5;
+          const ox = this.dir.y !== 0 ? 4.5 : 0, oy = this.dir.x !== 0 ? 4.5 : 0;
+          // whites, then pupils looking the way it travels
+          ctx.fillStyle = '#f8fafc';
+          ctx.beginPath();
+          ctx.arc(ex - ox, ey - oy, 3.1, 0, Math.PI * 2);
+          ctx.arc(ex + ox, ey + oy, 3.1, 0, Math.PI * 2);
+          ctx.fill();
           ctx.fillStyle = '#0a0820';
           ctx.beginPath();
-          ctx.arc(ex - ox, ey - oy, 2.2, 0, Math.PI * 2);
-          ctx.arc(ex + ox, ey + oy, 2.2, 0, Math.PI * 2);
+          ctx.arc(ex - ox + this.dir.x, ey - oy + this.dir.y, 1.7, 0, Math.PI * 2);
+          ctx.arc(ex + ox + this.dir.x, ey + oy + this.dir.y, 1.7, 0, Math.PI * 2);
           ctx.fill();
+          // a tongue that flicks
+          if (Math.floor(now / 260) % 3 === 0) {
+            ctx.strokeStyle = '#f43f5e';
+            ctx.lineWidth = 1.6;
+            ctx.beginPath();
+            ctx.moveTo(cx0 + this.dir.x * 9, cy0 + this.dir.y * 9);
+            ctx.lineTo(cx0 + this.dir.x * 15, cy0 + this.dir.y * 15);
+            ctx.stroke();
+          }
         }
-      });
+      }
 
       // HUD
       if (this.streak > 1) {
