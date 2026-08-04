@@ -120,18 +120,58 @@
       }
     },
 
+    // Bests are per difficulty: an Easy run must not set a bar a Hard run can
+    // never clear, and a Hard best should not look poor beside one.
+    slot: function(game) { return game + '@' + Difficulty.current; },
+
     get: function(game) {
-      return this.all()[game] || 0;
+      const scores = this.all();
+      const slot = this.slot(game);
+      if (slot in scores) return scores[slot];
+      // Anything recorded before difficulty existed was played on Normal.
+      if (Difficulty.current === 'normal' && game in scores) return scores[game];
+      return 0;
     },
 
     submit: function(game, score) {
       const scores = this.all();
-      if (score > (scores[game] || 0)) {
-        scores[game] = score;
+      const slot = this.slot(game);
+      if (score > this.get(game)) {
+        scores[slot] = score;
         try { localStorage.setItem(this.KEY, JSON.stringify(scores)); } catch (e) {}
         return true;
       }
       return false;
+    }
+  };
+
+  // ===================================
+  // Arcade: Difficulty
+  // One setting for all three games, remembered between visits. Normal is
+  // exactly what the arcade shipped as, so the middle option is not a new
+  // balance nobody has played.
+  // ===================================
+  const Difficulty = {
+    KEY: 'arcadeDifficulty',
+    ORDER: ['easy', 'normal', 'hard'],
+    LABEL: { easy: 'Easy', normal: 'Normal', hard: 'Hard' },
+
+    current: (function() {
+      try {
+        const v = localStorage.getItem('arcadeDifficulty');
+        return (v === 'easy' || v === 'hard') ? v : 'normal';
+      } catch (e) { return 'normal'; }
+    })(),
+
+    set: function(v) {
+      if (this.ORDER.indexOf(v) < 0) return;
+      this.current = v;
+      try { localStorage.setItem(this.KEY, v); } catch (e) {}
+    },
+
+    // pick({easy: a, normal: b, hard: c})
+    pick: function(table) {
+      return table[this.current] !== undefined ? table[this.current] : table.normal;
     }
   };
 
@@ -327,6 +367,7 @@
       this.setupGameSequence();
       this.setupControls();
       this.setupPointer();
+      this.injectDifficulty();
       this.injectMuteButton();
       this.injectAutoButton();
       this.injectTouchPad();
@@ -529,7 +570,7 @@
       const el = this.bestsEl || document.getElementById('gameBests');
       if (!el) return;
       const names = { breakout: 'Breakout', dino: 'Dino', snake: 'Snake' };
-      el.textContent = '🏆 ' + Object.keys(names)
+      el.textContent = '🏆 ' + Difficulty.LABEL[Difficulty.current] + ':  ' + Object.keys(names)
         .map((k) => names[k] + ' ' + HighScores.get(k)).join('   ·   ');
     },
 
@@ -542,6 +583,33 @@
           this.refreshMeta();
         });
       }
+    },
+
+    injectDifficulty: function() {
+      const controls = document.getElementById('gameControls');
+      if (!controls || document.getElementById('difficultySelect')) return;
+      const label = document.createElement('label');
+      label.setAttribute('for', 'difficultySelect');
+      label.textContent = 'Difficulty:';
+      const sel = document.createElement('select');
+      sel.id = 'difficultySelect';
+      Difficulty.ORDER.forEach((k) => {
+        const o = document.createElement('option');
+        o.value = k;
+        o.textContent = Difficulty.LABEL[k];
+        if (k === Difficulty.current) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.value = Difficulty.current;
+      sel.addEventListener('change', (e) => {
+        Difficulty.set(e.target.value);
+        // Difficulty is baked in at init(), so a game already running would
+        // keep the old dials. Restart it rather than pretend the change took.
+        if (this.gameActive) this.startGame();
+        this.refreshMeta();
+      });
+      controls.appendChild(label);
+      controls.appendChild(sel);
     },
 
     injectMuteButton: function() {
@@ -614,7 +682,7 @@
       if (hintEl) {
         const touch = this.isTouch();
         const base = (touch ? this.TOUCH_HINTS : this.HINTS)[this.currentGame] || '';
-        hintEl.textContent = base + (touch
+        hintEl.textContent = Difficulty.LABEL[Difficulty.current] + ' · ' + base + (touch
           ? ' · ⏸ pauses · 🤖 autopilot plays for you, tap it again to take over'
           : ' · P pauses · 🤖 autopilot plays for you, S takes over');
       }
@@ -877,6 +945,20 @@
     WIDE_W: 184,
     SHRINK_W: 68,
     MAX_SPEED: 18,
+
+    // Normal is the balance the arcade already had; easy softens every dial
+    // that makes it stressful, hard tightens the same ones.
+    TIERS: {
+      easy:   { speed: 4.6, max: 12, ramp: 1.12, lives: 5, paddle: 126,
+                first: 42000, every: 26000, drop: 0.38, hazard: 0.45,
+                mutFrom: 5, mutChance: 0.45, hpCap: 1 },
+      normal: { speed: 6.5, max: 18, ramp: 1.18, lives: 3, paddle: 104,
+                first: 26000, every: 15000, drop: 0.30, hazard: 1,
+                mutFrom: 3, mutChance: 0.72, hpCap: 3 },
+      hard:   { speed: 8.2, max: 23, ramp: 1.22, lives: 2, paddle: 86,
+                first: 17000, every: 10000, drop: 0.26, hazard: 1.6,
+                mutFrom: 2, mutChance: 0.9,  hpCap: 4 }
+    },
     // A frame at top speed covers more than a brick's height, so movement is
     // sub-stepped at this granularity — otherwise a fast ball tunnels straight
     // through bricks it should have broken.
@@ -987,9 +1069,18 @@
     ],
 
     init: function(game) {
-      this.lives = 3;
+      const tier = Difficulty.pick(this.TIERS);
+      this.tier = tier;
+      this.lives = tier.lives;
       this.level = 1;
-      this.speed = 6.5;
+      this.speed = tier.speed;
+      this.MAX_SPEED = tier.max;
+      this.BASE_W = tier.paddle;
+      this.WIDE_W = Math.round(tier.paddle * 1.77);
+      this.SHRINK_W = Math.round(tier.paddle * 0.65);
+      this.DROP_BASE = tier.drop;
+      this.DESCEND_FIRST = tier.first;
+      this.DESCEND_EVERY = tier.every;
       this.fever = false;
       this.combo = 0;
       this.tick = 0;
@@ -1038,7 +1129,7 @@
     buildLevel: function(canvas) {
       const spec = this.LAYOUTS[(this.level - 1) % this.LAYOUTS.length];
       // Once the set has been round-tripped, everything breakable gets tougher.
-      const bonus = Math.min(Math.floor((this.level - 1) / this.LAYOUTS.length), 3);
+      const bonus = Math.min(Math.floor((this.level - 1) / this.LAYOUTS.length), this.tier.hpCap);
       const cfg = this.config;
       const cols = spec.rows[0].length;
       const gridW = cols * cfg.brickWidth + (cols - 1) * cfg.brickPadding;
@@ -1072,7 +1163,7 @@
       // game rather than a gimmick.
       this.mutator = null;
       this.driftPhase = 0;
-      if (this.level >= 3 && Math.random() < 0.72) {
+      if (this.level >= this.tier.mutFrom && Math.random() < this.tier.mutChance) {
         this.mutator = this.MUTATORS[Math.floor(Math.random() * this.MUTATORS.length)];
         if (this.mutator.key === 'iron') {
           for (const b of this.bricks) {
@@ -1137,19 +1228,22 @@
         this.DROP_BASE + frenzy + Math.max(0, this.combo - 1) * this.DROP_PER_COMBO);
     },
 
+    // Weighted rather than a ladder of thresholds, so difficulty can scale the
+    // hazard share without every other boundary having to be recomputed.
+    CAPSULE_WEIGHTS: [['W', 21], ['S', 19], ['M', 19], ['P', 8],
+                      ['L', 7], ['N', 6], ['H', 4], ['X', 9], ['R', 7]],
+
     maybeDropPowerup: function(x, y) {
       if (Math.random() > this.dropChance()) return;
-      const roll = Math.random();
-      let type;
-      if (roll < 0.21) type = 'W';        // wide paddle
-      else if (roll < 0.40) type = 'S';   // slow ball
-      else if (roll < 0.59) type = 'M';   // multi-ball
-      else if (roll < 0.67) type = 'P';   // pierce
-      else if (roll < 0.74) type = 'L';   // laser paddle
-      else if (roll < 0.80) type = 'N';   // safety net
-      else if (roll < 0.84) type = 'H';   // extra life
-      else if (roll < 0.93) type = 'X';   // HAZARD: shrink the paddle
-      else type = 'R';                    // HAZARD: rush the ball
+      const scale = this.tier ? this.tier.hazard : 1;
+      let total = 0;
+      for (const [t, w] of this.CAPSULE_WEIGHTS) total += this.isHazard(t) ? w * scale : w;
+      let roll = Math.random() * total;
+      let type = 'W';
+      for (const [t, w] of this.CAPSULE_WEIGHTS) {
+        roll -= this.isHazard(t) ? w * scale : w;
+        if (roll <= 0) { type = t; break; }
+      }
       this.powerups.push({ x: x, y: y, w: 36, h: 17, vy: 2.3, type: type });
     },
 
@@ -1181,7 +1275,7 @@
         this.effects.net = Math.min(this.effects.net + 1, 3);
         Fx.text(p.x + p.w / 2, p.y - 6, 'NET', '#4ade80');
       } else if (p.type === 'H') {
-        if (this.lives < 6) this.lives++;
+        if (this.lives < this.tier.lives + 3) this.lives++;
         Fx.text(p.x + p.w / 2, p.y - 6, '+1 ❤️', '#ec4899');
       } else if (p.type === 'X') {
         this.effects.shrinkUntil = now + 9000;
@@ -1464,7 +1558,7 @@
     checkLevelClear: function(game) {
       if (this.bricksLeft() > 0) return false;
       this.level++;
-      this.speed = Math.min(this.speed * 1.18, this.MAX_SPEED);
+      this.speed = Math.min(this.speed * this.tier.ramp, this.MAX_SPEED);
       SFX.levelUp();
       this.buildLevel(game.canvas);
       this.resetBalls(game.canvas);
@@ -2201,6 +2295,12 @@
     COYOTE_FRAMES: 7,   // still jumpable just after walking off a ledge/landing
     BUFFER_FRAMES: 9,   // a jump pressed just before landing still fires
 
+    TIERS: {
+      easy:   { speed: 3.8, cap: 9.0,  ramp: 300, gap: 145, floor: 88, ptero: 320, pteroRate: 0.20 },
+      normal: { speed: 4.6, cap: 11.5, ramp: 230, gap: 115, floor: 62, ptero: 200, pteroRate: 0.28 },
+      hard:   { speed: 5.8, cap: 14.5, ramp: 170, gap:  95, floor: 48, ptero: 110, pteroRate: 0.36 }
+    },
+
     init: function(game) {
       const canvas = game.canvas;
       this.dino = {
@@ -2226,9 +2326,10 @@
       for (let i = 0; i < 26; i++) {
         this.stars.push({ x: (i * 97 + 31) % canvas.width, y: 20 + ((i * 53) % 150), tw: i % 3 });
       }
+      this.tier = Difficulty.pick(this.TIERS);
       this.distance = 0;
-      this.speed = 4.6;
-      this.spawnGap = 110;
+      this.speed = this.tier.speed;
+      this.spawnGap = this.tier.gap;
       this.coinGap = 150;
       this.night = 0;
       this.lastMilestone = 0;
@@ -2280,10 +2381,10 @@
 
     spawnObstacle: function(canvas) {
       const groundY = canvas.height - 20;
-      const allowPtero = this.distance > 200;
+      const allowPtero = this.distance > this.tier.ptero;
       const roll = Math.random();
 
-      if (allowPtero && roll < 0.28) {
+      if (allowPtero && roll < this.tier.pteroRate) {
         // Pterodactyl: low (jump it) or head-height (duck it)
         const high = Math.random() < 0.55;
         this.obstacles.push({
@@ -2309,7 +2410,7 @@
           color: '#ec4899'
         });
       }
-      const minGap = Math.max(62, 115 - this.speed * 4);
+      const minGap = Math.max(this.tier.floor, this.tier.gap - this.speed * 4);
       this.spawnGap = minGap + Math.random() * 80;
     },
 
@@ -2378,7 +2479,7 @@
       this.distance += this.speed / 10;
       const score = Math.floor(this.distance);
       if (score !== game.score) game.updateScore(score);
-      this.speed = Math.min(4.6 + this.distance / 230, 11.5);
+      this.speed = Math.min(this.tier.speed + this.distance / this.tier.ramp, this.tier.cap);
 
       // Milestone every 100
       if (Math.floor(score / 100) > this.lastMilestone) {
@@ -2657,6 +2758,12 @@
   const SnakeGame = {
     CELL: 20,
     DIRS: [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }],
+
+    TIERS: {
+      easy:   { tick: 155, floor: 95, step: 1.1, bonusMs: 7500 },
+      normal: { tick: 125, floor: 70, step: 1.6, bonusMs: 6200 },
+      hard:   { tick: 100, floor: 52, step: 2.3, bonusMs: 4800 }
+    },
     cols: 0,
     rows: 0,
     snake: [],
@@ -2681,9 +2788,10 @@
       const cx = Math.floor(this.cols / 2);
       const cy = Math.floor(this.rows / 2);
       this.snake = [ { x: cx, y: cy }, { x: cx - 1, y: cy }, { x: cx - 2, y: cy } ];
+      this.tier = Difficulty.pick(this.TIERS);
       this.dir = { x: 1, y: 0 };
       this.nextDir = { x: 1, y: 0 };
-      this.tickMs = 125;
+      this.tickMs = this.tier.tick;
       this.lastTick = 0;
       this.bonus = null;
       this.foodsEaten = 0;
@@ -2785,7 +2893,7 @@
         SFX.eat(this.snake.length);
         Fx.burst(head.x * C + C / 2, head.y * C + C / 2, '#ec4899', 9, 2.2);
         Fx.text(head.x * C + C / 2, head.y * C - 4, `+${pts}`, this.streak > 1 ? '#fbbf24' : '#ec4899');
-        this.tickMs = Math.max(70, this.tickMs - 1.6);
+        this.tickMs = Math.max(this.tier.floor, this.tickMs - this.tier.step);
         this.placeFood();
 
         // Every 5 foods → a timed bonus. Once the snake is long the bonus
@@ -2793,7 +2901,7 @@
         if (this.foodsEaten % 5 === 0 && !this.bonus) {
           const spot = this.freeCell();
           const trim = this.snake.length > 14;
-          this.bonus = { x: spot.x, y: spot.y, expiresAt: ts + 6200, born: ts, trim: trim };
+          this.bonus = { x: spot.x, y: spot.y, expiresAt: ts + this.tier.bonusMs, born: ts, trim: trim };
         }
       } else if (this.bonus && head.x === this.bonus.x && head.y === this.bonus.y) {
         if (this.bonus.trim) {
@@ -2848,7 +2956,7 @@
       if (this.bonus) {
         const bx = this.bonus.x * C + C / 2;
         const by = this.bonus.y * C + C / 2;
-        const frac = Math.max(0, (this.bonus.expiresAt - now) / 6200);
+        const frac = Math.max(0, (this.bonus.expiresAt - now) / (this.tier ? this.tier.bonusMs : 6200));
         const blink = 0.55 + 0.45 * Math.sin(now / 110);
         const tint = this.bonus.trim ? '#4ade80' : '#fbbf24';
         ctx.globalAlpha = blink;

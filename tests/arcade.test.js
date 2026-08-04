@@ -596,6 +596,122 @@ const levelOf = (B, name) => 1 + B.LAYOUTS.findIndex((L) => L.name === name);
         `len ${A.SnakeGame.snake.length}`);
 }
 
+// ----------------------------------------------------------------- difficulty
+{
+  const { h, A } = boot('breakout');
+  const D = h.win.__arcade.GameSystem;
+  const sel = h.els['difficultySelect'];
+  check('a difficulty selector is offered', !!sel && sel.children.length === 3,
+        sel ? sel.children.map((o) => o.value).join(',') : 'missing');
+  check('normal is the default', sel && sel.value === 'normal', sel && sel.value);
+}
+{
+  // Normal must be exactly what shipped before difficulty existed.
+  const { h, B } = boot('breakout');
+  const t = B.TIERS.normal;
+  check('normal keeps the shipped balance',
+        B.speed === 6.5 && B.MAX_SPEED === 18 && B.lives === 3 && B.BASE_W === 104 &&
+        t.ramp === 1.18 && t.first === 26000 && t.every === 15000,
+        `speed ${B.speed} cap ${B.MAX_SPEED} lives ${B.lives} paddle ${B.BASE_W}`);
+}
+{
+  // Each dial has to move the right way across the three tiers.
+  const { B } = boot('breakout');
+  const e = B.TIERS.easy, n = B.TIERS.normal, hd = B.TIERS.hard;
+  const monotone = (get, dir) => {
+    const a = get(e), b = get(n), c = get(hd);
+    return dir > 0 ? (a < b && b < c) : (a > b && b > c);
+  };
+  check('easy is slower and hard is faster', monotone((t) => t.speed, 1) && monotone((t) => t.max, 1));
+  check('easy gives more lives, hard fewer', monotone((t) => t.lives, -1));
+  check('easy gives a wider paddle', monotone((t) => t.paddle, -1));
+  check('easy delays the wall, hard hurries it', monotone((t) => t.first, -1) && monotone((t) => t.every, -1));
+  check('easy drops more capsules', monotone((t) => t.drop, -1));
+  check('easy sees fewer hazards', monotone((t) => t.hazard, 1));
+  check('easy meets modifiers later and less often',
+        monotone((t) => t.mutFrom, -1) && monotone((t) => t.mutChance, 1));
+}
+{
+  // And the tier must actually reach the running game, not just the table.
+  const read = (level) => {
+    const hh = run();
+    hh.win.__arcade.GameSystem.setDifficulty
+      ? hh.win.__arcade.GameSystem.setDifficulty(level)
+      : null;
+    return hh;
+  };
+  for (const [level, expect] of [['easy', 'easy'], ['hard', 'hard']]) {
+    const hh = run();
+    const sel = hh.els['difficultySelect'];
+    sel.value = level;
+    sel.dispatch('change', { target: sel });
+    hh.els['gameSelect'].value = 'breakout';
+    hh.win.startGame();
+    const B = hh.win.__arcade.Breakout;
+    check(`selecting ${level} reaches Breakout`, B.speed === B.TIERS[expect].speed &&
+          B.lives === B.TIERS[expect].lives && B.BASE_W === B.TIERS[expect].paddle,
+          `speed ${B.speed} lives ${B.lives} paddle ${B.BASE_W}`);
+    hh.els['gameSelect'].value = 'dino';
+    hh.win.startGame();
+    // Dino's speed ramps from the first frame, so compare the tier it picked.
+    const DG = hh.win.__arcade.DinoGame;
+    check(`selecting ${level} reaches Dino`, DG.tier === DG.TIERS[expect],
+          `speed ${DG.speed.toFixed(2)} vs tier ${DG.TIERS[expect].speed}`);
+    hh.els['gameSelect'].value = 'snake';
+    hh.win.startGame();
+    check(`selecting ${level} reaches Snake`,
+          hh.win.__arcade.SnakeGame.tickMs === hh.win.__arcade.SnakeGame.TIERS[expect].tick);
+  }
+}
+{
+  // Hazards scale with the tier rather than staying a fixed slice.
+  const share = (level) => {
+    const hh = run();
+    const sel = hh.els['difficultySelect'];
+    sel.value = level; sel.dispatch('change', { target: sel });
+    hh.els['gameSelect'].value = 'breakout';
+    hh.win.startGame();
+    const B = hh.win.__arcade.Breakout;
+    B.combo = 6;
+    let haz = 0, n = 0;
+    for (let i = 0; i < 20000; i++) {
+      B.powerups = []; B.maybeDropPowerup(0, 0);
+      if (B.powerups[0]) { n++; if (B.isHazard(B.powerups[0].type)) haz++; }
+    }
+    B.powerups = [];
+    return haz / n;
+  };
+  const e = share('easy'), n = share('normal'), hd = share('hard');
+  check('the hazard share really scales with difficulty', e < n && n < hd,
+        `easy ${(e * 100).toFixed(0)}%, normal ${(n * 100).toFixed(0)}%, hard ${(hd * 100).toFixed(0)}%`);
+}
+{
+  // Bests must not be shared across tiers.
+  const hh = run();
+  const HS = hh.win.__arcade.HighScores;
+  const Diff = hh.win.__arcade.Difficulty;
+  Diff.set('easy');   HS.submit('breakout', 5000);
+  Diff.set('hard');
+  check('an easy best does not become the hard bar', HS.get('breakout') === 0,
+        `hard best reads ${HS.get('breakout')}`);
+  HS.submit('breakout', 900);
+  Diff.set('easy');
+  check('each tier keeps its own best', HS.get('breakout') === 5000);
+}
+{
+  // Scores recorded before difficulty existed belong to Normal.
+  const hh = run();
+  const HS = hh.win.__arcade.HighScores;
+  const Diff = hh.win.__arcade.Difficulty;
+  hh.win.localStorage.setItem('arcadeHighScores', JSON.stringify({ dino: 4242 }));
+  Diff.set('normal');
+  check('an old bare score migrates to normal', HS.get('dino') === 4242, `${HS.get('dino')}`);
+  Diff.set('hard');
+  check('...and does not leak into hard', HS.get('dino') === 0);
+  Diff.set('normal');
+}
+
+
 let failed = 0;
 for (const r of results) {
   if (!r.pass) failed++;
