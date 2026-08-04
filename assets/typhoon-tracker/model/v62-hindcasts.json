@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-04T11:09:21Z",
+  "generated_at": "2026-08-04T13:37:02Z",
   "note": "Per-storm v62 hindcasts, loaded lazily. History mode uses v62 wherever a run covers the initialisation on screen and v23 elsewhere.",
   "hindcasts": {
     "1979275N06159": {
@@ -1101,6 +1101,106 @@
       "intensity_runs": 38,
       "mean_track_mae_km": 491.6,
       "file": "v62/2003196N05150.json"
+    },
+    "2003291N17147": {
+      "storm": "Parma",
+      "season": 2003,
+      "runs": 54,
+      "first_issue_utc": "2003-10-19T06:00:00Z",
+      "last_issue_utc": "2003-11-01T12:00:00Z",
+      "intensity_runs": 50,
+      "mean_track_mae_km": 1295.9,
+      "file": "v62/2003291N17147.json"
+    },
+    "2004093N07154": {
+      "storm": "Sudal",
+      "season": 2004,
+      "runs": 60,
+      "first_issue_utc": "2004-04-03T00:00:00Z",
+      "last_issue_utc": "2004-04-17T18:00:00Z",
+      "intensity_runs": 54,
+      "mean_track_mae_km": 890.5,
+      "file": "v62/2004093N07154.json"
+    },
+    "2004333N06154": {
+      "storm": "Nanmadol",
+      "season": 2004,
+      "runs": 21,
+      "first_issue_utc": "2004-11-29T00:00:00Z",
+      "last_issue_utc": "2004-12-04T00:00:00Z",
+      "intensity_runs": 21,
+      "mean_track_mae_km": 691.0,
+      "file": "v62/2004333N06154.json"
+    },
+    "2005237N14148": {
+      "storm": "Talim",
+      "season": 2005,
+      "runs": 34,
+      "first_issue_utc": "2005-08-25T18:00:00Z",
+      "last_issue_utc": "2005-09-03T00:00:00Z",
+      "intensity_runs": 30,
+      "mean_track_mae_km": 403.7,
+      "file": "v62/2005237N14148.json"
+    },
+    "2006180N06140": {
+      "storm": "Ewiniar",
+      "season": 2006,
+      "runs": 50,
+      "first_issue_utc": "2006-06-30T06:00:00Z",
+      "last_issue_utc": "2006-07-12T12:00:00Z",
+      "intensity_runs": 42,
+      "mean_track_mae_km": 515.9,
+      "file": "v62/2006180N06140.json"
+    },
+    "2007135N08147": {
+      "storm": "Yutu",
+      "season": 2007,
+      "runs": 36,
+      "first_issue_utc": "2007-05-16T00:00:00Z",
+      "last_issue_utc": "2007-05-24T18:00:00Z",
+      "intensity_runs": 28,
+      "mean_track_mae_km": 1244.1,
+      "file": "v62/2007135N08147.json"
+    },
+    "2007274N18131": {
+      "storm": "Krosa",
+      "season": 2007,
+      "runs": 47,
+      "first_issue_utc": "2007-10-02T06:00:00Z",
+      "last_issue_utc": "2007-10-13T18:00:00Z",
+      "intensity_runs": 24,
+      "mean_track_mae_km": 1166.5,
+      "file": "v62/2007274N18131.json"
+    },
+    "1987200N04191": {
+      "storm": "Wynne",
+      "season": 1987,
+      "runs": 62,
+      "first_issue_utc": "1987-07-19T12:00:00Z",
+      "last_issue_utc": "1987-08-03T18:00:00Z",
+      "intensity_runs": 47,
+      "mean_track_mae_km": 833.2,
+      "file": "v62/1987200N04191.json"
+    },
+    "1987247N09150": {
+      "storm": "Freda",
+      "season": 1987,
+      "runs": 61,
+      "first_issue_utc": "1987-09-04T18:00:00Z",
+      "last_issue_utc": "1987-09-19T18:00:00Z",
+      "intensity_runs": 57,
+      "mean_track_mae_km": 621.7,
+      "file": "v62/1987247N09150.json"
+    },
+    "1988295N10138": {
+      "storm": "Ruby",
+      "season": 1988,
+      "runs": 32,
+      "first_issue_utc": "1988-10-21T12:00:00Z",
+      "last_issue_utc": "1988-10-29T06:00:00Z",
+      "intensity_runs": 30,
+      "mean_track_mae_km": 409.5,
+      "file": "v62/1988295N10138.json"
     }
   }
 }
