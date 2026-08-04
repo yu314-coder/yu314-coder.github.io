@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-04T08:34:14Z",
+  "generated_at": "2026-08-04T11:09:21Z",
   "note": "Per-storm v62 hindcasts, loaded lazily. History mode uses v62 wherever a run covers the initialisation on screen and v23 elsewhere.",
   "hindcasts": {
     "1979275N06159": {
@@ -1001,6 +1001,106 @@
       "intensity_runs": 58,
       "mean_track_mae_km": 452.8,
       "file": "v62/1994192N05139.json"
+    },
+    "1994224N20152": {
+      "storm": "Fred",
+      "season": 1994,
+      "runs": 54,
+      "first_issue_utc": "1994-08-13T00:00:00Z",
+      "last_issue_utc": "1994-08-26T06:00:00Z",
+      "intensity_runs": 36,
+      "mean_track_mae_km": 629.5,
+      "file": "v62/1994224N20152.json"
+    },
+    "1995236N10134": {
+      "storm": "Kent",
+      "season": 1995,
+      "runs": 31,
+      "first_issue_utc": "1995-08-25T00:00:00Z",
+      "last_issue_utc": "1995-09-01T12:00:00Z",
+      "intensity_runs": 29,
+      "mean_track_mae_km": 407.6,
+      "file": "v62/1995236N10134.json"
+    },
+    "1995258N14115": {
+      "storm": "Ryan",
+      "season": 1995,
+      "runs": 41,
+      "first_issue_utc": "1995-09-15T12:00:00Z",
+      "last_issue_utc": "1995-09-25T12:00:00Z",
+      "intensity_runs": 38,
+      "mean_track_mae_km": 1196.3,
+      "file": "v62/1995258N14115.json"
+    },
+    "1996254N13138": {
+      "storm": "Violet",
+      "season": 1996,
+      "runs": 67,
+      "first_issue_utc": "1996-09-10T18:00:00Z",
+      "last_issue_utc": "1996-09-27T06:00:00Z",
+      "intensity_runs": 56,
+      "mean_track_mae_km": 872.3,
+      "file": "v62/1996254N13138.json"
+    },
+    "1996261N08184": {
+      "storm": "Yates",
+      "season": 1996,
+      "runs": 61,
+      "first_issue_utc": "1996-09-18T06:00:00Z",
+      "last_issue_utc": "1996-10-03T06:00:00Z",
+      "intensity_runs": 49,
+      "mean_track_mae_km": 827.3,
+      "file": "v62/1996261N08184.json"
+    },
+    "1998258N19126": {
+      "storm": "Todd",
+      "season": 1998,
+      "runs": 20,
+      "first_issue_utc": "1998-09-15T18:00:00Z",
+      "last_issue_utc": "1998-09-20T12:00:00Z",
+      "intensity_runs": 18,
+      "mean_track_mae_km": 535.6,
+      "file": "v62/1998258N19126.json"
+    },
+    "2001238N16139": {
+      "storm": "Wutip",
+      "season": 2001,
+      "runs": 33,
+      "first_issue_utc": "2001-08-27T00:00:00Z",
+      "last_issue_utc": "2001-09-04T00:00:00Z",
+      "intensity_runs": 28,
+      "mean_track_mae_km": 833.6,
+      "file": "v62/2001238N16139.json"
+    },
+    "2002178N04155": {
+      "storm": "Chataan",
+      "season": 2002,
+      "runs": 59,
+      "first_issue_utc": "2002-06-28T06:00:00Z",
+      "last_issue_utc": "2002-07-12T18:00:00Z",
+      "intensity_runs": 54,
+      "mean_track_mae_km": 630.4,
+      "file": "v62/2002178N04155.json"
+    },
+    "2002335N05166": {
+      "storm": "Pongsona",
+      "season": 2002,
+      "runs": 35,
+      "first_issue_utc": "2002-12-02T06:00:00Z",
+      "last_issue_utc": "2002-12-11T12:00:00Z",
+      "intensity_runs": 33,
+      "mean_track_mae_km": 789.8,
+      "file": "v62/2002335N05166.json"
+    },
+    "2003196N05150": {
+      "storm": "Imbudo",
+      "season": 2003,
+      "runs": 38,
+      "first_issue_utc": "2003-07-16T00:00:00Z",
+      "last_issue_utc": "2003-07-25T06:00:00Z",
+      "intensity_runs": 38,
+      "mean_track_mae_km": 491.6,
+      "file": "v62/2003196N05150.json"
     }
   }
 }
