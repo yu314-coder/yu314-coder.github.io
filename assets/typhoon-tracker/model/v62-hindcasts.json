@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-04T18:28:12Z",
+  "generated_at": "2026-08-05T01:04:35Z",
   "note": "Per-storm v62 hindcasts, loaded lazily. History mode uses v62 wherever a run covers the initialisation on screen and v23 elsewhere.",
   "hindcasts": {
     "1979275N06159": {
