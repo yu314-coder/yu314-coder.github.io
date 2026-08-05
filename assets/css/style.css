@@ -782,6 +782,28 @@ html.js .reveal:not(.is-visible) { opacity: 0; transform: translateY(16px); }
   box-shadow: 0 8px 22px rgba(124, 58, 237, 0.5);
 }
 
+/* Indestructible: a switch, not a tier, so it reads as a modifier. */
+.ind-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #cbd5ff;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  padding: 8px 12px;
+  border: 1px solid rgba(100, 116, 139, 0.55);
+  border-radius: 10px;
+  cursor: pointer;
+  touch-action: manipulation;
+  min-height: 44px;
+}
+.ind-toggle:has(input:checked) {
+  border-color: #94a3b8;
+  background: linear-gradient(120deg, rgba(100,116,139,0.35), rgba(148,163,184,0.22));
+  color: #f1f5f9;
+}
+.ind-toggle input { accent-color: #94a3b8; width: 16px; height: 16px; }
+
 /* Autopilot: unmistakable while the algorithm has the controls. */
 #gameControls button#autoToggle.is-on {
   background: linear-gradient(120deg, #f59e0b 0%, #fbbf24 55%, #f97316 100%);

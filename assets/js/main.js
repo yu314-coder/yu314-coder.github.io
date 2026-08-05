@@ -169,6 +169,19 @@
       try { localStorage.setItem(this.KEY, v); } catch (e) {}
     },
 
+    // Indestructible is orthogonal to the three tiers: it changes what the
+    // board is made of, not how fast the ball moves, so you still pick easy,
+    // normal or hard underneath it.
+    IND_KEY: 'arcadeIndestructible',
+    indestructible: (function() {
+      try { return localStorage.getItem('arcadeIndestructible') === '1'; } catch (e) { return false; }
+    })(),
+
+    setIndestructible: function(on) {
+      this.indestructible = !!on;
+      try { localStorage.setItem(this.IND_KEY, this.indestructible ? '1' : '0'); } catch (e) {}
+    },
+
     // pick({easy: a, normal: b, hard: c})
     pick: function(table) {
       return table[this.current] !== undefined ? table[this.current] : table.normal;
@@ -678,6 +691,28 @@
       });
       controls.appendChild(label);
       controls.appendChild(sel);
+
+      // Orthogonal to the tier, so it is a switch rather than a fourth option.
+      const wrap = document.createElement('label');
+      wrap.id = 'indestructibleWrap';
+      wrap.className = 'ind-toggle';
+      wrap.title = 'Bury the board in indestructible tiles. The only ways through are '
+                 + 'quirks of the engine: thread a 6px seam, walk a blast diagonally, '
+                 + 'or clear a row through the steel with a keystone.';
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.id = 'indestructibleToggle';
+      box.checked = Difficulty.indestructible;
+      box.addEventListener('change', (e) => {
+        Difficulty.setIndestructible(e.target.checked);
+        if (this.gameActive) this.startGame();
+        this.refreshMeta();
+      });
+      const cap = document.createElement('span');
+      cap.textContent = 'Indestructible';
+      wrap.appendChild(box);
+      wrap.appendChild(cap);
+      controls.appendChild(wrap);
     },
 
     injectMuteButton: function() {
@@ -750,7 +785,11 @@
       if (hintEl) {
         const touch = this.isTouch();
         const base = (touch ? this.TOUCH_HINTS : this.HINTS)[this.currentGame] || '';
-        hintEl.textContent = Difficulty.LABEL[Difficulty.current] + ' · ' + base + (touch
+        const ind = Difficulty.indestructible
+          ? ' · INDESTRUCTIBLE: the wall cannot be broken — thread a 6px seam to get above it,'
+            + ' then let a blast walk the diagonal and a KEY clear the row'
+          : '';
+        hintEl.textContent = Difficulty.LABEL[Difficulty.current] + ind + ' · ' + base + (touch
           ? ' · ⏸ pauses · 🤖 autopilot plays for you, tap it again to take over'
           : ' · P pauses · 🤖 autopilot plays for you, S takes over');
       }
@@ -1250,6 +1289,16 @@
             if (b.kind !== 'steel') b.hp = b.max = 1;
           }
         }
+      }
+      if (Difficulty.indestructible) {
+        this.buryBoard(canvas);
+        this.mutator = null;         // the wall is the modifier
+        // Getting in at all takes a while, so the first march is slower. After
+        // that the clock is real: the sealed pocket sits lowest, so it reaches
+        // the danger line first and the blast has to have gone off by then.
+        // The steel underneath it crosses the line first and harmlessly, which
+        // is the one time in this game that watching the wall cross is fine.
+        this.descendAt = performance.now() + this.DESCEND_FIRST * 1.6;
       }
       this.initialBricks = this.bricksLeft();
       this._planX = null;
@@ -2142,6 +2191,111 @@
       let bi = -1, bv = 0;
       for (let i = 0; i < bins; i++) if (tally[i] > bv) { bv = tally[i]; bi = i; }
       return bi < 0 ? null : (bi + 0.5) * w;
+    },
+
+    // --- INDESTRUCTIBLE --------------------------------------------------
+    // The whole grid is steel, which the ball cannot break, the laser cannot
+    // drill and the blast will not touch. The only things that can be
+    // destroyed are sealed inside it, and every route to them is a property of
+    // this engine rather than a move the game teaches you:
+    //
+    //   the seam    bricks sit 6px apart and collision tests the ball's centre
+    //               against a rectangle, so a centre travelling down a seam
+    //               touches nothing and comes out above the wall. Verified:
+    //               ±3px of the seam and under dx/dy = 0.02, about 1.1 degrees
+    //               off vertical. That is the way in, and there is no other,
+    //               because with no brick broken there is no capsule either.
+    //   the chain   a blast reaches all eight neighbours, diagonals included,
+    //               and chains through explosives. A diagonal staircase of them
+    //               therefore walks straight down through solid steel.
+    //   the row     a keystone clears every breakable in its row and skips the
+    //               steel between, so it reaches things walled off from it.
+    //   the bolt    laser bolts are points too, so they thread the same seam
+    //               once you have earned a capsule.
+    //
+    // A board of nothing but steel would report zero bricks left and complete
+    // itself, so the targets are real and have to be reached.
+    IND_ROWS: 5,
+
+    buryBoard: function(canvas) {
+      const cfg = this.config;
+      const bw = cfg.brickWidth, pad = cfg.brickPadding;
+      // Wide enough to run off both edges. A normal layout leaves a lane down
+      // each side of the canvas, and a lane is not a seam -- the ball would
+      // simply walk around the wall and the whole mode would be pointless.
+      // 13 minimum: the pattern below occupies 11 distinct columns and the two
+      // outermost are deliberately left as steel overhang, so anything narrower
+      // wraps two targets onto the same cell and quietly loses one.
+      const cols = this.cols = Math.max(13, Math.ceil((canvas.width + pad) / (bw + pad)));
+      const rows = this.IND_ROWS;
+      const gridW = cols * bw + (cols - 1) * pad;
+      const left = Math.round((canvas.width - gridW) / 2);   // <= 0 by construction
+      // Targets go only in columns that are wholly on screen. The wall is built
+      // wider than the canvas on purpose, so the outer columns are overhang --
+      // a target out there would be unreachable and the board unwinnable. The
+      // canvas is a fixed 640 today and this comes out as columns 1..11; it is
+      // written this way so that making the canvas responsive cannot quietly
+      // strand half the targets off the side.
+      const firstVis = Math.max(1, Math.ceil(-left / (bw + pad)));
+      const lastVis = Math.min(cols - 2, Math.floor((canvas.width - left - bw) / (bw + pad)));
+      const span = Math.max(1, lastVis - firstVis + 1);
+      const shift = (this.level - 1) % span;      // slide it so it is not the same picture twice
+
+      const cell = (col, row) => ({
+        col: col, row: row, kind: 'steel', hp: 1, max: 1,
+        x: left + col * (cfg.brickWidth + cfg.brickPadding),
+        y: cfg.brickOffsetTop + row * (cfg.brickHeight + cfg.brickPadding),
+        w: cfg.brickWidth, h: cfg.brickHeight
+      });
+
+      this.bricks = [];
+      const grid = [];
+      for (let r = 0; r < rows; r++) {
+        grid[r] = [];
+        for (let c = 0; c < cols; c++) {
+          const b = cell(c, r);
+          grid[r][c] = b;
+          this.bricks.push(b);
+        }
+      }
+      const put = (c, r, kind, hp) => {
+        const b = grid[r] && grid[r][firstVis + (c + shift) % span];
+        if (!b) return null;
+        b.kind = kind; b.hp = hp; b.max = hp;
+        return b;
+      };
+
+      // The top row is the only face the ball can ever touch, and only from
+      // above, so the seam is the way in and there is no other. The tier still
+      // decides how much work the row is once you are up there.
+      const face = { easy: 1, normal: 2, hard: 3 }[Difficulty.current] || 2;
+      put(0, 0, 'normal', face);
+      put(1, 0, 'boom', 1);          // head of the staircase
+      put(2, 0, 'normal', face);
+      put(4, 0, 'mystery', 1);       // the only source of pierce and the laser
+      // The vault. Nothing stops you chipping at it from above, but at this
+      // many hit points you would need nine separate seam threads before the
+      // wall marches down, and you will not get them. A keystone collapse
+      // zeroes it in one go regardless of what it has left, so the keystone
+      // stops being a shortcut and becomes the way this board is finished.
+      put(5, 0, 'normal', 9);
+      put(6, 0, 'normal', face);
+      put(8, 0, 'normal', face);
+      put(9, 0, 'key', 2);           // collapses the row through the steel between
+      put(10, 0, 'normal', face);
+
+      // A diagonal of explosives. Nothing below the top row can be hit, so the
+      // blast walking down through solid steel is the only thing that reaches
+      // any of it. Row 4 stays entirely steel: a target sitting on the bottom
+      // row would be open from underneath and would give the whole mode away.
+      put(2, 1, 'boom', 1);
+      put(3, 2, 'boom', 1);
+      put(4, 3, 'boom', 1);
+      put(1, 2, 'normal', 1);        // off to the side of the staircase,
+      put(5, 2, 'normal', 1);        // only the blast radius reaches these
+      put(5, 3, 'normal', 1);
+
+      this.layoutName = 'INDESTRUCTIBLE';
     },
 
     // --- Shot planning ---------------------------------------------------
