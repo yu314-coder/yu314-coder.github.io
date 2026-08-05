@@ -284,7 +284,7 @@ def run_storm(sid, season_year, storm, intensity_on=True):
             for st in np.asarray(route, "float32"):
                 la_ += float(st[1]) / 111.2
                 lo_ += float(st[0]) / (111.2 * max(math.cos(math.radians(la_)), 0.20))
-                lats.append(round(la_, 3)); lons.append(round(lo_, 3))
+                lats.append(round(la_, 2)); lons.append(round(lo_, 2))
 
             ens = LOCAL_WEIGHT * local[None] + PACIFIC_WEIGHT * mem
             cone, members = [], []
@@ -296,7 +296,7 @@ def run_storm(sid, season_year, storm, intensity_on=True):
                         a_ += float(ens[m, k, 1]) / 111.2
                         o_ += float(ens[m, k, 0]) / (111.2 * max(math.cos(math.radians(a_)), 0.20))
                     d.append(km(lats[lead], lons[lead], a_, o_))
-                cone.append(round(pct(d, CONE_PCT), 1))
+                cone.append(round(pct(d, CONE_PCT)))
             step = max(1, ens.shape[0] // KEEP_MEMBERS)
             for m in range(0, ens.shape[0], step):
                 if len(members) >= KEEP_MEMBERS: break
@@ -304,7 +304,7 @@ def run_storm(sid, season_year, storm, intensity_on=True):
                 for k in range(ens.shape[1]):
                     a_ += float(ens[m, k, 1]) / 111.2
                     o_ += float(ens[m, k, 0]) / (111.2 * max(math.cos(math.radians(a_)), 0.20))
-                    mla.append(round(a_, 3)); mlo.append(round(o_, 3))
+                    mla.append(round(a_, 2)); mlo.append(round(o_, 2))
                 members.append({"lats": mla, "lons": mlo})
 
             run = {
@@ -341,10 +341,10 @@ def run_storm(sid, season_year, storm, intensity_on=True):
                     rows, _ = couple(rows, sp_, sf_, lat, lon, base_lat, base_lon,
                                      [{"lead_hours": h, "lat": a, "lon": o}
                                       for h, a, o in zip(run["lead_hours"], lats, lons)], float(cw), float(cp))
-                    run["vmax_kt"] = [round(float(r["vmax_kt"]), 1) for r in rows]
-                    run["pres_hpa"] = [round(float(r.get("pressure_hpa", r.get("central_pressure_hpa"))), 1) for r in rows]
-                    run["rmw_km"] = [round(float(r["rmw_km"]), 1) for r in rows]
-                    run["radii_km"] = [[round(float(x), 1) for x in r["wind_radii_km"]] for r in rows]
+                    run["vmax_kt"] = [round(float(r["vmax_kt"])) for r in rows]
+                    run["pres_hpa"] = [round(float(r.get("pressure_hpa", r.get("central_pressure_hpa")))) for r in rows]
+                    run["rmw_km"] = [round(float(r["rmw_km"])) for r in rows]
+                    run["radii_km"] = [[round(float(x)) for x in r["wind_radii_km"]] for r in rows]
                     run["has_intensity"] = True
 
             # post-issue truth is used ONLY to score, never to forecast
@@ -447,7 +447,7 @@ def main():
             "runs": runs,
         }
         out = OUT_DIR / f"{sid}.json"
-        out.write_text(json.dumps(payload) + "\n")
+        out.write_text(json.dumps(payload, separators=(",", ":")) + "\n")
         scored = [r["track_mae_km"] for r in runs if "track_mae_km" in r]
         index["hindcasts"][sid] = {
             "storm": storm.get("name"), "season": year, "runs": len(runs),
@@ -465,7 +465,7 @@ def main():
             _FULL.clear(); _FULL_ORDER.clear()
             log(f"  pruned {freed/1e9:.2f} GB of analyses")
         index["generated_at"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        INDEX.write_text(json.dumps(index, indent=2) + "\n")
+        INDEX.write_text(json.dumps(index, separators=(",", ":")) + "\n")
         log(f"  {len(runs)} initialisations ({index['hindcasts'][sid]['intensity_runs']} with intensity), "
             f"{out.stat().st_size/1024:.0f} KB"
             + (f", mean {index['hindcasts'][sid]['mean_track_mae_km']} km over {len(scored)} scored" if scored else ""))
@@ -473,7 +473,7 @@ def main():
     index["generated_at"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     index["note"] = ("Per-storm v62 hindcasts, loaded lazily. History mode uses v62 wherever a run covers "
                      "the initialisation on screen and v23 elsewhere.")
-    INDEX.write_text(json.dumps(index, indent=2) + "\n")
+    INDEX.write_text(json.dumps(index, separators=(",", ":")) + "\n")
     log(f"index -> {INDEX} ({len(index['hindcasts'])} storm(s))")
 
 

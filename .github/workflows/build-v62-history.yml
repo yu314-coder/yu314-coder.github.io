@@ -15,6 +15,10 @@ name: Build v62 history hindcasts
 # file was being fetched; it also publishes a 2.5 degree analysis on the same
 # grid as CFSR, so both halves now cost the same. Analyses are pruned after each
 # storm to keep the runner's disk bounded.
+#
+# 20 a run takes roughly 140 of the 350 available minutes and pulls about 5 GB
+# from NCEI. At the cadence GitHub actually delivers these events, that is
+# ~120 storms a day, so the ~935 still missing land in a bit over a week.
 on:
   # Hourly. Both eras are now in scope: the CDAS half used to be excluded
   # because the only product being fetched was the 75 MB pressure file, ~1.3 TB
@@ -33,7 +37,7 @@ on:
       count:
         description: "How many ungenerated storms to take when `storms` is blank (use 1 for post-2011/CDAS storms)"
         required: false
-        default: "10"
+        default: "20"
       era:
         description: "Which analysis source to draw from"
         required: false
@@ -123,7 +127,7 @@ jobs:
           MPLBACKEND: Agg
         run: |
           STORMS="${{ inputs.storms }}"
-          COUNT="${{ inputs.count }}"; COUNT="${COUNT:-10}"
+          COUNT="${{ inputs.count }}"; COUNT="${COUNT:-20}"
           ERA="${{ inputs.era }}"; ERA="${ERA:-all}"
           if [ -n "$STORMS" ]; then
             python scripts/build_v62_history.py $STORMS --prune
