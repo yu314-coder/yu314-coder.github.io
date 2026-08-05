@@ -80,7 +80,7 @@ jobs:
           probe "/data/ root"         "https://www.ncei.noaa.gov/data/"
 
           echo
-          echo "=== controls: files known to exist and to have downloaded before ===
+          echo "=== controls: files known to exist and to have downloaded before ==="
           # If a control 403s it is a block, not absence. One per service, so the
           # two can be told apart rather than judged together.
           probe "CDAS  2026-05-10  pgrblanl"  "$CFS/6-hourly-low-resolution/2026/202605/20260510/cdas1.t00z.pgrblanl.grib2"
