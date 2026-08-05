@@ -44,7 +44,10 @@ jobs:
 
           probe () {  # label url
             code=$(curl -sIL --max-time 60 -o /dev/null -w '%{http_code}' "$2")
-            size=$(curl -sIL --max-time 60 "$2" | awk 'tolower($1)=="content-length:"{print $2}' | tail -1)
+            # tr -d '\r': HTTP headers end CRLF, and the stray CR made the size
+            # arithmetic below fail -- which silently swallowed the result for
+            # every archive that actually answered.
+            size=$(curl -sIL --max-time 60 "$2" | awk 'tolower($1)=="content-length:"{print $2}' | tr -d '\r' | tail -1)
             printf '  %-46s %s  %s\n' "$1" "$code" "${size:+$((size/1048576)) MB}"
           }
 
