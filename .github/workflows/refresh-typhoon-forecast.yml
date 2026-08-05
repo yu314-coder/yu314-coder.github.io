@@ -6,12 +6,22 @@ name: Refresh typhoon AI forecast
 # causally -- GFS cycle not posted, track shorter than 24 h -- falls back to the
 # v23 track and says so in the output.
 #
-# Hourly rather than half-hourly: v62's inputs are 6-hourly GFS f000 analyses
-# that land ~4 h after their cycle hour, so a faster schedule would only re-
-# download the same files from a free public service for no new information.
+# Two clocks matter here, and only one of them is the analysis clock.
+#
+# v62's inputs are 6-hourly GFS f000 analyses landing ~4 h after their cycle
+# hour, so for *new atmospheric data* an hourly schedule is already generous
+# and anything faster just re-downloads the same files from a free service.
+#
+# But the storm list is JMA's targetTc.json, and that changes whenever a
+# depression is named -- the browser reads it live while this file is
+# precomputed, so a storm that forms just after a run shows the overlay's
+# "no forecast for it yet" until the next one. On an hourly cron that was a
+# wait of up to ~65 minutes including the Pages deploy. Every 20 minutes cuts
+# it to ~25 for the cost of a ~5 minute job, with the GFS files already cached
+# so the extra runs re-decode rather than re-download.
 on:
   schedule:
-    - cron: "20 * * * *"
+    - cron: "*/20 * * * *"
   workflow_dispatch:
 
 permissions:
