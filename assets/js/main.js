@@ -786,8 +786,10 @@
         const touch = this.isTouch();
         const base = (touch ? this.TOUCH_HINTS : this.HINTS)[this.currentGame] || '';
         const ind = Difficulty.indestructible
-          ? ' · INDESTRUCTIBLE: the wall cannot be broken — thread a 6px seam to get above it,'
-            + ' then let a blast walk the diagonal and a KEY clear the row'
+          ? ' · INDESTRUCTIBLE (6 shapes): the wall never breaks — thread a 6px seam to get'
+            + ' above it, clip a corner on a true diagonal, let a blast walk the staircase'
+            + ' through the steel, ride the hole a blast rings open before it closes,'
+            + ' and a KEY clears the row the vault is sitting in'
           : '';
         hintEl.textContent = Difficulty.LABEL[Difficulty.current] + ind + ' · ' + base + (touch
           ? ' · ⏸ pauses · 🤖 autopilot plays for you, tap it again to take over'
@@ -1184,6 +1186,8 @@
       const tier = Difficulty.pick(this.TIERS);
       this.tier = tier;
       this.lives = tier.lives;
+      // The ceiling, not just the count. 'H' refills up to it; 'E' lifts it.
+      this.maxLives = tier.lives + tier.spare;
       this.level = 1;
       this.speed = tier.speed;
       this.MAX_SPEED = tier.max;
@@ -1357,7 +1361,7 @@
     // Weighted rather than a ladder of thresholds, so difficulty can scale the
     // hazard share without every other boundary having to be recomputed.
     CAPSULE_WEIGHTS: [['W', 21], ['S', 19], ['M', 19], ['P', 8],
-                      ['L', 7], ['N', 6], ['H', 4], ['X', 9], ['R', 7]],
+                      ['L', 7], ['N', 6], ['H', 4], ['E', 3], ['X', 9], ['R', 7]],
 
     maybeDropPowerup: function(x, y) {
       if (Math.random() > this.dropChance()) return;
@@ -1405,8 +1409,14 @@
         this.effects.net = Math.min(this.effects.net + 1, this.tier.netCap);
         Fx.text(p.x + p.w / 2, p.y - 6, 'NET', '#4ade80');
       } else if (p.type === 'H') {
-        if (this.lives < this.tier.lives + this.tier.spare) this.lives++;
+        if (this.lives < this.maxLives) this.lives++;
         Fx.text(p.x + p.w / 2, p.y - 6, '+1 ❤️', '#ec4899');
+      } else if (p.type === 'E') {
+        // Raises the ceiling and fills the new slot, so unlike a plain heart it
+        // is never wasted for being already full.
+        this.maxLives++;
+        this.lives++;
+        Fx.text(p.x + p.w / 2, p.y - 6, 'MAX ❤️ +1', '#f43f5e');
       } else if (p.type === 'X') {
         this.effects.shrinkUntil = now + 9000;
         Fx.text(p.x + p.w / 2, p.y - 6, 'SHRUNK!', '#ef4444');
@@ -1560,8 +1570,10 @@
     },
 
     boltHitsBrick: function(bolt, game) {
+      const now = performance.now();
       for (const brick of this.bricks) {
         if (brick.hp <= 0) continue;
+        if (this.isRung(brick, now)) continue;      // the hole is open to bolts as well
         if (bolt.x > brick.x && bolt.x < brick.x + brick.w &&
             bolt.y > brick.y && bolt.y < brick.y + brick.h) {
           if (brick.kind === 'steel') return true;   // absorbed, undamaged
@@ -1621,8 +1633,10 @@
     explode: function(origin, game) {
       game.shake(6, 12);
       const queue = [origin];
+      const now = performance.now();
       while (queue.length) {
         const src = queue.shift();
+        this.ringSteel(src, now);
         SFX.beep(140, 0.16, 'sawtooth', 0.12, 60);
         Fx.burst(src.x + src.w / 2, src.y + src.h / 2, '#f97316', 18, 3.4);
         for (const n of this.bricks) {
@@ -1719,7 +1733,9 @@
       if (this.effects.laserUntil > now) fx += ' 🔫';
       if (this.effects.net > 0) fx += ' 🕸️×' + this.effects.net;
       ctx.textAlign = 'right';
-      ctx.fillText('❤️'.repeat(Math.max(0, this.lives)), canvas.width - 12, 24);
+      const full = Math.max(0, this.lives);
+      const empty = Math.max(0, (this.maxLives || full) - full);
+      ctx.fillText('❤️'.repeat(full) + '🖤'.repeat(Math.min(empty, 6)), canvas.width - 12, 24);
 
       // Effects live along the bottom. On the top row they collided with the
       // combo readout once a few were stacked up.
@@ -1858,8 +1874,8 @@
     },
 
     drawPowerups: function(ctx, canvas, game) {
-      const labels = { W: 'W', S: 'S', M: 'M', P: 'P', L: 'L', N: 'N', H: '♥', X: '✕', R: '»' };
-      const colors = { W: '#22d3ee', S: '#fbbf24', M: '#a855f7', P: '#f472b6', L: '#f97316', N: '#4ade80', H: '#ec4899', X: '#ef4444', R: '#ef4444' };
+      const labels = { W: 'W', S: 'S', M: 'M', P: 'P', L: 'L', N: 'N', H: '♥', E: '♥+', X: '✕', R: '»' };
+      const colors = { W: '#22d3ee', S: '#fbbf24', M: '#a855f7', P: '#f472b6', L: '#f97316', N: '#4ade80', H: '#ec4899', E: '#f43f5e', X: '#ef4444', R: '#ef4444' };
       const paddleTop = canvas.height - this.paddle.height - 4;
 
       for (let i = this.powerups.length - 1; i >= 0; i--) {
@@ -1892,10 +1908,46 @@
     },
 
     // One brick per sub-step, so a fast ball still registers every hit.
+    // Two ways through steel that never destroy it -- the shell stays whole,
+    // which is the point. Both are deliberate and both are hard on purpose.
+    //
+    // CORNER CLIP: at a lattice intersection the gaps between four cells cross,
+    // and a ball arriving there on a true diagonal is passing through a hole
+    // rather than into a face. Needs the centre inside both gaps at once and a
+    // genuinely diagonal heading, which is far tighter than the vertical seam.
+    clipsCorner: function(ball, b) {
+      const pad = this.config.brickPadding;
+      const sx = Math.min(Math.abs(ball.x - b.x), Math.abs(ball.x - (b.x + b.w)));
+      const sy = Math.min(Math.abs(ball.y - b.y), Math.abs(ball.y - (b.y + b.h)));
+      if (sx > pad * 0.9 || sy > pad * 0.9) return false;
+      const v = Math.hypot(ball.dx, ball.dy) || 1;
+      return Math.abs(ball.dx) > v * 0.45 && Math.abs(ball.dy) > v * 0.45;
+    },
+
+    // RUNG STEEL: a blast does not break the steel around it, it rings it, and
+    // while it is ringing the ball passes straight through. It opens a hole
+    // that closes again, so it is a timing problem: the charge has to already
+    // be lit when the ball arrives. It cannot help you get *in* -- nothing
+    // explodes until you are already through the face -- only get around.
+    RUNG_MS: 2600,
+    ringSteel: function(origin, now) {
+      for (const n of this.bricks) {
+        if (n.kind !== 'steel' || n.hp <= 0) continue;
+        if (Math.abs(n.col - origin.col) > 1 || Math.abs(n.row - origin.row) > 1) continue;
+        n.rungUntil = now + this.RUNG_MS;
+      }
+    },
+    isRung: function(b, now) { return b.kind === 'steel' && (b.rungUntil || 0) > now; },
+
     hitBricks: function(ball, game, pierce) {
+      const now = performance.now();
       for (const b of this.bricks) {
         if (b.hp <= 0) continue;
         if (ball.x > b.x && ball.x < b.x + b.w && ball.y > b.y && ball.y < b.y + b.h) {
+          if (b.kind === 'steel' && (this.isRung(b, now) || this.clipsCorner(ball, b))) {
+            Fx.burst(ball.x, ball.y, '#38bdf8', 5, 1.8);
+            continue;                       // through it, and it is still there
+          }
           // Pierce carries straight through breakable bricks; steel always
           // bounces, so it stays a wall even at full power.
           if (!pierce || b.kind === 'steel') ball.dy = -ball.dy;
@@ -2127,6 +2179,8 @@
       const board = Math.min(1, this.bricksLeft() / 24);
       switch (type) {
         case 'H': return this.lives <= 1 ? 100 : (this.lives >= 5 ? 8 : 40);
+        // Always worth something: it lifts the ceiling even when already full.
+        case 'E': return this.lives >= this.maxLives ? 55 : 45;
         case 'N': return this.effects.net >= 3 ? 4 : 30;
         // A seventh ball is chaos, not throughput.
         case 'M': return this.balls.length >= 4 ? 6 : 8 + 30 * board;
@@ -2215,7 +2269,53 @@
     //
     // A board of nothing but steel would report zero bricks left and complete
     // itself, so the targets are real and have to be reached.
-    IND_ROWS: 5,
+// Six shapes rather than one slab. The rules that make the mode work are
+    // structural, not decorative, so every shape has to keep them: nothing on
+    // the bottom row (it would be open from underneath), a keystone and a boom
+    // on the top row (the only row a ball can ever touch), a vault that only a
+    // row collapse can realistically clear, and every sealed target within
+    // blast reach of a chain rooted in that top-row boom. The tests verify all
+    // of that for each shape rather than trusting this table.
+    //
+    //   f  the reachable face, [col, kind, hp]      -- always row 0
+    //   d  everything sealed inside, [col, row, kind, hp]
+    IND_SHAPES: [
+      { name: 'SLAB', rows: 5,
+        f: [[0,'n',0],[1,'boom',1],[2,'n',0],[4,'mystery',1],[5,'n',9],[6,'n',0],
+            [8,'n',0],[9,'key',2],[10,'n',0]],
+        d: [[2,1,'boom',1],[3,2,'boom',1],[4,3,'boom',1],
+            [1,2,'n',1],[5,2,'n',1],[5,3,'n',1]] },
+
+      { name: 'CHEVRON', rows: 5,
+        f: [[0,'boom',1],[2,'n',0],[3,'mystery',1],[5,'n',9],[7,'n',0],[8,'key',2],
+            [10,'boom',1]],
+        d: [[1,1,'boom',1],[2,2,'boom',1],[3,3,'boom',1],
+            [9,1,'boom',1],[8,2,'boom',1],[7,3,'boom',1],
+            [4,3,'n',1],[6,3,'n',1],[0,2,'n',1],[10,2,'n',1]] },
+
+      { name: 'WELL', rows: 6,
+        f: [[0,'n',0],[2,'n',0],[3,'mystery',1],[5,'boom',1],[7,'n',9],[8,'key',2],
+            [10,'n',0]],
+        d: [[5,1,'boom',1],[5,2,'boom',1],[5,3,'boom',1],[5,4,'boom',1],
+            [4,2,'n',1],[6,3,'n',1],[4,4,'n',1],[6,1,'n',1]] },
+
+      { name: 'ZIGZAG', rows: 6,
+        f: [[0,'n',0],[2,'boom',1],[4,'mystery',1],[5,'n',0],[6,'n',9],[8,'key',2],
+            [10,'n',0]],
+        d: [[3,1,'boom',1],[4,2,'boom',1],[3,3,'boom',1],[4,4,'boom',1],
+            [2,2,'n',1],[5,3,'n',1],[2,4,'n',1],[5,1,'n',1]] },
+
+      { name: 'ARCH', rows: 5,
+        f: [[0,'boom',1],[2,'n',0],[4,'mystery',1],[5,'n',9],[6,'n',0],[8,'key',2],
+            [10,'boom',1]],
+        d: [[1,1,'boom',1],[2,2,'boom',1],[9,1,'boom',1],[8,2,'boom',1],
+            [3,3,'n',1],[7,3,'n',1],[0,2,'n',1],[10,2,'n',1]] },
+
+      { name: 'LADDER', rows: 6,
+        f: [[0,'n',0],[1,'boom',1],[3,'mystery',1],[6,'n',9],[8,'key',2],[10,'n',0]],
+        d: [[2,1,'boom',1],[3,2,'boom',1],[4,3,'boom',1],[5,4,'boom',1],
+            [1,2,'n',1],[4,1,'n',1],[6,3,'n',1],[6,4,'n',1]] }
+    ],
 
     buryBoard: function(canvas) {
       const cfg = this.config;
@@ -2223,79 +2323,57 @@
       // Wide enough to run off both edges. A normal layout leaves a lane down
       // each side of the canvas, and a lane is not a seam -- the ball would
       // simply walk around the wall and the whole mode would be pointless.
-      // 13 minimum: the pattern below occupies 11 distinct columns and the two
+      // 13 minimum: the shapes below occupy 11 distinct columns and the two
       // outermost are deliberately left as steel overhang, so anything narrower
       // wraps two targets onto the same cell and quietly loses one.
       const cols = this.cols = Math.max(13, Math.ceil((canvas.width + pad) / (bw + pad)));
-      const rows = this.IND_ROWS;
+      const shape = this.IND_SHAPES[(this.level - 1) % this.IND_SHAPES.length];
+      const rows = shape.rows;
       const gridW = cols * bw + (cols - 1) * pad;
       const left = Math.round((canvas.width - gridW) / 2);   // <= 0 by construction
       // Targets go only in columns that are wholly on screen. The wall is built
       // wider than the canvas on purpose, so the outer columns are overhang --
-      // a target out there would be unreachable and the board unwinnable. The
-      // canvas is a fixed 640 today and this comes out as columns 1..11; it is
-      // written this way so that making the canvas responsive cannot quietly
-      // strand half the targets off the side.
+      // a target out there would be unreachable and the board unwinnable.
       const firstVis = Math.max(1, Math.ceil(-left / (bw + pad)));
       const lastVis = Math.min(cols - 2, Math.floor((canvas.width - left - bw) / (bw + pad)));
       const span = Math.max(1, lastVis - firstVis + 1);
-      const shift = (this.level - 1) % span;      // slide it so it is not the same picture twice
-
-      const cell = (col, row) => ({
-        col: col, row: row, kind: 'steel', hp: 1, max: 1,
-        x: left + col * (cfg.brickWidth + cfg.brickPadding),
-        y: cfg.brickOffsetTop + row * (cfg.brickHeight + cfg.brickPadding),
-        w: cfg.brickWidth, h: cfg.brickHeight
-      });
+      // Slide the shape along, but never far enough to wrap. The chains below
+      // are adjacency: a blast steps one column at a time, so a column that
+      // wraps from one end of the span to the other silently cuts the chain
+      // and strands everything past the break. Only shift by what genuinely
+      // fits, which on the current 640px canvas is nothing at all.
+      const IND_W = 11;                           // columns every shape occupies
+      const room = Math.max(1, span - IND_W + 1);
+      const shift = (this.level - 1) % room;
 
       this.bricks = [];
       const grid = [];
       for (let r = 0; r < rows; r++) {
         grid[r] = [];
         for (let c = 0; c < cols; c++) {
-          const b = cell(c, r);
+          const b = {
+            col: c, row: r, kind: 'steel', hp: 1, max: 1,
+            x: left + c * (bw + pad),
+            y: cfg.brickOffsetTop + r * (cfg.brickHeight + pad),
+            w: bw, h: cfg.brickHeight
+          };
           grid[r][c] = b;
           this.bricks.push(b);
         }
       }
-      const put = (c, r, kind, hp) => {
-        const b = grid[r] && grid[r][firstVis + (c + shift) % span];
-        if (!b) return null;
-        b.kind = kind; b.hp = hp; b.max = hp;
-        return b;
-      };
-
-      // The top row is the only face the ball can ever touch, and only from
-      // above, so the seam is the way in and there is no other. The tier still
-      // decides how much work the row is once you are up there.
+      // The tier still decides how much work the reachable row is once you are
+      // up there; hp 0 in the table means "whatever this difficulty says".
       const face = { easy: 1, normal: 2, hard: 3 }[Difficulty.current] || 2;
-      put(0, 0, 'normal', face);
-      put(1, 0, 'boom', 1);          // head of the staircase
-      put(2, 0, 'normal', face);
-      put(4, 0, 'mystery', 1);       // the only source of pierce and the laser
-      // The vault. Nothing stops you chipping at it from above, but at this
-      // many hit points you would need nine separate seam threads before the
-      // wall marches down, and you will not get them. A keystone collapse
-      // zeroes it in one go regardless of what it has left, so the keystone
-      // stops being a shortcut and becomes the way this board is finished.
-      put(5, 0, 'normal', 9);
-      put(6, 0, 'normal', face);
-      put(8, 0, 'normal', face);
-      put(9, 0, 'key', 2);           // collapses the row through the steel between
-      put(10, 0, 'normal', face);
+      const put = (c, r, kind, hp) => {
+        const b = grid[r] && grid[r][firstVis + c + shift];
+        if (!b) return;
+        b.kind = kind === 'n' ? 'normal' : kind;
+        b.hp = b.max = hp || face;
+      };
+      for (const [c, kind, hp] of shape.f) put(c, 0, kind, hp);
+      for (const [c, r, kind, hp] of shape.d) put(c, r, kind, hp);
 
-      // A diagonal of explosives. Nothing below the top row can be hit, so the
-      // blast walking down through solid steel is the only thing that reaches
-      // any of it. Row 4 stays entirely steel: a target sitting on the bottom
-      // row would be open from underneath and would give the whole mode away.
-      put(2, 1, 'boom', 1);
-      put(3, 2, 'boom', 1);
-      put(4, 3, 'boom', 1);
-      put(1, 2, 'normal', 1);        // off to the side of the staircase,
-      put(5, 2, 'normal', 1);        // only the blast radius reaches these
-      put(5, 3, 'normal', 1);
-
-      this.layoutName = 'INDESTRUCTIBLE';
+      this.layoutName = 'INDESTRUCTIBLE · ' + shape.name;
     },
 
     // --- Shot planning ---------------------------------------------------
@@ -2560,9 +2638,9 @@
     BUFFER_FRAMES: 9,   // a jump pressed just before landing still fires
 
     TIERS: {
-      easy:   { speed: 3.8, cap: 9.0,  ramp: 300, gap: 145, floor: 88, ptero: 320, pteroRate: 0.20 },
-      normal: { speed: 4.6, cap: 11.5, ramp: 230, gap: 115, floor: 62, ptero: 200, pteroRate: 0.28 },
-      hard:   { speed: 5.8, cap: 14.5, ramp: 170, gap:  95, floor: 48, ptero: 110, pteroRate: 0.36 }
+      easy:   { speed: 3.8, cap: 9.0,  ramp: 300, gap: 145, floor: 88, ptero: 320, pteroRate: 0.20, hearts: 3 },
+      normal: { speed: 4.6, cap: 11.5, ramp: 230, gap: 115, floor: 62, ptero: 200, pteroRate: 0.28, hearts: 2 },
+      hard:   { speed: 5.8, cap: 14.5, ramp: 170, gap:  95, floor: 48, ptero: 110, pteroRate: 0.36, hearts: 1 }
     },
 
     init: function(game) {
@@ -2591,6 +2669,11 @@
         this.stars.push({ x: (i * 97 + 31) % canvas.width, y: 20 + ((i * 53) % 150), tw: i % 3 });
       }
       this.tier = Difficulty.pick(this.TIERS);
+      // A run used to end on the first mistake. It now costs a heart, and the
+      // rare pink one raises the ceiling rather than just topping it up.
+      this.lives = this.tier.hearts;
+      this.maxLives = this.tier.hearts;
+      this.invulnUntil = 0;
       this.distance = 0;
       this.speed = this.tier.speed;
       this.spawnGap = this.tier.gap;
@@ -2747,6 +2830,9 @@
       const n = 3 + Math.floor(Math.random() * 3);
       const peak = 70 + Math.random() * 45;
       const shieldAt = Math.random() < 0.22 ? Math.floor(n / 2) : -1;
+      // Rare on purpose: it permanently raises the ceiling, so it should feel
+      // like a find rather than a drip.
+      const heartAt = Math.random() < 0.11 ? Math.floor(Math.random() * n) : -1;
       for (let i = 0; i < n; i++) {
         const f = n === 1 ? 0.5 : i / (n - 1);
         const lift = Math.sin(f * Math.PI) * peak;
@@ -2755,7 +2841,8 @@
           y: groundY - 46 - lift,
           r: 9,
           spin: i * 0.7,
-          shield: i === shieldAt
+          shield: i === shieldAt,
+          heart: i === heartAt
         });
       }
       this.coinGap = 190 + Math.random() * 220;
@@ -2844,7 +2931,14 @@
         if (Math.abs(c.x - (this.dino.x + this.dino.width / 2)) < 24 &&
             Math.abs(c.y - (this.dino.y + this.dino.height / 2)) < 26) {
           this.coins.splice(i, 1);
-          if (c.shield) {
+          if (c.heart) {
+            this.maxLives++;
+            this.lives++;
+            SFX.bonus();
+            Fx.text(c.x, c.y - 10, 'MAX ❤️ +1', '#f43f5e');
+            Fx.burst(c.x, c.y, '#f43f5e', 18, 3.2);
+            Haptics.power();
+          } else if (c.shield) {
             this.shield = Math.min(this.shield + 1, 2);
             SFX.bonus();
             Fx.text(c.x, c.y - 10, '🛡️ SHIELD', '#4ade80');
@@ -2869,6 +2963,7 @@
         if (o.x + o.width < 0) { this.obstacles.splice(i, 1); continue; }
 
         // Slightly kinder hitbox than the drawn sprite.
+        if (performance.now() < this.invulnUntil) continue;   // just spent a heart
         if (this.dino.x + 9 < o.x + o.width &&
             this.dino.x + this.dino.width - 9 > o.x &&
             this.dino.y + 9 < o.y + o.height &&
@@ -2882,6 +2977,20 @@
             Fx.text(this.dino.x + 20, this.dino.y - 12, 'BLOCKED!', '#4ade80');
             game.shake(5, 10);
             continue;
+          }
+          if (this.lives > 1) {
+            // Spend a heart: clear what is on top of the dino so it does not
+            // simply crash again on the same obstacle next frame, and give a
+            // short window to recover.
+            this.lives--;
+            this.invulnUntil = performance.now() + 1200;
+            this.obstacles = this.obstacles.filter(o => o.x > this.dino.x + this.dino.width + 40);
+            game.shake(8, 16);
+            SFX.beep(220, 0.2, 'sawtooth', 0.12, 90);
+            Fx.text(this.dino.x + 20, this.dino.y - 14, '-1 ❤️', '#f43f5e');
+            Fx.burst(this.dino.x + 20, this.dino.y, '#f43f5e', 20, 3.4);
+            Haptics.power();
+            return;
           }
           game.shake(8, 16);
           game.showGameOver('Game Over');
@@ -2950,16 +3059,26 @@
       }
 
       // Coins / shields (squashed circle so they read as spinning)
+      // Hearts, top right, same language as Breakout's.
+      if (this.maxLives) {
+        ctx.save();
+        ctx.font = '15px system-ui, sans-serif';
+        ctx.textAlign = 'right';
+        const full = Math.max(0, this.lives);
+        ctx.fillText('❤️'.repeat(full) + '🖤'.repeat(Math.max(0, Math.min(this.maxLives - full, 6))),
+                     canvas.width - 12, 24);
+        ctx.restore();
+      }
       this.coins.forEach(c => {
         const w = Math.abs(Math.cos(c.spin)) * c.r + 2;
         ctx.beginPath();
         ctx.ellipse(c.x, c.y, w, c.r, 0, 0, Math.PI * 2);
-        ctx.fillStyle = c.shield ? '#4ade80' : '#fbbf24';
+        ctx.fillStyle = c.heart ? '#f43f5e' : c.shield ? '#4ade80' : '#fbbf24';
         ctx.fill();
-        ctx.fillStyle = c.shield ? '#052e16' : '#7c5a06';
+        ctx.fillStyle = c.heart ? '#4c0519' : c.shield ? '#052e16' : '#7c5a06';
         ctx.font = 'bold 10px "Segoe UI", Arial, sans-serif';
         ctx.textAlign = 'center';
-        if (w > 5) ctx.fillText(c.shield ? 'S' : '$', c.x, c.y + 3.5);
+        if (w > 5) ctx.fillText(c.heart ? '♥' : c.shield ? 'S' : '$', c.x, c.y + 3.5);
       });
 
       this.drawDino(ctx);
@@ -3256,9 +3375,9 @@
     DIRS: [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }],
 
     TIERS: {
-      easy:   { tick: 155, floor: 95, step: 1.1, bonusMs: 7500 },
-      normal: { tick: 125, floor: 70, step: 1.6, bonusMs: 6200 },
-      hard:   { tick: 100, floor: 52, step: 2.3, bonusMs: 4800 }
+      easy:   { tick: 155, floor: 95, step: 1.1, bonusMs: 7500, hearts: 3 },
+      normal: { tick: 125, floor: 70, step: 1.6, bonusMs: 6200, hearts: 2 },
+      hard:   { tick: 100, floor: 52, step: 2.3, bonusMs: 4800, hearts: 1 }
     },
     cols: 0,
     rows: 0,
@@ -3290,6 +3409,11 @@
       this.tickMs = this.tier.tick;
       this.lastTick = 0;
       this.bonus = null;
+      // Biting yourself used to end it outright. It now costs a heart and
+      // resets the body; the pink apple raises the ceiling.
+      this.lives = this.tier.hearts;
+      this.maxLives = this.tier.hearts;
+      this.heartFood = false;
       this.foodsEaten = 0;
       this.streak = 0;
       this.lastEatAt = 0;
@@ -3352,7 +3476,12 @@
       return spot;
     },
 
-    placeFood: function() { this.food = this.freeCell(); },
+    placeFood: function() {
+      this.food = this.freeCell();
+      // Rare, and it raises the ceiling rather than topping it up, so it is
+      // still worth taking on a full run.
+      this.heartFood = Math.random() < 0.11;
+    },
 
     update: function(game, ts) {
       // Bonus expiry
@@ -3372,6 +3501,19 @@
       const body = this.snake.slice(0, this.snake.length - 1);
       if (body.some(s => s.x === head.x && s.y === head.y)) {
         game.shake(7, 14);
+        if (this.lives > 1) {
+          // Spend a heart and start the body again from the middle. The score
+          // and the food stay -- it is a setback, not a restart.
+          this.lives--;
+          SFX.beep(220, 0.2, 'sawtooth', 0.12, 90);
+          Fx.text((head.x + 0.5) * this.cell, (head.y - 0.5) * this.cell, '-1 ❤️', '#f43f5e');
+          Haptics.power();
+          const mx = Math.floor(this.cols / 2), my = Math.floor(this.rows / 2);
+          this.snake = [{ x: mx, y: my }, { x: mx - 1, y: my }, { x: mx - 2, y: my }];
+          this.dir = { x: 1, y: 0 };
+          this.nextDir = { x: 1, y: 0 };
+          return;
+        }
         game.showGameOver('Game Over');
         return;
       }
@@ -3386,6 +3528,14 @@
         const pts = 10 + Math.min(this.streak - 1, 5) * 4;
         game.updateScore(game.score + pts);
         this.foodsEaten++;
+        if (this.heartFood) {
+          this.maxLives++;
+          this.lives++;
+          SFX.bonus();
+          Fx.text(head.x * C + C / 2, head.y * C - 16, 'MAX ❤️ +1', '#f43f5e');
+          Fx.burst(head.x * C + C / 2, head.y * C + C / 2, '#f43f5e', 18, 3.2);
+          Haptics.power();
+        }
         SFX.eat(this.snake.length);
         Fx.burst(head.x * C + C / 2, head.y * C + C / 2, '#ec4899', 9, 2.2);
         Fx.text(head.x * C + C / 2, head.y * C - 4, `+${pts}`, this.streak > 1 ? '#fbbf24' : '#ec4899');
@@ -3445,7 +3595,13 @@
       // Food: an apple with a highlight and a leaf, which reads at 14px far
       // better than a flat dot does.
       const fx = this.food.x * C + C / 2, fy = this.food.y * C + C / 2;
-      Paint.orb(ctx, fx, fy, C / 2 - 3, '#ec4899');
+      Paint.orb(ctx, fx, fy, C / 2 - 3, this.heartFood ? '#f43f5e' : '#ec4899');
+      if (this.heartFood) {
+        ctx.fillStyle = '#4c0519';
+        ctx.font = 'bold 11px "Segoe UI", Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('♥', fx, fy + 4);
+      }
       ctx.strokeStyle = '#166534';
       ctx.lineWidth = 1.6;
       ctx.beginPath();
@@ -3549,6 +3705,13 @@
         ctx.textAlign = 'left';
         ctx.fillStyle = '#fbbf24';
         ctx.fillText(`STREAK ×${this.streak}`, 10, 20);
+      }
+      if (this.maxLives) {
+        ctx.font = '15px system-ui, sans-serif';
+        ctx.textAlign = 'right';
+        const full = Math.max(0, this.lives);
+        ctx.fillText('❤️'.repeat(full) + '🖤'.repeat(Math.max(0, Math.min(this.maxLives - full, 6))),
+                     game.canvas.width - 12, 24);
       }
     },
 

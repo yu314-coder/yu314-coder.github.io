@@ -1098,6 +1098,165 @@ const buildPlain = (B, h, name) => {
   }
 }
 
+// -------------------------------------------- indestructible: every shape
+// The shapes differ but the rules that make them solvable do not, so each one
+// is checked rather than just the first. Two full cycles, because the shape is
+// picked by level and slid along by level -- a slide that wrapped would cut a
+// blast chain and strand targets, which is exactly what happened once.
+{
+  const boot2 = (tier, level) => {
+    const h = run();
+    const { Breakout: B, Difficulty } = h.win.__arcade;
+    Difficulty.setIndestructible(true);
+    Difficulty.set(tier || 'normal');
+    h.els['gameSelect'].value = 'breakout';
+    h.win.startGame();
+    if (level && level > 1) { B.level = level; B.buildLevel(h.canvas); }
+    return { h, B, g: fakeGame(h) };
+  };
+
+  const { B: B0 } = boot2();
+  check('there is more than one indestructible shape', B0.IND_SHAPES.length >= 5,
+        `${B0.IND_SHAPES.length} shapes`);
+
+  const seen = new Set();
+  let allOk = true, detail = '';
+  for (let level = 1; level <= B0.IND_SHAPES.length * 2; level++) {
+    const { h, B, g } = boot2('normal', level);
+    seen.add(B.layoutName);
+    const live = B.bricks.filter(b => b.hp > 0);
+    const targets = live.filter(b => b.kind !== 'steel');
+    const lastRow = Math.max(...live.map(b => b.row));
+
+    const onFloor = targets.filter(b => b.row === lastRow);
+    const openBelow = targets.filter(t => !live.some(
+      o => o.col === t.col && o.row > t.row && o.kind === 'steel'));
+    const offscreen = targets.filter(b => b.x < 0 || b.x + b.w > h.canvas.width);
+    const L = Math.min(...B.bricks.map(b => b.x));
+    const R = Math.max(...B.bricks.map(b => b.x + b.w));
+    const key = B.bricks.find(b => b.kind === 'key');
+    const vault = targets.filter(b => b.kind === 'normal').sort((a, b) => b.hp - a.hp)[0];
+    const boomOnFace = B.bricks.some(b => b.kind === 'boom' && b.row === 0);
+
+    let bad = null;
+    if (onFloor.length) bad = 'target on the bottom row';
+    else if (openBelow.length) bad = 'target open from below';
+    else if (offscreen.length) bad = 'target off screen';
+    else if (L > 0 || R < h.canvas.width) bad = 'lane down the side';
+    else if (!key) bad = 'no keystone';
+    else if (!vault || vault.hp < 9) bad = 'no vault';
+    else if (!boomOnFace) bad = 'no explosive on the reachable row';
+    else {
+      key.hp = 0;
+      B.collapseRow(key, g);
+      if (B.bricksLeft() !== 0) bad = `${B.bricksLeft()} unreachable after the cascade`;
+    }
+    if (bad) { allOk = false; detail = `${B.layoutName} (level ${level}): ${bad}`; break; }
+  }
+  check('every shape is sealed, on screen and completable', allOk,
+        detail || `${seen.size} distinct shapes over two cycles`);
+  check('the shapes actually differ from one another', seen.size >= 5, `${seen.size} distinct`);
+}
+
+// ------------------------------------- indestructible: the two added exploits
+{
+  const h = run();
+  const { Breakout: B, Difficulty } = h.win.__arcade;
+  Difficulty.setIndestructible(true); Difficulty.set('normal');
+  h.els['gameSelect'].value = 'breakout';
+  h.win.startGame();
+  const g = fakeGame(h);
+
+  // Rung steel: a blast rings the steel around it rather than breaking it, and
+  // while it rings the ball goes through. The shell must survive.
+  const mid = B.bricks.filter(b => b.kind === 'steel' && b.row === 2);
+  const t = mid[Math.floor(mid.length / 2)];
+  const steelBefore = B.bricks.filter(b => b.kind === 'steel' && b.hp > 0).length;
+  B.ringSteel({ col: t.col, row: t.row }, performance.now());
+  check('a blast rings the steel around it', B.isRung(t, performance.now()));
+  const ball = B.newBall(t.x + t.w / 2, t.y + t.h / 2, 0, -6.5);
+  B.balls = [ball];
+  B.stepBalls(h.canvas, g, performance.now());
+  check('the ball passes through ringing steel', ball.dy < 0);
+  check('and the steel is still standing -- it was never destroyed',
+        B.bricks.filter(b => b.kind === 'steel' && b.hp > 0).length === steelBefore);
+  check('the hole closes again', !B.isRung(t, performance.now() + B.RUNG_MS + 50));
+
+  // Corner clip: a true diagonal through a lattice intersection only.
+  const any = B.bricks.find(b => b.row === 2 && b.kind === 'steel');
+  const diag = B.newBall(any.x, any.y, 4.6, -4.6);
+  check('a diagonal clips the corner where four cells meet', B.clipsCorner(diag, any));
+  const face = B.newBall(any.x + any.w / 2, any.y + any.h / 2, 4.6, -4.6);
+  check('but not through the middle of a face', !B.clipsCorner(face, any));
+  const straight = B.newBall(any.x, any.y, 0, -6.5);
+  check('and not when travelling straight up', !B.clipsCorner(straight, any));
+}
+
+// ------------------------------------------------ raising the heart ceiling
+// The same idea in all three games: not "+1 life" but "+1 to the maximum", so
+// it still means something on a full run.
+{
+  const h = run();
+  const { Breakout: B } = h.win.__arcade;
+  h.els['gameSelect'].value = 'breakout';
+  h.win.startGame();
+  const g = fakeGame(h);
+  const cap0 = B.maxLives, lives0 = B.lives;
+  check('breakout has a heart ceiling', cap0 > 0, `${lives0}/${cap0}`);
+
+  B.lives = cap0;                                   // already full
+  B.applyPowerup({ x: 10, y: 10, w: 36, h: 17, type: 'H' }, g);
+  check('a plain heart cannot exceed the ceiling', B.lives === cap0);
+  B.applyPowerup({ x: 10, y: 10, w: 36, h: 17, type: 'E' }, g);
+  check('the new capsule raises the ceiling and fills it',
+        B.maxLives === cap0 + 1 && B.lives === cap0 + 1, `${B.lives}/${B.maxLives}`);
+  check('the new capsule is in the drop table',
+        B.CAPSULE_WEIGHTS.some(([t]) => t === 'E'));
+  check('and it is not a hazard', !B.isHazard('E'));
+}
+{
+  const h = run();
+  const { DinoGame: D } = h.win.__arcade;
+  h.els['gameSelect'].value = 'dino';
+  h.win.startGame();
+  const g = fakeGame(h);
+  check('dino has hearts', D.maxLives > 0, `${D.lives}/${D.maxLives}`);
+  const cap = D.maxLives;
+  D.coins = [{ x: D.dino.x + D.dino.width / 2, y: D.dino.y + D.dino.height / 2, r: 9, spin: 0, heart: true }];
+  D.update(g);
+  check('a heart pickup raises the dino ceiling', D.maxLives === cap + 1, `${D.lives}/${D.maxLives}`);
+
+  // A crash spends a heart instead of ending the run outright.
+  D.lives = 2; D.invulnUntil = 0;
+  D.obstacles = [{ x: D.dino.x, y: D.dino.y, width: 30, height: 40 }];
+  D.shield = 0;
+  D.update(g);
+  check('a crash spends a heart rather than ending the run',
+        D.lives === 1 && !g.over, `lives ${D.lives} over ${g.over}`);
+  D.lives = 1; D.invulnUntil = 0;
+  D.obstacles = [{ x: D.dino.x, y: D.dino.y, width: 30, height: 40 }];
+  D.update(g);
+  check('the last heart still ends it', !!g.over);
+}
+{
+  const h = run();
+  const { SnakeGame: S } = h.win.__arcade;
+  h.els['gameSelect'].value = 'snake';
+  h.win.startGame();
+  check('snake has hearts', S.maxLives > 0, `${S.lives}/${S.maxLives}`);
+  const cap = S.maxLives;
+  S.heartFood = true;
+  S.lives = 1;
+  S.maxLives = cap;
+  // eat the pink apple by walking the head onto it
+  S.food = { x: S.snake[0].x + 1, y: S.snake[0].y };
+  S.dir = { x: 1, y: 0 }; S.nextDir = { x: 1, y: 0 };
+  S.lastTick = 0;
+  S.update(fakeGame(h), 100000);      // update() is the tick; step() moves a cell
+  check('the pink apple raises the snake ceiling', S.maxLives === cap + 1,
+        `${S.lives}/${S.maxLives}`);
+}
+
 let failed = 0;
 for (const r of results) {
   if (!r.pass) failed++;
