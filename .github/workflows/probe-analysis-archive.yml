@@ -36,6 +36,11 @@ jobs:
           YMD="$M$D"
           CFS="https://www.ncei.noaa.gov/data/climate-forecast-system/access/operational-analysis"
           GFS="https://www.ncei.noaa.gov/data/global-forecast-system/access"
+          # The reanalysis is a DIFFERENT service on a different path, and it is
+          # the one that covers everything up to 2011-03-31 -- most of what is
+          # still unbuilt. It was missing from this probe, so "the archive is
+          # blocked" was being concluded from CDAS alone.
+          RAN="https://www.ncei.noaa.gov/oa/prod-cfs-reanalysis/6-hourly-low-resolution"
 
           probe () {  # label url
             code=$(curl -sIL --max-time 60 -o /dev/null -w '%{http_code}' "$2")
@@ -58,5 +63,10 @@ jobs:
           done
 
           echo
-          echo "=== a known-good control (2026-05-10) ==="
-          probe "CDAS low-res  pgrblanl"  "$CFS/6-hourly-low-resolution/2026/202605/20260510/cdas1.t00z.pgrblanl.grib2"
+          echo "=== controls: files known to exist and to have downloaded before ==="
+          # If a control 403s it is a block, not absence. One per service, so the
+          # two can be told apart rather than judged together.
+          probe "CDAS  2026-05-10  pgrblanl"  "$CFS/6-hourly-low-resolution/2026/202605/20260510/cdas1.t00z.pgrblanl.grib2"
+          probe "CFSR  1997-11-29  pgblnl"    "$RAN/1997/199711/19971129/pgblnl.gdas.1997112918.grb2"
+          probe "CFSR  2010-10-13  pgblnl"    "$RAN/2010/201010/20101013/pgblnl.gdas.2010101300.grb2"
+          probe "CFSR  2005-08-28  pgblnl"    "$RAN/2005/200508/20050828/pgblnl.gdas.2005082800.grb2"
