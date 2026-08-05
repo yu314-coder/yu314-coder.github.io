@@ -84,6 +84,15 @@ CONE_PCT = 90.0
 CFSR_END = dt.datetime(2011, 3, 31, 18, tzinfo=dt.timezone.utc)
 
 
+def needs_reanalysis(storm):
+    """True if every analysis this storm needs comes from the reanalysis.
+    The two eras are served by two different services on two different paths,
+    and they fail independently -- one being blocked says nothing about the
+    other, which is the whole reason the fallback below is worth having."""
+    last = dt.datetime.fromisoformat(storm["pts"][-1]["t"]).replace(tzinfo=dt.timezone.utc)
+    return last <= CFSR_END
+
+
 def log(m):
     print(m, file=sys.stderr, flush=True)
 
@@ -461,11 +470,8 @@ def main():
 
     if args.era != "all":
         want_cfsr = args.era == "cfsr"
-        catalogue = {
-            sid: (yr, st) for sid, (yr, st) in catalogue.items()
-            if ((dt.datetime.fromisoformat(st["pts"][-1]["t"]).replace(tzinfo=dt.timezone.utc)
-                 <= CFSR_END) == want_cfsr)
-        }
+        catalogue = {sid: (yr, st) for sid, (yr, st) in catalogue.items()
+                     if needs_reanalysis(st) == want_cfsr}
         log(f"{args.era.upper()} era: {len(catalogue)} storms in scope")
 
     idx_now = load_index()
@@ -504,7 +510,12 @@ def main():
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     index = load_index()
     built = refused_storms = 0
-    for sid in targets:
+    targets = list(targets)
+    swapped = False
+    i = 0
+    while i < len(targets):
+        sid = targets[i]
+        i += 1
         if sid not in catalogue:
             log(f"{sid}: not in the CFSR-era season data; skipped"); continue
         year, storm = catalogue[sid]
@@ -516,7 +527,31 @@ def main():
         except ArchiveUnreachable as e:
             log(f"  {e}")
             refused_storms += 1
-            break
+            # One service being blocked is not the archive being down. The
+            # operational analysis (2011-04 onward) and the reanalysis (before
+            # it) are separate services on separate paths and get refused
+            # independently. Giving up here spent every scheduled run failing
+            # against the blocked half while several hundred storms on the
+            # reachable half sat there buildable.
+            # Re-pick from the whole of the reachable era rather than from
+            # whatever happens to be left in this run's shortlist -- the
+            # shortlist is ranked by intensity, so it can easily be entirely
+            # from the blocked era and leave hundreds of buildable storms out.
+            want = not needs_reanalysis(storm)
+            pool = sorted((kv for kv in catalogue.items() if needs_reanalysis(kv[1][1]) == want),
+                          key=lambda kv: -max((p.get("w") or 0) for p in kv[1][1]["pts"]))
+            rest = [s2 for s2, _ in pool
+                    if s2 not in done and s2 not in blocked and s2 not in targets[:i]]
+            rest = rest[: (args.top or len(rest))]
+            if swapped or not rest:
+                break
+            swapped = True
+            global _REFUSED_TOTAL
+            _REFUSED_TOTAL = 0            # the other service gets its own budget
+            targets = targets[:i] + rest
+            log(f"  the other era is served by a different endpoint; continuing with "
+                f"{len(rest)} storm(s) from it rather than abandoning the run")
+            continue
         if not runs:
             log(f"  no runs ({why}); skipped")
             # Only a storm the archive actually answered about belongs in the
