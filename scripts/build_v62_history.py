@@ -32,6 +32,8 @@ import json
 import math
 import os
 import sys
+import time
+import urllib.error
 import urllib.request
 import warnings
 from pathlib import Path
@@ -61,6 +63,11 @@ CDAS_LOW = ("https://www.ncei.noaa.gov/data/climate-forecast-system/access/opera
 CDAS_HIGH = ("https://www.ncei.noaa.gov/data/climate-forecast-system/access/operational-analysis/"
              "6-hourly-by-pressure/{y}/{ym}/{ymd}/cdas1.t{hh}z.pgrbhanl.grib2")
 UA = {"User-Agent": "typhoon-tracker-history-builder/1.0 (+https://yu314-coder.github.io)"}
+# A pause between analysis downloads. Going from 3 storms a run to 20 meant up
+# to a thousand requests an hour at a public archive, and it started refusing
+# them. The fetches dominate wall-clock anyway, so this costs little and is the
+# difference between a courteous client and one that gets blocked.
+FETCH_PAUSE_S = float(os.environ.get("V62_FETCH_PAUSE", "0.4"))
 
 LEVELS = (850.0, 500.0, 200.0)
 DLM_WEIGHTS = np.asarray([0.269, 0.500, 0.231], dtype="float32")
@@ -93,6 +100,21 @@ def analysis_url(stamp):
     return [CDAS_LOW.format(**parts), CDAS_HIGH.format(**parts)], "CDAS"
 
 
+_REFUSED = []   # analysis stamps the archive refused while building the current storm
+
+
+class AnalysisMissing(RuntimeError):
+    """The archive answered, and does not have this analysis (404)."""
+
+
+class AnalysisBlocked(RuntimeError):
+    """The archive refused to answer -- 403, 429, or a server error.
+
+    This is the dangerous one. A blocked fetch looks exactly like a missing one
+    from the outside, and treating it as missing would record a perfectly good
+    storm as permanently unavailable and skip it forever."""
+
+
 def cfsr_path(stamp):
     """stamp is YYYYMMDDHH. Downloaded once, then reused across every
     initialisation that needs it -- consecutive inits share four of five."""
@@ -103,20 +125,32 @@ def cfsr_path(stamp):
         return p
 
     last = None
+    blocked = False
+    if FETCH_PAUSE_S:
+        time.sleep(FETCH_PAUSE_S)
     for url in urls:
         try:
             req = urllib.request.Request(url, headers=UA)
             with urllib.request.urlopen(req, timeout=300) as r:
                 data = r.read()
-        except Exception as e:                      # try the fallback product
+        except urllib.error.HTTPError as e:          # try the fallback product
             last = e
+            if e.code in (403, 429) or e.code >= 500:
+                blocked = True
+            continue
+        except Exception as e:
+            last = e
+            blocked = True                            # network trouble, not absence
             continue
         if len(data) < 500_000 or data[:4] != b"GRIB":
             last = RuntimeError(f"{kind} {stamp}: not a GRIB file ({len(data)} bytes)")
             continue
         p.write_bytes(data)
         return p
-    raise RuntimeError(f"{kind} {stamp}: no analysis available ({last})")
+    if blocked:
+        _REFUSED.append(stamp)
+        raise AnalysisBlocked(f"{kind} {stamp}: archive refused the request ({last})")
+    raise AnalysisMissing(f"{kind} {stamp}: not published ({last})")
 
 
 _FULL = {}
@@ -450,21 +484,32 @@ def main():
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     index = load_index()
+    built = refused_storms = 0
     for sid in targets:
         if sid not in catalogue:
             log(f"{sid}: not in the CFSR-era season data; skipped"); continue
         year, storm = catalogue[sid]
         log(f"{storm.get('name', sid)} {year} ({sid}) …")
         _FULL.clear()
+        _REFUSED.clear()
         runs, why = run_storm(sid, year, storm, intensity_on=not args.no_intensity)
         if not runs:
             log(f"  no runs ({why}); skipped")
-            index.setdefault("unavailable", {})[sid] = {
-                "storm": storm.get("name"), "season": year, "reason": str(why)[:160],
-                "checked": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            }
-            save_index(index)
+            # Only a storm the archive actually answered about belongs in the
+            # ledger. A refusal says nothing about whether the data exists, and
+            # recording one would bench a perfectly good storm for three weeks.
+            if _REFUSED:
+                refused_storms += 1
+                log(f"  ...the archive refused {len(_REFUSED)} request(s); not recording this "
+                    f"as unavailable")
+            else:
+                index.setdefault("unavailable", {})[sid] = {
+                    "storm": storm.get("name"), "season": year, "reason": str(why)[:160],
+                    "checked": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                }
+                save_index(index)
             continue
+        built += 1
         if isinstance(index.get("unavailable"), dict):
             index["unavailable"].pop(sid, None)   # it built, so it is no longer blocked
         payload = {
@@ -506,6 +551,16 @@ def main():
             f"{out.stat().st_size/1024:.0f} KB"
             + (f", mean {index['hindcasts'][sid]['mean_track_mae_km']} km over {len(scored)} scored" if scored else ""))
 
+    if refused_storms and not built:
+        # Exiting 0 here is how this went unnoticed: the archive was refusing
+        # every request, each storm "skipped", and the job reported success
+        # while producing nothing at all.
+        log(f"FAILED: the archive refused every request for all {refused_storms} storm(s); "
+            f"nothing was built. This is a block or an outage upstream, not missing data.")
+        index["generated_at"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        save_index(index)
+        return 1
+
     index["generated_at"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     index["note"] = ("Per-storm v62 hindcasts, loaded lazily. History mode uses v62 wherever a run covers "
                      "the initialisation on screen and v23 elsewhere.")
@@ -514,4 +569,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
