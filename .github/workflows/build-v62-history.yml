@@ -131,6 +131,9 @@ jobs:
           STORMS="${{ inputs.storms }}"
           COUNT="${{ inputs.count }}"; COUNT="${COUNT:-8}"
           ERA="${{ inputs.era }}"; ERA="${ERA:-all}"
+          # Stop starting new storms well before the job cap so the commit step
+          # still has time to run. The archive can be slow rather than refusing.
+          export V62_BUDGET_MIN=260
           if [ -n "$STORMS" ]; then
             python scripts/build_v62_history.py $STORMS --prune
           else
@@ -139,6 +142,11 @@ jobs:
           df -h / | tail -1
 
       - name: Commit generated hindcasts
+        # always(): a run that hits the job timeout is killed mid-step, and
+        # without this the commit never happens and every storm it did build is
+        # thrown away. Six hours of downloads for nothing, which is exactly what
+        # a slow archive was about to cause.
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

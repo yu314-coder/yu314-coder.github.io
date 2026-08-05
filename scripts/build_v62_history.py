@@ -68,6 +68,17 @@ UA = {"User-Agent": "typhoon-tracker-history-builder/1.0 (+https://yu314-coder.g
 # them. The fetches dominate wall-clock anyway, so this costs little and is the
 # difference between a courteous client and one that gets blocked.
 FETCH_PAUSE_S = float(os.environ.get("V62_FETCH_PAUSE", "0.4"))
+# Wall-clock budget. The archive does not only refuse or answer -- it can also
+# answer slowly, and a storm that normally takes five minutes can then take an
+# hour. Without a budget the job runs until the runner kills it, and a killed
+# job commits nothing, so every storm it did finish is thrown away. Stop
+# starting new ones in time to write out what is already built.
+BUDGET_MIN = float(os.environ.get("V62_BUDGET_MIN", "0"))
+_STARTED = time.monotonic()
+
+
+def out_of_time():
+    return BUDGET_MIN > 0 and (time.monotonic() - _STARTED) / 60 >= BUDGET_MIN
 
 LEVELS = (850.0, 500.0, 200.0)
 DLM_WEIGHTS = np.asarray([0.269, 0.500, 0.231], dtype="float32")
@@ -516,6 +527,10 @@ def main():
     while i < len(targets):
         sid = targets[i]
         i += 1
+        if out_of_time():
+            log(f"budget of {BUDGET_MIN:.0f} min reached; stopping with {built} built rather "
+                f"than being killed with nothing committed")
+            break
         if sid not in catalogue:
             log(f"{sid}: not in the CFSR-era season data; skipped"); continue
         year, storm = catalogue[sid]
