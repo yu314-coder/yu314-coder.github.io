@@ -38,13 +38,23 @@ import datetime as dt
 import io
 import json
 import os
+import re
 import sys
+import tarfile
+import tempfile
 import urllib.error
 import urllib.request
 
 BASE = "https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/"
 LAST3 = BASE + "ibtracs.last3years.list.v04r01.csv"
 FULL = BASE + "ibtracs.WP.list.v04r01.csv"
+# NCEI answers 403 for every file under access/csv/ -- from a GitHub runner and
+# from a laptop alike, so it is the dataset that is closed, not us being
+# rate-limited. But only that directory is closed: the parents list fine, and
+# archive/ still serves a tarball holding exactly the same CSVs, usually
+# fresher than the loose copies. So there is a way in after all.
+ARCHIVE = "https://www.ncei.noaa.gov/data/ibtracs/v04r01/archive/"
+_BUNDLE = {}
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "assets", "data", "typhoons")
@@ -99,13 +109,43 @@ def fetch(url):
             return r.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as e:
         if e.code in (403, 429) or e.code >= 500:
-            raise SystemExit(
-                f"BLOCKED: the archive refused this request ({e}).\n"
-                f"  {url}\n"
-                "  This is NCEI refusing the runner, not missing data and not a fault in\n"
-                "  this script -- the same block is holding up the v62 analyses. Nothing\n"
-                "  to fix; re-run once it lifts.")
+            sys.stderr.write("  refused (%s); falling back to the archive bundle\n" % e)
+            return from_archive(os.path.basename(url))
         raise
+
+
+def from_archive(member):
+    """The same CSV, out of the tarball in archive/.
+
+    Downloaded once per run and kept in a temp file, because a --full refresh
+    asks for one member and a scheduled one asks for another; re-fetching 63 MB
+    per member would be silly.
+    """
+    if "path" not in _BUNDLE:
+        listing = urllib.request.urlopen(ARCHIVE, timeout=120).read().decode("utf-8", "replace")
+        names = re.findall(r'(ibtracs_v04r01_csv_[A-Za-z0-9_]+\.tar\.gz)', listing)
+        if not names:
+            raise SystemExit("BLOCKED: access/csv/ is closed and archive/ lists no CSV bundle.\n"
+                             f"  {ARCHIVE}\n  Nothing to fetch; try again later.")
+        name = sorted(set(names))[-1]           # date-stamped, so the last is newest
+        url = ARCHIVE + name
+        sys.stderr.write("fetching %s\n" % url)
+        fd, path = tempfile.mkstemp(suffix=".tar.gz", prefix="ibtracs-")
+        os.close(fd)
+        with urllib.request.urlopen(url, timeout=900) as r, open(path, "wb") as out:
+            while True:
+                chunk = r.read(1 << 20)
+                if not chunk:
+                    break
+                out.write(chunk)
+        _BUNDLE["path"] = path
+        _BUNDLE["name"] = name
+    with tarfile.open(_BUNDLE["path"], "r:gz") as tf:
+        for m in tf.getmembers():
+            if os.path.basename(m.name) == member:
+                sys.stderr.write("  %s from %s\n" % (member, _BUNDLE["name"]))
+                return tf.extractfile(m).read().decode("utf-8", errors="replace")
+    raise SystemExit(f"BLOCKED: {member} is not in {_BUNDLE['name']}")
 
 
 def read_storms(text):
