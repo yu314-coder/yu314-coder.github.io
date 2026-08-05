@@ -39,6 +39,7 @@ import io
 import json
 import os
 import sys
+import urllib.error
 import urllib.request
 
 BASE = "https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/"
@@ -83,9 +84,28 @@ def parse_time(s):
 
 
 def fetch(url):
+    """Fetch, and say plainly when the archive is refusing rather than broken.
+
+    IBTrACS lives on the same host as the analysis archives, so when NCEI
+    starts refusing the GitHub runners this fails too -- and it failed with a
+    bare urllib traceback, which reads like a bug in this script. It is not:
+    there is nothing to fix here and nothing to retry around, the run simply
+    has to wait for the block to lift. Still a non-zero exit, because a
+    silently skipped refresh is how the archive went stale in the first place.
+    """
     sys.stderr.write("fetching %s\n" % url)
-    with urllib.request.urlopen(url, timeout=600) as r:
-        return r.read().decode("utf-8", errors="replace")
+    try:
+        with urllib.request.urlopen(url, timeout=120) as r:
+            return r.read().decode("utf-8", errors="replace")
+    except urllib.error.HTTPError as e:
+        if e.code in (403, 429) or e.code >= 500:
+            raise SystemExit(
+                f"BLOCKED: the archive refused this request ({e}).\n"
+                f"  {url}\n"
+                "  This is NCEI refusing the runner, not missing data and not a fault in\n"
+                "  this script -- the same block is holding up the v62 analyses. Nothing\n"
+                "  to fix; re-run once it lifts.")
+        raise
 
 
 def read_storms(text):
