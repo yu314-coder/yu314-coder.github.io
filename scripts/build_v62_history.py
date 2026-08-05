@@ -67,6 +67,7 @@ DLM_WEIGHTS = np.asarray([0.269, 0.500, 0.231], dtype="float32")
 DLM4_SCALE = np.asarray([4.7021923, 3.075009, 9.006815, 4.8768406], dtype="float32")
 PACIFIC_WEIGHT, LOCAL_WEIGHT = 0.25, 0.75
 KEEP_MEMBERS = 20          # drawn routes kept per initialisation
+RETRY_BLOCKED_DAYS = 21    # how long to leave a storm alone after its analyses came up missing
 CONE_PCT = 90.0
 # The analysis archive changes product mid-2011, not at a year boundary:
 #   CFSR   1979-01-01 .. 2011-03-31
@@ -372,6 +373,10 @@ def load_index():
     return {"hindcasts": {}}
 
 
+def save_index(index):
+    INDEX.write_text(json.dumps(index, separators=(",", ":")) + "\n")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -383,6 +388,8 @@ def main():
     ap.add_argument("--era", choices=("cfsr", "cdas", "all"), default="all",
                     help="restrict by analysis source. cfsr is ~4.6 MB per analysis, "
                          "cdas ~78 MB -- the scheduled backfill uses cfsr for that reason")
+    ap.add_argument("--retry-blocked", action="store_true",
+                    help="ignore the unavailable ledger and try those storms again")
     ap.add_argument("--prune", action="store_true",
                     help="delete each storm's analyses after it is written (CI: a CDAS storm is ~3.7 GB)")
     args = ap.parse_args()
@@ -408,11 +415,32 @@ def main():
         }
         log(f"{args.era.upper()} era: {len(catalogue)} storms in scope")
 
-    done = set(load_index().get("hindcasts", {})) if args.skip_existing else set()
+    idx_now = load_index()
+    done = set(idx_now.get("hindcasts", {})) if args.skip_existing else set()
+
+    # Storms whose analyses simply are not published yet -- currently the 2026
+    # season and a few gap months -- fail in seconds but sit at the top of the
+    # ranking forever, so every run spent its first slots on the same ones and
+    # built that many fewer real storms. Remember them and stand down for a
+    # while; NCEI does eventually fill these in, so it is a pause, not a ban.
+    blocked = {}
+    if args.skip_existing and not args.retry_blocked:
+        cutoff = dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=RETRY_BLOCKED_DAYS)
+        for sid, rec in (idx_now.get("unavailable") or {}).items():
+            try:
+                seen = dt.datetime.fromisoformat(rec["checked"].replace("Z", "+00:00"))
+            except Exception:
+                continue
+            if seen > cutoff:
+                blocked[sid] = rec
+        if blocked:
+            log(f"standing down on {len(blocked)} storm(s) with no analyses published "
+                f"(retried after {RETRY_BLOCKED_DAYS} days)")
+
     if args.top:
         ranked = sorted(catalogue.items(),
                         key=lambda kv: -max((p.get("w") or 0) for p in kv[1][1]["pts"]))
-        targets = [sid for sid, _ in ranked if sid not in done][: args.top]
+        targets = [sid for sid, _ in ranked if sid not in done and sid not in blocked][: args.top]
         if not targets:
             log("nothing left to generate"); return
     else:
@@ -430,7 +458,15 @@ def main():
         _FULL.clear()
         runs, why = run_storm(sid, year, storm, intensity_on=not args.no_intensity)
         if not runs:
-            log(f"  no runs ({why}); skipped"); continue
+            log(f"  no runs ({why}); skipped")
+            index.setdefault("unavailable", {})[sid] = {
+                "storm": storm.get("name"), "season": year, "reason": str(why)[:160],
+                "checked": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            }
+            save_index(index)
+            continue
+        if isinstance(index.get("unavailable"), dict):
+            index["unavailable"].pop(sid, None)   # it built, so it is no longer blocked
         payload = {
             "storm": storm.get("name"), "sid": sid, "season": year,
             "model": "v62 causal route + v37G intensity/structure head",

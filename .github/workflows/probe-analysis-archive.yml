@@ -1,0 +1,62 @@
+name: Probe analysis archive
+
+# What analysis data actually exists for a given month, asked from a runner.
+#
+# This exists because the question "is the data there?" kept being answered from
+# a laptop that NCEI had started rate-limiting, which returns 403 for everything
+# and looks identical to "missing" if you are not paying attention. A runner has
+# a different address and no such history, so it gives a clean answer.
+#
+# Run it from the Actions tab with a month like 202607.
+on:
+  workflow_dispatch:
+    inputs:
+      month:
+        description: "Month to probe, YYYYMM"
+        required: true
+        default: "202607"
+      day:
+        description: "Day of that month to test, DD"
+        required: false
+        default: "01"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Ask each archive what it has
+        run: |
+          M="${{ inputs.month }}"
+          D="${{ inputs.day }}"
+          Y="${M:0:4}"
+          YMD="$M$D"
+          CFS="https://www.ncei.noaa.gov/data/climate-forecast-system/access/operational-analysis"
+          GFS="https://www.ncei.noaa.gov/data/global-forecast-system/access"
+
+          probe () {  # label url
+            code=$(curl -sIL --max-time 60 -o /dev/null -w '%{http_code}' "$2")
+            size=$(curl -sIL --max-time 60 "$2" | awk 'tolower($1)=="content-length:"{print $2}' | tail -1)
+            printf '  %-46s %s  %s\n' "$1" "$code" "${size:+$((size/1048576)) MB}"
+          }
+
+          echo "=== $YMD ==="
+          probe "CDAS low-res  pgrblanl"  "$CFS/6-hourly-low-resolution/$Y/$M/$YMD/cdas1.t00z.pgrblanl.grib2"
+          probe "CDAS high-res pgrbhanl"  "$CFS/6-hourly-by-pressure/$Y/$M/$YMD/cdas1.t00z.pgrbhanl.grib2"
+          probe "GFS 0.5deg analysis"     "$GFS/grid-004-0.5-degree/analysis/$M/$YMD/gfs_4_${YMD}_0000_000.grb2"
+          probe "GFS 1.0deg analysis"     "$GFS/grid-003-1.0-degree/analysis/$M/$YMD/gfs_3_${YMD}_0000_000.grb2"
+
+          echo
+          echo "=== month listings ==="
+          for u in "$CFS/6-hourly-low-resolution/$Y/" "$CFS/6-hourly-by-pressure/$Y/"; do
+            echo "  $u"
+            curl -sL --max-time 60 "$u" | grep -oE '>2[0-9]{5}/?<' | tr -d '></' | sort -u | tr '\n' ' ' | sed 's/^/    /'
+            echo
+          done
+
+          echo
+          echo "=== a known-good control (2026-05-10) ==="
+          probe "CDAS low-res  pgrblanl"  "$CFS/6-hourly-low-resolution/2026/202605/20260510/cdas1.t00z.pgrblanl.grib2"
