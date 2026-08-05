@@ -162,7 +162,12 @@ def cfsr_path(stamp):
     for url in urls:
         try:
             req = urllib.request.Request(url, headers=UA)
-            with urllib.request.urlopen(req, timeout=300) as r:
+            # 300s was far too patient. A refused request is not fast when the
+            # archive decides to tarpit instead of answering: measured 229s
+            # average and 1081s worst for requests that only ever returned 403,
+            # which is how 102 requests filled 348 minutes. A 4.6 MB file does
+            # not need more than this even on a bad link.
+            with urllib.request.urlopen(req, timeout=90) as r:
                 data = r.read()
         except urllib.error.HTTPError as e:          # try the fallback product
             last = e
@@ -432,6 +437,14 @@ def run_storm(sid, season_year, storm, intensity_on=True):
                 run["track_mae_km"] = round(sum(errs) / len(errs), 1)
                 run["scored_leads"] = len(errs)
             runs.append(run)
+        except ArchiveUnreachable:
+            # Not this initialisation's problem -- the archive is refusing
+            # everything. Let it out of the per-init handler, or the breaker
+            # trips on every init in turn and never actually stops anything:
+            # one run spent 350 minutes on a single storm reporting "refused 12
+            # ... 29 requests in a row", and the cross-era fallback, which is
+            # keyed on this exception reaching the storm loop, never ran.
+            raise
         except Exception as e:
             log(f"  init {issue:%Y-%m-%dT%H}Z skipped ({type(e).__name__}: {e})")
     return runs, None
