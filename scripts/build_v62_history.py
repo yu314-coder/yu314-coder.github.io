@@ -101,6 +101,17 @@ def analysis_url(stamp):
 
 
 _REFUSED = []   # analysis stamps the archive refused while building the current storm
+_FETCH_OK = 0   # successful downloads this run
+_REFUSED_TOTAL = 0
+# If the archive is refusing us there is no point working through 400 requests
+# to discover it 400 times, and continuing to knock is how a temporary block
+# becomes a longer one. Give up the run after this many consecutive refusals
+# with nothing successfully fetched.
+BREAKER_AFTER = 12
+
+
+class ArchiveUnreachable(RuntimeError):
+    """Refused everything we asked for; stop the run rather than keep asking."""
 
 
 class AnalysisMissing(RuntimeError):
@@ -146,9 +157,17 @@ def cfsr_path(stamp):
             last = RuntimeError(f"{kind} {stamp}: not a GRIB file ({len(data)} bytes)")
             continue
         p.write_bytes(data)
+        global _FETCH_OK
+        _FETCH_OK += 1
         return p
     if blocked:
+        global _REFUSED_TOTAL
+        _REFUSED_TOTAL += 1
         _REFUSED.append(stamp)
+        if _FETCH_OK == 0 and _REFUSED_TOTAL >= BREAKER_AFTER:
+            raise ArchiveUnreachable(
+                f"the archive refused {_REFUSED_TOTAL} requests in a row and served none; "
+                f"stopping rather than knocking {BREAKER_AFTER} more times")
         raise AnalysisBlocked(f"{kind} {stamp}: archive refused the request ({last})")
     raise AnalysisMissing(f"{kind} {stamp}: not published ({last})")
 
@@ -492,7 +511,12 @@ def main():
         log(f"{storm.get('name', sid)} {year} ({sid}) …")
         _FULL.clear()
         _REFUSED.clear()
-        runs, why = run_storm(sid, year, storm, intensity_on=not args.no_intensity)
+        try:
+            runs, why = run_storm(sid, year, storm, intensity_on=not args.no_intensity)
+        except ArchiveUnreachable as e:
+            log(f"  {e}")
+            refused_storms += 1
+            break
         if not runs:
             log(f"  no runs ({why}); skipped")
             # Only a storm the archive actually answered about belongs in the
