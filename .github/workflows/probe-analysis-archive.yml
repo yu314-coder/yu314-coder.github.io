@@ -66,7 +66,21 @@ jobs:
           done
 
           echo
-          echo "=== controls: files known to exist and to have downloaded before ==="
+          echo "=== IBTrACS: is any route to it unblocked? ==="
+          # The refusals so far are all under /data/ while /oa/ serves normally,
+          # so the block may be path-scoped rather than host-wide. If any of
+          # these answers, the archive refresher and the 1980-84 season gap are
+          # both unblocked without waiting for NCEI.
+          IB=international-best-track-archive-for-climate-stewardship-ibtracs
+          probe "/data/  WP list"     "https://www.ncei.noaa.gov/data/$IB/v04r01/access/csv/ibtracs.WP.list.v04r01.csv"
+          probe "/oa/    WP list"     "https://www.ncei.noaa.gov/oa/$IB/v04r01/access/csv/ibtracs.WP.list.v04r01.csv"
+          probe "/pub/data/ WP list"  "https://www.ncei.noaa.gov/pub/data/$IB/v04r01/access/csv/ibtracs.WP.list.v04r01.csv"
+          probe "/thredds fileServer" "https://www.ncei.noaa.gov/thredds-ocean/fileServer/$IB/v04r01/access/csv/ibtracs.WP.list.v04r01.csv"
+          probe "/oa/ archive root"   "https://www.ncei.noaa.gov/oa/"
+          probe "/data/ root"         "https://www.ncei.noaa.gov/data/"
+
+          echo
+          echo "=== controls: files known to exist and to have downloaded before ===
           # If a control 403s it is a block, not absence. One per service, so the
           # two can be told apart rather than judged together.
           probe "CDAS  2026-05-10  pgrblanl"  "$CFS/6-hourly-low-resolution/2026/202605/20260510/cdas1.t00z.pgrblanl.grib2"
