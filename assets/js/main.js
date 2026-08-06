@@ -786,7 +786,8 @@
         const touch = this.isTouch();
         const base = (touch ? this.TOUCH_HINTS : this.HINTS)[this.currentGame] || '';
         const ind = Difficulty.indestructible
-          ? ' · INDESTRUCTIBLE (6 shapes): the wall never breaks — thread a 6px seam to get'
+          ? ' · INDESTRUCTIBLE (10 shapes' + (Difficulty.current === 'easy' ? '' : ', and it shoots back —'
+              + ' a lit column means move') + '): the wall never breaks — thread a 6px seam to get'
             + ' above it, clip a corner on a true diagonal, let a blast walk the staircase'
             + ' through the steel, ride the hole a blast rings open before it closes,'
             + ' and a KEY clears the row the vault is sitting in'
@@ -1023,6 +1024,10 @@
     lives: 3,
     level: 1,
     layoutName: '',
+    beams: [],
+    nextBeamAt: 0,
+    beamFlash: 0,
+    stunUntil: 0,
     cols: 11,
     initialBricks: 0,
     mutator: null,
@@ -1063,15 +1068,18 @@
       easy:   { speed: 4.6, max: 12, ramp: 1.12, lives: 5, paddle: 126,
                 first: 48000, every: 30000, drop: 0.44, hazard: 0,
                 mutFrom: 6, mutChance: 0.35, hpCap: 0,
-                wide: 2.54, slow: 0.5, effect: 1.8, netCap: 5, multi: 3, spare: 4 },
+                wide: 2.54, slow: 0.5, effect: 1.8, netCap: 5, multi: 3, spare: 4,
+                beamEvery: 0, beamWarn: 0 },          // easy is never shot at
       normal: { speed: 6.5, max: 18, ramp: 1.18, lives: 3, paddle: 104,
                 first: 26000, every: 15000, drop: 0.30, hazard: 1,
                 mutFrom: 3, mutChance: 0.72, hpCap: 3,
-                wide: 1.77, slow: 0.66, effect: 1, netCap: 3, multi: 2, spare: 3 },
+                wide: 1.77, slow: 0.66, effect: 1, netCap: 3, multi: 2, spare: 3,
+                beamEvery: 6000, beamWarn: 1000 },
       hard:   { speed: 8.2, max: 23, ramp: 1.22, lives: 2, paddle: 86,
                 first: 17000, every: 10000, drop: 0.26, hazard: 1.6,
                 mutFrom: 2, mutChance: 0.9,  hpCap: 4,
-                wide: 1.6, slow: 0.75, effect: 0.8, netCap: 2, multi: 2, spare: 2 }
+                wide: 1.6, slow: 0.75, effect: 0.8, netCap: 2, multi: 2, spare: 2,
+                beamEvery: 5200, beamWarn: 850 }
     },
     // A frame at top speed covers more than a brick's height, so movement is
     // sub-stepped at this granularity — otherwise a fast ball tunnels straight
@@ -1305,6 +1313,7 @@
         this.descendAt = performance.now() + this.DESCEND_FIRST * 1.6;
       }
       this.initialBricks = this.bricksLeft();
+      this.beamsReset(performance.now());
       this._planX = null;
       this._digCol = null;
       this.levelFlash = 90;
@@ -1463,8 +1472,10 @@
       this.drawBolts(ctx, game);
       this.drawPowerups(ctx, canvas, game);
       this.drawHud(ctx, canvas, now);
+      this.drawBeams(ctx, canvas, now);
       this.stepBalls(canvas, game, now);
       this.movePaddle(canvas);
+      this.stepBeams(canvas, game, now);
       this.stepDescent(game, canvas, now);
     },
 
@@ -1858,7 +1869,9 @@
     drawPaddle: function(ctx, canvas, now) {
       const pX = this.paddle.x;
       const pY = canvas.height - this.paddle.height - 4;
-      const pc = this.effects.shrinkUntil > now ? '#ef4444'
+      if (this.beamFlash > 0) this.beamFlash--;
+      const pc = this.beamFlash > 0 ? '#f43f5e'
+               : this.effects.shrinkUntil > now ? '#ef4444'
                : (this.effects.wide ? '#67e8f9' : this.paddle.color);
       // A glow under the paddle so it reads as lit rather than pasted on.
       ctx.save();
@@ -2054,6 +2067,7 @@
     },
 
     movePaddle: function(canvas) {
+      if (performance.now() < (this.stunUntil || 0)) return;   // pinned by a beam
       if (this.rightPressed && this.paddle.x < canvas.width - this.paddle.width) {
         this.paddle.x += this.paddle.speed;
       } else if (this.leftPressed && this.paddle.x > 0) {
@@ -2160,6 +2174,9 @@
       }
 
       if (Difficulty.indestructible && pick) target = this.indDrift(target, stand);
+      // Last, so nothing downstream can put the paddle back under a turret.
+      if (Difficulty.indestructible) target = this.beamClamp(target, canvas, now);
+      if (now < (this.stunUntil || 0)) return;                 // pinned by a beam
       const move = Math.max(-step, Math.min(step, target - centre));
       this.paddle.x = Math.max(0, Math.min(canvas.width - this.paddle.width, this.paddle.x + move));
     },
@@ -2315,7 +2332,38 @@
       { name: 'LADDER', rows: 6,
         f: [[0,'n',0],[1,'boom',1],[3,'mystery',1],[6,'n',9],[8,'key',2],[10,'n',0]],
         d: [[2,1,'boom',1],[3,2,'boom',1],[4,3,'boom',1],[5,4,'boom',1],
-            [1,2,'n',1],[4,1,'n',1],[6,3,'n',1],[6,4,'n',1]] }
+            [1,2,'n',1],[4,1,'n',1],[6,3,'n',1],[6,4,'n',1]] },
+
+      // The blast splits and widens on the way down, so one charge on the face
+      // opens the whole triangle underneath it.
+      { name: 'PYRAMID', rows: 6,
+        f: [[0,'n',0],[2,'n',0],[3,'mystery',1],[5,'boom',1],[7,'n',9],[9,'key',2],
+            [10,'n',0]],
+        d: [[5,1,'boom',1],[4,2,'boom',1],[6,2,'boom',1],[3,3,'boom',1],[7,3,'boom',1],
+            [2,4,'n',1],[8,4,'n',1],[5,3,'n',1]] },
+
+      // Widens then closes again: the two arms have to meet before the point
+      // at the bottom is in anything's reach.
+      { name: 'DIAMOND', rows: 6,
+        f: [[0,'n',0],[3,'boom',1],[5,'mystery',1],[6,'n',9],[8,'key',2],[10,'n',0]],
+        d: [[3,1,'boom',1],[2,2,'boom',1],[4,2,'boom',1],[3,3,'boom',1],
+            [3,4,'n',1],[1,3,'n',1],[5,3,'n',1]] },
+
+      // A short chain into a walled room, everything in it taken by radius
+      // rather than by the chain itself.
+      { name: 'FORTRESS', rows: 5,
+        f: [[0,'n',0],[1,'boom',1],[2,'n',0],[4,'mystery',1],[5,'n',9],[7,'n',0],
+            [9,'key',2],[10,'n',0]],
+        d: [[2,1,'boom',1],[3,2,'boom',1],[4,2,'boom',1],
+            [5,2,'n',1],[3,3,'n',1],[2,3,'n',1]] },
+
+      // Turns back on itself, so the deepest prize sits under ground the chain
+      // has already passed over.
+      { name: 'SPIRAL', rows: 6,
+        f: [[0,'n',0],[2,'n',0],[4,'mystery',1],[6,'boom',1],[8,'n',9],[9,'key',2],
+            [10,'n',0]],
+        d: [[6,1,'boom',1],[5,2,'boom',1],[4,3,'boom',1],[3,4,'boom',1],
+            [2,4,'n',1],[4,4,'n',1],[7,2,'n',1]] }
     ],
 
     buryBoard: function(canvas) {
@@ -2375,6 +2423,131 @@
       for (const [c, r, kind, hp] of shape.d) put(c, r, kind, hp);
 
       this.layoutName = 'INDESTRUCTIBLE · ' + shape.name;
+    },
+
+    // --- The wall shoots back ---------------------------------------------
+    // A board made of something you cannot break is a puzzle, not a fight, so
+    // on the buried board the steel takes shots at the paddle.
+    //
+    // Telegraphed on purpose: a turret lights up its column for the better part
+    // of a second before anything is fired, so being hit is a decision you got
+    // wrong and never a surprise. It aims where the paddle is standing when it
+    // charges, which is what makes it a threat -- standing still is the mistake.
+    //
+    // Easy never does this. The tier that exists so the mode can be learned is
+    // not the tier to add a second thing to dodge to.
+    BEAM_W: 10,
+    beamsReset: function(now) {
+      this.beams = [];
+      const every = (this.tier && this.tier.beamEvery) || 0;
+      // The first one comes late, so a level does not open under fire.
+      this.nextBeamAt = every ? now + every * 1.8 : 0;
+    },
+
+    stepBeams: function(canvas, game, now) {
+      if (!Difficulty.indestructible || !this.nextBeamAt) return;
+      const warn = this.tier.beamWarn, every = this.tier.beamEvery;
+
+      if (now >= this.nextBeamAt) {
+        // Fire from a live steel brick above where the paddle is now.
+        const aim = this.paddle.x + this.paddle.width / 2;
+        let src = null, near = Infinity;
+        for (const b of this.bricks) {
+          if (b.hp <= 0 || b.kind !== 'steel') continue;
+          const d = Math.abs(b.x + b.w / 2 - aim);
+          if (d < near) { near = d; src = b; }
+        }
+        if (src) {
+          this.beams.push({ x: src.x + src.w / 2, from: src.y + src.h, at: now + warn, fired: 0 });
+          SFX.beep(90, 0.18, 'square', 0.07, 150);
+        }
+        this.nextBeamAt = now + every;
+      }
+
+      for (let i = this.beams.length - 1; i >= 0; i--) {
+        const beam = this.beams[i];
+        if (now < beam.at) continue;              // still charging
+        if (!beam.fired) {
+          beam.fired = now;
+          SFX.beep(760, 0.12, 'sawtooth', 0.13, 120);
+          Fx.burst(beam.x, canvas.height - 40, '#f43f5e', 14, 3);
+          game.shake(4, 8);
+          const half = this.BEAM_W / 2;
+          const hit = beam.x + half > this.paddle.x &&
+                      beam.x - half < this.paddle.x + this.paddle.width;
+          if (hit && now > (this.beamSafeUntil || 0)) {
+            // Not a life. A turret fires often enough that charging a heart per
+            // hit ends the run on arithmetic rather than on play -- measured at
+            // roughly eighteen shots a board, which even a 95% dodge turns into
+            // a hit every run, and hard only has two hearts. A hit pins the
+            // paddle and shrinks it instead: you will probably miss the ball,
+            // and losing it that way is a consequence you can still play out of.
+            this.beamSafeUntil = now + 1400;      // no double-tap while recovering
+            this.stunUntil = now + 520;
+            this.effects.shrinkUntil = Math.max(this.effects.shrinkUntil || 0, now + 5000);
+            this.beamFlash = 22;
+            Haptics.power();
+            Fx.text(beam.x, canvas.height - 60, 'PINNED!', '#f43f5e');
+          }
+        }
+        if (now - beam.fired > 160) this.beams.splice(i, 1);
+      }
+    },
+
+    drawBeams: function(ctx, canvas, now) {
+      if (!this.beams || !this.beams.length) return;
+      const half = this.BEAM_W / 2;
+      for (const beam of this.beams) {
+        const charging = now < beam.at;
+        const y0 = beam.from, y1 = canvas.height;
+        if (charging) {
+          const t = 1 - (beam.at - now) / (this.tier.beamWarn || 1);
+          ctx.save();
+          ctx.globalAlpha = 0.18 + 0.34 * t;
+          ctx.fillStyle = '#f43f5e';
+          ctx.fillRect(beam.x - half * (0.4 + t * 0.6), y0, this.BEAM_W * (0.4 + t * 0.6), y1 - y0);
+          ctx.restore();
+        } else {
+          const g = ctx.createLinearGradient(0, y0, 0, y1);
+          g.addColorStop(0, 'rgba(255,255,255,0.95)');
+          g.addColorStop(1, 'rgba(244,63,94,0.85)');
+          ctx.save();
+          ctx.fillStyle = g;
+          ctx.fillRect(beam.x - half, y0, this.BEAM_W, y1 - y0);
+          ctx.restore();
+        }
+      }
+    },
+
+    // Stay out of a lit column. Written as a clamp on the final target rather
+    // than as a branch in the aim chain, because as a branch it only held while
+    // the beam was nearly due -- outside that window the ordinary aim walked
+    // the paddle straight back under the turret and it was shot anyway. Nine
+    // hits in a hundred and eighteen beams, all of them avoidable.
+    //
+    // When the ball is arriving inside the lit column the two cannot both be
+    // had: the beam is a certain hit, a missed ball only a possible one, so
+    // the beam wins.
+    beamClamp: function(target, canvas, now) {
+      if (!this.beams || !this.beams.length) return target;
+      const half = this.paddle.width / 2;
+      const clear = this.BEAM_W / 2 + half + 4;
+      for (const beam of this.beams) {
+        if (beam.fired) continue;
+        if (Math.abs(beam.x - target) >= clear) continue;
+        // Both sides, clamped to the canvas the way movePaddle will clamp them,
+        // then whichever actually ends up further from the column. Picking a
+        // side first and clamping after is what let a turret near an edge score:
+        // the paddle was sent to a position it could not reach and stayed lit.
+        let best = null, bestGap = -1;
+        for (const cand of [beam.x - clear, beam.x + clear]) {
+          const at = Math.max(half, Math.min(canvas.width - half, cand));
+          const gap = Math.abs(at - beam.x);
+          if (gap > bestGap) { bestGap = gap; best = at; }
+        }
+        return best;
+      }
+      return target;
     },
 
     // --- Returning the ball on a buried board -----------------------------
