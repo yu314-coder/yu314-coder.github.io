@@ -1282,16 +1282,40 @@ const buildPlain = (B, h, name) => {
     Math.abs(Math.tan((stand - target) / half * (Math.PI / 3)));
 
   const stand = 300;
-  const straight = B.indDrift(stand, stand);          // would return dead vertical
+  // Easy has a wide bat and a slow ball, so threading is not worth it there and
+  // the aim falls through to the rule that is: never near-vertical.
+  check('easy does not try to thread', !B.threadWorthIt(),
+        `paddle/speed ${(B.tier.paddle / B.tier.speed).toFixed(1)}`);
+  const straight = B.seamAim(h.canvas, stand, stand);
   check('a dead-vertical return is refused', slopeOf(straight, stand) >= B.IND_MIN_SLOPE * 0.98,
         `slope ${slopeOf(straight, stand).toFixed(3)} vs min ${B.IND_MIN_SLOPE}`);
 
-  const angled = stand - 0.6 * half;                  // already a wide shot
-  check('an already-angled shot is left alone', B.indDrift(angled, stand) === angled);
+  const angled = stand - 0.6 * half;
+  check('an already-angled shot is left alone', B.seamAim(h.canvas, stand, angled) === angled);
 
-  const nearly = stand - 0.001 * half;
-  check('a nearly-vertical shot is pushed out too',
-        slopeOf(B.indDrift(nearly, stand), stand) >= B.IND_MIN_SLOPE * 0.98);
+  {
+    // Hard has a narrow bat and a fast ball, so it does thread -- and a threaded
+    // return has to be shallow enough to stay inside a 6px gap all the way
+    // through the wall, or it is not a thread at all.
+    const hh = run();
+    const { Breakout: BH, Difficulty: DH } = hh.win.__arcade;
+    DH.setIndestructible(true); DH.set('hard');
+    hh.els['gameSelect'].value = 'breakout';
+    hh.win.startGame();
+    check('hard does thread', BH.threadWorthIt(),
+          `paddle/speed ${(BH.tier.paddle / BH.tier.speed).toFixed(1)}`);
+    const live = BH.bricks.filter(b => b.hp > 0);
+    const left = Math.min(...live.map(b => b.x));
+    const pitch = BH.config.brickWidth + BH.config.brickPadding;
+    const onSeam = left - BH.config.brickPadding / 2 + pitch;   // a real gap
+    const hp = BH.paddle.width / 2;
+    const aim = BH.seamAim(hh.canvas, onSeam, onSeam);
+    const slope = Math.abs(Math.tan((onSeam - aim) / hp * (Math.PI / 3)));
+    const depth = Math.max(...live.map(b => b.y + b.h)) - Math.min(...live.map(b => b.y));
+    check('a ball arriving on a gap is threaded through it',
+          slope > 0 && slope <= (BH.config.brickPadding / 2) / depth,
+          `slope ${slope.toFixed(4)} vs max ${((BH.config.brickPadding / 2) / depth).toFixed(4)}`);
+  }
 
   // and it must not touch the ordinary board, where vertical is a fine shot
   const h2 = run();

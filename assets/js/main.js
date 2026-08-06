@@ -2173,7 +2173,10 @@
         }
       }
 
-      if (Difficulty.indestructible && pick) target = this.indDrift(target, stand);
+      if (Difficulty.indestructible && pick) {
+        const aim = this.seamAim(canvas, stand, target);
+        if (aim !== null) target = aim;
+      }
       // Last, so nothing downstream can put the paddle back under a turret.
       if (Difficulty.indestructible) target = this.beamClamp(target, canvas, now);
       if (now < (this.stunUntil || 0)) return;                 // pinned by a beam
@@ -2551,42 +2554,89 @@
     },
 
     // --- Returning the ball on a buried board -----------------------------
-    // Measured, and both failures were specific:
+    // Aim at the gap, every time. Nothing in this wall can be broken from
+    // underneath, so a return that does not put the ball through a seam is a
+    // wasted trip by construction -- and measurement agreed: with a blunt
+    // "just never go vertical" rule the ball reached the far side of the wall
+    // zero times in nine thousand frames, and the single brick that did break
+    // was a chance corner clip.
     //
-    //   easy  484 frames spent above the wall, |dx/dy| of 0.002, and one brick
-    //         broken in nine thousand frames. A dead-vertical thread goes up
-    //         the seam, off the ceiling, and back down the same seam for ever,
-    //         touching nothing -- collision tests the ball's centre, so a
-    //         centre in the seam is in no brick at all. The wide easy paddle
-    //         makes a near-centre hit, and so an almost exactly vertical
-    //         return, the most likely shot on the board.
-    //   hard  never got above the wall at all across fifteen runs.
+    // Two cases, both closed form.
     //
-    // So the rule is simply: never hand the ball back near-vertical here. Any
-    // other shot is playable; that one is a hole the run falls into.
+    //   on a seam   thread it, at the steepest angle that still fits. The gap
+    //               is 6px and collision tests the ball's centre, so the centre
+    //               may wander half of that across the wall's depth: tan(t) <
+    //               3/depth. Take 70% of that -- enough margin to survive the
+    //               sub-stepping, still enough drift to come down on a brick
+    //               rather than back out of the same seam it went up.
+    //   off a seam  the underside of the wall is flat steel, so a miss flips dy
+    //               and leaves dx alone: a ball leaving x0 at angle t returns to
+    //               the paddle line at x0 + 2*tan(t)*h. That inverts, so the
+    //               shot that misses is the one that sets up the next arrival
+    //               on a seam. A miss is never wasted either.
+    // Thread the gap only where threading pays. Measured at 21 runs a tier:
     //
-    // The threshold is empirical rather than derived. A drift small enough to
-    // still thread cleanly (0.014) barely helped -- easy 1 -> 1 -- because it
-    // takes ~34 round trips to wander over a brick. Sweeping it, 0.18 measured
-    // best on every tier at 27 runs each: easy 1 -> 22, hard 10 -> 31, normal
-    // unchanged. That is about ten degrees, well past what threads the seam,
-    // which is the point: the value of the rule is not in threading, it is in
-    // never being trapped travelling straight up and down.
-    IND_MIN_SLOPE: 0.18,
-    indDrift: function(target, stand) {
+    //   easy    threading 18/21 boards cleared, not threading 21/21
+    //   normal  threading 12/21,               not threading 19/21
+    //   hard    threading 21/21,               not threading 12/21
+    //
+    // The reason is catching, not breaking. A threaded return is near vertical,
+    // so the ball comes back down to almost the same x and is nearly
+    // self-catching -- which is worth everything when the bat is 86px wide and
+    // the ball moves at 8.2, and worth nothing when it is 126px at 4.6, where
+    // the wider angles of the fallback simply do more work. So the test is the
+    // bat measured against the ball, not the name of the tier.
+    threadWorthIt: function() {
+      return this.tier && this.tier.paddle / this.tier.speed < 13;
+    },
+    SEAM_SAFETY: 0.95,
+    IND_MIN_SLOPE: 0.18,   // measured best as the fallback; see the note below
+    seamAim: function(canvas, stand, target) {
+      let left = Infinity, top = Infinity, bottom = 0;
+      for (const b of this.bricks) {
+        if (b.hp <= 0) continue;
+        if (b.x < left) left = b.x;
+        if (b.y < top) top = b.y;
+        if (b.y + b.h > bottom) bottom = b.y + b.h;
+      }
+      if (!isFinite(left)) return null;
+      const cfg = this.config;
+      const pitch = cfg.brickWidth + cfg.brickPadding;
+      const gap = cfg.brickPadding / 2;
+      const seam = left - gap + Math.round((stand - left + gap) / pitch) * pitch;
+      const depth = Math.max(1, bottom - top);
       const half = this.paddle.width / 2;
+      const toHit = (tan) => stand - Math.atan(tan) / (Math.PI / 3) * half;
+
+      if (this.threadWorthIt() && Math.abs(stand - seam) <= gap * 0.6) {
+        // Lined up. Lean toward whatever is still alive on the reachable row so
+        // the ball comes down on something instead of back out of the seam.
+        let goal = null, near = Infinity;
+        for (const b of this.bricks) {
+          if (b.hp <= 0 || b.kind === 'steel' || b.row > 0) continue;
+          const d = Math.abs(b.x + b.w / 2 - stand);
+          if (d < near) { near = d; goal = b.x + b.w / 2; }
+        }
+        const dir = (goal === null || goal >= stand) ? 1 : -1;
+        return toHit(dir * (gap / depth) * this.SEAM_SAFETY);
+      }
+
+      // Off a seam. Steering the next arrival onto one is solvable in closed
+      // form -- the wall's underside is flat steel, so a ball leaving x0 at
+      // angle t returns to the paddle line at x0 + 2*tan(t)*h -- and it was
+      // tried. It does not survive contact with the real bounce: on easy it
+      // put an arrival within the gap zero times in nine thousand frames, and
+      // it replaced the aim that was keeping the ball alive.
+      //
+      // So do the thing that measured best instead: never hand the ball back
+      // near-vertical. It does not thread, but it keeps the rally going, and
+      // the arrivals it produces land on a seam often enough for the branch
+      // above to convert them.
       const minHit = Math.atan(this.IND_MIN_SLOPE) / (Math.PI / 3);
       const hit = (stand - target) / half;
-      if (Math.abs(hit) >= minHit) return target;    // already angled; leave it
-      // Lean toward whatever is still alive on the only reachable row.
-      let goal = null, near = Infinity;
-      for (const b of this.bricks) {
-        if (b.hp <= 0 || b.kind === 'steel' || b.row > 0) continue;
-        const d = Math.abs(b.x + b.w / 2 - stand);
-        if (d < near) { near = d; goal = b.x + b.w / 2; }
-      }
-      const dir = (goal === null || goal >= stand) ? 1 : -1;
-      return stand - dir * minHit * half;
+      if (Math.abs(hit) >= minHit) return target;
+      const away = (stand < canvas.width / 2) ? 1 : -1;
+      return stand - away * minHit * half;
     },
 
     // --- Shot planning ---------------------------------------------------
