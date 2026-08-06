@@ -95,6 +95,11 @@ CONE_PCT = 90.0
 #   CDAS   2011-04-01 onward   (CFSv2; NCEI operational-analysis/6-hourly-by-pressure,
 #                               cdas1.tHHz.pgrbhanl.grib2 -- 78 MB, no .idx sidecar,
 #                               so it is not yet wired up here)
+# The reanalysis begins here. The track archive now reaches back to 1945, but
+# no analysis exists before this, so those storms can be drawn and never
+# hindcast -- and if they are left in the catalogue every run spends its slots
+# 404-ing through a storm it could never build.
+CFSR_START = dt.datetime(1979, 1, 1, tzinfo=dt.timezone.utc)
 CFSR_END = dt.datetime(2011, 3, 31, 18, tzinfo=dt.timezone.utc)
 
 
@@ -493,6 +498,9 @@ def main():
             pts = storm.get("pts") or []
             if not pts:
                 continue
+            last = dt.datetime.fromisoformat(pts[-1]["t"]).replace(tzinfo=dt.timezone.utc)
+            if last < CFSR_START:
+                continue          # older than any analysis; nothing to integrate from
             catalogue[sid] = (year, storm)
 
     if args.era != "all":
@@ -536,6 +544,14 @@ def main():
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     index = load_index()
+    # Drop ledger entries for storms no longer in the catalogue at all. Without
+    # this they linger and get retried forever: extending the track archive back
+    # to 1945 benched 45 pre-reanalysis storms that can never be built.
+    stale = [sid for sid in (index.get("unavailable") or {}) if sid not in catalogue]
+    if stale:
+        for sid in stale:
+            index["unavailable"].pop(sid, None)
+        log(f"pruned {len(stale)} ledger entry(ies) for storms outside the catalogue")
     built = refused_storms = 0
     targets = list(targets)
     swapped = False
