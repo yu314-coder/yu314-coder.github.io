@@ -929,145 +929,161 @@ const buildPlain = (B, h, name) => {
 }
 
 
-// ------------------------------------------------------- indestructible mode
-// The whole mode rests on four engine quirks. If any of them is "fixed", the
-// board stops being solvable rather than just getting harder, so each one is
-// pinned here on purpose.
+// ------------------------------------------------ indestructible: the forms
+// The steel is a shape with a hollow inside, not a filled grid, so the rules
+// are about the shell rather than about a particular row. Every form is
+// checked, over two full level cycles.
 {
-  const setup = (tier) => {
+  const setup = (tier, level) => {
     const h = run();
     const { Breakout: B, Difficulty } = h.win.__arcade;
     Difficulty.setIndestructible(true);
     Difficulty.set(tier || 'normal');
     h.els['gameSelect'].value = 'breakout';
     h.win.startGame();
+    if (level && level > 1) { B.level = level; B.buildLevel(h.canvas); }
     return { h, B, g: fakeGame(h) };
   };
+  const at = (B, c, r) => B.bricks.find(b => b.col === c && b.row === r);
 
   {
-    const { h, B } = setup();
-    const targets = B.bricks.filter(b => b.kind !== 'steel' && b.hp > 0);
-    check('indestructible buries the board but leaves real targets',
-          B.bricksLeft() > 0 && targets.length < B.bricks.length / 3,
-          `${targets.length} targets in ${B.bricks.length} cells`);
-
-    // A board of pure steel reports nothing left and completes itself.
-    check('an all-steel board would auto-complete, so this one must not be',
-          B.bricks.some(b => b.kind !== 'steel'));
-
-    // The wall has to run off both edges: a lane down the side of the canvas
-    // is not a seam, and the ball would simply walk around the whole thing.
-    const L = Math.min(...B.bricks.map(b => b.x));
-    const R = Math.max(...B.bricks.map(b => b.x + b.w));
-    check('the wall overhangs both edges, so there is no lane around it',
-          L <= 0 && R >= h.canvas.width, `spans ${L}..${R} of ${h.canvas.width}`);
-
-    // The overhang is steel only. A target out in it could never be hit, so
-    // the board would be unwinnable -- and silently, which is worse.
-    const stranded = B.bricks.filter(b => b.kind !== 'steel' &&
-                                          (b.x < 0 || b.x + b.w > h.canvas.width));
-    check('every target is wholly on screen', stranded.length === 0,
-          stranded.map(b => `c${b.col}@${b.x}`).join(' '));
-
-    // The layout wraps its columns into the visible span, so too narrow a span
-    // would fold two targets onto one cell and quietly drop one of them.
-    check('no two targets collapsed onto the same cell', targets.length === 15,
-          `${targets.length} of 15 placed`);
-    const face = targets.filter(b => b.row === 0);
-    check('the reachable face keeps all nine of its columns',
-          new Set(face.map(b => b.col)).size === 9, `${face.length} on row 0`);
-  }
-
-  {
-    // Nothing may be reachable by an ordinary rising ball: every target needs
-    // steel somewhere below it in its own column.
     const { B } = setup();
-    const live = B.bricks.filter(b => b.hp > 0);
-    const rows = Math.max(...live.map(b => b.row));
-    const open = live.filter(t => t.kind !== 'steel' && !live.some(
-      o => o.col === t.col && o.row > t.row && o.kind === 'steel'));
-    check('no target can be hit straight from below', open.length === 0,
-          open.map(b => `c${b.col}r${b.row}`).join(' ') || `rows 0..${rows}`);
+    check('there are several forms to build from', B.IND_FORMS.length >= 6,
+          `${B.IND_FORMS.length} forms`);
+  }
+
+  let bad = null;
+  const seen = new Set();
+  const shellDepths = [];
+  for (let level = 1; level <= 16 && !bad; level++) {
+    const { h, B, g } = setup('normal', level);
+    seen.add(B.layoutName);
+    const targets = B.bricks.filter(b => b.kind !== 'steel' && b.hp > 0);
+    const cols = Math.max(...B.bricks.map(b => b.col));
+    const rows = Math.max(...B.bricks.map(b => b.row));
+
+    // Nothing inside may have a clean line out. This is the whole mode: if any
+    // target can be hit without breaching the shell first, there is no shell.
+    const exposed = targets.filter(t =>
+      [[0, 1], [0, -1], [1, 0], [-1, 0]].some(([dc, dr]) => {
+        for (let c = t.col + dc, r = t.row + dr;
+             c >= 0 && c <= cols && r >= 0 && r <= rows; c += dc, r += dr) {
+          const b = at(B, c, r);
+          if (b && b.kind === 'steel' && b.hp > 0) return false;
+        }
+        return true;
+      }));
+
+    const offscreen = targets.filter(b => b.x < 0 || b.x + b.w > h.canvas.width);
+    const keys = targets.filter(b => b.kind === 'key');
+    const vaults = targets.filter(b => b.kind === 'normal' && b.hp >= 9);
+    const myst = targets.filter(b => b.kind === 'mystery');
+    shellDepths.push(B.indLayers);
+
+    if (exposed.length) bad = `${B.layoutName}: ${exposed.length} target(s) with a clean line out`;
+    else if (offscreen.length) bad = `${B.layoutName}: target off screen`;
+    else if (targets.length < 5) bad = `${B.layoutName}: only ${targets.length} targets inside`;
+    else if (keys.length !== 1) bad = `${B.layoutName}: ${keys.length} keystones`;
+    else if (vaults.length !== 1) bad = `${B.layoutName}: ${vaults.length} vaults`;
+    else if (myst.length !== 1) bad = `${B.layoutName}: ${myst.length} mystery bricks`;
+    else if (!B.indLayers) bad = `${B.layoutName}: no shell`;
+  }
+  check('every form is a closed shell with a room inside it', !bad, bad || `${seen.size} forms`);
+  check('the forms differ from one another', seen.size >= 6, `${seen.size} distinct`);
+  check('the shell is at least one course of steel everywhere',
+        shellDepths.every(d => d >= 1), shellDepths.join(','));
+  check('and is thicker than one course on the forms with room for it',
+        shellDepths.some(d => d >= 2), shellDepths.join(','));
+
+  {
+    // It is a shape, not a filled rectangle: there must be empty cells inside
+    // its own bounding box.
+    const { B } = setup('normal', 1);
+    const cols = Math.max(...B.bricks.map(b => b.col)) + 1;
+    const rows = Math.max(...B.bricks.map(b => b.row)) + 1;
+    check('the steel is a shape rather than a filled grid',
+          B.bricks.length < cols * rows, `${B.bricks.length} tiles in ${cols}x${rows}`);
   }
 
   {
-    // Quirk 1: collision tests the ball's centre against a rectangle, so a
-    // centre going up a 6px seam touches nothing and comes out above the wall.
-    const { h, B, g } = setup();
+    // The way in: a vertical seam runs between columns through every course of
+    // the shell, and collision tests the ball's centre, so a centre in the seam
+    // is inside no tile at all.
+    const { h, B, g } = setup('normal', 2);
     const cfg = B.config;
-    const anchorX = Math.min(...B.bricks.filter(b => b.hp > 0).map(b => b.x));
+    const live = B.bricks.filter(b => b.hp > 0);
+    const anchorX = Math.min(...live.map(b => b.x));
     const seamX = anchorX + cfg.brickWidth + cfg.brickPadding / 2;
-    const below = Math.max(...B.bricks.map(b => b.y + b.h)) + 30;
+    const below = Math.max(...live.map(b => b.y + b.h)) + 30;
+    const topY = Math.min(...live.map(b => b.y));
     const before = B.bricksLeft();
     B.balls = [B.newBall(seamX, below, 0, -6.5)];
     let through = false;
-    for (let i = 0; i < 80 && B.balls.length; i++) {
+    for (let i = 0; i < 90 && B.balls.length; i++) {
       B.stepBalls(h.canvas, g, 1000 + i * 16);
-      if (B.balls[0] && B.balls[0].y < cfg.brickOffsetTop - 8) { through = true; break; }
+      if (B.balls[0] && B.balls[0].y < topY - 8) { through = true; break; }
     }
-    check('a ball threads the seam and reaches the far side of the wall',
-          through && B.bricksLeft() === before);
+    check('a ball threads a seam clean through the shell',
+          through && B.bricksLeft() === before,
+          `through ${through}, broke ${before - B.bricksLeft()}`);
 
-    const { h: h2, B: B2, g: g2 } = setup();
-    const off = Math.min(...B2.bricks.filter(b => b.hp > 0).map(b => b.x)) + B2.config.brickWidth / 2;
-    B2.balls = [B2.newBall(off, Math.max(...B2.bricks.map(b => b.y + b.h)) + 30, 0, -6.5)];
+    // Off the seam it is turned back, or the shell means nothing.
+    const { h: h2, B: B2, g: g2 } = setup('normal', 2);
+    const live2 = B2.bricks.filter(b => b.hp > 0);
+    const solid = live2.filter(b => b.kind === 'steel')
+                       .sort((a, b) => (b.y - a.y) || (a.x - b.x))[0];
+    B2.balls = [B2.newBall(solid.x + solid.w / 2,
+                           Math.max(...live2.map(b => b.y + b.h)) + 30, 0, -6.5)];
     let leaked = false;
-    for (let i = 0; i < 80 && B2.balls.length; i++) {
+    const top2 = Math.min(...live2.map(b => b.y));
+    for (let i = 0; i < 90 && B2.balls.length; i++) {
       B2.stepBalls(h2.canvas, g2, 1000 + i * 16);
-      if (B2.balls[0] && B2.balls[0].y < B2.config.brickOffsetTop - 8) { leaked = true; break; }
+      if (B2.balls[0] && B2.balls[0].y < top2 - 8) { leaked = true; break; }
     }
-    check('the same shot off the seam is turned back by the steel', !leaked);
+    check('a shot into the face of the shell is turned back', !leaked);
   }
 
   {
-    // Quirk 2: a blast reaches all eight neighbours and chains through
-    // explosives, so a diagonal staircase walks down through solid steel.
-    const { B, g } = setup();
-    const sealed = B.bricks.filter(b => b.kind !== 'steel' && b.row > 0);
-    const head = B.bricks.find(b => b.kind === 'boom' && b.row === 0);
-    check('there is an explosive on the only reachable row', !!head);
-    head.hp = 0;
-    B.explode(head, g);
-    check('the blast walks the staircase down through the steel',
-          sealed.every(b => b.hp <= 0), `${sealed.filter(b => b.hp > 0).length} left sealed`);
-  }
+    // Inside the room the old quirks still do the work.
+    const { B, g } = setup('normal', 1);
+    const boom = B.bricks.find(b => b.kind === 'boom');
+    const neighbours = B.bricks.filter(b =>
+      b !== boom && b.kind !== 'steel' && b.hp > 0 &&
+      Math.abs(b.col - boom.col) <= 1 && Math.abs(b.row - boom.row) <= 1);
+    boom.hp = 0;
+    B.explode(boom, g);
+    check('a charge inside the room takes its neighbours with it',
+          neighbours.every(b => b.hp <= 0), `${neighbours.filter(b => b.hp > 0).length} left`);
 
-  {
-    // Quirk 3: a keystone clears its whole row and skips the steel in between,
-    // which is the only realistic way to remove the high-hitpoint vault.
-    const { B, g } = setup();
-    const key = B.bricks.find(b => b.kind === 'key');
-    const vault = B.bricks.filter(b => b.kind === 'normal' && b.row === 0)
-                          .sort((a, b) => b.hp - a.hp)[0];
-    check('the vault is far too tough to chip out by hand', vault.hp >= 9, `hp ${vault.hp}`);
+    const { B: B3, g: g3 } = setup('normal', 1);
+    const key = B3.bricks.find(b => b.kind === 'key');
+    const row = B3.bricks.filter(b => b.kind !== 'steel' && b.row === key.row && b !== key);
     key.hp = 0;
-    B.collapseRow(key, g);
-    check('the keystone reaches through the steel and zeroes the vault', vault.hp <= 0);
-    check('one keystone hit cascades the whole board, so it is completable',
-          B.bricksLeft() === 0, `${B.bricksLeft()} left`);
+    B3.collapseRow(key, g3);
+    check('the keystone still clears its row through the steel',
+          row.every(b => b.hp <= 0), `${row.filter(b => b.hp > 0).length} left`);
   }
 
   {
-    // Quirk 4: the overrun check skips steel, so the wall marching past the
-    // danger line is survivable -- which is the only reason the mode is fair.
-    const { h, B, g } = setup();
+    // Steel sweeping past the danger line is still survivable, which is what
+    // makes a descending wall of it fair.
+    const { h, B, g } = setup('normal', 1);
     for (const b of B.bricks) if (b.kind !== 'steel') b.hp = 0;
     for (const b of B.bricks) b.y = B.dangerY(h.canvas) + 40;
     B.descendAt = 1;
     B.stepDescent(g, h.canvas, 100000);
-    check('steel sweeping past the danger line does not end the run', !g.over);
+    check('steel crossing the danger line does not end the run', !g.over);
   }
 
   {
-    // The tier still means something underneath the mode.
     const hp = {};
     for (const t of ['easy', 'normal', 'hard']) {
-      const { B } = setup(t);
-      hp[t] = Math.min(...B.bricks.filter(b => b.kind === 'normal' && b.row === 0).map(b => b.hp));
+      const { B } = setup(t, 1);
+      const plain = B.bricks.filter(b => b.kind === 'normal' && b.hp < 9);
+      hp[t] = Math.min(...plain.map(b => b.hp));
     }
-    check('easy, normal and hard still change the board underneath',
-          hp.easy < hp.normal && hp.normal < hp.hard,
-          `${hp.easy}/${hp.normal}/${hp.hard}`);
+    check('easy, normal and hard still change what is inside',
+          hp.easy < hp.normal && hp.normal < hp.hard, `${hp.easy}/${hp.normal}/${hp.hard}`);
 
     const h = run();
     const { Difficulty } = h.win.__arcade;
@@ -1075,15 +1091,13 @@ const buildPlain = (B, h, name) => {
     h.els['gameSelect'].value = 'breakout';
     h.win.startGame();
     check('turning it off gives the ordinary board back',
-          h.win.__arcade.Breakout.layoutName !== 'INDESTRUCTIBLE');
+          h.win.__arcade.Breakout.layoutName.indexOf('INDESTRUCTIBLE') < 0);
   }
 
   {
-    // It has to be survivable by the algorithm, not just solvable on paper.
-    // Best of three: one run of a stochastic player says very little, and as a
-    // single run this was a flaky test rather than a meaningful one.
+    // Survivable by the algorithm, not merely solvable on paper.
     let broke = 0;
-    for (let r = 0; r < 3; r++) {
+    for (let r = 0; r < 3 && !broke; r++) {
       const h = run();
       const { Breakout: B, Difficulty } = h.win.__arcade;
       Difficulty.setIndestructible(true); Difficulty.set('normal');
@@ -1098,72 +1112,12 @@ const buildPlain = (B, h, name) => {
         if (l < best) best = l;
       }
       broke = Math.max(broke, start - best);
-      if (broke) break;                        // one success is the whole claim
     }
-    check('the autopilot gets into the buried board on its own', broke > 0,
+    check('the algorithm breaks into the shape on its own', broke > 0,
           `best of three broke ${broke}`);
   }
 }
 
-// -------------------------------------------- indestructible: every shape
-// The shapes differ but the rules that make them solvable do not, so each one
-// is checked rather than just the first. Two full cycles, because the shape is
-// picked by level and slid along by level -- a slide that wrapped would cut a
-// blast chain and strand targets, which is exactly what happened once.
-{
-  const boot2 = (tier, level) => {
-    const h = run();
-    const { Breakout: B, Difficulty } = h.win.__arcade;
-    Difficulty.setIndestructible(true);
-    Difficulty.set(tier || 'normal');
-    h.els['gameSelect'].value = 'breakout';
-    h.win.startGame();
-    if (level && level > 1) { B.level = level; B.buildLevel(h.canvas); }
-    return { h, B, g: fakeGame(h) };
-  };
-
-  const { B: B0 } = boot2();
-  check('there is more than one indestructible shape', B0.IND_SHAPES.length >= 5,
-        `${B0.IND_SHAPES.length} shapes`);
-
-  const seen = new Set();
-  let allOk = true, detail = '';
-  for (let level = 1; level <= B0.IND_SHAPES.length * 2; level++) {
-    const { h, B, g } = boot2('normal', level);
-    seen.add(B.layoutName);
-    const live = B.bricks.filter(b => b.hp > 0);
-    const targets = live.filter(b => b.kind !== 'steel');
-    const lastRow = Math.max(...live.map(b => b.row));
-
-    const onFloor = targets.filter(b => b.row === lastRow);
-    const openBelow = targets.filter(t => !live.some(
-      o => o.col === t.col && o.row > t.row && o.kind === 'steel'));
-    const offscreen = targets.filter(b => b.x < 0 || b.x + b.w > h.canvas.width);
-    const L = Math.min(...B.bricks.map(b => b.x));
-    const R = Math.max(...B.bricks.map(b => b.x + b.w));
-    const key = B.bricks.find(b => b.kind === 'key');
-    const vault = targets.filter(b => b.kind === 'normal').sort((a, b) => b.hp - a.hp)[0];
-    const boomOnFace = B.bricks.some(b => b.kind === 'boom' && b.row === 0);
-
-    let bad = null;
-    if (onFloor.length) bad = 'target on the bottom row';
-    else if (openBelow.length) bad = 'target open from below';
-    else if (offscreen.length) bad = 'target off screen';
-    else if (L > 0 || R < h.canvas.width) bad = 'lane down the side';
-    else if (!key) bad = 'no keystone';
-    else if (!vault || vault.hp < 9) bad = 'no vault';
-    else if (!boomOnFace) bad = 'no explosive on the reachable row';
-    else {
-      key.hp = 0;
-      B.collapseRow(key, g);
-      if (B.bricksLeft() !== 0) bad = `${B.bricksLeft()} unreachable after the cascade`;
-    }
-    if (bad) { allOk = false; detail = `${B.layoutName} (level ${level}): ${bad}`; break; }
-  }
-  check('every shape is sealed, on screen and completable', allOk,
-        detail || `${seen.size} distinct shapes over two cycles`);
-  check('the shapes actually differ from one another', seen.size >= 5, `${seen.size} distinct`);
-}
 
 // ------------------------------------- indestructible: the two added exploits
 {

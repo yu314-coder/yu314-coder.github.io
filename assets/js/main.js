@@ -786,11 +786,13 @@
         const touch = this.isTouch();
         const base = (touch ? this.TOUCH_HINTS : this.HINTS)[this.currentGame] || '';
         const ind = Difficulty.indestructible
-          ? ' · INDESTRUCTIBLE (10 shapes' + (Difficulty.current === 'easy' ? '' : ', and it shoots back —'
-              + ' a lit column means move') + '): the wall never breaks — thread a 6px seam to get'
-            + ' above it, clip a corner on a true diagonal, let a blast walk the staircase'
-            + ' through the steel, ride the hole a blast rings open before it closes,'
-            + ' and a KEY clears the row the vault is sitting in'
+          ? ' · INDESTRUCTIBLE: a pyramid, a disc, a ring — steel that never breaks,'
+            + ' several courses thick, with everything worth hitting sealed inside it.'
+            + ' Thread a 6px seam through the shell or clip a corner on a true diagonal;'
+            + ' once you are in, the shell that kept you out keeps the ball in.'
+            + ' A blast rings the steel around it open for a moment, and a KEY clears'
+            + ' the row the vault is sitting in'
+            + (Difficulty.current === 'easy' ? '' : '. It shoots back — a lit column means move')
           : '';
         hintEl.textContent = Difficulty.LABEL[Difficulty.current] + ind + ' · ' + base + (touch
           ? ' · ⏸ pauses · 🤖 autopilot plays for you, tap it again to take over'
@@ -2300,132 +2302,148 @@
     //
     //   f  the reachable face, [col, kind, hp]      -- always row 0
     //   d  everything sealed inside, [col, row, kind, hp]
-    IND_SHAPES: [
-      { name: 'SLAB', rows: 5,
-        f: [[0,'n',0],[1,'boom',1],[2,'n',0],[4,'mystery',1],[5,'n',9],[6,'n',0],
-            [8,'n',0],[9,'key',2],[10,'n',0]],
-        d: [[2,1,'boom',1],[3,2,'boom',1],[4,3,'boom',1],
-            [1,2,'n',1],[5,2,'n',1],[5,3,'n',1]] },
+// Not a slab. The steel is a *shape* -- a pyramid, a disc, a ring -- with a
+    // shell several tiles thick and a hollow inside, and the targets live in
+    // that hollow. Nothing is buried in solid rock any more.
+    //
+    // It plays completely differently from the filled grid it replaces. The
+    // shape does not span the canvas, so the ball can go round it, and going
+    // round gains nothing: the shell is closed on every side. What it does gain
+    // is angles -- the thing can be attacked from above and from the sides, not
+    // only from underneath.
+    //
+    // And once through, the ball is *inside*. It rattles around the cavity
+    // hitting things from directions the old board never allowed, and the shell
+    // that kept it out now keeps it in. Breaching is the whole game; after that
+    // the shape does the work for you.
+    //
+    //   inside(c, r)  which cells the form occupies, in grid coordinates
+    //   layers        how many tiles thick the shell is -- 2 means a seam has
+    //                 to line up through two courses of steel, not one
+    IND_FORMS: [
+      { name: 'PYRAMID', cols: 11, rows: 9, layers: 2,
+        inside: (c, r, C, R) => Math.abs(c - (C - 1) / 2) <= (r + 1) * (C / 2) / R },
 
-      { name: 'CHEVRON', rows: 5,
-        f: [[0,'boom',1],[2,'n',0],[3,'mystery',1],[5,'n',9],[7,'n',0],[8,'key',2],
-            [10,'boom',1]],
-        d: [[1,1,'boom',1],[2,2,'boom',1],[3,3,'boom',1],
-            [9,1,'boom',1],[8,2,'boom',1],[7,3,'boom',1],
-            [4,3,'n',1],[6,3,'n',1],[0,2,'n',1],[10,2,'n',1]] },
+      { name: 'DISC', cols: 11, rows: 9, layers: 2,
+        inside: (c, r, C, R) => {
+          const dc = (c - (C - 1) / 2) / (C / 2), dr = (r - (R - 1) / 2) / (R / 2);
+          return dc * dc + dr * dr <= 1;
+        } },
 
-      { name: 'WELL', rows: 6,
-        f: [[0,'n',0],[2,'n',0],[3,'mystery',1],[5,'boom',1],[7,'n',9],[8,'key',2],
-            [10,'n',0]],
-        d: [[5,1,'boom',1],[5,2,'boom',1],[5,3,'boom',1],[5,4,'boom',1],
-            [4,2,'n',1],[6,3,'n',1],[4,4,'n',1],[6,1,'n',1]] },
+      { name: 'DIAMOND', cols: 11, rows: 9, layers: 2,
+        inside: (c, r, C, R) =>
+          Math.abs(c - (C - 1) / 2) / (C / 2) + Math.abs(r - (R - 1) / 2) / (R / 2) <= 1 },
 
-      { name: 'ZIGZAG', rows: 6,
-        f: [[0,'n',0],[2,'boom',1],[4,'mystery',1],[5,'n',0],[6,'n',9],[8,'key',2],
-            [10,'n',0]],
-        d: [[3,1,'boom',1],[4,2,'boom',1],[3,3,'boom',1],[4,4,'boom',1],
-            [2,2,'n',1],[5,3,'n',1],[2,4,'n',1],[5,1,'n',1]] },
+      { name: 'VAULT', cols: 11, rows: 6, layers: 2,
+        inside: (c, r, C, R) => c >= 1 && c <= C - 2 && r >= 0 && r <= R - 1 },
 
-      { name: 'ARCH', rows: 5,
-        f: [[0,'boom',1],[2,'n',0],[4,'mystery',1],[5,'n',9],[6,'n',0],[8,'key',2],
-            [10,'boom',1]],
-        d: [[1,1,'boom',1],[2,2,'boom',1],[9,1,'boom',1],[8,2,'boom',1],
-            [3,3,'n',1],[7,3,'n',1],[0,2,'n',1],[10,2,'n',1]] },
+      { name: 'HOURGLASS', cols: 11, rows: 8, layers: 1,
+        inside: (c, r, C, R) => {
+          const dr = Math.abs(r - (R - 1) / 2) / (R / 2);
+          return Math.abs(c - (C - 1) / 2) <= (0.35 + dr) * (C / 2);
+        } },
 
-      { name: 'LADDER', rows: 6,
-        f: [[0,'n',0],[1,'boom',1],[3,'mystery',1],[6,'n',9],[8,'key',2],[10,'n',0]],
-        d: [[2,1,'boom',1],[3,2,'boom',1],[4,3,'boom',1],[5,4,'boom',1],
-            [1,2,'n',1],[4,1,'n',1],[6,3,'n',1],[6,4,'n',1]] },
+      { name: 'ZIGGURAT', cols: 11, rows: 9, layers: 2,
+        inside: (c, r, C, R) =>
+          Math.abs(c - (C - 1) / 2) <= (C / 2) * (0.34 + 0.66 * Math.floor(r / 2) / Math.floor((R - 1) / 2)) },
 
-      // The blast splits and widens on the way down, so one charge on the face
-      // opens the whole triangle underneath it.
-      { name: 'PYRAMID', rows: 6,
-        f: [[0,'n',0],[2,'n',0],[3,'mystery',1],[5,'boom',1],[7,'n',9],[9,'key',2],
-            [10,'n',0]],
-        d: [[5,1,'boom',1],[4,2,'boom',1],[6,2,'boom',1],[3,3,'boom',1],[7,3,'boom',1],
-            [2,4,'n',1],[8,4,'n',1],[5,3,'n',1]] },
+      { name: 'CROSS', cols: 11, rows: 8, layers: 1,
+        inside: (c, r, C, R) =>
+          Math.abs(c - (C - 1) / 2) <= C * 0.16 || Math.abs(r - (R - 1) / 2) <= R * 0.16 },
 
-      // Widens then closes again: the two arms have to meet before the point
-      // at the bottom is in anything's reach.
-      { name: 'DIAMOND', rows: 6,
-        f: [[0,'n',0],[3,'boom',1],[5,'mystery',1],[6,'n',9],[8,'key',2],[10,'n',0]],
-        d: [[3,1,'boom',1],[2,2,'boom',1],[4,2,'boom',1],[3,3,'boom',1],
-            [3,4,'n',1],[1,3,'n',1],[5,3,'n',1]] },
-
-      // A short chain into a walled room, everything in it taken by radius
-      // rather than by the chain itself.
-      { name: 'FORTRESS', rows: 5,
-        f: [[0,'n',0],[1,'boom',1],[2,'n',0],[4,'mystery',1],[5,'n',9],[7,'n',0],
-            [9,'key',2],[10,'n',0]],
-        d: [[2,1,'boom',1],[3,2,'boom',1],[4,2,'boom',1],
-            [5,2,'n',1],[3,3,'n',1],[2,3,'n',1]] },
-
-      // Turns back on itself, so the deepest prize sits under ground the chain
-      // has already passed over.
-      { name: 'SPIRAL', rows: 6,
-        f: [[0,'n',0],[2,'n',0],[4,'mystery',1],[6,'boom',1],[8,'n',9],[9,'key',2],
-            [10,'n',0]],
-        d: [[6,1,'boom',1],[5,2,'boom',1],[4,3,'boom',1],[3,4,'boom',1],
-            [2,4,'n',1],[4,4,'n',1],[7,2,'n',1]] }
+      { name: 'ARROW', cols: 11, rows: 9, layers: 2,
+        inside: (c, r, C, R) => {
+          const half = Math.abs(c - (C - 1) / 2);
+          return r < R / 2 ? half <= (r + 1) * (C / 2) / (R / 2) : half <= C * 0.18;
+        } }
     ],
 
     buryBoard: function(canvas) {
       const cfg = this.config;
       const bw = cfg.brickWidth, pad = cfg.brickPadding;
-      // Wide enough to run off both edges. A normal layout leaves a lane down
-      // each side of the canvas, and a lane is not a seam -- the ball would
-      // simply walk around the wall and the whole mode would be pointless.
-      // 13 minimum: the shapes below occupy 11 distinct columns and the two
-      // outermost are deliberately left as steel overhang, so anything narrower
-      // wraps two targets onto the same cell and quietly loses one.
-      const cols = this.cols = Math.max(13, Math.ceil((canvas.width + pad) / (bw + pad)));
-      const shape = this.IND_SHAPES[(this.level - 1) % this.IND_SHAPES.length];
-      const rows = shape.rows;
-      const gridW = cols * bw + (cols - 1) * pad;
-      const left = Math.round((canvas.width - gridW) / 2);   // <= 0 by construction
-      // Targets go only in columns that are wholly on screen. The wall is built
-      // wider than the canvas on purpose, so the outer columns are overhang --
-      // a target out there would be unreachable and the board unwinnable.
-      const firstVis = Math.max(1, Math.ceil(-left / (bw + pad)));
-      const lastVis = Math.min(cols - 2, Math.floor((canvas.width - left - bw) / (bw + pad)));
-      const span = Math.max(1, lastVis - firstVis + 1);
-      // Slide the shape along, but never far enough to wrap. The chains below
-      // are adjacency: a blast steps one column at a time, so a column that
-      // wraps from one end of the span to the other silently cuts the chain
-      // and strands everything past the break. Only shift by what genuinely
-      // fits, which on the current 640px canvas is nothing at all.
-      const IND_W = 11;                           // columns every shape occupies
-      const room = Math.max(1, span - IND_W + 1);
-      const shift = (this.level - 1) % room;
+      const form = this.IND_FORMS[(this.level - 1) % this.IND_FORMS.length];
+      const C = this.cols = form.cols, R = form.rows;
+      const gridW = C * bw + (C - 1) * pad;
+      const left = Math.round((canvas.width - gridW) / 2);
 
-      this.bricks = [];
-      const grid = [];
-      for (let r = 0; r < rows; r++) {
-        grid[r] = [];
-        for (let c = 0; c < cols; c++) {
-          const b = {
-            col: c, row: r, kind: 'steel', hp: 1, max: 1,
-            x: left + c * (bw + pad),
-            y: cfg.brickOffsetTop + r * (cfg.brickHeight + pad),
-            w: bw, h: cfg.brickHeight
-          };
-          grid[r][c] = b;
-          this.bricks.push(b);
+      // Which cells the form occupies, then how deep inside it each one is.
+      // A cell is shell while it is within `layers` of the outside, and cavity
+      // once it is deeper than that.
+      const occupied = [];
+      for (let r = 0; r < R; r++) {
+        occupied[r] = [];
+        for (let c = 0; c < C; c++) occupied[r][c] = !!form.inside(c, r, C, R);
+      }
+      const depth = [];
+      for (let r = 0; r < R; r++) {
+        depth[r] = [];
+        for (let c = 0; c < C; c++) {
+          if (!occupied[r][c]) { depth[r][c] = 0; continue; }
+          let d = Infinity;
+          for (let rr = 0; rr < R && d > 1; rr++) {
+            for (let cc = 0; cc < C; cc++) {
+              if (occupied[rr][cc]) continue;
+              d = Math.min(d, Math.max(Math.abs(rr - r), Math.abs(cc - c)));
+            }
+          }
+          // The grid edge counts as outside too, or a form touching the edge
+          // would have no shell along it.
+          d = Math.min(d, c + 1, C - c, r + 1, R - r);
+          depth[r][c] = d;
         }
       }
-      // The tier still decides how much work the reachable row is once you are
-      // up there; hp 0 in the table means "whatever this difficulty says".
-      const face = { easy: 1, normal: 2, hard: 3 }[Difficulty.current] || 2;
-      const put = (c, r, kind, hp) => {
-        const b = grid[r] && grid[r][firstVis + c + shift];
-        if (!b) return;
-        b.kind = kind === 'n' ? 'normal' : kind;
-        b.hp = b.max = hp || face;
-      };
-      for (const [c, kind, hp] of shape.f) put(c, 0, kind, hp);
-      for (const [c, r, kind, hp] of shape.d) put(c, r, kind, hp);
 
-      this.layoutName = 'INDESTRUCTIBLE · ' + shape.name;
+      this.bricks = [];
+      const cell = (c, r, kind, hp) => {
+        const b = {
+          col: c, row: r, kind: kind, hp: hp, max: hp,
+          x: left + c * (bw + pad),
+          y: cfg.brickOffsetTop + r * (cfg.brickHeight + pad),
+          w: bw, h: cfg.brickHeight
+        };
+        this.bricks.push(b);
+        return b;
+      };
+
+      // Thin the shell rather than end up with a room too small to be worth
+      // breaking into. A narrow form -- a pyramid's tip, a diamond's points --
+      // is all edge, and two courses of steel would swallow it whole.
+      const roomAt = (n) => {
+        let k = 0;
+        for (let r = 0; r < R; r++) {
+          for (let c = 0; c < C; c++) if (occupied[r][c] && depth[r][c] > n) k++;
+        }
+        return k;
+      };
+      let layers = form.layers;
+      while (layers > 1 && roomAt(layers) < 7) layers--;
+      this.indLayers = layers;
+
+      const cavity = [];
+      for (let r = 0; r < R; r++) {
+        for (let c = 0; c < C; c++) {
+          if (!occupied[r][c]) continue;
+          if (depth[r][c] <= layers) cell(c, r, 'steel', 1);
+          else cavity.push({ c: c, r: r });
+        }
+      }
+
+      // Fill the hollow: one keystone, one vault, one mystery, and charges
+      // spread through the rest so a blast still chains inside the room.
+      // Deepest first, so the keystone and the vault sit where the ball has to
+      // work to reach them. Exactly one of each -- cycling a fixed plan gave a
+      // big cavity two keystones and two vaults.
+      const face = { easy: 1, normal: 2, hard: 3 }[Difficulty.current] || 2;
+      cavity.sort((a, b) => (b.r - a.r) || (a.c - b.c));
+      cavity.forEach((slot, i) => {
+        if (i === 0) cell(slot.c, slot.r, 'key', 2);
+        else if (i === 1) cell(slot.c, slot.r, 'normal', 9);
+        else if (i === 2) cell(slot.c, slot.r, 'mystery', 1);
+        else if (i % 3 === 0) cell(slot.c, slot.r, 'boom', 1);
+        else cell(slot.c, slot.r, 'normal', face);
+      });
+
+      this.layoutName = 'INDESTRUCTIBLE · ' + form.name;
     },
 
     // --- The wall shoots back ---------------------------------------------
