@@ -2159,6 +2159,7 @@
         }
       }
 
+      if (Difficulty.indestructible && pick) target = this.indDrift(target, stand);
       const move = Math.max(-step, Math.min(step, target - centre));
       this.paddle.x = Math.max(0, Math.min(canvas.width - this.paddle.width, this.paddle.x + move));
     },
@@ -2374,6 +2375,45 @@
       for (const [c, r, kind, hp] of shape.d) put(c, r, kind, hp);
 
       this.layoutName = 'INDESTRUCTIBLE · ' + shape.name;
+    },
+
+    // --- Returning the ball on a buried board -----------------------------
+    // Measured, and both failures were specific:
+    //
+    //   easy  484 frames spent above the wall, |dx/dy| of 0.002, and one brick
+    //         broken in nine thousand frames. A dead-vertical thread goes up
+    //         the seam, off the ceiling, and back down the same seam for ever,
+    //         touching nothing -- collision tests the ball's centre, so a
+    //         centre in the seam is in no brick at all. The wide easy paddle
+    //         makes a near-centre hit, and so an almost exactly vertical
+    //         return, the most likely shot on the board.
+    //   hard  never got above the wall at all across fifteen runs.
+    //
+    // So the rule is simply: never hand the ball back near-vertical here. Any
+    // other shot is playable; that one is a hole the run falls into.
+    //
+    // The threshold is empirical rather than derived. A drift small enough to
+    // still thread cleanly (0.014) barely helped -- easy 1 -> 1 -- because it
+    // takes ~34 round trips to wander over a brick. Sweeping it, 0.18 measured
+    // best on every tier at 27 runs each: easy 1 -> 22, hard 10 -> 31, normal
+    // unchanged. That is about ten degrees, well past what threads the seam,
+    // which is the point: the value of the rule is not in threading, it is in
+    // never being trapped travelling straight up and down.
+    IND_MIN_SLOPE: 0.18,
+    indDrift: function(target, stand) {
+      const half = this.paddle.width / 2;
+      const minHit = Math.atan(this.IND_MIN_SLOPE) / (Math.PI / 3);
+      const hit = (stand - target) / half;
+      if (Math.abs(hit) >= minHit) return target;    // already angled; leave it
+      // Lean toward whatever is still alive on the only reachable row.
+      let goal = null, near = Infinity;
+      for (const b of this.bricks) {
+        if (b.hp <= 0 || b.kind === 'steel' || b.row > 0) continue;
+        const d = Math.abs(b.x + b.w / 2 - stand);
+        if (d < near) { near = d; goal = b.x + b.w / 2; }
+      }
+      const dir = (goal === null || goal >= stand) ? 1 : -1;
+      return stand - dir * minHit * half;
     },
 
     // --- Shot planning ---------------------------------------------------
