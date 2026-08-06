@@ -89,6 +89,12 @@ DLM4_SCALE = np.asarray([4.7021923, 3.075009, 9.006815, 4.8768406], dtype="float
 PACIFIC_WEIGHT, LOCAL_WEIGHT = 0.25, 0.75
 KEEP_MEMBERS = 20          # drawn routes kept per initialisation
 RETRY_BLOCKED_DAYS = 21    # how long to leave a storm alone after its analyses came up missing
+# How long to believe an era is shut before knocking on it again. The two eras
+# come from two different services and one can be closed for weeks; without
+# this every run re-discovers that by spending its first twelve requests on it,
+# which is several hundred a day at an archive that answers a refusal slowly on
+# purpose. Short enough that the backfill picks the era up again by itself.
+ERA_COOLDOWN_H = 6
 CONE_PCT = 90.0
 # The analysis archive changes product mid-2011, not at a year boundary:
 #   CFSR   1979-01-01 .. 2011-03-31
@@ -510,6 +516,24 @@ def main():
         log(f"{args.era.upper()} era: {len(catalogue)} storms in scope")
 
     idx_now = load_index()
+
+    # An era known to be shut is not worth re-testing every hour.
+    shut = (idx_now.get("era_blocked") or {}) if args.era == "all" else {}
+    for era, when in list(shut.items()):
+        try:
+            seen = dt.datetime.fromisoformat(str(when).replace("Z", "+00:00"))
+        except Exception:
+            continue
+        age_h = (dt.datetime.now(dt.timezone.utc) - seen).total_seconds() / 3600
+        if age_h >= ERA_COOLDOWN_H:
+            continue
+        want_cfsr = era != "cfsr"          # skip the shut era, keep the other
+        before = len(catalogue)
+        catalogue = {sid: (yr, st) for sid, (yr, st) in catalogue.items()
+                     if needs_reanalysis(st) == want_cfsr}
+        log(f"{era.upper()} was refused {age_h:.1f}h ago; leaving it alone for another "
+            f"{ERA_COOLDOWN_H - age_h:.1f}h and drawing from the other era "
+            f"({before} -> {len(catalogue)} storms in scope)")
     done = set(idx_now.get("hindcasts", {})) if args.skip_existing else set()
 
     # Storms whose analyses simply are not published yet -- currently the 2026
@@ -593,6 +617,10 @@ def main():
             if swapped or not rest:
                 break
             swapped = True
+            era = "cfsr" if needs_reanalysis(storm) else "cdas"
+            index.setdefault("era_blocked", {})[era] = \
+                dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            save_index(index)
             global _REFUSED_TOTAL
             _REFUSED_TOTAL = 0            # the other service gets its own budget
             targets = targets[:i] + rest
@@ -616,6 +644,10 @@ def main():
                 save_index(index)
             continue
         built += 1
+        # It answered, so whatever we believed about its era is out of date.
+        era_ok = "cfsr" if needs_reanalysis(storm) else "cdas"
+        if isinstance(index.get("era_blocked"), dict):
+            index["era_blocked"].pop(era_ok, None)
         if isinstance(index.get("unavailable"), dict):
             index["unavailable"].pop(sid, None)   # it built, so it is no longer blocked
         payload = {
