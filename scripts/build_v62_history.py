@@ -87,7 +87,13 @@ LEVELS = (850.0, 500.0, 200.0)
 DLM_WEIGHTS = np.asarray([0.269, 0.500, 0.231], dtype="float32")
 DLM4_SCALE = np.asarray([4.7021923, 3.075009, 9.006815, 4.8768406], dtype="float32")
 PACIFIC_WEIGHT, LOCAL_WEIGHT = 0.25, 0.75
-KEEP_MEMBERS = 20          # drawn routes kept per initialisation
+# Drawn routes kept per initialisation. Purely a display choice: the cone is
+# computed from all 189 members before any are dropped, so this changes what the
+# spread looks like and nothing that is measured. It was 20, and at 20 the
+# members were 69% of every file -- the backfill was on course for a 324 MB site
+# and GitHub Pages had started timing out mid-deployment. Five still reads as a
+# spread and halves the whole archive.
+KEEP_MEMBERS = 5
 RETRY_BLOCKED_DAYS = 21    # how long to leave a storm alone after its analyses came up missing
 # How long to believe an era is shut before knocking on it again. The two eras
 # come from two different services and one can be closed for weeks; without
