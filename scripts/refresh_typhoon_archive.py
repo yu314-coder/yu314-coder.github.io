@@ -45,6 +45,9 @@ import tempfile
 import urllib.error
 import urllib.request
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import upstream  # noqa: E402
+
 BASE = "https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/v04r01/access/csv/"
 LAST3 = BASE + "ibtracs.last3years.list.v04r01.csv"
 FULL = BASE + "ibtracs.WP.list.v04r01.csv"
@@ -122,11 +125,16 @@ def from_archive(member):
     per member would be silly.
     """
     if "path" not in _BUNDLE:
-        listing = urllib.request.urlopen(ARCHIVE, timeout=120).read().decode("utf-8", "replace")
+        try:
+            listing = urllib.request.urlopen(ARCHIVE, timeout=120).read().decode("utf-8", "replace")
+        except urllib.error.HTTPError as e:
+            if e.code in (403, 429) or e.code >= 500:
+                upstream.blocked("IBTrACS", f"the archive bundle is refused too ({e})", ARCHIVE)
+            raise
         names = re.findall(r'(ibtracs_v04r01_csv_[A-Za-z0-9_]+\.tar\.gz)', listing)
         if not names:
-            raise SystemExit("BLOCKED: access/csv/ is closed and archive/ lists no CSV bundle.\n"
-                             f"  {ARCHIVE}\n  Nothing to fetch; try again later.")
+            upstream.blocked("IBTrACS", "access/csv/ is closed and archive/ lists no CSV bundle",
+                             ARCHIVE)
         name = sorted(set(names))[-1]           # date-stamped, so the last is newest
         url = ARCHIVE + name
         sys.stderr.write("fetching %s\n" % url)
@@ -145,7 +153,7 @@ def from_archive(member):
             if os.path.basename(m.name) == member:
                 sys.stderr.write("  %s from %s\n" % (member, _BUNDLE["name"]))
                 return tf.extractfile(m).read().decode("utf-8", errors="replace")
-    raise SystemExit(f"BLOCKED: {member} is not in {_BUNDLE['name']}")
+    upstream.blocked("IBTrACS", f"{member} is not in {_BUNDLE['name']}")
 
 
 def read_storms(text):

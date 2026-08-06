@@ -134,12 +134,23 @@ jobs:
           # Stop starting new storms well before the job cap so the commit step
           # still has time to run. The archive can be slow rather than refusing.
           export V62_BUDGET_MIN=260
+          # Exit 75 means the archive refused us: a known upstream condition with
+          # nothing to fix here, so it becomes a warning and a green run rather
+          # than the same red failure every hour. Any other non-zero is ours.
+          set +e
           if [ -n "$STORMS" ]; then
             python scripts/build_v62_history.py $STORMS --prune
           else
             python scripts/build_v62_history.py --top "$COUNT" --era "$ERA" --skip-existing --prune
           fi
+          rc=$?
+          set -e
+          if [ "$rc" -eq 75 ]; then
+            echo "upstream refused; leaving this run green so the alert is not repeated" >> "$GITHUB_STEP_SUMMARY"
+            rc=0
+          fi
           df -h / | tail -1
+          exit "$rc"
 
       - name: Commit generated hindcasts
         # always(): a run that hits the job timeout is killed mid-step, and

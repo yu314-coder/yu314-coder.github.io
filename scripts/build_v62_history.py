@@ -35,6 +35,9 @@ import sys
 import time
 import urllib.error
 import urllib.request
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import upstream  # noqa: E402
 import warnings
 from pathlib import Path
 
@@ -642,11 +645,11 @@ def main():
         # Exiting 0 here is how this went unnoticed: the archive was refusing
         # every request, each storm "skipped", and the job reported success
         # while producing nothing at all.
-        log(f"FAILED: the archive refused every request for all {refused_storms} storm(s); "
-            f"nothing was built. This is a block or an outage upstream, not missing data.")
         index["generated_at"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         save_index(index)
-        return 1
+        upstream.blocked("CFS analyses",
+                         f"every request for all {refused_storms} storm(s) was refused, on both "
+                         f"eras; nothing was built")
 
     index["generated_at"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     index["note"] = ("Per-storm v62 hindcasts, loaded lazily. History mode uses v62 wherever a run covers "

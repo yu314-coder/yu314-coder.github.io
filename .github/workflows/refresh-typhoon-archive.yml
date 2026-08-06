@@ -41,11 +41,22 @@ jobs:
       # so there is nothing to install and nothing to pin.
       - name: Refresh from IBTrACS
         run: |
+          # Exit 75 means IBTrACS refused us: a known upstream condition with
+          # nothing to fix here, so it becomes a warning and a green run rather
+          # than the same red failure on every schedule. Any other non-zero is ours.
+          set +e
           if [ "${{ inputs.full }}" = "true" ]; then
             python scripts/refresh_typhoon_archive.py --full
           else
             python scripts/refresh_typhoon_archive.py
           fi
+          rc=$?
+          set -e
+          if [ "$rc" -eq 75 ]; then
+            echo "upstream refused; leaving this run green so the alert is not repeated" >> "$GITHUB_STEP_SUMMARY"
+            rc=0
+          fi
+          exit "$rc"
 
       - name: Commit any new storms
         run: |
