@@ -61,9 +61,20 @@ CFSR = ("https://www.ncei.noaa.gov/oa/prod-cfs-reanalysis/6-hourly-low-resolutio
 # product is the same 73x144 2.5-degree grid as the CFSR file already validated
 # against, carries the same fields, and is 4.3 MB. Prefer it; fall back to the big
 # file only where the small one is missing.
-CDAS_LOW = ("https://www.ncei.noaa.gov/data/climate-forecast-system/access/operational-analysis/"
+# NCEI moved this product. The old /data/climate-forecast-system/access/
+# operational-analysis/ path now holds nothing but a readme pointing here, and
+# that move is what the months of "403" were: the old location was being taken
+# down, not withholding anything from us. It answers 404 now that the takedown
+# is finished, which is worse -- 404 means "not published", so the builder had
+# started writing perfectly good storms into the unavailable ledger.
+#
+# Coverage differs between the two products, and the existing low-then-high
+# fallback covers it exactly: the cheap 4 MB file runs 2015 to 2025, the 75 MB
+# pressure file runs 2011 to 2025, so anything before 2015 simply falls through
+# to the big one.
+CDAS_LOW = ("https://www.ncei.noaa.gov/oa/prod-cfs-operational-analysis/"
             "6-hourly-low-resolution/{y}/{ym}/{ymd}/cdas1.t{hh}z.pgrblanl.grib2")
-CDAS_HIGH = ("https://www.ncei.noaa.gov/data/climate-forecast-system/access/operational-analysis/"
+CDAS_HIGH = ("https://www.ncei.noaa.gov/oa/prod-cfs-operational-analysis/"
              "6-hourly-by-pressure/{y}/{ym}/{ymd}/cdas1.t{hh}z.pgrbhanl.grib2")
 UA = {"User-Agent": "typhoon-tracker-history-builder/1.0 (+https://yu314-coder.github.io)"}
 # A pause between analysis downloads. Going from 3 storms a run to 20 meant up

@@ -34,7 +34,9 @@ jobs:
           D="${{ inputs.day }}"
           Y="${M:0:4}"
           YMD="$M$D"
-          CFS="https://www.ncei.noaa.gov/data/climate-forecast-system/access/operational-analysis"
+          # Moved: the old /data/climate-forecast-system/access/operational-analysis
+          # path is retired and now holds only a readme pointing here.
+          CFS="https://www.ncei.noaa.gov/oa/prod-cfs-operational-analysis"
           GFS="https://www.ncei.noaa.gov/data/global-forecast-system/access"
           # The reanalysis is a DIFFERENT service on a different path, and it is
           # the one that covers everything up to 2011-03-31 -- most of what is

@@ -111,8 +111,12 @@ def fetch(url):
         with urllib.request.urlopen(url, timeout=120) as r:
             return r.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as e:
-        if e.code in (403, 429) or e.code >= 500:
-            sys.stderr.write("  refused (%s); falling back to the archive bundle\n" % e)
+        # 404 counts here too. The loose files under access/csv/ answered 403
+        # for months and now answer 404: NCEI has finished retiring that path.
+        # Re-raising on 404 would fail the refresh outright, when the bundle in
+        # archive/ still has exactly the same CSVs and is more current.
+        if e.code in (403, 404, 429) or e.code >= 500:
+            sys.stderr.write("  %s; falling back to the archive bundle\n" % e)
             return from_archive(os.path.basename(url))
         raise
 
