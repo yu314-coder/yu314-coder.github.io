@@ -416,3 +416,18 @@ body {
 .tt-hindcast { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: -4px 0 14px; }
 .tt-app.mode-predict .tt-hindcast,
 .tt-app.is-season .tt-hindcast { display: none; }
+
+/* A value the readout took from v62 because JMA published none. Marked, so a
+   number is never shown without saying where it came from. */
+.tt-v62-src {
+  font-size: 0.62em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #34d399;
+  border: 1px solid rgba(52, 211, 153, 0.45);
+  border-radius: 4px;
+  padding: 0 3px;
+  margin-left: 4px;
+  vertical-align: 1px;
+}

@@ -1649,6 +1649,16 @@
     if (!d) return;
     updateForecastPanel(d);   // builds #tt-fc-live before the animation starts
     buildForecastMap(d);
+    // The precomputed run may not have arrived the first time through. When it
+    // does, redraw the panel so a depression's boxes fill in rather than
+    // staying dashed for the rest of the session.
+    if (!tfLiveAll) {
+      tfLiveLoad().then(function () {
+        if (tfLiveFor(d.tcId) && els.typhoonSelect && els.typhoonSelect.value === d.tcId) {
+          updateForecastPanel(d);
+        }
+      });
+    }
   }
 
   function renderNoActive() {
@@ -1880,6 +1890,24 @@
   // Carries no uncertainty cone or wind-radii data, so neither is drawn rather
   // than faked.
   var TF_LIVE_JSON_URL = "model/v23-live-forecast.json";
+  // The precomputed v62 run, kept so the readout can use it and not only the
+  // overlay. JMA publishes no wind, no gusts and no forecast points for a
+  // tropical depression, so a storm like Kujira showed "—" in every box while
+  // a complete v62 forecast for it sat in this file unused.
+  var tfLiveAll = null;
+  var tfLivePending = null;
+  function tfLiveLoad() {
+    if (tfLiveAll) return Promise.resolve(tfLiveAll);
+    if (tfLivePending) return tfLivePending;
+    tfLivePending = fetch(TF_LIVE_JSON_URL + "?_=" + Date.now())
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; })
+      .then(function (all) { tfLiveAll = all; tfLivePending = null; return all; });
+    return tfLivePending;
+  }
+  function tfLiveFor(tcId) {
+    return (tfLiveAll && tfLiveAll.storms && tfLiveAll.storms[tcId]) || null;
+  }
   function tfPrecomputedFc(pre, baseW) {
     var v62 = pre.v62 || {}, full = pre.intensity_source === "v62";
     var pts = pre.lats.map(function (la, i) {
@@ -1943,9 +1971,7 @@
     if (!live) { aiSetStatus("No storm loaded to run the model on.", "err"); return; }
     aiLoading = true;
     var dataKey = jmaIssueKey(d);
-    fetch(TF_LIVE_JSON_URL + "?_=" + Date.now())
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .catch(function () { return null; })
+    tfLiveLoad()
       .then(function (all) {
         var pre = all && all.storms && all.storms[d.tcId];
         // If a fresh server-side run exists, it's STRICTLY better than the browser's own
@@ -3203,6 +3229,15 @@
   function updateForecastPanel(d) {
     if (!els.predictPanel) return;
     var a = d.points[0];
+    // JMA reports nothing but a position for a depression -- no wind, no
+    // gusts, no forecast points -- so every box read "—" even though the
+    // precomputed v62 run had the whole thing. Fill the gaps from v62 where
+    // JMA is silent, and label them, because a number with no source on it is
+    // worse than a dash.
+    var pre = tfLiveFor(d.tcId);
+    var vm = (pre && pre.vmax_kt) || null;
+    var vp = (pre && pre.pres_hpa) || null;
+    var v62tag = ' <small class="tt-v62-src">v62</small>';
     var catFull = CAT_NAME[a.catEn] || a.catEn || "Tropical cyclone";
     var badge = catFull + (a.intensity ? " · " + a.intensity : "") + (a.scale ? " · " + a.scale : "");
     var move = (a.course || "") + (a.speedKt != null ? " " + a.speedKt + " kt" : "");
@@ -3229,14 +3264,22 @@
       "</div>" +
       '<div class="tt-fc-live" id="tt-fc-live" aria-live="off"></div>' +
       '<div class="tt-details-grid">' +
-        predItem("Pressure", a.pressure != null ? a.pressure + " hPa" : "—") +
-        predItem("Max wind", a.windKt != null ? a.windKt + " kt" : "—") +
-        predItem("Gusts", a.gustKt != null ? a.gustKt + " kt" : "—") +
+        predItem("Pressure", a.pressure != null ? a.pressure + " hPa"
+                 : (vp ? Math.round(vp[0]) + " hPa" + v62tag : "—")) +
+        predItem("Max wind", a.windKt != null ? a.windKt + " kt"
+                 : (vm ? Math.round(vm[0]) + " kt" + v62tag : "—")) +
+        predItem("Gusts", a.gustKt != null ? a.gustKt + " kt"
+                 : (vm ? "~" + Math.round(vm[0] * 1.4) + " kt" + v62tag : "—")) +
         predItem("Moving", move || "—") +
       "</div>" +
       '<div class="tt-fc-pos">' + fmtLatLon(a.lat, a.lon) + (a.location ? " · " + translateLocation(a.location) : "") + "</div>" +
       '<div class="tt-fc-subhead">5-day forecast · T = Dvorak (± = 70% circle)</div>' +
-      '<div class="tt-fc-rows">' + (rows || '<div class="tt-fc-row">No forecast points issued.</div>') + "</div>" +
+      '<div class="tt-fc-rows">' + (rows || '<div class="tt-fc-row">' +
+        (pre && pre.lats && pre.lats.length
+          ? 'JMA issues no forecast points for a tropical depression. The v62 route above still ' +
+            'covers ' + ((pre.lead_hours && pre.lead_hours[pre.lead_hours.length - 1]) || 120) +
+            ' h &mdash; turn the overlay on to see it.'
+          : 'No forecast points issued.') + '</div>') + "</div>" +
       '<div class="tt-pred-foot">Forecast &amp; current: <a href="https://www.jma.go.jp/bosai/map.html#contents=typhoon&lang=en" target="_blank" rel="noopener">JMA</a>' +
         (issued ? ", issued " + issued + " JST" : "") +
         '. Past radii via <a href="https://agora.ex.nii.ac.jp/digital-typhoon/" target="_blank" rel="noopener">Digital Typhoon</a> (NII); past Dvorak <b>T</b>-numbers are real satellite ADT from <a href="https://tropic.ssec.wisc.edu/real-time/adt/adt.html" target="_blank" rel="noopener">UW-CIMSS</a>' + (cimssNowT(d) != null ? "" : " (unavailable — T shown from wind)") + '. Forecast T is anchored to that and carried by JMA\'s intensity trend; the forecast outer (gale) ring is estimated. Reissued every few hours.</div>';
