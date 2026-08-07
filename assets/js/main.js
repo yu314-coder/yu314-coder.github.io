@@ -2315,6 +2315,19 @@
                         v: Math.hypot(b.dx, b.dy) });
       }
       arrivals.sort((a, b) => a.t - b.t);
+      // Slack in "can I get there", as a fraction of the bat's own width.
+      //
+      // Two attempts to make this speed-aware both measured worse and are not
+      // here: shrinking the slack as the ball outruns its tier, and clamping
+      // the target to what the bat could reach in the time left. The reason is
+      // that this test is ALREADY speed-aware in the only way that matters --
+      // t is distance over the ball's own velocity, so it falls as the ball
+      // speeds up and step*t tightens on its own.
+      //
+      // The misses at high speed are real (median run speed about 12, median
+      // speed at the moment of a miss 22) but they are not an aiming mistake to
+      // be corrected. They are the ball outrunning the bat, which no choice of
+      // target can fix.
       for (const a of arrivals) a.reachable = Math.abs(a.x - centre) <= step * a.t + half * 0.8;
 
       // Prefer the soonest ball we can actually get to. A ball that is already
