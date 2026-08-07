@@ -167,5 +167,31 @@ jobs:
             exit 0
           fi
           git commit -m "Add v62 history hindcasts"
-          git pull --rebase --autostash origin main
-          git push
+
+          # Push, and if main moved under us, do NOT try to rebase the index.
+          # It is a single line of JSON, so any two commits that touch it
+          # conflict every time -- and three workflows commit to main on a
+          # schedule, so that is routine rather than rare. One run built six
+          # storms, including the first post-2011 ones, and lost all of them to
+          # exactly this.
+          #
+          # There is nothing to reconcile anyway: every field in the index is
+          # derived from the per-storm files. So take main's version of it,
+          # keep our new storm files, and derive the index again.
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "main moved; rebuilding the index on top of it (attempt $attempt)"
+            git fetch origin main
+            git checkout origin/main -- assets/typhoon-tracker/model/v62-hindcasts.json
+            git reset --soft origin/main
+            python scripts/rebuild_v62_index.py
+            git add assets/typhoon-tracker/model/v62 assets/typhoon-tracker/model/v62-hindcasts.json
+            if git diff --staged --quiet; then
+              echo "nothing left to add once main's work is included"
+              exit 0
+            fi
+            git commit -m "Add v62 history hindcasts"
+          done
+          echo "::warning title=Could not push::main kept moving; the storms are built and will be picked up next run"
