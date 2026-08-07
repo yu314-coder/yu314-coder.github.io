@@ -43,7 +43,8 @@ const POP = arg('pop', 12);
 const ELITE = Math.max(2, Math.round(POP * 0.25));
 const SEEDS = arg('seeds', 8);
 const FRAMES = arg('frames', 6000);
-const MARGIN = arg('margin', 1.05);          // must beat the incumbent by 5%
+const MARGIN = arg('margin', 1.05);
+const NOISE0 = arg('noise', 0.25);   // injected exploration, decayed over the run          // must beat the incumbent by 5%
 const TIERS = ['baby', 'easy', 'normal', 'hard'];
 
 // Shapes come from the policy itself, so widening what it observes does not
@@ -127,6 +128,18 @@ function main() {
     scored.sort((a, b) => b.f - a.f);
     const elites = scored.slice(0, ELITE);
 
+    // Refit, then add noise back. Plain CEM narrows on whatever the elites
+    // agreed about, and with a population this small they agree early and by
+    // accident: a first run collapsed from 0.449 to 0.060 by generation five,
+    // peaked at generation four and spent the rest of its budget searching
+    // inside a distribution too narrow to get out of. It finished 4.5% above
+    // the incumbent, needing 5%.
+    //
+    // The standard remedy, and the one used here: hold a floor of injected
+    // noise that decays on its own schedule rather than on the elites'
+    // agreement, so late generations still explore. It costs nothing when the
+    // search is genuinely converging and rescues it when it is not.
+    const extra = NOISE0 * Math.max(0, 1 - gen / GENS);
     for (let d = 0; d < DIM; d++) {
       let m = 0;
       for (const e of elites) m += e.v[d];
@@ -134,12 +147,13 @@ function main() {
       let s2 = 0;
       for (const e of elites) s2 += (e.v[d] - m) ** 2;
       mu[d] = m;
-      sigma[d] = Math.max(0.05, Math.sqrt(s2 / ELITE));   // never fully collapse
+      sigma[d] = Math.max(0.05, Math.sqrt(s2 / ELITE) + extra);
     }
     if (elites[0].f > bestFit) { bestFit = elites[0].f; best = toWeights(elites[0].v); }
     console.log(`  gen ${String(gen).padStart(2)}: best ${elites[0].f.toFixed(0)}  elite mean ` +
       `${(elites.reduce((a, e) => a + e.f, 0) / ELITE).toFixed(0)}  sigma ` +
-      `${(sigma.reduce((a, b) => a + b, 0) / DIM).toFixed(3)}`);
+      `${(sigma.reduce((a, b) => a + b, 0) / DIM).toFixed(3)}` +
+      `  (+${extra.toFixed(3)} injected)`);
   }
 
   if (!best) { console.log('  no candidate produced'); return 0; }
