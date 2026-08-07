@@ -15,10 +15,16 @@ name: Refresh typhoon AI forecast
 # But the storm list is JMA's targetTc.json, and that changes whenever a
 # depression is named -- the browser reads it live while this file is
 # precomputed, so a storm that forms just after a run shows the overlay's
-# "no forecast for it yet" until the next one. On an hourly cron that was a
-# wait of up to ~65 minutes including the Pages deploy. Every 20 minutes cuts
-# it to ~25 for the cost of a ~5 minute job, with the GFS files already cached
-# so the extra runs re-decode rather than re-download.
+# "no forecast for it yet" until the next one.
+#
+# This asks for every 20 minutes and does not get it. Measured over 23
+# scheduled runs: the gaps are 67 minutes at best, 139 median, 364 at worst,
+# and not one of them was under 30. GitHub delivers cron events best-effort and
+# throttles frequent ones, so the schedule here is a request, not a guarantee,
+# and a newly named storm waits a couple of hours in practice rather than the
+# twenty minutes this line reads as. Left as-is because a denser request does
+# no harm and does occasionally land sooner, but do not trust the number: if
+# the wait ever has to be bounded, it needs a trigger rather than a cron.
 on:
   schedule:
     - cron: "*/20 * * * *"
