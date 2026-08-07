@@ -2423,14 +2423,21 @@
           const drift = Math.max(-spare, Math.min(spare, dense - stand));
           target = stand + drift - this.aimBias(stand, pick.t, canvas, now);
         } else {
-          // Two strategies, each used where it measures better. While the
-          // board is dense the tunnel wins: opening a channel to the top is
-          // worth more than any single shot, and it is aimGoal that steers
-          // there. Once the board has thinned there is no channel left to dig,
-          // and playing the shot out beats aiming at a weighted average.
-          const digging = this.initialBricks &&
-                          this.bricksLeft() >= this.initialBricks * this.TUNNEL_UNTIL;
-          const planned = (!digging && arrivals.length === 1 && pick.t > 14)
+          // Plan the shot whenever there is a single ball to plan for.
+          //
+          // This used to be fenced behind two more conditions -- not while the
+          // board is dense enough to tunnel, and not when the ball arrives in
+          // under 14 frames -- on the reasoning that digging a channel beats
+          // any single shot and that a near arrival leaves no time to be clever.
+          // Both were wrong, and expensively so: they handed most frames to
+          // aimBias, which aims at a weighted centre of mass. Removing them is
+          // worth several levels on almost every row.
+          //
+          // The `arrivals.length === 1` guard stays. Removing that as well was
+          // measured separately and is not an improvement -- with several balls
+          // in play the planner optimises for one of them and the others are
+          // what kill you.
+          const planned = (arrivals.length === 1)
             ? this.plannedShot(canvas, pick, centre, step, now)
             : null;
           target = planned !== null ? planned
