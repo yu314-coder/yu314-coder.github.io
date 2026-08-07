@@ -1,0 +1,73 @@
+name: Benchmark arcade autopilot
+
+# Does the bot still play well?
+#
+# The suite proves the rules hold and says nothing about whether the autopilot
+# is any good, and those come apart easily. Every mechanic added to the board --
+# turrets, seekers, mines, self-repair, twin volleys, balls that collide -- is
+# something the bot has to cope with, and a fully green suite is perfectly
+# compatible with it quietly getting worse at the game.
+#
+# It really plays: the harness loads assets/js/main.js, clicks the actual
+# autopilot button and pumps frames. Nothing is injected -- with the autopilot
+# off the paddle never moves and the run is lost, which is the control that
+# proves the frames are the only thing being supplied.
+#
+# It fails against a floor rather than against the previous number. Medians of a
+# stochastic player wander a few percent between runs, and a threshold tight
+# enough to catch that would cry wolf every time and be ignored.
+on:
+  schedule:
+    - cron: "20 4 * * *"
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: "Runs per row (higher is slower and steadier)"
+        default: "9"
+      frames:
+        description: "Frames per run"
+        default: "9000"
+      floor:
+        description: "Median level the ordinary board must still reach"
+        default: "4"
+  push:
+    paths:
+      - "assets/js/main.js"          # the only file that can change how it plays
+      - "tests/bench-autopilot.js"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bench-autopilot-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: The rules must hold before measuring how well it plays
+        run: node tests/arcade.test.js
+
+      - name: Play
+        run: |
+          RUNS="${{ inputs.runs }}";     RUNS="${RUNS:-9}"
+          FRAMES="${{ inputs.frames }}"; FRAMES="${FRAMES:-9000}"
+          FLOOR="${{ inputs.floor }}";   FLOOR="${FLOOR:-4}"
+          set +e
+          node tests/bench-autopilot.js --runs "$RUNS" --frames "$FRAMES" --floor "$FLOOR" | tee bench.log
+          rc=${PIPESTATUS[0]}
+          set -e
+          {
+            echo '### Autopilot'
+            echo '```'
+            sed -n '/board  /,$p' bench.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$rc"

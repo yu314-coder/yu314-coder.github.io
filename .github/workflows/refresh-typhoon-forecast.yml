@@ -154,7 +154,15 @@ jobs:
             fi
             echo "main moved; replaying this forecast on top of it (attempt $attempt)"
             git fetch origin main
-            git reset --soft origin/main
+            # --mixed, NOT --soft. --soft moves HEAD but leaves the index as
+            # this runner built it, so committing records that stale tree as
+            # the new state and silently DELETES everything added to main since
+            # this job checked out. It did exactly that once: a backfill run
+            # removed the autopilot benchmark, its workflow, five storm files
+            # and reverted a trainer change, all in a commit titled "Add v62
+            # history hindcasts". --mixed resets the index to main and leaves
+            # our files in the working tree, so the next add stages only ours.
+            git reset --mixed origin/main
             git add assets/typhoon-tracker/model/v23-live-forecast.json
             if git diff --staged --quiet; then
               echo "main already has an equivalent forecast"

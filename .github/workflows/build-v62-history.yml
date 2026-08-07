@@ -184,8 +184,16 @@ jobs:
             fi
             echo "main moved; rebuilding the index on top of it (attempt $attempt)"
             git fetch origin main
+            # --mixed, NOT --soft. --soft moves HEAD but leaves the index as
+            # this runner built it, so the commit records that stale tree as
+            # the new state and silently DELETES everything added to main since
+            # this job checked out. It did exactly that: a run titled "Add v62
+            # history hindcasts" removed the autopilot benchmark, its workflow,
+            # five storm files, and reverted a trainer change. --mixed resets
+            # the index to main and leaves our files in the working tree, so
+            # the add below stages only ours.
+            git reset --mixed origin/main
             git checkout origin/main -- assets/typhoon-tracker/model/v62-hindcasts.json
-            git reset --soft origin/main
             python scripts/rebuild_v62_index.py
             git add assets/typhoon-tracker/model/v62 assets/typhoon-tracker/model/v62-hindcasts.json
             if git diff --staged --quiet; then
