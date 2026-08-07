@@ -96,6 +96,9 @@
         <button class="nav-link" id="tab-gps-btn" data-bs-toggle="pill" data-bs-target="#tab-gps" type="button" role="tab" aria-controls="tab-gps" aria-selected="false">GPS-location-app</button>
       </li>
       <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-sidecar-btn" data-bs-toggle="pill" data-bs-target="#tab-sidecar" type="button" role="tab" aria-controls="tab-sidecar" aria-selected="false">SidecarBridge</button>
+      </li>
+      <li class="nav-item" role="presentation">
         <button class="nav-link" id="tab-typhoon-btn" data-bs-toggle="pill" data-bs-target="#tab-typhoon" type="button" role="tab" aria-controls="tab-typhoon" aria-selected="false">Typhoon AI</button>
       </li>
       <li class="nav-item" role="presentation">
@@ -1270,6 +1273,117 @@
     </div>
     </div><!-- /tab-gps -->
 
+    <!-- Tab: SidecarBridge -->
+    <div class="tab-pane fade" id="tab-sidecar" role="tabpanel" aria-labelledby="tab-sidecar-btn">
+
+    <!-- Featured Project: SidecarBridge -->
+    <div class="card card--hue hue-sidecar reveal">
+      <div class="card-body p-4 p-md-5">
+        <div class="row g-0 align-items-center justify-content-center">
+          <div class="col-lg-10 col-xl-9 text-center">
+            <header class="mb-4">
+              <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
+                <span class="app-icon"><picture><source srcset="assets/img/app-icons/sidecarbridge.webp" type="image/webp"><img src="assets/img/app-icons/sidecarbridge.png" alt="SidecarBridge icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
+                <div class="text-start">
+                  <h3 class="h2 mb-1 fw-bold">SidecarBridge</h3>
+                  <span class="badge-neutral mono">macOS 14+</span>
+                  <span class="badge-accent mono ms-1">Mac App Store</span>
+                  <span class="badge-neutral mono ms-1">iPhone &amp; iPad</span>
+                  <span class="badge-neutral mono ms-1">End-to-end encrypted</span>
+                </div>
+              </div>
+              <p class="lead mb-0">A secure remote window into your Mac, with iPhone and iPad keyboard, trackpad, touch and Apple&nbsp;Pencil input. Everything stays on your own network — the Mac's screen is never published to the Internet.</p>
+            </header>
+
+            <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
+              <span class="feature-badge">Encrypted LAN stream</span>
+              <span class="feature-badge">Bonjour discovery</span>
+              <span class="feature-badge">Peer-to-peer fallback</span>
+              <span class="feature-badge">Hardware H.264</span>
+              <span class="feature-badge">Keyboard &amp; trackpad</span>
+              <span class="feature-badge">Apple Pencil</span>
+              <span class="feature-badge">Picture in Picture</span>
+              <span class="feature-badge">Shutdown Handoff</span>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">Key Capabilities</h4>
+              <ul class="list-unstyled">
+                <li class="mb-2">HiDPI H.264 stream sized from the iPad's own display, 1440&ndash;2880&nbsp;px wide and up to 40&nbsp;fps on the direct route</li>
+                <li class="mb-2">Three routes tried in order &mdash; encrypted local network, Apple peer-to-peer as a nearby fallback, and Apple's own System Sidecar left as a separate, explicit choice</li>
+                <li class="mb-2">Every route does an ephemeral Curve25519 key agreement, then encrypts screen and input with direction-separated ChaChaPoly keys and replay-protected counters</li>
+                <li class="mb-2">Pairing uses a rotating 16-character code proved by role-separated HMACs; a trusted-device credential then lives in the Data Protection Keychain, so it only asks once</li>
+                <li class="mb-2">Encrypted heartbeats check the route every three seconds, show real round-trip latency in both apps, and rebuild stale sessions on their own</li>
+                <li class="mb-2">Picture in Picture keeps the stream alive when you switch iPad apps; the Mac drops to 15&nbsp;fps in the background and restores quality on return</li>
+                <li class="mb-2">Shutdown Handoff holds a remote session open while the Mac logs out or restarts, and cancels the shutdown rather than leaving the Mac uncontrollable</li>
+              </ul>
+            </div>
+
+            <div class="row g-3 mb-4 justify-content-center">
+              <div class="col-md-5">
+                <div class="lib-category-card">
+                  <h5 class="h6 fw-bold mb-3">Requirements</h5>
+                  <ul class="small mb-0 text-start">
+                    <li>macOS 14+ and iOS / iPadOS 17+</li>
+                    <li>Both devices on the same local network</li>
+                    <li>Local Network permission on both</li>
+                    <li>Screen Recording on the Mac</li>
+                    <li>No Internet connection needed</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="col-md-5">
+                <div class="lib-category-card">
+                  <h5 class="h6 fw-bold mb-3">Get Started</h5>
+                  <ol class="small mb-0 text-start">
+                    <li>Install the Mac app from the Mac App Store</li>
+                    <li>Allow Local Network on both devices</li>
+                    <li>Enter the Mac's one-time pairing code once</li>
+                    <li>Pick In-App Display, or open System Sidecar</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">Honest limits</h4>
+              <div class="d-inline-block text-start">
+                <p class="small mb-1">Apple publishes no third-party API to start a Sidecar session, and its stream cannot be embedded in another iPad app. So In-App Display and System Sidecar stay two separate, honestly labelled modes rather than one pretending to be the other &mdash; and the App Store build opens the public Displays settings instead of loading private frameworks.</p>
+                <p class="small mb-0">The in-app route mirrors the main display rather than creating a true extra one. For a real virtual Retina display, audio and extended desktop, Apple's own Sidecar is still the better path, and the app says so.</p>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">Technical Specifications</h4>
+              <div class="d-inline-block text-start">
+                <p class="small mb-1"><strong>Created by:</strong> Yu Yao-Hsing</p>
+                <p class="small mb-1"><strong>Mac App Store ID:</strong> 6792298083</p>
+                <p class="small mb-1"><strong>Frameworks:</strong> SwiftUI &middot; ScreenCaptureKit &middot; Network.framework &middot; Multipeer Connectivity &middot; CryptoKit &middot; VideoToolbox</p>
+                <p class="small mb-1"><strong>Transport:</strong> Bonjour + Network.framework on port 45454, Multipeer Connectivity as nearby fallback</p>
+                <p class="small mb-0"><strong>Status:</strong> Live on the Mac App Store &middot; iOS / iPadOS awaiting review</p>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
+              <a href="https://apps.apple.com/app/sidecarbridge/id6792298083" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Download SidecarBridge on the Mac App Store">
+                <img src="assets/img/badges/appstore.svg" alt="Download on the Mac App Store">
+              </a>
+              <a href="https://github.com/yu314-coder/SidecarBridge" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                GitHub Repository
+              </a>
+              <a href="privacy.html#sidecarbridge" class="badge-btn">
+                Privacy policy
+              </a>
+              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
+                Contact developer
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div><!-- /tab-sidecar -->
+
     <!-- Tab: Typhoon AI -->
     <div class="tab-pane fade" id="tab-typhoon" role="tabpanel" aria-labelledby="tab-typhoon-btn">
 
@@ -1316,7 +1430,9 @@
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">The models</h5>
                   <ul class="small mb-0 text-start">
-                    <li><strong>TrackFormer v10</strong> &mdash; 17&nbsp;M params, triple-stream + curved baseline, no reanalysis (deployed)</li>
+                    <li><strong>TrackFormer v23</strong> &mdash; the one actually deployed: a five-seed int8 ensemble running in your browser via onnxruntime-web, no backend</li>
+                    <li><strong>v62</strong> &mdash; causal western-Pacific route integrated from real GFS/CFS analysis fields; drives the live overlay and the past-storm hindcasts</li>
+                    <li><strong>TrackFormer v10</strong> &mdash; 17&nbsp;M params, triple-stream + curved baseline, no reanalysis (superseded)</li>
                     <li><strong>StormFusion-MT</strong> &mdash; 3.3&nbsp;M params, ERA5 patches + track</li>
                     <li>Trained on IBTrACS v04r01 (all basins, 1980+) &amp; ERA5</li>
                     <li>193k partial-lead training windows; 614&nbsp;km WP-2020+ track</li>
