@@ -1268,7 +1268,8 @@
                 first: 17000, every: 10000, drop: 0.26, hazard: 1.6,
                 mutFrom: 2, mutChance: 0.9,  hpCap: 4,
                 wide: 1.6, slow: 0.75, effect: 0.8, netCap: 2, multi: 2, spare: 2,
-                beamEvery: 5200, beamWarn: 850, repair: true, beamLead: 13 }
+                beamEvery: 5200, beamWarn: 850, repair: true, beamLead: 13,
+                beamTwin: true, beamRamp: 0.93 }
     },
     // A frame at top speed covers more than a brick's height, so movement is
     // sub-stepped at this granularity — otherwise a fast ball tunnels straight
@@ -2737,7 +2738,16 @@
     // paced back.
     beamGap: function() {
       const every = (this.tier && this.tier.beamEvery) || 0;
-      return every && (Difficulty.indestructible ? every : every * 1.7);
+      if (!every) return 0;
+      const base = Difficulty.indestructible ? every : every * 1.7;
+      // Hard tightens as the run goes on, to a floor. A board that fights the
+      // same at level 9 as at level 1 stops being the thing making it hard --
+      // by then the ball is fast enough to be the whole difficulty on its own,
+      // and the guns have become scenery.
+      const ramp = this.tier.beamRamp || 0;
+      if (!ramp) return base;
+      const tighter = base * Math.pow(ramp, Math.max(0, this.level - 1));
+      return Math.max(base * 0.45, tighter);
     },
     beamsReset: function(now) {
       this.beams = [];
@@ -2775,6 +2785,31 @@
         if (src) {
           this.beams.push({ x: src.x + src.w / 2, from: src.y + src.h, at: now + warn, fired: 0 });
           SFX.beep(90, 0.18, 'square', 0.07, 150);
+
+          // Hard fires a second column at where you would step to. One turret
+          // is answered by moving; two are answered by picking the right way
+          // and committing to it, which is a harder question and still a fair
+          // one -- both columns light for the same warning, so everything you
+          // need is on screen before anything is fired.
+          //
+          // It aims at the side with more room, because that is the side
+          // anything sensible runs to. Never both sides: leaving no answer at
+          // all is not difficulty, it is a coin toss.
+          if (this.tier.beamTwin) {
+            const clear = this.BEAM_W / 2 + half + 4;
+            const room = (here - clear) > clear ? -1 : 1;
+            const cut = Math.max(half, Math.min(canvas.width - half, here + room * clear * 1.6));
+            let alt = null, near2 = Infinity;
+            for (const b of this.bricks) {
+              if (b.hp <= 0 || (onlySteel && b.kind !== 'steel')) continue;
+              const d = Math.abs(b.x + b.w / 2 - cut);
+              if (d < near2) { near2 = d; alt = b; }
+            }
+            if (alt && Math.abs((alt.x + alt.w / 2) - (src.x + src.w / 2)) > this.BEAM_W * 2) {
+              this.beams.push({ x: alt.x + alt.w / 2, from: alt.y + alt.h,
+                                at: now + warn, fired: 0 });
+            }
+          }
         }
         this.nextBeamAt = now + every;
       }
@@ -2996,53 +3031,68 @@
       }
     },
 
-    // Stay out of a lit column. Written as a clamp on the final target rather
-    // than as a branch in the aim chain, because as a branch it only held while
-    // the beam was nearly due -- outside that window the ordinary aim walked
-    // the paddle straight back under the turret and it was shot anyway. Nine
-    // hits in a hundred and eighteen beams, all of them avoidable.
+    // Where to stand when several things are aimed at you.
     //
-    // When the ball is arriving inside the lit column the two cannot both be
-    // had: the beam is a certain hit, a missed ball only a possible one, so
-    // the beam wins.
-    beamClamp: function(target, canvas, now) {
-      const half = this.paddle.width / 2;
-
-      // A seeker close to the paddle line is the more urgent of the two, since
-      // it arrives where the paddle is rather than where it was. Step aside
-      // only when it is nearly down -- earlier than that it just follows.
+    // The old version walked the threats and returned on the first one it had
+    // to avoid. That is correct for a single turret and wrong for anything
+    // else: stepping clear of one column can step straight into another, and
+    // hard now fires two at once precisely to punish that. It also could not
+    // weigh "a little close to two things" against "very close to one", which
+    // is the choice that actually comes up.
+    //
+    // So score positions instead of taking the first that works. Danger is
+    // piecewise linear in x, so its minima sit on the boundaries of the
+    // keep-out zones -- checking just outside each threat, plus the two edges
+    // and the target itself, finds the best position without a search.
+    // Ties go to whichever is nearest the target, because being safe is worth
+    // nothing if the ball is missed doing it.
+    threats: function(canvas) {
+      const out = [];
       const paddleTop = canvas.height - this.paddle.height - 4;
-      for (const s of (this.seekers || [])) {
-        if (paddleTop - s.y > 70) continue;
-        const gap = this.SEEK_R + half + 6;
-        if (Math.abs(s.x - target) >= gap) continue;
-        let best = null, bestGap = -1;
-        for (const cand of [s.x - gap, s.x + gap]) {
-          const at = Math.max(half, Math.min(canvas.width - half, cand));
-          const d = Math.abs(at - s.x);
-          if (d > bestGap) { bestGap = d; best = at; }
-        }
-        return best;
+      for (const beam of (this.beams || [])) {
+        if (!beam.fired) out.push({ x: beam.x, r: this.BEAM_W / 2, weight: 1 });
       }
+      for (const sk of (this.seekers || [])) {
+        if (paddleTop - sk.y > 70) continue;      // still high; it only follows
+        out.push({ x: sk.x, r: this.SEEK_R, weight: 1.2 });
+      }
+      for (const m of (this.mines || [])) {
+        out.push({ x: m.x, r: this.MINE_R, weight: 0.9 });
+      }
+      return out;
+    },
 
-      if (!this.beams || !this.beams.length) return target;
-      const clear = this.BEAM_W / 2 + half + 4;
-      for (const beam of this.beams) {
-        if (beam.fired) continue;
-        if (Math.abs(beam.x - target) >= clear) continue;
-        // Both sides, clamped to the canvas the way movePaddle will clamp them,
-        // then whichever actually ends up further from the column. Picking a
-        // side first and clamping after is what let a turret near an edge score:
-        // the paddle was sent to a position it could not reach and stayed lit.
-        let best = null, bestGap = -1;
-        for (const cand of [beam.x - clear, beam.x + clear]) {
-          const at = Math.max(half, Math.min(canvas.width - half, cand));
-          const gap = Math.abs(at - beam.x);
-          if (gap > bestGap) { bestGap = gap; best = at; }
+    beamClamp: function(target, canvas, now) {
+      const threats = this.threats(canvas);
+      if (!threats.length) return target;
+      const half = this.paddle.width / 2;
+      const lo = half, hi = canvas.width - half;
+
+      const danger = (x) => {
+        let worst = 0;
+        for (const t of threats) {
+          const need = t.r + half + 4;
+          const over = need - Math.abs(t.x - x);
+          if (over > 0) worst = Math.max(worst, over * t.weight);
         }
-        return best;
+        return worst;
+      };
+      if (danger(target) <= 0) return target;      // already clear; do not move
+
+      const cand = [lo, hi, target];
+      for (const t of threats) {
+        const need = t.r + half + 4;
+        cand.push(t.x - need, t.x + need);
       }
-      return target;
+      let best = null, bestD = Infinity, bestGap = Infinity;
+      for (const raw of cand) {
+        const x = Math.max(lo, Math.min(hi, raw));
+        const d = danger(x), gap = Math.abs(x - target);
+        if (d < bestD - 1e-6 || (Math.abs(d - bestD) <= 1e-6 && gap < bestGap)) {
+          bestD = d; bestGap = gap; best = x;
+        }
+      }
+      return best === null ? target : best;
     },
 
     // --- Returning the ball on a buried board -----------------------------

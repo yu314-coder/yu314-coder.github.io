@@ -1393,7 +1393,9 @@ const buildPlain = (B, h, name) => {
     const t0 = 1000000;
     B.nextBeamAt = t0;
     B.stepBeams(h.canvas, g, t0);
-    check('a turret lights its column before firing', B.beams.length === 1 && !B.beams[0].fired);
+    check('a turret lights its column before firing',
+          B.beams.length >= 1 && B.beams.every((b) => !b.fired),
+          `${B.beams.length} lit`);
     const warn = B.tier.beamWarn;
     B.stepBeams(h.canvas, g, t0 + warn * 0.5);
     check('and is still only charging half way through', !B.beams[0].fired,
@@ -1452,7 +1454,8 @@ const buildPlain = (B, h, name) => {
     const g = fakeGame(h);
     B.nextBeamAt = 1;
     B.stepBeams(h.canvas, g, 100000);
-    check('the ordinary board shoots back as well', B.beams.length === 1);
+    check('the ordinary board shoots back as well', B.beams.length >= 1,
+          `${B.beams.length} lit`);
 
     const plainGap = B.beamGap();
     Difficulty.setIndestructible(true);
@@ -1710,6 +1713,85 @@ const buildPlain = (B, h, name) => {
   check('and picks a column on the board',
         gx === null || (gx > 0 && gx < h.canvas.width), String(gx));
   ConvPolicy.weights = null;
+}
+
+// ------------------------------------------- hard fights harder
+{
+  const boot = (tier) => {
+    const h = run();
+    const { Breakout: B, Difficulty } = h.win.__arcade;
+    Difficulty.setIndestructible(false);
+    Difficulty.set(tier);
+    h.els['gameSelect'].value = 'breakout';
+    h.win.startGame();
+    return { h, B, g: fakeGame(h) };
+  };
+
+  {
+    // Two columns at once on hard: one where you are, one where you would go.
+    const { h, B, g } = boot('hard');
+    check('hard fires in pairs', !!B.tier.beamTwin);
+    B.paddle.x = 260;
+    B.nextBeamAt = 1;
+    B.stepBeams(h.canvas, g, 100000);
+    check('a hard volley lights two columns', B.beams.length === 2, `${B.beams.length}`);
+    if (B.beams.length === 2) {
+      const gap = Math.abs(B.beams[0].x - B.beams[1].x);
+      check('and they are far enough apart to be two choices',
+            gap > B.BEAM_W * 2, `${Math.round(gap)}px apart`);
+      check('both warn for the same time, so the board is readable',
+            B.beams[0].at === B.beams[1].at);
+    }
+    const { B: Bn, h: hn, g: gn } = boot('normal');
+    Bn.nextBeamAt = 1;
+    Bn.stepBeams(hn.canvas, gn, 100000);
+    check('normal still fires singly', Bn.beams.length === 1, `${Bn.beams.length}`);
+  }
+
+  {
+    // And hard tightens as the run goes on, to a floor.
+    const { B } = boot('hard');
+    B.level = 1; const early = B.beamGap();
+    B.level = 9; const late = B.beamGap();
+    B.level = 40; const far = B.beamGap();
+    check('hard fires more often as the levels go up', late < early,
+          `${(early / 1000).toFixed(1)}s -> ${(late / 1000).toFixed(1)}s`);
+    check('but never faster than its floor', far >= early * 0.44,
+          `${(far / 1000).toFixed(1)}s`);
+    const { B: Bn } = boot('normal');
+    Bn.level = 1; const n1 = Bn.beamGap();
+    Bn.level = 9; const n9 = Bn.beamGap();
+    check('normal does not escalate', n1 === n9);
+  }
+
+  {
+    // The algorithm has to solve two columns at once, not dodge one into the
+    // other. This is the case the old first-match version got wrong.
+    const { h, B } = boot('hard');
+    const half = B.paddle.width / 2;
+    B.beams = [{ x: 250, from: 100, at: 1e9, fired: 0 },
+               { x: 250 + B.BEAM_W + 2 * half + 20, from: 100, at: 1e9, fired: 0 }];
+    B.seekers = []; B.mines = [];
+    const where = B.beamClamp(250, h.canvas, 0);
+    const clearOf = (x, t) => Math.abs(x - t) >= B.BEAM_W / 2 + half;
+    check('it finds a spot clear of both columns',
+          clearOf(where, B.beams[0].x) && clearOf(where, B.beams[1].x),
+          `stood at ${Math.round(where)} between ${B.beams[0].x} and ${Math.round(B.beams[1].x)}`);
+
+    // With no room to be clear of either, it takes the least bad rather than
+    // freezing or picking the first.
+    B.beams = [{ x: 300, from: 100, at: 1e9, fired: 0 },
+               { x: 310, from: 100, at: 1e9, fired: 0 }];
+    const squeezed = B.beamClamp(305, h.canvas, 0);
+    check('and still answers when there is no clean spot',
+          typeof squeezed === 'number' && squeezed >= half && squeezed <= h.canvas.width - half,
+          `${Math.round(squeezed)}`);
+
+    // Nothing aimed at it: it must not wander off the shot it wanted.
+    B.beams = []; B.seekers = []; B.mines = [];
+    check('and leaves the aim alone when nothing is aimed at it',
+          B.beamClamp(412, h.canvas, 0) === 412);
+  }
 }
 
 let failed = 0;
