@@ -498,8 +498,18 @@ const buildPlain = (B, h, name) => {
 
 // ------------------------------------------------------------- entry + touch
 {
+  // The #arcade hash was removed on purpose: a URL that can be pasted, indexed
+  // or shared is not a hidden thing. Typing the word and long-pressing the site
+  // name are both something you have to do rather than be handed.
+  // The harness opens the overlay itself so the games can be driven, so this
+  // cannot be answered by looking at display -- and the test that used to live
+  // here was passing for exactly that reason rather than because the hash
+  // worked. What is actually being asserted is that nothing listens for the
+  // hash any more: a URL that can be pasted, indexed or shared is not hidden.
   const h = run({ hash: '#arcade' });
-  check('#arcade opens the arcade', h.els['hidden-game'].style.display === 'flex');
+  const wired = (h.win.winListeners || []).some((l) => l.type === 'hashchange');
+  check('nothing listens for the #arcade hash any more', !wired,
+        (h.win.winListeners || []).map((l) => l.type).join(',') || 'no window listeners');
 }
 {
   const h = run();
@@ -1677,8 +1687,8 @@ const buildPlain = (B, h, name) => {
   ConvPolicy.fetched = true;
   ConvPolicy.weights = null;
 
-  check('with no policy it says nothing', ConvPolicy.goalX(B.bricks, 640) === null);
-  check('and a malformed one is refused', !ConvPolicy.load({ k: [1, 2, 3], o: [] }));
+  check('with no policy it says nothing', ConvPolicy.goalX(B, 640, 480) === null);
+  check('and a malformed one is refused', !ConvPolicy.load({ k: [1, 2, 3], o: [], s: [] }));
   check('and an empty one is refused', !ConvPolicy.load(null));
 
   Difficulty.set('normal');
@@ -1687,10 +1697,16 @@ const buildPlain = (B, h, name) => {
   check('the game still plays with no policy at all', B.aimGoal(h.canvas, 0, 320) !== undefined);
 
   // A well-formed policy is accepted and produces a target on the board.
-  const k = Array.from({ length: 36 }, (_, i) => (i % 5) * 0.1 - 0.2);
-  const o = Array.from({ length: 128 }, (_, i) => (i % 7) * 0.05);
-  check('a well-formed policy loads', ConvPolicy.load({ k, o }));
-  const gx = ConvPolicy.goalX(B.bricks, h.canvas.width);
+  // Shapes come from the policy itself, so widening what it observes cannot
+  // leave this test asserting the old geometry.
+  const n = ConvPolicy.sizes();
+  const k = Array.from({ length: n.nk }, (_, i) => (i % 5) * 0.1 - 0.2);
+  const o = Array.from({ length: n.no }, (_, i) => (i % 7) * 0.05);
+  const sv = Array.from({ length: n.ns }, (_, i) => (i % 3) * 0.02);
+  check('a well-formed policy loads', ConvPolicy.load({ k, o, s: sv }),
+        `${n.nk}/${n.no}/${n.ns}`);
+  check('and one missing a part is refused', !ConvPolicy.load({ k, o }));
+  const gx = ConvPolicy.goalX(B, h.canvas.width, h.canvas.height);
   check('and picks a column on the board',
         gx === null || (gx > 0 && gx < h.canvas.width), String(gx));
   ConvPolicy.weights = null;

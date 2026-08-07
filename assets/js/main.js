@@ -526,16 +526,13 @@
     },
 
     // Typing "easter" needs a keyboard, which is exactly what a phone hasn't
-    // got — so the arcade was desktop-only in practice. Two keyboard-free ways
-    // in: the #arcade hash (shareable, works anywhere) and a long-press on the
-    // site name in the navbar.
+    // got — so the keyboard-free way in is a long-press on the site name.
+    //
+    // There used to be a #arcade hash as well. It has been removed on purpose:
+    // a URL anyone can paste, that search engines can index and that turns up
+    // in a shared link, is not a hidden thing. Both remaining ways in are
+    // something you have to do rather than something you can be handed.
     setupMobileEntry: function() {
-      const fromHash = () => {
-        if ((location.hash || '').toLowerCase() === '#arcade') this.openArcade();
-      };
-      window.addEventListener('hashchange', fromHash);
-      fromHash();
-
       const brand = document.querySelector('.navbar-brand');
       if (!brand) return;
       let timer = null, fired = false;
@@ -1043,76 +1040,126 @@
   // policy file -- and a trained policy has to beat that heuristic on held-out
   // seeds before the workflow will commit it.
   const ConvPolicy = {
-    COLS: 8, ROWS: 4, K: 4,
+    // Three things about each cell of the board, not one.
+    //
+    //   worth      what is there to gain -- a charge or a keystone is worth
+    //              more than a plain brick, and a brick that dies in one hit is
+    //              worth more than one that needs three
+    //   toughness  how much work it is, which the value channel deliberately
+    //              hides: those are different questions and squashing them into
+    //              one number was throwing away the difference
+    //   threat     what is being shot at you from there, and what is already in
+    //              the air -- a lit column, a seeker on its way down, a mine
+    //              sitting on the floor
+    //
+    // Plus six scalars the grid cannot express at all: where the ball is and
+    // where it is going, where the bat is, how fast the ball has become, and
+    // how far through the board you are. The first version saw only the value
+    // grid, which meant it could not tell a board it was winning from one that
+    // was shooting at it.
+    //
+    // 4 kernels x 3x3 x 3 channels = 108, the column mix 128, the scalar mix
+    // 48: 284 weights. Still small enough to ship as JSON and to run every
+    // frame without being felt.
+    COLS: 8, ROWS: 4, K: 4, CH: 3, S: 6,
     weights: null,
-
-    // Fetched once, lazily, and entirely optional: a 404, a parse error or a
-    // wrong-shaped file all leave weights null and every caller falls back to
-    // the hand-written heuristic. The arcade is hidden behind an easter egg, so
-    // this must never be on the critical path of loading the site.
     fetched: false,
     ensure: function() {
       if (this.fetched || typeof fetch !== 'function') return;
       this.fetched = true;
-      const url = (this.URL || 'assets/js/arcade-policy.json');
-      fetch(url)
+      fetch(this.URL || 'assets/js/arcade-policy.json')
         .then((r) => (r.ok ? r.json() : null))
         .then((w) => { if (w) this.load(w); })
         .catch(() => {});
     },
+    sizes: function() {
+      return { nk: this.K * 9 * this.CH,
+               no: this.K * this.ROWS * this.COLS,
+               ns: this.S * this.COLS };
+    },
     load: function(w) {
-      if (!w || !Array.isArray(w.k) || w.k.length !== this.K * 9) return false;
-      if (!Array.isArray(w.o) || w.o.length !== this.K * this.ROWS * this.COLS) return false;
+      const n = this.sizes();
+      if (!w || !Array.isArray(w.k) || w.k.length !== n.nk) return false;
+      if (!Array.isArray(w.o) || w.o.length !== n.no) return false;
+      if (!Array.isArray(w.s) || w.s.length !== n.ns) return false;
       this.weights = w;
       return true;
     },
 
-    // The board as a small value grid: how much is worth breaking in each cell.
-    grid: function(bricks, canvasW) {
-      const g = new Float32Array(this.ROWS * this.COLS);
+    observe: function(B, canvasW, canvasH) {
+      const R = this.ROWS, C = this.COLS;
+      const g = new Float32Array(this.CH * R * C);
       let top = Infinity, bot = 0;
-      for (const b of bricks) {
+      for (const b of B.bricks) {
         if (b.hp <= 0 || b.kind === 'steel') continue;
         if (b.y < top) top = b.y;
         if (b.y + b.h > bot) bot = b.y + b.h;
       }
       if (!isFinite(top) || bot <= top) return null;
-      for (const b of bricks) {
+      const cell = (x, y) => {
+        const c = Math.min(C - 1, Math.max(0, Math.floor(x / canvasW * C)));
+        const r = Math.min(R - 1, Math.max(0, Math.floor((y - top) / (bot - top) * R)));
+        return r * C + c;
+      };
+      for (const b of B.bricks) {
         if (b.hp <= 0 || b.kind === 'steel') continue;
-        const c = Math.min(this.COLS - 1, Math.max(0,
-          Math.floor((b.x + b.w / 2) / canvasW * this.COLS)));
-        const r = Math.min(this.ROWS - 1, Math.max(0,
-          Math.floor((b.y - top) / (bot - top) * this.ROWS)));
-        const worth = (b.kind === 'boom' ? 5 : b.kind === 'key' ? 4
-                     : b.kind === 'mystery' ? 3 : 1) / b.hp;
-        g[r * this.COLS + c] += worth;
+        const i = cell(b.x + b.w / 2, b.y);
+        g[i] += (b.kind === 'boom' ? 5 : b.kind === 'key' ? 4
+               : b.kind === 'mystery' ? 3 : 1) / b.hp;
+        g[R * C + i] += b.hp;
       }
-      let m = 0;
-      for (let i = 0; i < g.length; i++) m = Math.max(m, g[i]);
-      if (m > 0) for (let i = 0; i < g.length; i++) g[i] /= m;
-      return g;
+      const T = 2 * R * C;
+      for (const beam of (B.beams || [])) {
+        if (beam.fired) continue;
+        const c = Math.min(C - 1, Math.max(0, Math.floor(beam.x / canvasW * C)));
+        for (let r = 0; r < R; r++) g[T + r * C + c] += 1;
+      }
+      for (const sk of (B.seekers || [])) g[T + cell(sk.x, Math.max(top, Math.min(bot, sk.y)))] += 1.5;
+      for (const m of (B.mines || [])) g[T + (R - 1) * C +
+        Math.min(C - 1, Math.max(0, Math.floor(m.x / canvasW * C)))] += 2;
+
+      for (let ch = 0; ch < this.CH; ch++) {
+        let m = 0;
+        for (let i = 0; i < R * C; i++) m = Math.max(m, g[ch * R * C + i]);
+        if (m > 0) for (let i = 0; i < R * C; i++) g[ch * R * C + i] /= m;
+      }
+
+      const ball = (B.balls && B.balls[0]) || null;
+      const sc = new Float32Array(this.S);
+      if (ball) {
+        sc[0] = ball.x / canvasW - 0.5;
+        sc[1] = ball.y / canvasH - 0.5;
+        const v = Math.hypot(ball.dx, ball.dy) || 1;
+        sc[2] = ball.dx / v;
+        sc[3] = ball.dy / v;
+        sc[4] = Math.min(2, v / (B.tier ? B.tier.speed : 6)) - 1;
+      }
+      sc[5] = B.initialBricks ? (B.bricksLeft() / B.initialBricks) - 0.5 : 0;
+      return { g, sc };
     },
 
-    // 3x3 valid-ish convolution with zero padding, ReLU, then a linear mix to
-    // one score per column.
-    columnScores: function(bricks, canvasW) {
+    columnScores: function(B, canvasW, canvasH) {
       if (!this.weights) return null;
-      const g = this.grid(bricks, canvasW);
-      if (!g) return null;
-      const { k, o } = this.weights, R = this.ROWS, C = this.COLS, K = this.K;
+      const obs = this.observe(B, canvasW, canvasH);
+      if (!obs) return null;
+      const { k, o, s: sw } = this.weights;
+      const R = this.ROWS, C = this.COLS, K = this.K, CH = this.CH;
       const feat = new Float32Array(K * R * C);
       for (let f = 0; f < K; f++) {
         for (let r = 0; r < R; r++) {
           for (let c = 0; c < C; c++) {
             let acc = 0;
-            for (let dr = -1; dr <= 1; dr++) {
-              for (let dc = -1; dc <= 1; dc++) {
-                const rr = r + dr, cc = c + dc;
-                if (rr < 0 || rr >= R || cc < 0 || cc >= C) continue;
-                acc += g[rr * C + cc] * k[f * 9 + (dr + 1) * 3 + (dc + 1)];
+            for (let ch = 0; ch < CH; ch++) {
+              for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                  const rr = r + dr, cc = c + dc;
+                  if (rr < 0 || rr >= R || cc < 0 || cc >= C) continue;
+                  acc += obs.g[ch * R * C + rr * C + cc] *
+                         k[(f * CH + ch) * 9 + (dr + 1) * 3 + (dc + 1)];
+                }
               }
             }
-            feat[f * R * C + r * C + c] = acc > 0 ? acc : 0;   // ReLU
+            feat[f * R * C + r * C + c] = acc > 0 ? acc : 0;
           }
         }
       }
@@ -1122,14 +1169,14 @@
         for (let f = 0; f < K; f++) {
           for (let r = 0; r < R; r++) acc += feat[f * R * C + r * C + c] * o[(f * R + r) * C + c];
         }
+        for (let i = 0; i < this.S; i++) acc += obs.sc[i] * sw[i * C + c];
         out[c] = acc;
       }
       return out;
     },
 
-    // The x the policy would rather the ball went to, or null.
-    goalX: function(bricks, canvasW) {
-      const sc = this.columnScores(bricks, canvasW);
+    goalX: function(B, canvasW, canvasH) {
+      const sc = this.columnScores(B, canvasW, canvasH);
       if (!sc) return null;
       let best = -Infinity, at = -1;
       for (let c = 0; c < sc.length; c++) if (sc[c] > best) { best = sc[c]; at = c; }
@@ -1151,6 +1198,7 @@
     layoutName: '',
     beams: [],
     seekers: [],
+    mines: [],
     nextBeamAt: 0,
     nextSeekAt: 0,
     beamFlash: 0,
@@ -1215,12 +1263,12 @@
                 first: 26000, every: 15000, drop: 0.30, hazard: 1,
                 mutFrom: 3, mutChance: 0.72, hpCap: 3,
                 wide: 1.77, slow: 0.66, effect: 1, netCap: 3, multi: 2, spare: 3,
-                beamEvery: 6000, beamWarn: 1000, repair: true },
+                beamEvery: 6000, beamWarn: 1000, repair: true, beamLead: 7 },
       hard:   { speed: 8.2, max: 23, ramp: 1.22, lives: 2, paddle: 86,
                 first: 17000, every: 10000, drop: 0.26, hazard: 1.6,
                 mutFrom: 2, mutChance: 0.9,  hpCap: 4,
                 wide: 1.6, slow: 0.75, effect: 0.8, netCap: 2, multi: 2, spare: 2,
-                beamEvery: 5200, beamWarn: 850, repair: true }
+                beamEvery: 5200, beamWarn: 850, repair: true, beamLead: 13 }
     },
     // A frame at top speed covers more than a brick's height, so movement is
     // sub-stepped at this granularity — otherwise a fast ball tunnels straight
@@ -1616,11 +1664,13 @@
       this.drawHud(ctx, canvas, now);
       this.drawBeams(ctx, canvas, now);
       this.drawSeekers(ctx, now);
+      this.drawMines(ctx, now);
       this.stepBalls(canvas, game, now);
       this.bounceBalls();
       this.movePaddle(canvas);
       this.stepBeams(canvas, game, now);
       this.stepSeekers(canvas, game, now);
+      this.stepMines(canvas, game, now);
       this.stepRepairs(now);
       this.stepDescent(game, canvas, now);
     },
@@ -2692,6 +2742,7 @@
     beamsReset: function(now) {
       this.beams = [];
       this.seekers = [];
+      this.mines = [];
       const every = this.beamGap();
       // The first one comes late, so a level does not open under fire.
       this.nextBeamAt = every ? now + every * 1.8 : 0;
@@ -2703,10 +2754,17 @@
       const warn = this.tier.beamWarn, every = this.beamGap();
 
       if (now >= this.nextBeamAt) {
-        // Fire from whatever is still standing above the paddle. On the buried
-        // board that is steel; on an ordinary one any brick will do the
-        // shooting, which also means the wall's guns thin out as you clear it.
-        const aim = this.paddle.x + this.paddle.width / 2;
+        // Lead the target. Aiming where the paddle stands is a threat you beat
+        // by walking; aiming where it is going is a threat you beat by
+        // changing your mind, which is the harder and more interesting ask.
+        // The lead is capped so it stays readable -- the lit column still tells
+        // you the truth, it just tells you about the near future.
+        const half = this.paddle.width / 2;
+        const here = this.paddle.x + half;
+        const drift = here - (this.lastPaddleX === undefined ? here : this.lastPaddleX);
+        this.lastPaddleX = here;
+        const lead = Math.max(-half, Math.min(half, drift * (this.tier.beamLead || 0)));
+        const aim = Math.max(half, Math.min(canvas.width - half, here + lead));
         const onlySteel = Difficulty.indestructible;
         let src = null, near = Infinity;
         for (const b of this.bricks) {
@@ -2828,7 +2886,72 @@
           }
           continue;
         }
-        if (s.y > canvas.height + 20) this.seekers.splice(i, 1);
+        // A seeker that gets past the bat does not simply disappear. It
+        // settles on the floor as a mine and takes that strip of the board away
+        // from you until it is shot. Dodging one is no longer free -- it costs
+        // you room, and room is what the bat is made of.
+        if (s.y > paddleTop + 6) {
+          this.seekers.splice(i, 1);
+          this.mines = this.mines || [];
+          if (this.mines.length < 4) {
+            this.mines.push({ x: Math.max(14, Math.min(canvas.width - 14, s.x)),
+                              y: canvas.height - 8, born: now });
+            SFX.beep(120, 0.2, 'sawtooth', 0.08, 90);
+          }
+        }
+      }
+    },
+
+    // Mines. They do not move and they do not chase; they simply occupy floor.
+    // The ball clears one, so the answer is the same tool as for a seeker, but
+    // the pressure is different: a turret asks you to move now, a seeker asks
+    // you to deal with it, a mine asks you to give up a piece of the board
+    // until you do.
+    MINE_R: 11,
+    stepMines: function(canvas, game, now) {
+      if (!this.mines || !this.mines.length) return;
+      const paddleTop = canvas.height - this.paddle.height - 4;
+      for (let i = this.mines.length - 1; i >= 0; i--) {
+        const m = this.mines[i];
+        const hit = this.balls.some((b) =>
+          Math.hypot(b.x - m.x, b.y - m.y) < b.radius + this.MINE_R);
+        if (hit) {
+          this.mines.splice(i, 1);
+          game.updateScore(game.score + 60);
+          SFX.bonus();
+          Fx.text(m.x, m.y - 12, '+60', '#fb923c');
+          Fx.burst(m.x, m.y, '#fb923c', 20, 3.4);
+          continue;
+        }
+        if (m.y > paddleTop - this.MINE_R &&
+            m.x > this.paddle.x - this.MINE_R &&
+            m.x < this.paddle.x + this.paddle.width + this.MINE_R &&
+            now > (this.beamSafeUntil || 0)) {
+          this.mines.splice(i, 1);
+          this.beamSafeUntil = now + 1200;
+          this.stunUntil = now + 380;
+          this.beamFlash = 16;
+          game.shake(7, 12);
+          Haptics.power();
+          Fx.text(m.x, m.y - 12, 'MINE!', '#fb923c');
+        }
+      }
+    },
+
+    drawMines: function(ctx, now) {
+      if (!this.mines || !this.mines.length) return;
+      for (const m of this.mines) {
+        const t = 0.6 + 0.4 * Math.sin((now - m.born) / 160);
+        ctx.save();
+        ctx.shadowColor = '#fb923c';
+        ctx.shadowBlur = 14 * t;
+        Paint.orb(ctx, m.x, m.y, this.MINE_R, '#fb923c');
+        ctx.strokeStyle = 'rgba(255,255,255,' + (0.35 * t).toFixed(2) + ')';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, this.MINE_R + 4 * t, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
       }
     },
 
@@ -3149,7 +3272,7 @@
       // heuristic below handles explicitly, and it is not what the policy was
       // scored on.
       if (!urgent && canvas) {
-        const pick = ConvPolicy.goalX(this.bricks, canvas.width);
+        const pick = ConvPolicy.goalX(this, canvas.width, canvas.height);
         if (pick !== null) return pick;
       }
 
@@ -4479,9 +4602,6 @@
   window.exitGame = function() {
     GameSystem.gameActive = false;
     document.getElementById('hidden-game').style.display = 'none';
-    if ((location.hash || '').toLowerCase() === '#arcade') {
-      history.replaceState(null, '', location.pathname + location.search);
-    }
   };
 
   // ===================================
@@ -4536,12 +4656,10 @@
   function consoleHint() {
     try {
       console.log(
-        '%c🎮 Secret Arcade %c\n\nThere are hidden pages on this site…\n  · type %ceaster%c anywhere for the arcade (Breakout · Dino · Snake)\n  · no keyboard? open %c#arcade%c or long-press the site name\n  · type %cadmin%c for the visitor panel\n  · in a game: %cP%c pauses, %c🤖 Autopilot%c hands over to the algorithm, %cS%c takes control back\n  · Esc closes them\n',
+        '%c🎮 Secret Arcade %c\n\nThere are hidden pages on this site…\n  · type %ceaster%c anywhere for the arcade (Breakout · Dino · Snake)\n  · no keyboard? long-press the site name\n  · type %cadmin%c for the visitor panel\n  · in a game: %cP%c pauses, %c🤖 Autopilot%c hands over to the algorithm, %cS%c takes control back\n  · Esc closes them\n',
         'font-size:18px; font-weight:bold; background:linear-gradient(90deg,#22d3ee,#a855f7,#ec4899); -webkit-background-clip:text; color:transparent;',
         'color:#94a3b8; font-size:12px;',
         'color:#22d3ee; font-weight:bold; font-size:12px;',
-        'color:#94a3b8; font-size:12px;',
-        'color:#4ade80; font-weight:bold; font-size:12px;',
         'color:#94a3b8; font-size:12px;',
         'color:#22d3ee; font-weight:bold; font-size:12px;',
         'color:#94a3b8; font-size:12px;',

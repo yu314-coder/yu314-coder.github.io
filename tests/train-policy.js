@@ -46,7 +46,14 @@ const FRAMES = arg('frames', 6000);
 const MARGIN = arg('margin', 1.05);          // must beat the incumbent by 5%
 const TIERS = ['baby', 'easy', 'normal', 'hard'];
 
-const K = 4, ROWS = 4, COLS = 8, NK = K * 9, NO = K * ROWS * COLS, DIM = NK + NO;
+// Shapes come from the policy itself, so widening what it observes does not
+// silently train the wrong number of weights.
+let NK = 0, NO = 0, NS = 0, DIM = 0;
+(function () {
+  const h = run({});
+  const n = h.win.__arcade.ConvPolicy.sizes();
+  NK = n.nk; NO = n.no; NS = n.ns; DIM = NK + NO + NS;
+})();
 
 function mulberry(a) {
   return function () {
@@ -64,7 +71,9 @@ function gauss() {
   while (v === 0) v = rnd();
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
 }
-const toWeights = (vec) => ({ k: Array.from(vec.slice(0, NK)), o: Array.from(vec.slice(NK)) });
+const toWeights = (vec) => ({ k: Array.from(vec.slice(0, NK)),
+                              o: Array.from(vec.slice(NK, NK + NO)),
+                              s: Array.from(vec.slice(NK + NO)) });
 
 function episode(weights, tier, seed) {
   const h = run({});
@@ -147,7 +156,9 @@ function main() {
     generations: GENS, population: POP, seeds: SEEDS, frames: FRAMES,
     train_fitness: Math.round(bestFit), held_fitness: Math.round(held),
     held_incumbent: Math.round(baseHeld),
-    k: best.k.map((v) => Number(v.toFixed(5))), o: best.o.map((v) => Number(v.toFixed(5)))
+    k: best.k.map((v) => Number(v.toFixed(5))),
+    o: best.o.map((v) => Number(v.toFixed(5))),
+    s: best.s.map((v) => Number(v.toFixed(5)))
   }) + '\n');
   console.log(`  shipped: ${held.toFixed(0)} beats ${baseHeld.toFixed(0)} on held-out seeds`);
   return 0;

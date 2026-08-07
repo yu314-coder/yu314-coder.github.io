@@ -137,7 +137,12 @@ function install(opts) {
     document,
     innerWidth: 1280,
     screen: { width: 1280 },
-    addEventListener() {},
+    // Recorded rather than ignored, so a test can ask what the page wired up --
+    // "does the #arcade hash still open the arcade" is a question about a
+    // listener, and the harness pre-opens the overlay for convenience so it
+    // cannot be answered by looking at display.
+    winListeners: [],
+    addEventListener(type, fn) { this.winListeners.push({ type, fn }); },
     requestAnimationFrame(cb) { queue.push(cb); return queue.length; },
     performance: { now: () => now },
     localStorage: (() => {
