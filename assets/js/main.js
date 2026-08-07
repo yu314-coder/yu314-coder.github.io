@@ -792,8 +792,10 @@
             + ' once you are in, the shell that kept you out keeps the ball in.'
             + ' A blast rings the steel around it open for a moment, and a KEY clears'
             + ' the row the vault is sitting in'
-            + (Difficulty.current === 'easy' ? '' : '. It shoots back — a lit column means move')
-          : '';
+            + (Difficulty.current === 'easy' ? ''
+               : '. It shoots back — a lit column means move, and a seeker can be shot down')
+          : (Difficulty.current === 'easy' ? ''
+             : ' · the wall shoots back — dodge a lit column, shoot the seekers down');
         hintEl.textContent = Difficulty.LABEL[Difficulty.current] + ind + ' · ' + base + (touch
           ? ' · ⏸ pauses · 🤖 autopilot plays for you, tap it again to take over'
           : ' · P pauses · 🤖 autopilot plays for you, S takes over');
@@ -1027,7 +1029,9 @@
     level: 1,
     layoutName: '',
     beams: [],
+    seekers: [],
     nextBeamAt: 0,
+    nextSeekAt: 0,
     beamFlash: 0,
     stunUntil: 0,
     cols: 11,
@@ -1475,9 +1479,11 @@
       this.drawPowerups(ctx, canvas, game);
       this.drawHud(ctx, canvas, now);
       this.drawBeams(ctx, canvas, now);
+      this.drawSeekers(ctx, now);
       this.stepBalls(canvas, game, now);
       this.movePaddle(canvas);
       this.stepBeams(canvas, game, now);
+      this.stepSeekers(canvas, game, now);
       this.stepDescent(game, canvas, now);
     },
 
@@ -2180,7 +2186,7 @@
         if (aim !== null) target = aim;
       }
       // Last, so nothing downstream can put the paddle back under a turret.
-      if (Difficulty.indestructible) target = this.beamClamp(target, canvas, now);
+      target = this.beamClamp(target, canvas, now);
       if (now < (this.stunUntil || 0)) return;                 // pinned by a beam
       const move = Math.max(-step, Math.min(step, target - centre));
       this.paddle.x = Math.max(0, Math.min(canvas.width - this.paddle.width, this.paddle.x + move));
@@ -2458,23 +2464,36 @@
     // Easy never does this. The tier that exists so the mode can be learned is
     // not the tier to add a second thing to dodge to.
     BEAM_W: 10,
+    // The ordinary board already has hazard capsules, mutators and a wall
+    // coming down; the buried one has none of those and nothing breakable to
+    // worry about, so it gets the guns at full rate and everything else is
+    // paced back.
+    beamGap: function() {
+      const every = (this.tier && this.tier.beamEvery) || 0;
+      return every && (Difficulty.indestructible ? every : every * 1.7);
+    },
     beamsReset: function(now) {
       this.beams = [];
-      const every = (this.tier && this.tier.beamEvery) || 0;
+      this.seekers = [];
+      const every = this.beamGap();
       // The first one comes late, so a level does not open under fire.
       this.nextBeamAt = every ? now + every * 1.8 : 0;
+      this.nextSeekAt = every ? now + every * 2.6 : 0;
     },
 
     stepBeams: function(canvas, game, now) {
-      if (!Difficulty.indestructible || !this.nextBeamAt) return;
-      const warn = this.tier.beamWarn, every = this.tier.beamEvery;
+      if (!this.nextBeamAt) return;
+      const warn = this.tier.beamWarn, every = this.beamGap();
 
       if (now >= this.nextBeamAt) {
-        // Fire from a live steel brick above where the paddle is now.
+        // Fire from whatever is still standing above the paddle. On the buried
+        // board that is steel; on an ordinary one any brick will do the
+        // shooting, which also means the wall's guns thin out as you clear it.
         const aim = this.paddle.x + this.paddle.width / 2;
+        const onlySteel = Difficulty.indestructible;
         let src = null, near = Infinity;
         for (const b of this.bricks) {
-          if (b.hp <= 0 || b.kind !== 'steel') continue;
+          if (b.hp <= 0 || (onlySteel && b.kind !== 'steel')) continue;
           const d = Math.abs(b.x + b.w / 2 - aim);
           if (d < near) { near = d; src = b; }
         }
@@ -2515,6 +2534,103 @@
       }
     },
 
+    // --- Seekers ----------------------------------------------------------
+    // The turret is a dodge and nothing else: it fires, you are somewhere else,
+    // it is over. A second threat should ask a different question, so this one
+    // can be shot down.
+    //
+    // A seeker drifts down slowly and leans toward the paddle, and it is a real
+    // object rather than a flash -- the ball kills it, a laser bolt kills it,
+    // and killing one is worth points. So it is a threat you can answer with
+    // the thing you are already aiming, instead of only running from.
+    //
+    // It is slow on purpose. The turret punishes standing still; a seeker
+    // punishes ignoring it, which is a different mistake.
+    SEEK_R: 9,
+    SEEK_FALL: 0.62,
+    SEEK_HOME: 0.055,
+    stepSeekers: function(canvas, game, now) {
+      if (!this.nextBeamAt) return;                 // same tiers that get guns
+      this.seekers = this.seekers || [];
+      if (now >= (this.nextSeekAt || 0)) {
+        // Roughly a third as often as the turret, and never more than two out.
+        this.nextSeekAt = now + this.beamGap() * 3;
+        const live = this.bricks.filter(b => b.hp > 0 &&
+          (!Difficulty.indestructible || b.kind === 'steel'));
+        if (live.length && this.seekers.length < 2) {
+          const src = live[Math.floor(Math.random() * live.length)];
+          this.seekers.push({ x: src.x + src.w / 2, y: src.y + src.h, vx: 0, born: now });
+          SFX.beep(300, 0.14, 'triangle', 0.08, 220);
+        }
+      }
+
+      const paddleTop = canvas.height - this.paddle.height - 4;
+      const aim = this.paddle.x + this.paddle.width / 2;
+      for (let i = this.seekers.length - 1; i >= 0; i--) {
+        const s = this.seekers[i];
+        s.vx += (aim > s.x ? 1 : -1) * this.SEEK_HOME;
+        s.vx = Math.max(-2.2, Math.min(2.2, s.vx));
+        s.x += s.vx;
+        s.y += this.SEEK_FALL * this.ballFactor(now);
+        if (s.x < this.SEEK_R || s.x > canvas.width - this.SEEK_R) s.vx = -s.vx;
+
+        // The ball kills it, and so does a bolt.
+        let killed = this.balls.some(b =>
+          Math.hypot(b.x - s.x, b.y - s.y) < b.radius + this.SEEK_R);
+        if (!killed) {
+          for (let j = this.bolts.length - 1; j >= 0; j--) {
+            const bolt = this.bolts[j];
+            if (Math.abs(bolt.x - s.x) < this.SEEK_R + 3 &&
+                Math.abs(bolt.y - s.y) < this.SEEK_R + 8) {
+              this.bolts.splice(j, 1);
+              killed = true;
+              break;
+            }
+          }
+        }
+        if (killed) {
+          this.seekers.splice(i, 1);
+          game.updateScore(game.score + 40);
+          SFX.bonus();
+          Fx.text(s.x, s.y - 8, '+40', '#a78bfa');
+          Fx.burst(s.x, s.y, '#a78bfa', 16, 3);
+          continue;
+        }
+
+        if (s.y > paddleTop - this.SEEK_R &&
+            s.x > this.paddle.x - this.SEEK_R &&
+            s.x < this.paddle.x + this.paddle.width + this.SEEK_R) {
+          this.seekers.splice(i, 1);
+          if (now > (this.beamSafeUntil || 0)) {
+            this.beamSafeUntil = now + 1200;
+            this.stunUntil = now + 420;
+            this.beamFlash = 18;
+            game.shake(6, 12);
+            Haptics.power();
+            Fx.text(s.x, s.y - 10, 'PINNED!', '#f43f5e');
+          }
+          continue;
+        }
+        if (s.y > canvas.height + 20) this.seekers.splice(i, 1);
+      }
+    },
+
+    drawSeekers: function(ctx, now) {
+      if (!this.seekers || !this.seekers.length) return;
+      for (const s of this.seekers) {
+        const pulse = 0.7 + 0.3 * Math.sin((now - s.born) / 90);
+        ctx.save();
+        ctx.shadowColor = '#a78bfa';
+        ctx.shadowBlur = 12 * pulse;
+        Paint.orb(ctx, s.x, s.y, this.SEEK_R, '#a78bfa');
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, this.SEEK_R * 0.34 * pulse, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    },
+
     drawBeams: function(ctx, canvas, now) {
       if (!this.beams || !this.beams.length) return;
       const half = this.BEAM_W / 2;
@@ -2550,8 +2666,26 @@
     // had: the beam is a certain hit, a missed ball only a possible one, so
     // the beam wins.
     beamClamp: function(target, canvas, now) {
-      if (!this.beams || !this.beams.length) return target;
       const half = this.paddle.width / 2;
+
+      // A seeker close to the paddle line is the more urgent of the two, since
+      // it arrives where the paddle is rather than where it was. Step aside
+      // only when it is nearly down -- earlier than that it just follows.
+      const paddleTop = canvas.height - this.paddle.height - 4;
+      for (const s of (this.seekers || [])) {
+        if (paddleTop - s.y > 70) continue;
+        const gap = this.SEEK_R + half + 6;
+        if (Math.abs(s.x - target) >= gap) continue;
+        let best = null, bestGap = -1;
+        for (const cand of [s.x - gap, s.x + gap]) {
+          const at = Math.max(half, Math.min(canvas.width - half, cand));
+          const d = Math.abs(at - s.x);
+          if (d > bestGap) { bestGap = d; best = at; }
+        }
+        return best;
+      }
+
+      if (!this.beams || !this.beams.length) return target;
       const clear = this.BEAM_W / 2 + half + 4;
       for (const beam of this.beams) {
         if (beam.fired) continue;

@@ -1390,7 +1390,9 @@ const buildPlain = (B, h, name) => {
   }
 
   {
-    // Off in the ordinary mode.
+    // The ordinary board shoots back too, just not as hard: it already has
+    // hazard capsules, mutators and a wall coming down, and the buried board
+    // has none of those.
     const h = run();
     const { Breakout: B, Difficulty } = h.win.__arcade;
     Difficulty.setIndestructible(false); Difficulty.set('hard');
@@ -1399,7 +1401,135 @@ const buildPlain = (B, h, name) => {
     const g = fakeGame(h);
     B.nextBeamAt = 1;
     B.stepBeams(h.canvas, g, 100000);
-    check('the ordinary board never shoots back', B.beams.length === 0);
+    check('the ordinary board shoots back as well', B.beams.length === 1);
+
+    const plainGap = B.beamGap();
+    Difficulty.setIndestructible(true);
+    h.win.startGame();
+    check('but less often than the buried one', plainGap > B.beamGap(),
+          `${Math.round(plainGap)}ms vs ${Math.round(B.beamGap())}ms`);
+
+    // On an ordinary board any brick can be a gun, so the guns thin out as the
+    // board is cleared -- on the buried board only the steel shoots.
+    const h2 = run();
+    const { Breakout: B2, Difficulty: D2 } = h2.win.__arcade;
+    D2.setIndestructible(false); D2.set('hard');
+    h2.els['gameSelect'].value = 'breakout';
+    h2.win.startGame();
+    for (const b of B2.bricks) b.hp = 0;          // cleared the board
+    B2.nextBeamAt = 1;
+    B2.stepBeams(h2.canvas, fakeGame(h2), 100000);
+    check('a cleared board has nothing left to shoot with', B2.beams.length === 0);
+
+    // Easy is still never shot at, on either board.
+    for (const ind of [false, true]) {
+      const h3 = run();
+      const { Breakout: B3, Difficulty: D3 } = h3.win.__arcade;
+      D3.setIndestructible(ind); D3.set('easy');
+      h3.els['gameSelect'].value = 'breakout';
+      h3.win.startGame();
+      check(`easy is never shot at (indestructible ${ind})`,
+            !B3.beamGap() && !B3.nextBeamAt);
+    }
+  }
+}
+
+// ------------------------------------------------------------ seekers
+// The turret is a dodge and nothing else. A seeker asks a different question:
+// it is a real object, so it can be shot down with the thing you are already
+// aiming rather than only run from.
+{
+  const boot = (tier, ind) => {
+    const h = run();
+    const { Breakout: B, Difficulty } = h.win.__arcade;
+    Difficulty.setIndestructible(!!ind);
+    Difficulty.set(tier || 'hard');
+    h.els['gameSelect'].value = 'breakout';
+    h.win.startGame();
+    return { h, B, g: fakeGame(h) };
+  };
+
+  {
+    const { h, B, g } = boot('hard');
+    B.nextSeekAt = 1;
+    B.stepSeekers(h.canvas, g, 100000);
+    check('a seeker launches from the wall', B.seekers.length === 1);
+    check('and it is rarer than the turret', B.beamGap() * 3 > B.beamGap());
+
+    // It leans toward the paddle rather than falling straight.
+    const s = B.seekers[0];
+    s.x = 100; s.vx = 0;
+    B.paddle.x = 400;
+    const y0 = s.y;
+    for (let i = 0; i < 25; i++) B.stepSeekers(h.canvas, g, 100000 + i * 16);
+    const still = B.seekers[0];
+    if (still) {
+      check('a seeker homes toward the paddle', still.x > 100, `x ${Math.round(still.x)}`);
+      check('and descends while it does', still.y > y0);
+    } else {
+      check('a seeker homes toward the paddle', false, 'it vanished');
+      check('and descends while it does', false, 'it vanished');
+    }
+  }
+
+  {
+    // The ball kills it, and that is the point of it existing.
+    const { h, B, g } = boot('hard');
+    B.nextSeekAt = 1e12;          // hold the launcher, or it replaces it at once
+    B.seekers = [{ x: 300, y: 300, vx: 0, born: 0 }];
+    B.balls = [B.newBall(300, 300, 0, -5)];
+    const before = g.score;
+    B.stepSeekers(h.canvas, g, 100000);
+    check('the ball destroys a seeker', B.seekers.length === 0);
+    check('and destroying one scores', g.score > before, `+${g.score - before}`);
+  }
+
+  {
+    // So does a laser bolt.
+    const { h, B, g } = boot('hard');
+    B.nextSeekAt = 1e12;
+    B.seekers = [{ x: 300, y: 300, vx: 0, born: 0 }];
+    B.balls = [];
+    B.bolts = [{ x: 300, y: 300 }];
+    B.stepSeekers(h.canvas, g, 100000);
+    check('a laser bolt destroys a seeker', B.seekers.length === 0);
+    check('and the bolt is spent doing it', B.bolts.length === 0);
+  }
+
+  {
+    // Reaching the paddle pins it -- the same cost as a turret hit, not a life.
+    const { h, B, g } = boot('hard');
+    const paddleTop = h.canvas.height - B.paddle.height - 4;
+    B.nextSeekAt = 1e12;
+    B.paddle.x = 280;
+    B.seekers = [{ x: 300, y: paddleTop - 2, vx: 0, born: 0 }];
+    B.balls = [];
+    B.bolts = [];
+    const lives = B.lives;
+    B.stepSeekers(h.canvas, g, 100000);
+    check('a seeker that lands pins the paddle', B.stunUntil > 100000);
+    check('but does not cost a heart', B.lives === lives);
+  }
+
+  {
+    // The algorithm steps out from under one that is nearly down.
+    const { h, B } = boot('hard');
+    const paddleTop = h.canvas.height - B.paddle.height - 4;
+    B.seekers = [{ x: 320, y: paddleTop - 30, vx: 0, born: 0 }];
+    B.beams = [];
+    const moved = B.beamClamp(320, h.canvas, 100000);
+    check('the algorithm avoids a landing seeker',
+          Math.abs(moved - 320) >= B.SEEK_R + B.paddle.width / 2,
+          `moved to ${Math.round(moved)}`);
+    // but not one that is still high up, or it would just be led around
+    B.seekers = [{ x: 320, y: 60, vx: 0, born: 0 }];
+    check('and ignores one still high above', B.beamClamp(320, h.canvas, 100000) === 320);
+  }
+
+  {
+    // Easy is left alone by these too.
+    const { B } = boot('easy');
+    check('easy gets no seekers', !B.nextSeekAt);
   }
 }
 
