@@ -138,6 +138,28 @@ jobs:
             exit 0
           fi
           git commit -m "Refresh live typhoon AI forecast"
-          # Coexist with the other scheduled commits on main.
-          git pull --rebase --autostash origin main
-          git push
+
+          # Do not rebase this file. It is regenerated whole from JMA and the
+          # GFS analysis on every run, so two runs that overlap conflict on it
+          # every time -- and with several scheduled jobs committing to main
+          # that is routine rather than rare.
+          #
+          # There is also nothing to reconcile: our copy was computed from a
+          # later analysis than whatever landed while we were working, so it is
+          # strictly the better one. Replay it on top of main instead of trying
+          # to merge two full regenerations line by line.
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "main moved; replaying this forecast on top of it (attempt $attempt)"
+            git fetch origin main
+            git reset --soft origin/main
+            git add assets/typhoon-tracker/model/v23-live-forecast.json
+            if git diff --staged --quiet; then
+              echo "main already has an equivalent forecast"
+              exit 0
+            fi
+            git commit -m "Refresh live typhoon AI forecast"
+          done
+          echo "::warning title=Could not push::main kept moving; the next run refreshes it anyway"

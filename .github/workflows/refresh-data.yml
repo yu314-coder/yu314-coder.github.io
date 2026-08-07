@@ -38,6 +38,23 @@ jobs:
             exit 0
           fi
           git commit -m "Refresh embedded quotes"
-          # Coexist with the other scheduled commit on main.
-          git pull --rebase --autostash origin main
-          git push
+
+          # Replay rather than rebase. Everything staged here is regenerated
+          # whole on each run, so two overlapping runs conflict on it every
+          # time and there is nothing to reconcile line by line -- ours is
+          # simply the newer generation.
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "main moved; replaying on top of it (attempt $attempt)"
+            git fetch origin main
+            git reset --soft origin/main
+            git add -A
+            if git diff --staged --quiet; then
+              echo "main already has an equivalent version"
+              exit 0
+            fi
+            git commit -m "Refresh embedded quotes"
+          done
+          echo "::warning title=Could not push::main kept moving; the next run redoes this"

@@ -86,5 +86,15 @@ jobs:
           git commit \
             -m "Train arcade policy: ${HELD} vs ${OLD} on held-out seeds" \
             -m "Cross-entropy method over the ~176 weight conv policy that picks where the breakout autopilot aims. Shipped only because it beat the incumbent on seeds it was never trained against; see the run summary."
-          git pull --rebase --autostash origin main
-          git push
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "main moved; replaying the policy on top of it (attempt $attempt)"
+            git fetch origin main
+            git reset --soft origin/main
+            git add assets/js/arcade-policy.json
+            if git diff --staged --quiet; then exit 0; fi
+            git commit -m "Train arcade policy: ${HELD} vs ${OLD} on held-out seeds"
+          done
+          echo "::warning title=Could not push::main kept moving; the policy is in the run artifacts"
