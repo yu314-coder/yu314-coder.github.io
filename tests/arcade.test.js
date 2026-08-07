@@ -608,9 +608,31 @@ const buildPlain = (B, h, name) => {
   const { h, A } = boot('breakout');
   const D = h.win.__arcade.GameSystem;
   const sel = h.els['difficultySelect'];
-  check('a difficulty selector is offered', !!sel && sel.children.length === 3,
+  check('a difficulty selector is offered',
+        !!sel && sel.children.map((o) => o.value).join(',') === 'baby,easy,normal,hard',
         sel ? sel.children.map((o) => o.value).join(',') : 'missing');
   check('normal is the default', sel && sel.value === 'normal', sel && sel.value);
+
+  // Baby is easy with one dial moved: the bat may reach 90% of the board.
+  {
+    const w = {};
+    for (const t of ['baby', 'easy']) {
+      const hh = run();
+      hh.win.__arcade.Difficulty.set(t);
+      hh.els['gameSelect'].value = 'breakout';
+      hh.win.startGame();
+      const B = hh.win.__arcade.Breakout;
+      w[t] = { base: B.BASE_W, wide: B.WIDE_W, lives: B.lives,
+               canvas: hh.canvas.width, guns: B.beamGap() };
+    }
+    check('baby widens to 90% of the board',
+          Math.abs(w.baby.wide / w.baby.canvas - 0.9) < 0.02,
+          `${w.baby.wide}px of ${w.baby.canvas} = ${(w.baby.wide / w.baby.canvas * 100).toFixed(0)}%`);
+    check('easy still stops at half', Math.abs(w.easy.wide / w.easy.canvas - 0.5) < 0.02,
+          `${(w.easy.wide / w.easy.canvas * 100).toFixed(0)}%`);
+    check('baby otherwise matches easy',
+          w.baby.base === w.easy.base && w.baby.lives === w.easy.lives && !w.baby.guns);
+  }
 }
 {
   // Normal must be exactly what shipped before difficulty existed.
@@ -1531,6 +1553,128 @@ const buildPlain = (B, h, name) => {
     const { B } = boot('easy');
     check('easy gets no seekers', !B.nextSeekAt);
   }
+}
+
+// -------------------------------------------------- balls collide, wall mends
+{
+  const boot = (tier) => {
+    const h = run();
+    const { Breakout: B, Difficulty } = h.win.__arcade;
+    Difficulty.setIndestructible(false);
+    Difficulty.set(tier || 'normal');
+    h.els['gameSelect'].value = 'breakout';
+    h.win.startGame();
+    return { h, B, g: fakeGame(h) };
+  };
+
+  {
+    // Equal masses, so a head-on meeting is an exchange of velocity along the
+    // line of centres. Speed has to be conserved or multiball becomes a way of
+    // manufacturing energy.
+    const { B } = boot();
+    B.balls = [B.newBall(300, 300, 3, 0), B.newBall(312, 300, -3, 0)];
+    const [a, b] = B.balls;
+    const e0 = a.dx * a.dx + a.dy * a.dy + b.dx * b.dx + b.dy * b.dy;
+    B.bounceBalls();
+    check('two balls bounce off each other', a.dx < 0 && b.dx > 0,
+          `${a.dx.toFixed(1)} / ${b.dx.toFixed(1)}`);
+    check('and neither gains speed doing it',
+          Math.abs((a.dx * a.dx + a.dy * a.dy + b.dx * b.dx + b.dy * b.dy) - e0) < 1e-9);
+    check('and they are left apart, not overlapping',
+          Math.hypot(b.x - a.x, b.y - a.y) >= a.radius + b.radius);
+  }
+
+  {
+    // A pair already moving apart must be left alone, or they stick together
+    // and jitter for ever.
+    const { B } = boot();
+    B.balls = [B.newBall(300, 300, -3, 0), B.newBall(305, 300, 3, 0)];
+    const before = B.balls[0].dx;
+    B.bounceBalls();
+    check('a separating pair is not touched again', B.balls[0].dx === before);
+  }
+
+  {
+    const { B } = boot();
+    B.balls = [B.newBall(100, 100, 1, 1), B.newBall(400, 400, -1, -1)];
+    const before = B.balls[0].dx;
+    B.bounceBalls();
+    check('distant balls are ignored', B.balls[0].dx === before);
+  }
+
+  {
+    // The wall patches itself: chip at everything and nothing falls.
+    const { B, g } = boot('normal');
+    check('normal repairs', !!B.tier.repair);
+    const brick = B.bricks.find((x) => x.kind === 'normal' && x.max >= 2);
+    if (brick) {
+      brick.hp = 1;
+      brick.hurtAt = 0;                       // hurt long ago
+      B.nextRepairAt = 0;
+      B.stepRepairs(B.REPAIR_AFTER + 1);
+      check('a brick left half-broken mends', brick.hp === 2, `hp ${brick.hp}`);
+      check('and does not exceed what it started with', brick.hp <= brick.max);
+    } else {
+      check('a brick left half-broken mends', true, 'no multi-hp brick on this board');
+      check('and does not exceed what it started with', true, 'skipped');
+    }
+  }
+
+  {
+    // It must never resurrect a dead brick, or a level could stop being winnable.
+    const { B } = boot('normal');
+    const brick = B.bricks[0];
+    brick.hp = 0; brick.hurtAt = 0;
+    B.nextRepairAt = 0;
+    B.stepRepairs(B.REPAIR_AFTER + 1);
+    check('a destroyed brick stays destroyed', brick.hp === 0);
+  }
+
+  {
+    // A brick hit recently is still being worked on; it should not mend.
+    const { B } = boot('normal');
+    const brick = B.bricks.find((x) => x.kind === 'normal' && x.max >= 2);
+    if (brick) {
+      brick.hp = 1;
+      brick.hurtAt = 100000;
+      B.nextRepairAt = 0;
+      B.stepRepairs(100000 + B.REPAIR_AFTER - 500);
+      check('a brick hit recently is left alone', brick.hp === 1);
+    } else {
+      check('a brick hit recently is left alone', true, 'skipped');
+    }
+  }
+
+  {
+    const { B } = boot('baby');
+    check('baby and easy get no self-repair', !B.tier.repair);
+  }
+}
+
+// ------------------------------------------- the learned policy is optional
+{
+  const h = run();
+  const { ConvPolicy, Breakout: B, Difficulty } = h.win.__arcade;
+  ConvPolicy.fetched = true;
+  ConvPolicy.weights = null;
+
+  check('with no policy it says nothing', ConvPolicy.goalX(B.bricks, 640) === null);
+  check('and a malformed one is refused', !ConvPolicy.load({ k: [1, 2, 3], o: [] }));
+  check('and an empty one is refused', !ConvPolicy.load(null));
+
+  Difficulty.set('normal');
+  h.els['gameSelect'].value = 'breakout';
+  h.win.startGame();
+  check('the game still plays with no policy at all', B.aimGoal(h.canvas, 0, 320) !== undefined);
+
+  // A well-formed policy is accepted and produces a target on the board.
+  const k = Array.from({ length: 36 }, (_, i) => (i % 5) * 0.1 - 0.2);
+  const o = Array.from({ length: 128 }, (_, i) => (i % 7) * 0.05);
+  check('a well-formed policy loads', ConvPolicy.load({ k, o }));
+  const gx = ConvPolicy.goalX(B.bricks, h.canvas.width);
+  check('and picks a column on the board',
+        gx === null || (gx > 0 && gx < h.canvas.width), String(gx));
+  ConvPolicy.weights = null;
 }
 
 let failed = 0;

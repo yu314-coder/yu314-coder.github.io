@@ -153,13 +153,13 @@
   // ===================================
   const Difficulty = {
     KEY: 'arcadeDifficulty',
-    ORDER: ['easy', 'normal', 'hard'],
-    LABEL: { easy: 'Easy', normal: 'Normal', hard: 'Hard' },
+    ORDER: ['baby', 'easy', 'normal', 'hard'],
+    LABEL: { baby: 'Baby', easy: 'Easy', normal: 'Normal', hard: 'Hard' },
 
     current: (function() {
       try {
         const v = localStorage.getItem('arcadeDifficulty');
-        return (v === 'easy' || v === 'hard') ? v : 'normal';
+        return (v === 'baby' || v === 'easy' || v === 'hard') ? v : 'normal';
       } catch (e) { return 'normal'; }
     })(),
 
@@ -1017,6 +1017,127 @@
   // ===================================
   // Breakout — power-ups, multi-ball, lasers, safety net, combos, levels
   // ===================================
+  // A very small convolutional policy for choosing WHERE to send the ball.
+  //
+  // A CNN is the right shape for this and a language model is not: the brick
+  // field is literally a 2D grid, and "is this column worth hitting" depends on
+  // a local neighbourhood -- what is stacked above it, what is beside it,
+  // whether a charge sits nearby. That is exactly what a 3x3 kernel encodes,
+  // and it is what the hand-written weighted-centroid below approximates with a
+  // single global average.
+  //
+  // What it deliberately does NOT do is predict the ball. The planner already
+  // unfolds wall bounces and simulates the real collision exactly; asking a
+  // network to learn an approximation of physics the program can compute
+  // exactly would be strictly worse. So the split is:
+  //
+  //     exact physics  ->  where the ball will go
+  //     learned        ->  where it is worth sending it
+  //
+  // 4 kernels of 3x3, one hidden channel each, mean-pooled down columns and
+  // mixed to a per-column score: 36 + 4 + 128 + 8 = 176 weights. Small enough
+  // to ship as JSON and to evaluate every frame without being felt.
+  //
+  // With no weights it returns null and every caller falls back to the
+  // hand-written heuristic, so the game is never broken by a missing or bad
+  // policy file -- and a trained policy has to beat that heuristic on held-out
+  // seeds before the workflow will commit it.
+  const ConvPolicy = {
+    COLS: 8, ROWS: 4, K: 4,
+    weights: null,
+
+    // Fetched once, lazily, and entirely optional: a 404, a parse error or a
+    // wrong-shaped file all leave weights null and every caller falls back to
+    // the hand-written heuristic. The arcade is hidden behind an easter egg, so
+    // this must never be on the critical path of loading the site.
+    fetched: false,
+    ensure: function() {
+      if (this.fetched || typeof fetch !== 'function') return;
+      this.fetched = true;
+      const url = (this.URL || 'assets/js/arcade-policy.json');
+      fetch(url)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((w) => { if (w) this.load(w); })
+        .catch(() => {});
+    },
+    load: function(w) {
+      if (!w || !Array.isArray(w.k) || w.k.length !== this.K * 9) return false;
+      if (!Array.isArray(w.o) || w.o.length !== this.K * this.ROWS * this.COLS) return false;
+      this.weights = w;
+      return true;
+    },
+
+    // The board as a small value grid: how much is worth breaking in each cell.
+    grid: function(bricks, canvasW) {
+      const g = new Float32Array(this.ROWS * this.COLS);
+      let top = Infinity, bot = 0;
+      for (const b of bricks) {
+        if (b.hp <= 0 || b.kind === 'steel') continue;
+        if (b.y < top) top = b.y;
+        if (b.y + b.h > bot) bot = b.y + b.h;
+      }
+      if (!isFinite(top) || bot <= top) return null;
+      for (const b of bricks) {
+        if (b.hp <= 0 || b.kind === 'steel') continue;
+        const c = Math.min(this.COLS - 1, Math.max(0,
+          Math.floor((b.x + b.w / 2) / canvasW * this.COLS)));
+        const r = Math.min(this.ROWS - 1, Math.max(0,
+          Math.floor((b.y - top) / (bot - top) * this.ROWS)));
+        const worth = (b.kind === 'boom' ? 5 : b.kind === 'key' ? 4
+                     : b.kind === 'mystery' ? 3 : 1) / b.hp;
+        g[r * this.COLS + c] += worth;
+      }
+      let m = 0;
+      for (let i = 0; i < g.length; i++) m = Math.max(m, g[i]);
+      if (m > 0) for (let i = 0; i < g.length; i++) g[i] /= m;
+      return g;
+    },
+
+    // 3x3 valid-ish convolution with zero padding, ReLU, then a linear mix to
+    // one score per column.
+    columnScores: function(bricks, canvasW) {
+      if (!this.weights) return null;
+      const g = this.grid(bricks, canvasW);
+      if (!g) return null;
+      const { k, o } = this.weights, R = this.ROWS, C = this.COLS, K = this.K;
+      const feat = new Float32Array(K * R * C);
+      for (let f = 0; f < K; f++) {
+        for (let r = 0; r < R; r++) {
+          for (let c = 0; c < C; c++) {
+            let acc = 0;
+            for (let dr = -1; dr <= 1; dr++) {
+              for (let dc = -1; dc <= 1; dc++) {
+                const rr = r + dr, cc = c + dc;
+                if (rr < 0 || rr >= R || cc < 0 || cc >= C) continue;
+                acc += g[rr * C + cc] * k[f * 9 + (dr + 1) * 3 + (dc + 1)];
+              }
+            }
+            feat[f * R * C + r * C + c] = acc > 0 ? acc : 0;   // ReLU
+          }
+        }
+      }
+      const out = new Float32Array(C);
+      for (let c = 0; c < C; c++) {
+        let acc = 0;
+        for (let f = 0; f < K; f++) {
+          for (let r = 0; r < R; r++) acc += feat[f * R * C + r * C + c] * o[(f * R + r) * C + c];
+        }
+        out[c] = acc;
+      }
+      return out;
+    },
+
+    // The x the policy would rather the ball went to, or null.
+    goalX: function(bricks, canvasW) {
+      const sc = this.columnScores(bricks, canvasW);
+      if (!sc) return null;
+      let best = -Infinity, at = -1;
+      for (let c = 0; c < sc.length; c++) if (sc[c] > best) { best = sc[c]; at = c; }
+      if (at < 0 || !(best > 0)) return null;
+      return (at + 0.5) / this.COLS * canvasW;
+    }
+  };
+
   const Breakout = {
     balls: [],
     bolts: [],
@@ -1069,6 +1190,20 @@
     // Normal is the balance the arcade already had; easy softens every dial
     // that makes it stressful, hard tightens the same ones.
     TIERS: {
+      // Baby is easy in every respect but one: the wide paddle reaches 90% of
+      // the board rather than half of it, so it really does stop being a thing
+      // you aim and becomes a floor. That is the whole point of the tier.
+      // Everything else is easy's, written out rather than aliased so a later
+      // change to easy cannot silently change what baby means.
+      //
+      // wide is 4.6 rather than easy's 2.54 because the multiplier has to be
+      // large enough for the 90% ceiling to be what actually binds: at 2.54 a
+      // 126px bat reaches 320px, which is the same half-board easy already got.
+      baby:   { speed: 4.6, max: 12, ramp: 1.12, lives: 5, paddle: 126,
+                first: 48000, every: 30000, drop: 0.44, hazard: 0,
+                mutFrom: 6, mutChance: 0.35, hpCap: 0,
+                wide: 4.6, slow: 0.5, effect: 1.8, netCap: 5, multi: 3, spare: 4,
+                beamEvery: 0, beamWarn: 0, wideCap: 0.90 },
       // hazard 0 on easy means the two red capsules are never generated at
       // all, and the rest of the dials make each good capsule do more.
       easy:   { speed: 4.6, max: 12, ramp: 1.12, lives: 5, paddle: 126,
@@ -1080,12 +1215,12 @@
                 first: 26000, every: 15000, drop: 0.30, hazard: 1,
                 mutFrom: 3, mutChance: 0.72, hpCap: 3,
                 wide: 1.77, slow: 0.66, effect: 1, netCap: 3, multi: 2, spare: 3,
-                beamEvery: 6000, beamWarn: 1000 },
+                beamEvery: 6000, beamWarn: 1000, repair: true },
       hard:   { speed: 8.2, max: 23, ramp: 1.22, lives: 2, paddle: 86,
                 first: 17000, every: 10000, drop: 0.26, hazard: 1.6,
                 mutFrom: 2, mutChance: 0.9,  hpCap: 4,
                 wide: 1.6, slow: 0.75, effect: 0.8, netCap: 2, multi: 2, spare: 2,
-                beamEvery: 5200, beamWarn: 850 }
+                beamEvery: 5200, beamWarn: 850, repair: true }
     },
     // A frame at top speed covers more than a brick's height, so movement is
     // sub-stepped at this granularity — otherwise a fast ball tunnels straight
@@ -1205,11 +1340,12 @@
       this.level = 1;
       this.speed = tier.speed;
       this.MAX_SPEED = tier.max;
+      ConvPolicy.ensure();
       this.BASE_W = tier.paddle;
-      // Easy's wide paddle reaches half the board; nothing may exceed that,
-      // or the paddle stops being a thing you aim and starts being a floor.
+      // Half the board is the ceiling everywhere except baby, which is allowed
+      // 90% on purpose.
       this.WIDE_W = Math.min(Math.round(tier.paddle * tier.wide),
-                             Math.round(game.canvas.width / 2));
+                             Math.round(game.canvas.width * (tier.wideCap || 0.5)));
       this.SHRINK_W = Math.round(tier.paddle * 0.65);
       this.DROP_BASE = tier.drop;
       this.DESCEND_FIRST = tier.first;
@@ -1481,9 +1617,11 @@
       this.drawBeams(ctx, canvas, now);
       this.drawSeekers(ctx, now);
       this.stepBalls(canvas, game, now);
+      this.bounceBalls();
       this.movePaddle(canvas);
       this.stepBeams(canvas, game, now);
       this.stepSeekers(canvas, game, now);
+      this.stepRepairs(now);
       this.stepDescent(game, canvas, now);
     },
 
@@ -1614,6 +1752,7 @@
     damageBrick: function(b, game, hitX, fromBall) {
       if (b.kind === 'steel') return false;
       b.hp--;
+      b.hurtAt = performance.now();          // the repair clock starts here
 
       if (b.hp > 0) {
         SFX.beep(240, 0.05, 'square', 0.09);
@@ -1981,6 +2120,71 @@
         }
       }
       return false;
+    },
+
+    // The wall patches itself. A brick left half-broken for long enough takes a
+    // hit point back, up to what it started with.
+    //
+    // This is the fight-back that changes how you play rather than what you
+    // dodge: chipping at everything a bit now loses to finishing one thing at a
+    // time, and a tough brick you keep abandoning is never going to fall. It is
+    // deliberately slow and it never resurrects a dead brick, so it can stall a
+    // level but cannot make one unwinnable.
+    REPAIR_AFTER: 7000,
+    REPAIR_EVERY: 2600,
+    stepRepairs: function(now) {
+      if (!this.tier || !this.tier.repair) return;
+      if (now < (this.nextRepairAt || 0)) return;
+      this.nextRepairAt = now + this.REPAIR_EVERY;
+      for (const b of this.bricks) {
+        if (b.hp <= 0 || b.hp >= b.max) continue;      // dead, or already whole
+        if (b.kind === 'steel') continue;
+        if (now - (b.hurtAt || 0) < this.REPAIR_AFTER) continue;
+        b.hp++;
+        b.hurtAt = now;
+        b.mended = 14;
+        SFX.beep(420, 0.06, 'sine', 0.05, 620);
+        Fx.burst(b.x + b.w / 2, b.y + b.h / 2, '#4ade80', 6, 1.6);
+      }
+    },
+
+    // Balls bounce off each other. Multiball used to be several balls sharing a
+    // board and ignoring one another, which reads as a rendering trick rather
+    // than as objects; two of them meeting and going their separate ways is
+    // what makes it look like a real table.
+    //
+    // Equal masses, so an elastic collision is just an exchange of the velocity
+    // component along the line between the centres -- the perpendicular
+    // component of each is untouched. They are also pushed apart to exactly
+    // touching first, because resolving the overlap after the swap is what
+    // makes pairs stick together and jitter.
+    bounceBalls: function() {
+      const n = this.balls.length;
+      if (n < 2) return;
+      for (let i = 0; i < n - 1; i++) {
+        for (let j = i + 1; j < n; j++) {
+          const a = this.balls[i], b = this.balls[j];
+          let dx = b.x - a.x, dy = b.y - a.y;
+          const min = a.radius + b.radius;
+          let d = Math.hypot(dx, dy);
+          if (d >= min) continue;
+          if (d < 1e-6) { dx = 1; dy = 0; d = 1; }      // exactly co-located
+          const nx = dx / d, ny = dy / d;
+
+          const push = (min - d) / 2 + 0.01;
+          a.x -= nx * push; a.y -= ny * push;
+          b.x += nx * push; b.y += ny * push;
+
+          const va = a.dx * nx + a.dy * ny;
+          const vb = b.dx * nx + b.dy * ny;
+          if (va - vb <= 0) continue;                   // already separating
+          a.dx += (vb - va) * nx; a.dy += (vb - va) * ny;
+          b.dx += (va - vb) * nx; b.dy += (va - vb) * ny;
+
+          SFX.beep(520, 0.05, 'triangle', 0.07, 640);
+          Fx.burst((a.x + b.x) / 2, (a.y + b.y) / 2, '#e0e7ff', 6, 1.8);
+        }
+      }
     },
 
     stepBalls: function(canvas, game, now) {
@@ -2927,6 +3131,15 @@
       }
       const urgent = canvas ? lowest > this.dangerY(canvas) - this.DESCEND_STEP * 4 : false;
 
+      // Learned target selection, when a policy has been trained and shipped.
+      // Not while the wall is nearly down: that is a specific emergency the
+      // heuristic below handles explicitly, and it is not what the policy was
+      // scored on.
+      if (!urgent && canvas) {
+        const pick = ConvPolicy.goalX(this.bricks, canvas.width);
+        if (pick !== null) return pick;
+      }
+
       let sx = 0, w = 0;
       for (const b of this.bricks) {
         if (b.hp <= 0 || b.kind === 'steel') continue;
@@ -3053,6 +3266,7 @@
     BUFFER_FRAMES: 9,   // a jump pressed just before landing still fires
 
     TIERS: {
+      baby:   { speed: 3.8, cap: 9.0,  ramp: 300, gap: 145, floor: 88, ptero: 320, pteroRate: 0.20, hearts: 5 },
       easy:   { speed: 3.8, cap: 9.0,  ramp: 300, gap: 145, floor: 88, ptero: 320, pteroRate: 0.20, hearts: 3 },
       normal: { speed: 4.6, cap: 11.5, ramp: 230, gap: 115, floor: 62, ptero: 200, pteroRate: 0.28, hearts: 2 },
       hard:   { speed: 5.8, cap: 14.5, ramp: 170, gap:  95, floor: 48, ptero: 110, pteroRate: 0.36, hearts: 1 }
@@ -3790,6 +4004,7 @@
     DIRS: [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }],
 
     TIERS: {
+      baby:   { tick: 175, floor: 110, step: 0.9, bonusMs: 8500, hearts: 5 },
       easy:   { tick: 155, floor: 95, step: 1.1, bonusMs: 7500, hearts: 3 },
       normal: { tick: 125, floor: 70, step: 1.6, bonusMs: 6200, hearts: 2 },
       hard:   { tick: 100, floor: 52, step: 2.3, bonusMs: 4800, hearts: 1 }

@@ -1,0 +1,90 @@
+name: Train arcade policy
+
+# Reinforcement learning for the breakout autopilot's target selection, run on
+# a runner because it is the one job here that genuinely wants CPU minutes.
+#
+# The policy is a ~176 weight convolution over the brick grid. It decides WHERE
+# it is worth sending the ball; it never predicts the ball, because the planner
+# already unfolds wall bounces and simulates the real collision exactly and a
+# network approximating that would be strictly worse.
+#
+# This workflow is allowed to commit a new policy ONLY if it beats the current
+# one on seeds it was never trained against, by a clear margin. The incumbent
+# starts as the hand-written heuristic, which is strong: an early attempt beat
+# it by 27% on a 2-seed check and then lost on all four tiers when measured
+# properly. The gate exists because of that, not in theory.
+on:
+  schedule:
+    - cron: "40 3 * * 0"          # weekly, Sunday, well away from the other jobs
+  workflow_dispatch:
+    inputs:
+      gens:
+        description: "CEM generations"
+        default: "10"
+      pop:
+        description: "Policies per generation"
+        default: "14"
+      seeds:
+        description: "Seeds per evaluation (variance control; higher is slower and truer)"
+        default: "8"
+      frames:
+        description: "Frames per episode"
+        default: "6000"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: train-arcade-policy
+  cancel-in-progress: false
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: The suite must pass before training against it
+        run: node tests/arcade.test.js
+
+      - name: Train
+        run: |
+          GENS="${{ inputs.gens }}";     GENS="${GENS:-10}"
+          POP="${{ inputs.pop }}";       POP="${POP:-14}"
+          SEEDS="${{ inputs.seeds }}";   SEEDS="${SEEDS:-8}"
+          FRAMES="${{ inputs.frames }}"; FRAMES="${FRAMES:-6000}"
+          node tests/train-policy.js --gens "$GENS" --pop "$POP" \
+            --seeds "$SEEDS" --frames "$FRAMES" | tee train.log
+          {
+            echo '### Arcade policy training'
+            echo '```'
+            grep -E "incumbent|CEM:|gen |held-out|shipping|shipped" train.log || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: The suite must still pass with whatever it produced
+        run: node tests/arcade.test.js
+
+      - name: Commit the policy only if training shipped one
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/js/arcade-policy.json 2>/dev/null || true
+          if git diff --staged --quiet; then
+            echo "the incumbent held; nothing to commit" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          HELD=$(node -e "console.log(require('./assets/js/arcade-policy.json').held_fitness)")
+          OLD=$(node -e "console.log(require('./assets/js/arcade-policy.json').held_incumbent)")
+          # Repeated -m rather than a heredoc: git joins them as paragraphs,
+          # and neither indentation nor quoting can then leak into the message.
+          git commit \
+            -m "Train arcade policy: ${HELD} vs ${OLD} on held-out seeds" \
+            -m "Cross-entropy method over the ~176 weight conv policy that picks where the breakout autopilot aims. Shipped only because it beat the incumbent on seeds it was never trained against; see the run summary."
+          git pull --rebase --autostash origin main
+          git push

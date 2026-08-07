@@ -183,7 +183,7 @@ function run(opts) {
   // Test-only: hoist the closure's objects out. Injected here, never shipped.
   const code = fs.readFileSync(srcPath(), 'utf8').replace(
     "  document.addEventListener('DOMContentLoaded', function() {",
-    "  window.__arcade = { GameSystem, Breakout, DinoGame, SnakeGame, Haptics, HighScores, Difficulty };\n" +
+    "  window.__arcade = { GameSystem, Breakout, DinoGame, SnakeGame, Haptics, HighScores, Difficulty, ConvPolicy };\n" +
     "  document.addEventListener('DOMContentLoaded', function() {"
   );
   const sandbox = h.win;
