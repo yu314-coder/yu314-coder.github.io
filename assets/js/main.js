@@ -3219,6 +3219,18 @@
         const sc = this.scoreShot(canvas, arrival, px, now);
         if (sc > bestScore) { bestScore = sc; best = px; }
       }
+      // A shot that breaks nothing is not a plan. bestScore starts at -1 and
+      // scoreShot never returns less than zero, so an all-zero search used to
+      // hand back the first candidate -- lo, the left end of the reachable
+      // span -- as though it had been chosen, which is a hard right-going shot
+      // picked by accident. On a sealed board that was more than half of every
+      // decision. Abstaining routes the caller to aimBias and seamAim instead,
+      // which is what handled these frames before the planner was unfenced.
+      //
+      // Deliberately not stamping _planTick here: the null is not cached, so
+      // the search is retried next frame. It costs 0.064ms against a 16.7ms
+      // budget, and memoising it gives the levels straight back.
+      if (bestScore <= 0) { this._planX = null; return null; }
       this._planTick = this.tick;
       this._planX = best;
       return best;
