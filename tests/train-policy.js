@@ -38,12 +38,10 @@ const arg = (n, d) => {
   const i = process.argv.indexOf('--' + n);
   return i > 0 ? Number(process.argv[i + 1]) : d;
 };
-const GENS = arg('gens', 6);
+const GENS = arg('gens', 8);
 const POP = arg('pop', 12);
 const ELITE = Math.max(2, Math.round(POP * 0.25));
-// Seeds buy honesty, generations buy search. Two runs said the bottleneck
-// is honesty, so the default now spends on seeds.
-const SEEDS = arg('seeds', 14);
+const SEEDS = arg('seeds', 8);
 const FRAMES = arg('frames', 6000);
 const MARGIN = arg('margin', 1.05);
 const NOISE0 = arg('noise', 0.25);   // injected exploration, decayed over the run          // must beat the incumbent by 5%
@@ -117,43 +115,18 @@ function main() {
   let best = null, bestFit = -Infinity;
 
   for (let gen = 1; gen <= GENS; gen++) {
-    // Mirrored sampling: draw half the perturbations and use each one twice,
-    // as mu+d and mu-d. Whatever the seeds of this generation happen to favour
-    // helps one twin and hurts the other by the same amount, so it cancels in
-    // the comparison instead of being mistaken for a good direction. Standard
-    // in evolution strategies and it costs nothing -- same population size,
-    // half the random draws.
     const pop = [];
-    for (let i = 0; i < POP / 2; i++) {
-      const d = new Float64Array(DIM);
-      for (let j = 0; j < DIM; j++) d[j] = sigma[j] * gauss();
-      const plus = new Float64Array(DIM), minus = new Float64Array(DIM);
-      for (let j = 0; j < DIM; j++) { plus[j] = mu[j] + d[j]; minus[j] = mu[j] - d[j]; }
-      pop.push(plus, minus);
-    }
-    while (pop.length < POP) {
+    for (let i = 0; i < POP; i++) {
       const v = new Float64Array(DIM);
-      for (let j = 0; j < DIM; j++) v[j] = mu[j] + sigma[j] * gauss();
+      for (let d = 0; d < DIM; d++) v[d] = mu[d] + sigma[d] * gauss();
       pop.push(v);
     }
-
     // Common random numbers: one seed set for the whole generation, so the
     // ranking reflects the policies and not which of them drew an easy board.
     const seeds = trainSeeds.map((s) => s + gen * 101);
     const scored = pop.map((v) => ({ v, f: fitness(toWeights(v), seeds) }));
     scored.sort((a, b) => b.f - a.f);
-
-    // Re-score the shortlist on a DIFFERENT seed set before letting it steer
-    // the distribution. Picking elites on the same seeds that ranked them is
-    // how the search ends up chasing what those particular boards reward:
-    // both previous runs climbed to ~11000 in training and stalled at ~9100
-    // held-out, which is that gap and nothing else. A candidate that was
-    // simply lucky here fails the second look and does not get to breed.
-    const shortlist = scored.slice(0, Math.min(scored.length, ELITE * 2));
-    const check = trainSeeds.map((s) => s + gen * 977 + 31);
-    for (const c of shortlist) c.f2 = fitness(toWeights(c.v), check);
-    shortlist.sort((a, b) => b.f2 - a.f2);
-    const elites = shortlist.slice(0, ELITE);
+    const elites = scored.slice(0, ELITE);
 
     // Refit, then add noise back. Plain CEM narrows on whatever the elites
     // agreed about, and with a population this small they agree early and by
@@ -176,11 +149,9 @@ function main() {
       mu[d] = m;
       sigma[d] = Math.max(0.05, Math.sqrt(s2 / ELITE) + extra);
     }
-    // Track the best by the confirming score, not the one that shortlisted it.
-    if (elites[0].f2 > bestFit) { bestFit = elites[0].f2; best = toWeights(elites[0].v); }
-    console.log(`  gen ${String(gen).padStart(2)}: picked ${elites[0].f.toFixed(0)} ` +
-      `confirmed ${elites[0].f2.toFixed(0)}  elite mean ` +
-      `${(elites.reduce((a, e) => a + e.f2, 0) / ELITE).toFixed(0)}  sigma ` +
+    if (elites[0].f > bestFit) { bestFit = elites[0].f; best = toWeights(elites[0].v); }
+    console.log(`  gen ${String(gen).padStart(2)}: best ${elites[0].f.toFixed(0)}  elite mean ` +
+      `${(elites.reduce((a, e) => a + e.f, 0) / ELITE).toFixed(0)}  sigma ` +
       `${(sigma.reduce((a, b) => a + b, 0) / DIM).toFixed(3)}` +
       `  (+${extra.toFixed(3)} injected)`);
   }
