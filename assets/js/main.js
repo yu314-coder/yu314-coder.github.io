@@ -3059,6 +3059,20 @@
       for (const beam of (this.beams || [])) {
         if (!beam.fired) out.push({ x: beam.x, r: this.BEAM_W / 2, weight: 1 });
       }
+      // Tried and dropped: with the cannon up a seeker is arguably a target
+      // rather than a threat, since bolts leave the bat going straight up and
+      // would destroy it for 40 instead of it pinning you. Measured as an
+      // exact no-op, because the situation never arises. Counting frames where
+      // a seeker is inside this 70px window AND the laser is armed:
+      //   ordinary normal 0 of 0, buried normal 0 of 286, buried hard 0 of 1619
+      // On the buried board capsules only drop when bricks break and almost
+      // nothing breaks until you are inside, so the bot is never armed when a
+      // seeker reaches it. Sound idea, wrong game.
+      //
+      // What the same counting did show is worth someone's time: buried hard
+      // spends 1619 frames with a seeker in this window and is still pinned 24
+      // times in 5 runs. The dodging there is not working, and that is a real
+      // weakness rather than a hypothetical one.
       for (const sk of (this.seekers || [])) {
         if (paddleTop - sk.y > 70) continue;      // still high; it only follows
         out.push({ x: sk.x, r: this.SEEK_R, weight: 1.2 });
