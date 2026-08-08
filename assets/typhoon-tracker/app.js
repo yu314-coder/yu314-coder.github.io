@@ -1882,19 +1882,19 @@
   // Precomputed forecast for the CURRENTLY-displayed JMA issuance, from
   // .github/workflows/refresh-typhoon-forecast.yml. Two models, and the file
   // says which produced what:
-  //   track     -- v62, a causal western-Pacific route integrated from GFS f000
+  //   track     -- Trackformer1.1, a causal western-Pacific route integrated from GFS f000
   //                ANALYSIS only (no forecast field, no official track). Falls
-  //                back to v23 when v62 can't run causally, flagged in
+  //                back to Trackformer1.0 when Trackformer1.1 can't run causally, flagged in
   //                `track_source`.
-  //   intensity -- always v23's 10-seed fp32 ensemble; v62 has no intensity
+  //   intensity -- always Trackformer1.0's 10-seed fp32 ensemble; Trackformer1.1 has no intensity
   //                decoder at all.
   // Carries no uncertainty cone or wind-radii data, so neither is drawn rather
   // than faked.
-  var TF_LIVE_JSON_URL = "model/v23-live-forecast.json";
-  // The precomputed v62 run, kept so the readout can use it and not only the
+  var TF_LIVE_JSON_URL = "model/trackformer-live-forecast.json";
+  // The precomputed Trackformer1.1 run, kept so the readout can use it and not only the
   // overlay. JMA publishes no wind, no gusts and no forecast points for a
   // tropical depression, so a storm like Kujira showed "—" in every box while
-  // a complete v62 forecast for it sat in this file unused.
+  // a complete Trackformer1.1 forecast for it sat in this file unused.
   var tfLiveAll = null;
   var tfLivePending = null;
   function tfLiveLoad() {
@@ -1910,20 +1910,20 @@
     return (tfLiveAll && tfLiveAll.storms && tfLiveAll.storms[tcId]) || null;
   }
   function tfPrecomputedFc(pre, baseW) {
-    var v62 = pre.v62 || {}, full = pre.intensity_source === "v62";
+    var tf11 = pre.trackformer11 || {}, full = pre.intensity_source === "trackformer11";
     var pts = pre.lats.map(function (la, i) {
       return { lead_hours: pre.lead_hours[i], lat: la, lon: pre.lons[i],
         vmax: pre.vmax_kt[i], pres: pre.pres_hpa[i],
-        // RMW and the quadrant radii only exist when v62's structure head ran
+        // RMW and the quadrant radii only exist when Trackformer1.1's structure head ran
         rmw: full && pre.rmw_km ? pre.rmw_km[i] : null,
         radiiKm: full && pre.radii_km ? pre.radii_km[i] : null,
         p10_lat: la, p10_lon: pre.lons[i], p90_lat: la, p90_lon: pre.lons[i] };
     });
     var fc = { initial_lat: pre.base_lat, initial_lon: pre.base_lon, initial_vmax: baseW,
-               points: pts, trackSource: pre.track_source, v62: v62 };
-    // v62 ships its own 90% member radius, so the live overlay gets a real cone
-    // instead of none. v23-only runs still get none — see tfPrecomputedStatus.
-    if (pre.track_source === "v62" && v62.cone_km) tfV62Cone(fc, v62);
+               points: pts, trackSource: pre.track_source, tf11: tf11 };
+    // Trackformer1.1 ships its own 90% member radius, so the live overlay gets a real cone
+    // instead of none. Trackformer1.0-only runs still get none — see tfPrecomputedStatus.
+    if (pre.track_source === "trackformer11" && tf11.cone_km) tfTf11Cone(fc, tf11);
     return fc;
   }
   // Name both models explicitly. The drawn path and the hovered numbers come
@@ -1933,8 +1933,8 @@
   function tfPrecomputedStatus(pre, storm) {
     var tail = " No uncertainty cone or wind-radii rings on a server-computed run — that data isn't"
       + " produced there, so none is shown rather than faked. Experimental, not an official forecast.";
-    if (pre.track_source === "v62" && pre.v62) {
-      var v = pre.v62, lag = v.analysis_lag_hours, full = pre.intensity_source === "v62";
+    if (pre.track_source === "trackformer11" && pre.trackformer11) {
+      var v = pre.trackformer11, lag = v.analysis_lag_hours, full = pre.intensity_source === "trackformer11";
       var cone = v.member_count ? (" The cone is Trackformer1.1's own " + (v.cone_percentile || 90)
         + "% radius over " + v.member_count + " route members.") : "";
       // A storm younger than 24 h has no observed position at t-12/t-24, so those
@@ -1988,7 +1988,7 @@
           aiSetStatus(tfPrecomputedStatus(pre, fc.storm), "on");
           return null;   // signals "already drawn" to the next .then — skip the client-side run
         }
-        // v62 only. If the server-side run has nothing for this storm yet, say so
+        // Trackformer1.1 only. If the server-side run has nothing for this storm yet, say so
         // rather than running a different model in the browser.
         aiLoading = false;
         aiRemoveTraces();
@@ -2012,33 +2012,27 @@
     aiRun(els.typhoonSelect ? jmaCache[els.typhoonSelect.value] : null);
   }
 
-  /* --- PUBLIC NAMES vs INTERNAL ONES. The typhoon-predict release renamed what it
-     publishes: the current model is Trackformer1.1, and older experiments are the
-     Trackformer1.0 family. Its model card exposes no v-numbers at all, so neither
-     does anything a visitor reads here.
+  /* --- NAMES. typhoon-predict publishes Trackformer1.1 as its current model and
+     the Trackformer1.0 family as historical; its model card exposes no v-numbers,
+     and neither does anything here any more -- not the UI, not the JSON keys, not
+     the file names. What the old internal labels mapped to:
 
-     The code below still says v23 and v62 everywhere, on purpose. Those strings are
-     WIRE FORMAT — JSON keys (track_source, intensity_source, the v62 block), file
-     names under model/, and the output of scripts/build_v62_history.py. Renaming
-     them would break the pipeline for no gain. The mapping is:
+       Trackformer1.1 -> Trackformer1.1  the current release. Server-side causal route plus
+                              the structure head. The same model, not just the
+                              same name: the 1.1 checkpoints upstream are
+                              byte-identical to the v37/Trackformer1.1 weights this pipeline
+                              already ran.
+       Trackformer1.0 -> Trackformer1.0  a historical release; the field-free 5-seed int8
+                              ensemble that runs in the browser. The release notes
+                              give it no patch number, so none is invented here.
 
-       v62  ->  Trackformer1.1   the current release; server-side causal route plus
-                                 the structure head. Verified as the same model, not
-                                 just the same name: the 1.1 checkpoints in
-                                 public-release/models/trackformer_1_1/ are
-                                 byte-identical to the v37/v62 weights this pipeline
-                                 already ran.
-       v23  ->  Trackformer1.0   a historical release; the field-free 5-seed int8
-                                 ensemble that runs in the browser. The release notes
-                                 give no patch number for it, so none is invented here.
+     Trackformer1.1 ships native PyTorch only -- there is no 1.1 ONNX export -- so
+     the in-browser path stays on the 1.0 ensemble.
 
-     Trackformer1.1 ships native PyTorch only — there is no 1.1 ONNX export — so the
-     in-browser path stays on the 1.0 ensemble. Only its label changed.
-
-     --- TrackFormer v23 — powers BOTH the live overlay and the track-mode hindcast.
-     A FIELD-FREE deployment of github.com/yu314-coder/typhoon-predict's v23, the best
+     --- Trackformer1.0 — powers BOTH the live overlay and the track-mode hindcast.
+     A FIELD-FREE deployment of github.com/yu314-coder/typhoon-predict's Trackformer1.0, the best
      model in that project: it sees 48 h of the storm's own best-track history — motion,
-     intensity, position — and nothing else. v23's full architecture (chain-of-thought
+     intensity, position — and nothing else. Trackformer1.0's full architecture (chain-of-thought
      steering-flow prediction, conditioned on a t-24h/t-12h/now temporal history of that
      flow) is designed around a real deep-layer-mean steering-wind field (850/500/200 hPa
      u/v), which is what gets it to 434.96 km — but that field can't be fetched live in a
@@ -2048,13 +2042,13 @@
      model. Verified on the exact deployed artifacts (int8, 5-seed, batch=1, one window at
      a time): 530.69 km (WP+EP 2020+, all leads pooled) vs the field-free v10 it replaces
      at 549.30 km on the identical test set — an 18.6 km real, honest improvement even
-     without the steering data v23 was designed around. Seed noise is ~4-7 km on this
+     without the steering data Trackformer1.0 was designed around. Seed noise is ~4-7 km on this
      model, so a single seed cannot be trusted; ships as a genuine 5-of-10-seed ensemble
      (not a statistical proxy), each seed run separately and averaged, matching
      run_v23.py's own reference CLI.
      Same 54-dim triple-stream feature layout as v10 (kinematic/thermodynamic/environment;
      tfBuildFeat is unchanged) plus three always-zero inputs (slp, hist, have — the
-     steering field, its 12h/24h history, and their availability flags) required by v23's
+     steering field, its 12h/24h history, and their availability flags) required by Trackformer1.0's
      forward pass but inert in this mode. Same curved-persistence-residual baseline and
      vpair=[v0,vp] (last two 6-h velocities) v10 already used. Outputs 20 six-hourly leads
      × 17 dims, first two per-step displacements cumulatively summed so long-horizon error
@@ -2063,22 +2057,22 @@
      during quantization — onnxruntime-web has no ConvInteger — only the much larger
      Transformer MatMul layers are quantized. Radii/RMW: IBTrACS is nmile, our JSON km, so
      ÷1.852 in and ×1.852 out. */
-  var TF_MODEL_URLS = [0, 1, 2, 3, 4].map(function (s) { return "model/trackformer-v23-seed" + s + ".int8.onnx"; });
-  var TF_META_URL = "model/trackformer-v23-meta.json?v=20260730v23";
-  // Probabilistic ensemble, computed from v23's OWN residuals (never reused from v10's):
+  var TF_MODEL_URLS = [0, 1, 2, 3, 4].map(function (s) { return "model/trackformer10-seed" + s + ".int8.onnx"; });
+  var TF_META_URL = "model/trackformer10-meta.json?v=20260808tf11";
+  // Probabilistic ensemble, computed from Trackformer1.0's OWN residuals (never reused from v10's):
   // a 40x40 Cholesky L of the model's own per-STEP forecast-error covariance (20 leads x 2
   // axes, <=2019 validation split) + a per-lead 90% cone radius. Sampling L·z gives
   // CROSS-LEAD-CORRELATED noise, so drawn routes are coherent (smooth) rather than jagged.
   // cover90 measured out-of-sample on the >=2020 test split: 0.865 (honestly reported, not
   // assumed 0.90 — v10's own cover90 was likewise an imperfect 0.777).
-  var TF_ENS_URL = "model/trackformer-v23-ensemble.json?v=20260730v23";
-  // Multi-initialisation CONSENSUS, also computed from v23's own <=2019-validation
+  var TF_ENS_URL = "model/trackformer10-ensemble.json?v=20260808tf11";
+  // Multi-initialisation CONSENSUS, also computed from Trackformer1.0's own <=2019-validation
   // residuals: at each valid time the members are forecasts from different init times, so
   // they carry different leads. Combine them min-variance, w = C^-1 1 / (1' C^-1 1) over
   // the lead x lead position-error covariance C, then run a constant-velocity Kalman + RTS
   // smoother so the track has physical momentum instead of jumping when the short-lead
   // membership rotates.
-  var TF_CONS_URL = "model/trackformer-v23-consensus.json?v=20260730v23";
+  var TF_CONS_URL = "model/trackformer10-consensus.json?v=20260808tf11";
   // Global coastline points (Natural Earth 110m, ~5,100 points, 64 KB) for a
   // REAL dist2land feature (column 52). Previously this always fed the training
   // mean as an "unavailable" placeholder -- fine for a storm near its climatological
@@ -2086,20 +2080,20 @@
   // a storm sitting in open ocean far from any coast (Typhoon Dolphin, 2026-07-30):
   // that alone was most of why the browser's forecast pointed in nearly the
   // opposite direction from the reference implementation's.
-  var TF_COASTLINE_URL = "model/coastline.json?v=20260730v23";
-  // Published v62 hindcasts, keyed by IBTrACS storm id (scripts/build_v62_hindcasts.py).
-  // History mode uses v62 for the track ONLY where a real published run matches the
-  // storm and initialisation on screen. v62 integrates a route from actual analysis
+  var TF_COASTLINE_URL = "model/coastline.json?v=20260808tf11";
+  // Published Trackformer1.1 hindcasts, keyed by IBTrACS storm id (scripts/build_trackformer11_hindcasts.py).
+  // History mode uses Trackformer1.1 for the track ONLY where a real published run matches the
+  // storm and initialisation on screen. Trackformer1.1 integrates a route from actual analysis
   // fields, which do not exist for most past storms -- NOMADS keeps ~9 days of GFS --
-  // so everywhere else this stays on v23, which is field-free by design.
-  var TF_V62_HINDCAST_URL = "model/v62-hindcasts.json?v=20260802v62k";
-  var TF_V62_RUNS_BUST = "?v=20260802v62k";
+  // so everywhere else this stays on Trackformer1.0, which is field-free by design.
+  var TF_TF11_HINDCAST_URL = "model/trackformer11-hindcasts.json?v=20260808tf11";
+  var TF_TF11_RUNS_BUST = "?v=20260808tf11";
   var TF_NM = 1.852;                                    // km per nautical mile
   var TF_ENS_N = 40;                                    // ensemble routes to draw
   var TF_NSEED = 5;                                     // seeds actually shipped (of the 10 published)
-  var tfRT = { sessions: null, meta: null, ens: null, cons: null, coastline: null, v62: null };
+  var tfRT = { sessions: null, meta: null, ens: null, cons: null, coastline: null, tf11: null };
   var hindcastTraceCount = 0;
-  var hindcastLastSource = null;   // so the status follows the track in and out of v62
+  var hindcastLastSource = null;   // so the status follows the track in and out of Trackformer1.1
   var consensusTraceCount = 0;
   // Overlay tags. Both overlays can be on at once (the consensus stays visible while the
   // hindcast animates), so traces are located by tag, never by position in els.map.data.
@@ -2131,9 +2125,9 @@
         fetch(TF_ENS_URL).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
         fetch(TF_CONS_URL).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
         fetch(TF_COASTLINE_URL).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
-        tfEnsureV62()
+        tfEnsureTf11()
       ]);
-    }).then(function (r) { tfRT.meta = r[0]; tfRT.sessions = r[1]; tfRT.ens = r[2]; tfRT.cons = r[3]; tfRT.coastline = r[4]; tfRT.v62 = r[5]; });
+    }).then(function (r) { tfRT.meta = r[0]; tfRT.sessions = r[1]; tfRT.ens = r[2]; tfRT.cons = r[3]; tfRT.coastline = r[4]; tfRT.tf11 = r[5]; });
   }
   // Deterministic seeded standard-normals (mulberry32 + Box–Muller) so ensemble
   // routes stay stable across follow-the-playhead redraws (no flicker), yet morph
@@ -2294,7 +2288,7 @@
     }
     // vpair = [v0_east, v0_north, vp_east, vp_north]: two velocities let the model
     // extrapolate the current turn rate instead of a straight persistence line.
-    // Same convention v10 used and v23 (which inherits the same curved-persistence
+    // Same convention v10 used and Trackformer1.0 (which inherits the same curved-persistence
     // baseline internally) still needs.
     return { ok: true, feat: feat, base: base, v0: v0, vpair: [v0[0], v0[1], vp[0], vp[1]] };
   }
@@ -2307,7 +2301,7 @@
       return tfRunSeedsSequential(sessions, feed, i + 1, out);
     });
   }
-  // v23's ONNX export decomposes torch.atan2 into a formula with a genuine 0/0 at
+  // Trackformer1.0's ONNX export decomposes torch.atan2 into a formula with a genuine 0/0 at
   // EXACTLY (0,0) (confirmed: PyTorch's native atan2 has no such issue, and a 1e-6
   // nudge reproduces the true-zero PyTorch output exactly) -- 6 of 3,763 real
   // held-out windows hit this (a storm with zero net displacement over one 6h
@@ -2326,7 +2320,7 @@
       ? "Need about two days of 6-hourly track before this point — scrub a bit later."
       : "No usable track history at this point."));
     var meta = tfRT.meta, TS = meta.target_scale, leads = meta.lead_hours, O = meta.out_dim, D = meta.feat_dim || 48;
-    // v23's forward pass takes three more inputs than v10's did -- the steering
+    // Trackformer1.0's forward pass takes three more inputs than v10's did -- the steering
     // field, its 12h/24h history, and their availability flags -- all always
     // zero here (see the runtime doc-comment above: no live atmospheric fetch in
     // a browser, so this runs in the project's own "IBTrACS-only" mode).
@@ -2362,7 +2356,7 @@
         la = la2; lo = lo2;
       }
       // Uncertainty cone. Half-width per lead is the ensemble's data-driven 90%
-      // position radius (from v23's own forecast-error covariance, cone_km), laid
+      // position radius (from Trackformer1.0's own forecast-error covariance, cone_km), laid
       // PERPENDICULAR to the local heading. Falls back to a climatological growth
       // (~3.3 km/h) if the ensemble artifact didn't load. (The model's raw log-scale
       // head is miscalibrated — it saturates and blew the cone to ~40,000 km — so
@@ -2448,8 +2442,8 @@
     var pts = fc.points || [], rev = pts.slice().reverse();
     var meanLat = [fc.initial_lat], meanLon = [fc.initial_lon], meanTxt = ["AI init · " + fmtLatLon(fc.initial_lat, fc.initial_lon)];
     pts.forEach(function (p) { meanLat.push(p.lat); meanLon.push(p.lon); meanTxt.push(tfHover(p)); });
-    // The cone is whichever model produced this forecast: v23's error covariance,
-    // or v62's own 90% member radius. Both are laid perpendicular the same way.
+    // The cone is whichever model produced this forecast: Trackformer1.0's error covariance,
+    // or Trackformer1.1's own 90% member radius. Both are laid perpendicular the same way.
     var coneLat = [fc.initial_lat].concat(pts.map(function (p) { return p.p90_lat; })).concat(rev.map(function (p) { return p.p10_lat; }));
     var coneLon = [fc.initial_lon].concat(pts.map(function (p) { return p.p90_lon; })).concat(rev.map(function (p) { return p.p10_lon; }));
     var actLat = [fc.initial_lat], actLon = [fc.initial_lon];
@@ -2479,10 +2473,10 @@
     var ms = Date.parse(t);
     return isFinite(ms) ? ms : null;
   }
-  // A published v62 run for THIS storm at THIS initialisation, or null.
-  function tfV62For(initHour) {
+  // A published Trackformer1.1 run for THIS storm at THIS initialisation, or null.
+  function tfTf11For(initHour) {
     if (!currentSid) return null;
-    var runs = tfV62Runs[currentSid];
+    var runs = tfTf11Runs[currentSid];
     if (!runs || !runs.length) return null;
     var ms = tfStormTimeAt(initHour);
     if (ms == null) return null;
@@ -2493,37 +2487,37 @@
     return null;
   }
   // The hindcast table is 47 KB against the model's 75 MB, so fetch it on its
-  // own. Where a published v62 run covers the initialisation it carries the
+  // own. Where a published Trackformer1.1 run covers the initialisation it carries the
   // whole state, and the in-browser model never has to be downloaded at all.
-  var tfV62Loading = null;
-  function tfEnsureV62() {
-    if (tfRT.v62) return Promise.resolve(tfRT.v62);
-    if (tfV62Loading) return tfV62Loading;
-    tfV62Loading = fetch(TF_V62_HINDCAST_URL)
+  var tfTf11Loading = null;
+  function tfEnsureTf11() {
+    if (tfRT.tf11) return Promise.resolve(tfRT.tf11);
+    if (tfTf11Loading) return tfTf11Loading;
+    tfTf11Loading = fetch(TF_TF11_HINDCAST_URL)
       .then(function (r) { return r.ok ? r.json() : null; })
       .catch(function () { return null; })
-      .then(function (j) { tfRT.v62 = j || { hindcasts: {} }; return tfRT.v62; });
-    return tfV62Loading;
+      .then(function (j) { tfRT.tf11 = j || { hindcasts: {} }; return tfRT.tf11; });
+    return tfTf11Loading;
   }
   // The index is a few hundred bytes per storm; the runs themselves are ~700 KB
   // for a 20-day storm, so a storm's file is only fetched once you open it.
-  var tfV62Runs = {}, tfV62RunsLoading = {};
-  function tfEnsureV62Runs(sid) {
+  var tfTf11Runs = {}, tfTf11RunsLoading = {};
+  function tfEnsureTf11Runs(sid) {
     if (!sid) return Promise.resolve(null);
-    if (tfV62Runs[sid] !== undefined) return Promise.resolve(tfV62Runs[sid]);
-    if (tfV62RunsLoading[sid]) return tfV62RunsLoading[sid];
-    tfV62RunsLoading[sid] = tfEnsureV62().then(function (idx) {
+    if (tfTf11Runs[sid] !== undefined) return Promise.resolve(tfTf11Runs[sid]);
+    if (tfTf11RunsLoading[sid]) return tfTf11RunsLoading[sid];
+    tfTf11RunsLoading[sid] = tfEnsureTf11().then(function (idx) {
       var entry = idx && idx.hindcasts && idx.hindcasts[sid];
-      if (!entry || !entry.file) { tfV62Runs[sid] = null; return null; }
-      return fetch("model/" + entry.file + TF_V62_RUNS_BUST)
+      if (!entry || !entry.file) { tfTf11Runs[sid] = null; return null; }
+      return fetch("model/" + entry.file + TF_TF11_RUNS_BUST)
         .then(function (r) { return r.ok ? r.json() : null; })
         .catch(function () { return null; })
-        .then(function (j) { tfV62Runs[sid] = (j && j.runs) || null; return tfV62Runs[sid]; });
+        .then(function (j) { tfTf11Runs[sid] = (j && j.runs) || null; return tfTf11Runs[sid]; });
     });
-    return tfV62RunsLoading[sid];
+    return tfTf11RunsLoading[sid];
   }
-  // v62's own 90% member radius, laid perpendicular to the local heading.
-  function tfV62Cone(fc, run) {
+  // Trackformer1.1's own 90% member radius, laid perpendicular to the local heading.
+  function tfTf11Cone(fc, run) {
     if (!run.cone_km) return;
     var prevLat = fc.initial_lat, prevLon = fc.initial_lon, pts = fc.points;
     for (var k = 0; k < pts.length; k++) {
@@ -2537,13 +2531,13 @@
       prevLat = p.lat; prevLon = p.lon;
     }
   }
-  // Why v62 has nothing here. The boundary is the analysis archive, not the model:
+  // Why Trackformer1.1 has nothing here. The boundary is the analysis archive, not the model:
   // CFSR covers 1979-01-01 to 2011-03-31 and CDAS (CFSv2) 2011-04-01 onward, and a
   // storm only becomes available once its hindcasts have been generated.
-  function tfV62Unavailable() {
+  function tfTf11Unavailable() {
     var name = (currentStorm && currentStorm.name) || "This storm";
     var yr = currentStorm && Number(currentStorm.season);
-    var idx = tfRT.v62 && tfRT.v62.hindcasts;
+    var idx = tfRT.tf11 && tfRT.tf11.hindcasts;
     var have = idx && currentSid && idx[currentSid];
     if (have) {
       return "🧪 " + name + " — MODEL: Trackformer1.1. No run covers this point in the storm:"
@@ -2556,8 +2550,8 @@
       + " Trackformer1.1 integrates a route from real analysis fields, so a past storm needs its " + src
       + " analyses fetched and run first. Nothing is drawn rather than substituting a different model.";
   }
-  // A complete forecast built from a published v62 run alone — no v23, no ONNX.
-  function tfV62Forecast(run, initHour) {
+  // A complete forecast built from a published Trackformer1.1 run alone — no Trackformer1.0, no ONNX.
+  function tfTf11Forecast(run, initHour) {
     var base = null, bd = Infinity, spts = (currentStorm && currentStorm.pts) || [];
     for (var i = 0; i < spts.length; i++) {
       var d = Math.abs(spts[i].h - initHour);
@@ -2565,7 +2559,7 @@
     }
     if (!base || !run.has_intensity) return null;   // without intensity there'd be nothing to hover
     var fc = { initial_lat: base.la, initial_lon: base.lo, initial_vmax: base.w,
-               points: [], motion: null, trackSource: "v62", v62: run };
+               points: [], motion: null, trackSource: "trackformer11", tf11: run };
     for (var n = 0; n < run.lead_hours.length; n++) {
       fc.points.push({
         lead_hours: run.lead_hours[n], lat: run.lats[n], lon: run.lons[n],
@@ -2574,15 +2568,15 @@
         p10_lat: run.lats[n], p10_lon: run.lons[n], p90_lat: run.lats[n], p90_lon: run.lons[n]
       });
     }
-    tfV62Cone(fc, run);
+    tfTf11Cone(fc, run);
     return fc;
   }
-  // v62's drawn routes are real ensemble members, not samples from a covariance.
+  // Trackformer1.1's drawn routes are real ensemble members, not samples from a covariance.
   function tfSpaghettiFor(fc) {
-    return (fc && fc.trackSource === "v62") ? tfV62Spaghetti(fc) : tfSpaghetti(fc);
+    return (fc && fc.trackSource === "trackformer11") ? tfTf11Spaghetti(fc) : tfSpaghetti(fc);
   }
-  function tfV62Spaghetti(fc) {
-    var run = fc && fc.v62;
+  function tfTf11Spaghetti(fc) {
+    var run = fc && fc.tf11;
     if (!run || !run.members || !run.members.length) return { lat: [], lon: [] };
     var lat = [], lon = [];
     for (var m = 0; m < run.members.length; m++) {
@@ -2596,8 +2590,8 @@
   }
   function tfHindcastStatusText(fc) {
     var storm = currentStorm.name || "This storm";
-    if (fc && fc.trackSource === "v62") {
-      var r = fc.v62 || {}, score = "";
+    if (fc && fc.trackSource === "trackformer11") {
+      var r = fc.tf11 || {}, score = "";
       if (r.track_mae_km != null) {
         score = " On this case it lands " + Math.round(r.track_mae_km) + " km mean from the real track"
           + (r.persistence_mae_km != null ? ", against persistence's " + Math.round(r.persistence_mae_km) + " km" : "") + ".";
@@ -2673,14 +2667,14 @@
     var now = Date.now();
     if (!force && now - hindcastFollowTs < 240) return;
     var h = Number(els.slider.value);
-    // v62 only, and it needs no model in the browser at all. Scrubbing past the
+    // Trackformer1.1 only, and it needs no model in the browser at all. Scrubbing past the
     // end of the generated initialisations clears the overlay and says why,
     // rather than filling the gap with a different model.
-    var run = tfV62For(h), quick = run ? tfV62Forecast(run, h) : null;
+    var run = tfTf11For(h), quick = run ? tfTf11Forecast(run, h) : null;
     hindcastFollowTs = now;
     if (quick) { aiUpdateHindcast(quick, h); return; }
     aiClearHindcast();
-    aiSetHindcastStatus(tfV62Unavailable(), "err");
+    aiSetHindcastStatus(tfTf11Unavailable(), "err");
   }
   /* --- Multi-initialisation consensus ------------------------------------------
      Runs the model from EVERY 6-hourly init along the storm, then at each valid time
@@ -3015,19 +3009,19 @@
     var initHour = Number(els.slider.value);
     aiLoading = true;
     aiSetHindcastStatus("Loading…", "loading");
-    // Check the 47 KB hindcast table first. If a published v62 run covers this
+    // Check the 47 KB hindcast table first. If a published Trackformer1.1 run covers this
     // initialisation it already carries track, intensity, radii, cone and member
     // routes — so draw straight from it and skip the 75 MB model entirely.
-    tfEnsureV62Runs(currentSid)
+    tfEnsureTf11Runs(currentSid)
       .then(function () {
-        var run = tfV62For(initHour);
-        var quick = run ? tfV62Forecast(run, initHour) : null;
+        var run = tfTf11For(initHour);
+        var quick = run ? tfTf11Forecast(run, initHour) : null;
         aiLoading = false;
         if (quick) { aiDrawHindcast(quick, initHour); return null; }
-        // v62 only. Where no run covers this initialisation the overlay says so
+        // Trackformer1.1 only. Where no run covers this initialisation the overlay says so
         // rather than quietly drawing a different model's forecast in its place.
         aiClearHindcast();
-        aiSetHindcastStatus(tfV62Unavailable(), "err");
+        aiSetHindcastStatus(tfTf11Unavailable(), "err");
         return null;
       })
       .then(function () {})
@@ -3255,13 +3249,13 @@
     var a = d.points[0];
     // JMA reports nothing but a position for a depression -- no wind, no
     // gusts, no forecast points -- so every box read "—" even though the
-    // precomputed v62 run had the whole thing. Fill the gaps from v62 where
+    // precomputed Trackformer1.1 run had the whole thing. Fill the gaps from Trackformer1.1 where
     // JMA is silent, and label them, because a number with no source on it is
     // worse than a dash.
     var pre = tfLiveFor(d.tcId);
     var vm = (pre && pre.vmax_kt) || null;
     var vp = (pre && pre.pres_hpa) || null;
-    var v62tag = ' <small class="tt-v62-src">TF1.1</small>';
+    var tf11tag = ' <small class="tt-tf11-src">TF1.1</small>';
     var catFull = CAT_NAME[a.catEn] || a.catEn || "Tropical cyclone";
     var badge = catFull + (a.intensity ? " · " + a.intensity : "") + (a.scale ? " · " + a.scale : "");
     var move = (a.course || "") + (a.speedKt != null ? " " + a.speedKt + " kt" : "");
@@ -3289,11 +3283,11 @@
       '<div class="tt-fc-live" id="tt-fc-live" aria-live="off"></div>' +
       '<div class="tt-details-grid">' +
         predItem("Pressure", a.pressure != null ? a.pressure + " hPa"
-                 : (vp ? Math.round(vp[0]) + " hPa" + v62tag : "—")) +
+                 : (vp ? Math.round(vp[0]) + " hPa" + tf11tag : "—")) +
         predItem("Max wind", a.windKt != null ? a.windKt + " kt"
-                 : (vm ? Math.round(vm[0]) + " kt" + v62tag : "—")) +
+                 : (vm ? Math.round(vm[0]) + " kt" + tf11tag : "—")) +
         predItem("Gusts", a.gustKt != null ? a.gustKt + " kt"
-                 : (vm ? "~" + Math.round(vm[0] * 1.4) + " kt" + v62tag : "—")) +
+                 : (vm ? "~" + Math.round(vm[0] * 1.4) + " kt" + tf11tag : "—")) +
         predItem("Moving", move || "—") +
       "</div>" +
       '<div class="tt-fc-pos">' + fmtLatLon(a.lat, a.lon) + (a.location ? " · " + translateLocation(a.location) : "") + "</div>" +

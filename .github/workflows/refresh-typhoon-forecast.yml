@@ -1,14 +1,14 @@
 name: Refresh typhoon AI forecast
 
-# Precomputes the live AI forecast server-side: the v62 causal western-Pacific
-# route for the track, and the v23 10-seed fp32 ensemble for intensity and wind
-# field (v62 has no intensity decoder). A storm whose v62 path cannot run
+# Precomputes the live AI forecast server-side: the Trackformer1.1 causal western-Pacific
+# route for the track, and the Trackformer1.0 10-seed fp32 ensemble for intensity and wind
+# field (Trackformer1.1 has no intensity decoder). A storm whose Trackformer1.1 path cannot run
 # causally -- GFS cycle not posted, track shorter than 24 h -- falls back to the
-# v23 track and says so in the output.
+# Trackformer1.0 track and says so in the output.
 #
 # Two clocks matter here, and only one of them is the analysis clock.
 #
-# v62's inputs are 6-hourly GFS f000 analyses landing ~4 h after their cycle
+# Trackformer1.1's inputs are 6-hourly GFS f000 analyses landing ~4 h after their cycle
 # hour, so for *new atmospheric data* an hourly schedule is already generous
 # and anything faster just re-downloads the same files from a free service.
 #
@@ -43,20 +43,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # The v23 seeds (~500 MB, git-lfs) that the fallback path still loads.
+      # The Trackformer1.0 seeds (~500 MB, git-lfs) that the fallback path still loads.
       #
-      # DO NOT BUMP THIS KEY. typhoon-predict deleted models/v23 from its default
+      # DO NOT BUMP THIS KEY. typhoon-predict deleted models/Trackformer1.0 from its default
       # branch when it published Trackformer1.1, so the "Checkout weights" step
       # below can no longer fetch them -- this cache is the only surviving copy
       # the job can reach. A bump would evict it with nothing to restore from.
       # If these are ever needed again from scratch they must be re-published
       # upstream first.
-      - name: Cache v23 weights
+      - name: Cache Trackformer1.0 weights
         id: cache-weights
         uses: actions/cache@v4
         with:
           path: typhoon-predict-models
-          key: v62-weights-v3
+          key: trackformer10-weights-v3
 
       - name: Checkout weights
         if: steps.cache-weights.outputs.cache-hit != 'true'
@@ -66,23 +66,23 @@ jobs:
           lfs: true
           sparse-checkout-cone-mode: false
           sparse-checkout: |
-            models/v23
+            models/Trackformer1.0
           path: typhoon-predict-weights
 
       - name: Move weights into cache path
         if: steps.cache-weights.outputs.cache-hit != 'true'
         run: |
-          mkdir -p typhoon-predict-models/v23
-          if [ -d typhoon-predict-weights/models/v23 ]; then
-            mv typhoon-predict-weights/models/v23/* typhoon-predict-models/v23/
+          mkdir -p typhoon-predict-models/Trackformer1.0
+          if [ -d typhoon-predict-weights/models/Trackformer1.0 ]; then
+            mv typhoon-predict-weights/models/Trackformer1.0/* typhoon-predict-models/Trackformer1.0/
           else
-            echo "::warning::models/v23 is no longer published upstream and the cache missed;" \
-                 "the v23 fallback will be unavailable this run"
+            echo "::warning::models/Trackformer1.0 is no longer published upstream and the cache missed;" \
+                 "the Trackformer1.0 fallback will be unavailable this run"
           fi
           rm -rf typhoon-predict-weights
 
       # Trackformer1.1's checkpoint bundle, cached separately so it can be
-      # re-fetched without touching the v23 cache above.
+      # re-fetched without touching the Trackformer1.0 cache above.
       - name: Cache Trackformer1.1 weights
         id: cache-tf11
         uses: actions/cache@v4
@@ -146,15 +146,15 @@ jobs:
       - name: Cache GFS analysis files
         uses: actions/cache@v4
         with:
-          path: /tmp/v62-grib
-          key: v62-grib-${{ github.run_id }}
-          restore-keys: v62-grib-
+          path: /tmp/Trackformer1.1-grib
+          key: Trackformer1.1-grib-${{ github.run_id }}
+          restore-keys: Trackformer1.1-grib-
 
       - name: Prune GFS cache older than 3 days
         run: |
-          mkdir -p /tmp/v62-grib
-          find /tmp/v62-grib -name '*.grib2' -mtime +3 -delete || true
-          echo "cached cycles: $(ls -1 /tmp/v62-grib 2>/dev/null | wc -l)"
+          mkdir -p /tmp/Trackformer1.1-grib
+          find /tmp/Trackformer1.1-grib -name '*.grib2' -mtime +3 -delete || true
+          echo "cached cycles: $(ls -1 /tmp/Trackformer1.1-grib 2>/dev/null | wc -l)"
 
       - uses: actions/setup-python@v5
         with:
@@ -167,19 +167,19 @@ jobs:
           pip install torch --index-url https://download.pytorch.org/whl/cpu
           pip install -r scripts/requirements-forecast.txt
 
-      - name: Run v62 + v23 forecast
+      - name: Run Trackformer1.1 + Trackformer1.0 forecast
         env:
-          V23_MODELS_DIR: ${{ github.workspace }}/typhoon-predict-models/v23
-          V62_SRC_DIR: ${{ github.workspace }}/typhoon-predict-src
-          V62_GRIB_DIR: /tmp/v62-grib
+          V23_MODELS_DIR: ${{ github.workspace }}/typhoon-predict-models/Trackformer1.0
+          TF11_SRC_DIR: ${{ github.workspace }}/typhoon-predict-src
+          V62_GRIB_DIR: /tmp/Trackformer1.1-grib
           MPLBACKEND: Agg
-        run: python scripts/run_v62_forecast.py
+        run: python scripts/run_trackformer11_forecast.py
 
       - name: Commit if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/typhoon-tracker/model/v23-live-forecast.json
+          git add assets/typhoon-tracker/model/trackformer-live-forecast.json
           if git diff --staged --quiet; then
             echo "no change — nothing to commit"
             exit 0
@@ -206,11 +206,11 @@ jobs:
             # the new state and silently DELETES everything added to main since
             # this job checked out. It did exactly that once: a backfill run
             # removed the autopilot benchmark, its workflow, five storm files
-            # and reverted a trainer change, all in a commit titled "Add v62
+            # and reverted a trainer change, all in a commit titled "Add Trackformer1.1
             # history hindcasts". --mixed resets the index to main and leaves
             # our files in the working tree, so the next add stages only ours.
             git reset --mixed origin/main
-            git add assets/typhoon-tracker/model/v23-live-forecast.json
+            git add assets/typhoon-tracker/model/trackformer-live-forecast.json
             if git diff --staged --quiet; then
               echo "main already has an equivalent forecast"
               exit 0

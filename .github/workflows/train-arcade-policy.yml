@@ -97,7 +97,7 @@ jobs:
             # the new state and silently DELETES everything added to main since
             # this job checked out. It did exactly that once: a backfill run
             # removed the autopilot benchmark, its workflow, five storm files
-            # and reverted a trainer change, all in a commit titled "Add v62
+            # and reverted a trainer change, all in a commit titled "Add Trackformer1.1
             # history hindcasts". --mixed resets the index to main and leaves
             # our files in the working tree, so the next add stages only ours.
             git reset --mixed origin/main

@@ -1,14 +1,14 @@
 # torch is installed separately (CPU wheel) in the workflow.
 numpy<3
 beautifulsoup4
-# v62 reads GFS f000 analysis GRIB2. The eccodes wheel carries its own ecCodes
+# Trackformer1.1 reads GFS f000 analysis GRIB2. The eccodes wheel carries its own ecCodes
 # binaries, so the runner needs no apt package.
 xarray
 cfgrib
 eccodes
 # scipy is NOT a hard xarray dependency, but DataArray.interp() -- how the
 # storm-centred 17x17 patches are sampled -- refuses to run without it. Missing
-# it only surfaced in CI, where the v62 route fell back to v23 rather than
+# it only surfaced in CI, where the Trackformer1.1 route fell back to Trackformer1.0 rather than
 # failing loudly.
 scipy
 # predict_ibtracs_jma_only (the window builder the v37G head was validated with)
