@@ -3069,10 +3069,18 @@
       // nothing breaks until you are inside, so the bot is never armed when a
       // seeker reaches it. Sound idea, wrong game.
       //
-      // What the same counting did show is worth someone's time: buried hard
-      // spends 1619 frames with a seeker in this window and is still pinned 24
-      // times in 5 runs. The dodging there is not working, and that is a real
-      // weakness rather than a hypothetical one.
+      // A follow-up correction, because the first reading of those counters was
+      // wrong. Buried hard spends 1619 frames with a seeker in this window and
+      // is pinned 24 times in 5 runs, which looked like the dodging failing.
+      // It is not: stunUntil is set by beams, seekers AND mines alike, and at
+      // the moment of pinning the nearest seeker or mine was usually not on
+      // screen at all. Those pins are turret fire.
+      //
+      // Measured against the beams directly, the dodge is doing well: of 85
+      // beams fired on buried hard the bat was under only 8 of them, and 3 of
+      // 49 on ordinary hard -- 91% and 94% avoided, against a board that fires
+      // two columns at once and tightens with every level. The residual is
+      // mostly volleys with no clean answer near an edge.
       for (const sk of (this.seekers || [])) {
         if (paddleTop - sk.y > 70) continue;      // still high; it only follows
         out.push({ x: sk.x, r: this.SEEK_R, weight: 1.2 });
