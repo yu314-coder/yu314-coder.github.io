@@ -417,8 +417,9 @@ body {
 .tt-app.mode-predict .tt-hindcast,
 .tt-app.is-season .tt-hindcast { display: none; }
 
-/* A value the readout took from v62 because JMA published none. Marked, so a
-   number is never shown without saying where it came from. */
+/* A value the readout took from Trackformer1.1 because JMA published none.
+   Marked, so a number is never shown without saying where it came from. The
+   class name keeps the old internal label; only what the reader sees changed. */
 .tt-v62-src {
   font-size: 0.62em;
   font-weight: 700;

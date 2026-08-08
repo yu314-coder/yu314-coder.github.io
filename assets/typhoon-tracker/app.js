@@ -1837,11 +1837,12 @@
     aiTraceCount = allTraces.length;
     aiLastFc = fc;   // remember it so a same-storm map rebuild can restore it
     if (els.aiBtn) { els.aiBtn.setAttribute("aria-pressed", "true"); els.aiBtn.classList.add("is-on"); }
-    aiSetStatus("🧪 " + (fc.storm || "AI") + " — MODEL: v23 for everything here — track, wind, pressure and"
-      + " wind-field size — run in your own browser (5-seed int8 ensemble). v62 is computed server-side and"
-      + " only for the latest JMA issuance; when that precompute is a reissue behind, as now, your device"
-      + " runs v23 instead. Dots are coloured by forecast intensity category, hover one for the full state,"
-      + " and the shaded area is v23's own 90% cone. Experimental, not an official forecast.", "on");
+    aiSetStatus("🧪 " + (fc.storm || "AI") + " — MODEL: Trackformer1.0 for everything here — track,"
+      + " wind, pressure and wind-field size — run in your own browser (5-seed int8 ensemble of the"
+      + " historical release). Trackformer1.1 is computed server-side and only for the latest JMA issuance;"
+      + " when that precompute is a reissue behind, as now, your device runs Trackformer1.0 instead. Dots are"
+      + " coloured by forecast intensity category, hover one for the full state, and the shaded area is"
+      + " Trackformer1.0's own 90% cone. Experimental, not an official forecast.", "on");
   }
   // Build TrackFormer's history pts from the live storm's recent track: the
   // Digital Typhoon best-track past leg + the current JMA analysis point, put on
@@ -1934,18 +1935,18 @@
       + " produced there, so none is shown rather than faked. Experimental, not an official forecast.";
     if (pre.track_source === "v62" && pre.v62) {
       var v = pre.v62, lag = v.analysis_lag_hours, full = pre.intensity_source === "v62";
-      var cone = v.member_count ? (" The cone is v62's own " + (v.cone_percentile || 90) + "% radius over "
-        + v.member_count + " route members.") : "";
+      var cone = v.member_count ? (" The cone is Trackformer1.1's own " + (v.cone_percentile || 90)
+        + "% radius over " + v.member_count + " route members.") : "";
       // A storm younger than 24 h has no observed position at t-12/t-24, so those
       // snapshots are flagged unavailable rather than filled in. Say so.
       var partial = (v.history_available && v.history_available.indexOf(0) !== -1)
         ? " This storm is younger than 24 h, so the t-12/t-24 snapshots have no observed centre and are"
           + " flagged unavailable — the route runs on the current analysis alone rather than on invented history."
         : "";
-      return "🧪 " + storm + " — MODEL: v62"
+      return "🧪 " + storm + " — MODEL: Trackformer1.1"
         + (full ? " for everything here — track, wind, pressure, RMW and the 34/50/64 kt radii."
-                : " for the track; wind and pressure fall back to v23 because v62's structure head"
-                  + " couldn't run for this storm.")
+                : " for the track; wind and pressure fall back to the historical Trackformer1.0 because"
+                  + " Trackformer1.1's structure head couldn't run for this storm.")
         + " The route and the causal pressure state are integrated from the GFS "
         + v.analysis_cycle.replace("_", " ") + "Z analysis"
         + (lag != null ? " (" + lag + " h before this issuance)" : "")
@@ -1953,10 +1954,10 @@
         + " forecast field, no official JMA/JTWC track and no post-issue observation reaches it."
         + cone + partial + " Experimental, not an official forecast.";
     }
-    return "🧪 " + storm + " — MODEL: v23 for everything here — track, wind and pressure — at full"
-      + " precision (10-seed fp32, computed server-side). v62 runs on storms younger than 24 h too, so"
-      + " this only happens when no GFS analysis cycle is posted at all; when that clears, v62 takes"
-      + " over again." + tail;
+    return "🧪 " + storm + " — MODEL: Trackformer1.0 for everything here — track, wind and pressure"
+      + " — at full precision (10-seed fp32, computed server-side). Trackformer1.1 runs on storms younger"
+      + " than 24 h too, so this only happens when no GFS analysis cycle is posted at all; when that clears,"
+      + " Trackformer1.1 takes over again." + tail;
   }
   // Fresh only if it was computed from the exact same JMA analysis currently on
   // screen -- never show a precomputed forecast that's one issuance behind.
@@ -1991,10 +1992,10 @@
         // rather than running a different model in the browser.
         aiLoading = false;
         aiRemoveTraces();
-        aiSetStatus("🧪 " + ((d.name && d.name.en) || "This storm") + " — MODEL: v62, and the server-side"
-          + " run has no forecast for it yet. v62 needs a posted GFS analysis cycle and an observed centre"
-          + " to anchor on; the next hourly run will pick it up. Nothing is drawn rather than substituting"
-          + " a different model.", "err");
+        aiSetStatus("🧪 " + ((d.name && d.name.en) || "This storm") + " — MODEL: Trackformer1.1, and the"
+          + " server-side run has no forecast for it yet. Trackformer1.1 needs a posted GFS analysis cycle and"
+          + " an observed centre to anchor on; the next hourly run will pick it up. Nothing is drawn rather"
+          + " than substituting a different model.", "err");
         return null;
       })
       .then(function () {})
@@ -2011,7 +2012,30 @@
     aiRun(els.typhoonSelect ? jmaCache[els.typhoonSelect.value] : null);
   }
 
-  /* --- TrackFormer v23 — powers BOTH the live overlay and the track-mode hindcast.
+  /* --- PUBLIC NAMES vs INTERNAL ONES. The typhoon-predict release renamed what it
+     publishes: the current model is Trackformer1.1, and older experiments are the
+     Trackformer1.0 family. Its model card exposes no v-numbers at all, so neither
+     does anything a visitor reads here.
+
+     The code below still says v23 and v62 everywhere, on purpose. Those strings are
+     WIRE FORMAT — JSON keys (track_source, intensity_source, the v62 block), file
+     names under model/, and the output of scripts/build_v62_history.py. Renaming
+     them would break the pipeline for no gain. The mapping is:
+
+       v62  ->  Trackformer1.1   the current release; server-side causal route plus
+                                 the structure head. Verified as the same model, not
+                                 just the same name: the 1.1 checkpoints in
+                                 public-release/models/trackformer_1_1/ are
+                                 byte-identical to the v37/v62 weights this pipeline
+                                 already ran.
+       v23  ->  Trackformer1.0   a historical release; the field-free 5-seed int8
+                                 ensemble that runs in the browser. The release notes
+                                 give no patch number for it, so none is invented here.
+
+     Trackformer1.1 ships native PyTorch only — there is no 1.1 ONNX export — so the
+     in-browser path stays on the 1.0 ensemble. Only its label changed.
+
+     --- TrackFormer v23 — powers BOTH the live overlay and the track-mode hindcast.
      A FIELD-FREE deployment of github.com/yu314-coder/typhoon-predict's v23, the best
      model in that project: it sees 48 h of the storm's own best-track history — motion,
      intensity, position — and nothing else. v23's full architecture (chain-of-thought
@@ -2522,15 +2546,15 @@
     var idx = tfRT.v62 && tfRT.v62.hindcasts;
     var have = idx && currentSid && idx[currentSid];
     if (have) {
-      return "🧪 " + name + " — MODEL: v62. No run covers this point in the storm: generated"
-        + " initialisations span " + String(have.first_issue_utc).slice(0, 16).replace("T", " ")
+      return "🧪 " + name + " — MODEL: Trackformer1.1. No run covers this point in the storm:"
+        + " generated initialisations span " + String(have.first_issue_utc).slice(0, 16).replace("T", " ")
         + "Z to " + String(have.last_issue_utc).slice(0, 16).replace("T", " ") + "Z."
-        + " Scrub inside that window. Nothing else is drawn here — this overlay is v62 only.";
+        + " Scrub inside that window. Nothing else is drawn here — this overlay is Trackformer1.1 only.";
     }
     var src = (yr && yr >= 2012) ? "CDAS/CFSv2 (2011-04-01 onward)" : "CFSR (1979-01-01 to 2011-03-31)";
-    return "🧪 " + name + " — MODEL: v62, and it has no hindcast for this storm yet. v62 integrates a"
-      + " route from real analysis fields, so a past storm needs its " + src + " analyses fetched and"
-      + " run first. Nothing is drawn rather than substituting a different model.";
+    return "🧪 " + name + " — MODEL: Trackformer1.1, and it has no hindcast for this storm yet."
+      + " Trackformer1.1 integrates a route from real analysis fields, so a past storm needs its " + src
+      + " analyses fetched and run first. Nothing is drawn rather than substituting a different model.";
   }
   // A complete forecast built from a published v62 run alone — no v23, no ONNX.
   function tfV62Forecast(run, initHour) {
@@ -2578,23 +2602,23 @@
         score = " On this case it lands " + Math.round(r.track_mae_km) + " km mean from the real track"
           + (r.persistence_mae_km != null ? ", against persistence's " + Math.round(r.persistence_mae_km) + " km" : "") + ".";
       }
-      var members = r.member_count ? (" The cone is v62's own " + (r.cone_percentile || 90) + "% radius over "
-        + r.member_count + " route members, and the faint lines are those members — real routes, not samples"
-        + " from a covariance.") : "";
-      return "🧪 " + storm + " — MODEL: v62 for everything here — track, wind, pressure, RMW and the"
-        + " 34/50/64 kt radii. The route is integrated from real analysis fields at this initialisation;"
-        + " the intensity and wind structure come from v62's frozen v37G head, coupled to the same causal"
-        + " pressure map. White is what actually happened." + score + members
-        + " Scrub away from this initialisation and it falls back to v23, which is field-free and can run"
-        + " anywhere in a storm's life. Experimental, not an official forecast.";
+      var members = r.member_count ? (" The cone is Trackformer1.1's own " + (r.cone_percentile || 90)
+        + "% radius over " + r.member_count + " route members, and the faint lines are those members — real"
+        + " routes, not samples from a covariance.") : "";
+      return "🧪 " + storm + " — MODEL: Trackformer1.1 for everything here — track, wind, pressure,"
+        + " RMW and the 34/50/64 kt radii. The route is integrated from real analysis fields at this"
+        + " initialisation; the intensity and wind structure come from its frozen structure head, coupled to"
+        + " the same causal pressure map. White is what actually happened." + score + members
+        + " Scrub away from this initialisation and it falls back to the historical Trackformer1.0, which is"
+        + " field-free and can run anywhere in a storm's life. Experimental, not an official forecast.";
     }
-    var ens = tfRT.ens ? " Faint green lines are an ensemble of possible tracks sampled from v23's own forecast-error covariance; the shaded cone is the 90% area." : "";
-    return "🧪 " + storm + " — MODEL: v23 for everything here — track, wind, pressure and the 34/50/64 kt"
-      + " radii, from track history alone with no weather fields. Dots are coloured by forecast intensity"
-      + " category (hover for the full state; faint rings = predicted gale radius), against what actually"
-      + " happened (white)." + ens
-      + " v62 would need real analysis fields at this initialisation, and none are published for it."
-      + " Press play and it re-forecasts as the storm moves. Experimental, not an official forecast.";
+    var ens = tfRT.ens ? " Faint green lines are an ensemble of possible tracks sampled from Trackformer1.0's own forecast-error covariance; the shaded cone is the 90% area." : "";
+    return "🧪 " + storm + " — MODEL: Trackformer1.0 for everything here — track, wind, pressure and"
+      + " the 34/50/64 kt radii, from track history alone with no weather fields. Dots are coloured by"
+      + " forecast intensity category (hover for the full state; faint rings = predicted gale radius),"
+      + " against what actually happened (white)." + ens
+      + " Trackformer1.1 would need real analysis fields at this initialisation, and none are published"
+      + " for it. Press play and it re-forecasts as the storm moves. Experimental, not an official forecast.";
   }
   function aiDrawHindcast(fc, initHour) {
     aiClearHindcast();
@@ -3237,7 +3261,7 @@
     var pre = tfLiveFor(d.tcId);
     var vm = (pre && pre.vmax_kt) || null;
     var vp = (pre && pre.pres_hpa) || null;
-    var v62tag = ' <small class="tt-v62-src">v62</small>';
+    var v62tag = ' <small class="tt-v62-src">TF1.1</small>';
     var catFull = CAT_NAME[a.catEn] || a.catEn || "Tropical cyclone";
     var badge = catFull + (a.intensity ? " · " + a.intensity : "") + (a.scale ? " · " + a.scale : "");
     var move = (a.course || "") + (a.speedKt != null ? " " + a.speedKt + " kt" : "");
@@ -3276,7 +3300,7 @@
       '<div class="tt-fc-subhead">5-day forecast · T = Dvorak (± = 70% circle)</div>' +
       '<div class="tt-fc-rows">' + (rows || '<div class="tt-fc-row">' +
         (pre && pre.lats && pre.lats.length
-          ? 'JMA issues no forecast points for a tropical depression. The v62 route above still ' +
+          ? 'JMA issues no forecast points for a tropical depression. The Trackformer1.1 route above still ' +
             'covers ' + ((pre.lead_hours && pre.lead_hours[pre.lead_hours.length - 1]) || 120) +
             ' h &mdash; turn the overlay on to see it.'
           : 'No forecast points issued.') + '</div>') + "</div>" +

@@ -1387,7 +1387,7 @@
     <!-- Tab: Typhoon AI -->
     <div class="tab-pane fade" id="tab-typhoon" role="tabpanel" aria-labelledby="tab-typhoon-btn">
 
-    <!-- Featured Project: Typhoon Forecasting AI (TrackFormer) -->
+    <!-- Featured Project: Typhoon Forecasting AI (Trackformer1.1) -->
     <div class="card card--hue hue-typhoon reveal">
       <div class="card-body p-4 p-md-5">
         <div class="row g-0 align-items-center justify-content-center">
@@ -1395,34 +1395,33 @@
             <header class="mb-4">
               <h3 class="h2 mb-2 fw-bold">Typhoon Forecasting AI</h3>
               <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
-                <span class="badge-neutral mono">TrackFormer</span>
-                <span class="badge-accent mono">runs in your browser</span>
-                <span class="badge-neutral mono">ONNX</span>
+                <span class="badge-neutral mono">Trackformer1.1</span>
+                <span class="badge-accent mono">causal: analysis-only inputs</span>
+                <span class="badge-neutral mono">20 leads to +120 h</span>
               </div>
-              <p class="lead mb-0">My own tropical-cyclone model that forecasts a storm's next five days &mdash; track, intensity, and wind-field size &mdash; running entirely in the browser with no backend. Live on the <a href="typhoon-tracks.html">Typhoon Tracks</a> explorer, over real JMA forecasts and past storms.</p>
+              <p class="lead mb-0">My own tropical-cyclone model that forecasts a storm's next five days over the western Pacific &mdash; track, central pressure, intensity and the wind-field radii. The current release, <strong>Trackformer1.1</strong>, integrates its route from real NOAA analysis fields, so it runs server-side in GitHub Actions and the site serves the result; the historical <strong>Trackformer1.0</strong> ensemble still runs in your browser wherever no 1.1 run covers the initialisation. Live on the <a href="typhoon-tracks.html">Typhoon Tracks</a> explorer, over real JMA forecasts and past storms.</p>
             </header>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
-              <span class="feature-badge">Track-only Transformer</span>
+              <span class="feature-badge">Causal WP route</span>
               <span class="feature-badge">Full storm state</span>
               <span class="feature-badge">20 six-hourly leads</span>
-              <span class="feature-badge">Intensity + wind radii</span>
-              <span class="feature-badge">In-browser ONNX</span>
-              <span class="feature-badge">No backend</span>
-              <span class="feature-badge">IBTrACS + ERA5 trained</span>
+              <span class="feature-badge">RMW + 34/50/64 kt radii</span>
+              <span class="feature-badge">No forecast fields as input</span>
+              <span class="feature-badge">In-browser ONNX fallback</span>
+              <span class="feature-badge">IBTrACS + NOAA CFS</span>
             </div>
 
             <div class="mb-4">
               <h4 class="h5 fw-bold mb-3">What it does</h4>
               <ul class="list-unstyled">
-                <li class="mb-2"><strong>TrackFormer v10</strong> &mdash; a 17&nbsp;M-parameter <em>protected triple-stream</em> transformer that reads a storm's recent 6-hourly track and predicts the <strong>full state</strong> at 20 lead times out to +120&nbsp;h: motion, max wind, central pressure, radius of max wind, and the 34/50/64&nbsp;kt wind radii in four quadrants</li>
-                <li class="mb-2"><strong>No weather data at all</strong> &mdash; v10 sees 48&nbsp;hours of the storm's own best-track history (motion, intensity, position) and <em>nothing else</em>: no steering winds, no pressure fields, no reanalysis, no satellite. On 2020+ storms it averages <strong>549&nbsp;km</strong> track error (WP&nbsp;+&nbsp;EP, all leads pooled); on the like-for-like Western-Pacific test used for the older models it is <strong>614</strong> vs <strong>729</strong>&nbsp;km for a full ERA5-conditioned model &mdash; still ahead while using no atmospheric fields. Separate kinematic/thermodynamic/environment encoders remove the <em>negative transfer</em> that made extra features hurt track accuracy; the lesson across experiments was <em>data diversity &gt; engineered features &gt; parameters</em></li>
-                <li class="mb-2"><strong>Physics first, network second</strong> &mdash; it does not predict where the storm goes. It extrapolates damped, slightly curved persistence and predicts only the <em>correction</em>. Untrained, it emits exact straight-line persistence; training taught it to damp speed ~8% (most of it inside 24&nbsp;h) and to extrapolate at most 7.6% of the measured turn rate &mdash; the 6-hourly turn signal is mostly observational noise &mdash; flipping sign past +48&nbsp;h, a learned correction for storms already partway through recurvature. Its intensity&rarr;track gate trained to <em>exactly zero</em>: for a field-free model, how strong a storm is says nothing about where it goes beyond what its motion already says</li>
-                <li class="mb-2"><strong>Multi-initialisation consensus</strong> &mdash; re-runs the model from <em>every</em> 6-hourly initialisation along a storm, then combines the forecasts landing on each valid time by <strong>minimum-variance weighting</strong> (w = C<sup>-1</sup>1 / 1&prime;C<sup>-1</sup>1 over the lead&times;lead error covariance, so a 6&nbsp;h member outvotes a 120&nbsp;h one), and smooths the result with a constant-velocity Kalman/RTS filter so the track keeps physical momentum. On Haiyan it stays within <strong>74&nbsp;km</strong> of the real track the whole way (mean 33&nbsp;km) &mdash; all computed in the browser in ~1.5&nbsp;s</li>
-                <li class="mb-2"><strong>Probabilistic ensemble</strong> &mdash; on top of the single forecast it draws a spread of <em>possible</em> tracks by sampling the model's own 40-dimensional forecast-error covariance (20 leads &times; 2 axes). The <em>cross-lead correlation</em> is what keeps the sampled routes coherent instead of jagged &mdash; a diagonal covariance collapses 90% coverage from 0.82 to 0.20 &mdash; and it ties directly into my <a href="#tab-gencov" onclick="document.getElementById('tab-gencov-btn').click();return false;">random-matrix covariance</a> work. The shaded cone is the data-driven 90% area</li>
-                <li class="mb-2"><strong>Runs client-side</strong> &mdash; exported to an int8 ONNX (~18&nbsp;MB, near-lossless) and executed with onnxruntime-web; the ensemble is sampled in-browser from a tiny Cholesky factor; no server, no cold start, works on an iPad</li>
-                <li class="mb-2"><strong>Live &amp; honest</strong> &mdash; overlays its forecast on the JMA official track for active storms, and lets you scrub any historical storm to forecast forward against what actually happened. Clearly flagged experimental &mdash; not an operational warning system</li>
-              </ul>
+                <li class="mb-2"><strong>Trackformer1.1</strong> &mdash; the current release. It extrapolates a bounded regional atmospheric state from three analysis snapshots (now, &minus;12&nbsp;h, &minus;24&nbsp;h), then integrates the route through a weighted steering ensemble that samples inner, deep-layer, ridge, trough and jet views across the <em>whole</em> western Pacific rather than a small ring around the storm. Nine frozen checkpoints in three groups &mdash; three primary intensity experts, three structure experts, three temporal experts &mdash; turn a nine-step observed track window plus the current analysis patch into the <strong>full state</strong> at 20 lead times out to +120&nbsp;h: position, max wind, central pressure, radius of max wind, and the 34/50/64&nbsp;kt radii in four quadrants, kept ordered R34&nbsp;&ge;&nbsp;R50&nbsp;&ge;&nbsp;R64</li>
+                <li class="mb-2"><strong>Causal by construction</strong> &mdash; this is the point of the release. At inference it sees the observed track and intensity history up to the issue time and analysis fields valid at or before it, and <em>nothing after</em>: no JMA or JTWC forecast track, no positive-lead GFS/GEFS/CFS field, no observation that arrived after the issue time. Every fetched file is checked against the issue time and rejected if it is newer. Later data is used only to <em>score</em> a forecast, never to make one &mdash; which is what makes a hindcast on a 1979 storm mean something</li>
+                <li class="mb-2"><strong>Intensity is the honest weak spot</strong> &mdash; the current calibration reference is <strong>16.40&nbsp;kt</strong> test wind MAE across leads and <strong>14.52&nbsp;hPa</strong> test pressure MAE at 120&nbsp;h. Those are a baseline for the next experiment, not an operational accuracy claim. The published upgrade plan keeps the same data boundary and changes only the target formulation &mdash; predict &Delta;wind/&Delta;pressure/&Delta;radius from the observed current state instead of every future absolute value, with separate short/medium/long-lead heads so a 120&nbsp;h estimate cannot dominate the 6&nbsp;h behaviour</li>
+                <li class="mb-2"><strong>Physics first, network second</strong> &mdash; the route does not ask a network where the storm goes. It integrates steering from the causal pressure state and lets the experts correct it, and the intensity output is coupled back to the same map: pressure-map minimum, pressure deficit, 850&nbsp;hPa wind, and the quadrant anomaly extent. That coupling is why the pressure chart and the drawn track cannot disagree with each other</li>
+                <li class="mb-2"><strong>Probabilistic, from real members</strong> &mdash; the shaded cone on a 1.1 run is its own 90% radius over actual route members, and the faint lines are those members &mdash; real routes, not draws from a covariance. The historical Trackformer1.0 path instead samples its own 40-dimensional forecast-error covariance (20 leads &times; 2 axes), where the <em>cross-lead correlation</em> is what keeps sampled routes coherent instead of jagged &mdash; a diagonal covariance collapses 90% coverage from 0.82 to 0.20 &mdash; tying directly into my <a href="#tab-gencov" onclick="document.getElementById('tab-gencov-btn').click();return false;">random-matrix covariance</a> work</li>
+                <li class="mb-2"><strong>Live &amp; honest</strong> &mdash; it overlays its forecast on the JMA official track for active storms and lets you scrub any past storm to forecast forward against what actually happened. Where a run does not exist the overlay says so and draws nothing, rather than quietly substituting a different model. Clearly flagged experimental &mdash; research output, not an operational warning system</li>
+                </ul>
             </div>
 
             <div class="row g-3 mb-4 justify-content-center">
@@ -1430,12 +1429,12 @@
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">The models</h5>
                   <ul class="small mb-0 text-start">
-                    <li><strong>TrackFormer v23</strong> &mdash; the one actually deployed: a five-seed int8 ensemble running in your browser via onnxruntime-web, no backend</li>
-                    <li><strong>v62</strong> &mdash; causal western-Pacific route integrated from real GFS/CFS analysis fields; drives the live overlay and the past-storm hindcasts</li>
-                    <li><strong>TrackFormer v10</strong> &mdash; 17&nbsp;M params, triple-stream + curved baseline, no reanalysis (superseded)</li>
-                    <li><strong>StormFusion-MT</strong> &mdash; 3.3&nbsp;M params, ERA5 patches + track</li>
-                    <li>Trained on IBTrACS v04r01 (all basins, 1980+) &amp; ERA5</li>
-                    <li>193k partial-lead training windows; 614&nbsp;km WP-2020+ track</li>
+                    <li><strong>Trackformer1.1</strong> &mdash; the current release: causal western-Pacific route integrated from real NOAA analysis fields, plus the intensity and structure heads. Drives the live overlay and the past-storm hindcasts</li>
+                    <li><strong>Trackformer1.0</strong> &mdash; the historical family. The deployed member is a five-seed int8 ensemble running in your browser via onnxruntime-web, field-free by design, so it can run anywhere in a storm's life</li>
+                    <li>9 frozen checkpoints: 3 primary intensity, 3 structure, 3 temporal experts</li>
+                    <li>Track history from IBTrACS v04r01; analysis from NOAA CFSR (1979&ndash;2011-03) and CFSv2/CDAS (2011-04&ndash;)</li>
+                    <li>Storm-held-out chronological train/validation/test split</li>
+                    <li>MIT licensed; research output, not an operational forecast</li>
                   </ul>
                 </div>
               </div>
@@ -1443,10 +1442,10 @@
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">How it runs</h5>
                   <ul class="small mb-0 text-start">
-                    <li>PyTorch &rarr; int8 ONNX (~18&nbsp;MB, ~lossless)</li>
-                    <li>onnxruntime-web (WebAssembly), lazy-loaded on demand</li>
-                    <li>Encoder&ndash;decoder transformer, cross-attention lead queries</li>
-                    <li>No API keys; no data leaves your device</li>
+                    <li><strong>1.1:</strong> a GitHub Actions job fetches public analysis files, rejects any newer than the issue time, and publishes compact JSON the page reads</li>
+                    <li><strong>1.0:</strong> PyTorch &rarr; int8 ONNX (~15&nbsp;MB/seed), lazy-loaded into onnxruntime-web (WebAssembly) only when you ask for it</li>
+                    <li>Native units are nautical miles; everything shown publicly is km</li>
+                    <li>No API keys, and no storm you look at is sent anywhere</li>
                   </ul>
                 </div>
               </div>
@@ -1458,8 +1457,8 @@
                 <p class="small mb-1"><strong>Created by:</strong> Yu Yao-Hsing</p>
                 <p class="small mb-1"><strong>Category:</strong> Research &amp; Education &mdash; ML / weather</p>
                 <p class="small mb-1"><strong>Frameworks:</strong> PyTorch &middot; onnxruntime-web &middot; Plotly</p>
-                <p class="small mb-1"><strong>Data:</strong> NOAA NCEI IBTrACS &middot; ECMWF ERA5 &middot; JMA forecasts</p>
-                <p class="small mb-0"><strong>Status:</strong> Live in-browser on the Typhoon Tracks explorer</p>
+                <p class="small mb-1"><strong>Data:</strong> NOAA NCEI IBTrACS &middot; NOAA CFSR / CFSv2 analysis &middot; NOMADS f000 &middot; JMA (verification and display only)</p>
+                <p class="small mb-0"><strong>Status:</strong> Trackformer1.1 live on the Typhoon Tracks explorer</p>
               </div>
             </div>
 
