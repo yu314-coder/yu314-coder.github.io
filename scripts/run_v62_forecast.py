@@ -293,11 +293,15 @@ def intensity_model():
     global _INTENSITY
     if _INTENSITY is None:
         sys.path.insert(0, V62_SRC)
-        from v62_intensity_structure import V62IntensityEnsemble
-        root = Path(V62_SRC) / "v37" / "structure_spatial"
-        _INTENSITY = V62IntensityEnsemble(root / "checkpoints",
-                                          root / "v37g_intensity_calibration.json",
-                                          device="cpu")
+        # Renamed upstream when typhoon-predict published Trackformer1.1. Same
+        # weights -- the 1.1 checkpoints hash-match the v37 ones -- but all three
+        # expert groups and the calibration now sit in one directory, and the
+        # calibration names its sub-roots relative to the module, so models/ has
+        # to be beside trackformer_1_1_intensity.py.
+        from trackformer_1_1_intensity import Trackformer11IntensityEnsemble
+        root = Path(V62_SRC) / "models" / "trackformer_1_1"
+        _INTENSITY = Trackformer11IntensityEnsemble(
+            root, root / "trackformer_1_1_calibration.json", device="cpu")
     return _INTENSITY
 
 
@@ -343,7 +347,7 @@ def v62_intensity(fixes, field, state_pressure, state_fields, lat, lon,
     # derives the seasonal phase from a numpy datetime64 minutes artefact and sets
     # 4 availability flags, where this sets 16 and uses a real per-row day-of-year.
     from predict_ibtracs_jma_only import build_track_window
-    from v62_intensity_structure import couple_forecast_to_pressure_map
+    from trackformer_1_1_intensity import couple_forecast_to_pressure_map
 
     stats = np.load(HERE / "v23" / "v23_norm_stats.npz")
     terrain = np.load(HERE / "v23" / "v23_terrain_wp.npz")
@@ -385,8 +389,8 @@ def v62_track(points, issue, guard):
     """Full v62 route for one storm, or None if it cannot run causally."""
     sys.path.insert(0, V62_SRC)
     from analysis_level_mean_route import build_level_analysis_mean_route
-    from v61_big_system_route import weighted_route
-    from v62_pacific_domain_route import build_pacific_route
+    from trackformer_1_1_base_route import weighted_route
+    from trackformer_1_1_route import build_pacific_route
 
     # Newest analysis cycle that is BOTH at or before the issue time and actually
     # posted. GFS f000 lands roughly 4 h after its cycle hour, so the cycle
@@ -479,7 +483,7 @@ def v62_track(points, issue, guard):
         fields, pressures, lat, lon, base_lat, base_lon, recent_motion(points))
     pacific_route = weighted_route(members, weights)
 
-    from v62_pacific_domain_route import forecast_pacific_state
+    from trackformer_1_1_route import forecast_pacific_state
     state_fields, state_pressure, _ = forecast_pacific_state(fields, pressures)
     full = LOCAL_WEIGHT * local_route + PACIFIC_WEIGHT * pacific_route
 
@@ -564,8 +568,15 @@ def process_storm(tc, models):
     try:
         v62 = v62_track(pts, issue, guard)
     except CausalityError as e:
+        # The model correctly refusing to run on data it must not see. Expected,
+        # and not a reason to fail the job.
         log(f"{tc_id}: REFUSED — {e}")
     except Exception as e:
+        # Anything else is the code being broken rather than the data being
+        # absent. Counted so main() can fail loudly instead of shipping nothing
+        # under a green tick -- which is exactly how a ModuleNotFoundError went
+        # unnoticed for three hours while the live overlay sat empty.
+        INTERNAL_FAILURES.append(f"{tc_id}: {type(e).__name__}: {e}")
         log(f"{tc_id}: v62 track failed ({type(e).__name__}: {e})")
 
     if not v62:
@@ -626,6 +637,11 @@ def process_storm(tc, models):
     return out
 
 
+# Storms dropped because something threw, as opposed to the model declining to
+# run causally. Populated in process_storm, read by main.
+INTERNAL_FAILURES: list[str] = []
+
+
 def main():
     active = v23run.get_json(v23run.JMA_BASE + "targetTc.json")
     storms = {}
@@ -638,7 +654,19 @@ def main():
                 if r:
                     storms[tc_id] = r
             except Exception as e:
+                INTERNAL_FAILURES.append(f"{tc_id}: {type(e).__name__}: {e}")
                 log(f"{tc_id}: skipped ({type(e).__name__}: {e})")
+
+    # Storms are active, none of them made it through, and at least one died of a
+    # thrown exception. That is broken code, not an empty season -- so keep the
+    # last good file rather than blanking the overlay, and exit non-zero.
+    if active and not storms and INTERNAL_FAILURES:
+        for line in INTERNAL_FAILURES:
+            log(f"  {line}")
+        log(f"{len(active)} storm(s) active and none forecast; leaving {OUT_PATH.name} "
+            f"untouched rather than replacing it with an empty file")
+        return 1
+
     out = {
         "generated_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "storms": storms,
@@ -646,7 +674,8 @@ def main():
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUT_PATH.write_text(json.dumps(out, indent=2))
     log(f"wrote {OUT_PATH} ({len(storms)} storm(s))")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

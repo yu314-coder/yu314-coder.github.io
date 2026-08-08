@@ -43,10 +43,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Big weights, cached: the v23 seeds (~500 MB, git-lfs) and the three
-      # frozen v37G structure checkpoints v62's intensity head loads (~26 MB).
-      # Bump the key if either set is re-released.
-      - name: Cache model weights
+      # The v23 seeds (~500 MB, git-lfs) that the fallback path still loads.
+      #
+      # DO NOT BUMP THIS KEY. typhoon-predict deleted models/v23 from its default
+      # branch when it published Trackformer1.1, so the "Checkout weights" step
+      # below can no longer fetch them -- this cache is the only surviving copy
+      # the job can reach. A bump would evict it with nothing to restore from.
+      # If these are ever needed again from scratch they must be re-published
+      # upstream first.
+      - name: Cache v23 weights
         id: cache-weights
         uses: actions/cache@v4
         with:
@@ -62,36 +67,78 @@ jobs:
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             models/v23
-            v37/structure_spatial
           path: typhoon-predict-weights
 
       - name: Move weights into cache path
         if: steps.cache-weights.outputs.cache-hit != 'true'
         run: |
-          mkdir -p typhoon-predict-models/v23 typhoon-predict-models/v37
-          mv typhoon-predict-weights/models/v23/* typhoon-predict-models/v23/
-          mv typhoon-predict-weights/v37/* typhoon-predict-models/v37/
+          mkdir -p typhoon-predict-models/v23
+          if [ -d typhoon-predict-weights/models/v23 ]; then
+            mv typhoon-predict-weights/models/v23/* typhoon-predict-models/v23/
+          else
+            echo "::warning::models/v23 is no longer published upstream and the cache missed;" \
+                 "the v23 fallback will be unavailable this run"
+          fi
           rm -rf typhoon-predict-weights
 
-      # The v62 source modules are small and always taken fresh, so a change
-      # upstream is picked up without a cache bump.
-      - name: Checkout v62 source modules
+      # Trackformer1.1's checkpoint bundle, cached separately so it can be
+      # re-fetched without touching the v23 cache above.
+      - name: Cache Trackformer1.1 weights
+        id: cache-tf11
+        uses: actions/cache@v4
+        with:
+          path: typhoon-predict-tf11
+          key: trackformer11-weights-v1
+
+      - name: Checkout Trackformer1.1 weights
+        if: steps.cache-tf11.outputs.cache-hit != 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: yu314-coder/typhoon-predict
+          lfs: true
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            models/trackformer_1_1
+          path: typhoon-predict-tf11-src
+
+      - name: Move Trackformer1.1 weights into cache path
+        if: steps.cache-tf11.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p typhoon-predict-tf11
+          mv typhoon-predict-tf11-src/models/trackformer_1_1 typhoon-predict-tf11/
+          rm -rf typhoon-predict-tf11-src
+          # A pointer is ~130 bytes, a checkpoint ~8.5 MB. Fail here with a clear
+          # reason rather than inside torch.load.
+          for f in typhoon-predict-tf11/trackformer_1_1/*.pt; do
+            sz=$(wc -c < "$f")
+            if [ "$sz" -lt 1000000 ]; then
+              echo "::error::$f is $sz bytes — LFS content did not download"
+              exit 1
+            fi
+          done
+
+      # The source modules are small and always taken fresh, so a change upstream
+      # is picked up without a cache bump.
+      - name: Checkout Trackformer1.1 source modules
         uses: actions/checkout@v4
         with:
           repository: yu314-coder/typhoon-predict
           sparse-checkout-cone-mode: false
           sparse-checkout: |
-            v62_pacific_domain_route.py
-            v61_big_system_route.py
+            trackformer_1_1_route.py
+            trackformer_1_1_base_route.py
+            trackformer_1_1_intensity.py
+            trackformer_1_1_temporal.py
             analysis_level_mean_route.py
-            v62_intensity_structure.py
             scripts/predict_ibtracs_jma_only.py
           path: typhoon-predict-src
 
-      # The intensity head loads its checkpoints from V62_SRC_DIR/v37, so link
-      # the cached copy in beside the freshly-checked-out source.
-      - name: Link cached v37 weights into the source tree
-        run: ln -sfn "$GITHUB_WORKSPACE/typhoon-predict-models/v37" typhoon-predict-src/v37
+      # The calibration names its structure/temporal roots relative to the MODULE
+      # that loads them, so models/ has to sit beside trackformer_1_1_intensity.py.
+      - name: Link cached weights into the source tree
+        run: |
+          ln -sfn "$GITHUB_WORKSPACE/typhoon-predict-tf11" typhoon-predict-src/models
+          test -f typhoon-predict-src/models/trackformer_1_1/trackformer_1_1_calibration.json
 
       # GFS analysis GRIBs, reused across runs so a free public service isn't
       # asked for the same cycle every hour. restore-keys picks up the newest

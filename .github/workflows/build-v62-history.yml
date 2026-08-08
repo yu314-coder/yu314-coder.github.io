@@ -66,14 +66,21 @@ jobs:
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc || true
           df -h / | tail -1
 
-      # Same weights the live job uses: the v23 norm stats/terrain are vendored in
-      # this repo, but the v37G structure checkpoints come from typhoon-predict.
+      # The v23 norm stats/terrain this job needs are vendored under scripts/v23
+      # in THIS repo, so nothing v23-shaped is fetched here. What does come from
+      # typhoon-predict is the Trackformer1.1 checkpoint bundle: three intensity,
+      # three structure and three temporal experts plus their calibration, all in
+      # one directory. They are Git LFS objects, hence lfs: true.
+      #
+      # Cache key bumped to v4 because the layout changed: typhoon-predict's
+      # default branch dropped models/v23 and v37/ when it published Trackformer1.1,
+      # so a v3 cache holds paths that no longer exist upstream.
       - name: Cache model weights
         id: cache-weights
         uses: actions/cache@v4
         with:
           path: typhoon-predict-models
-          key: v62-weights-v3
+          key: v62-weights-v4
 
       - name: Checkout weights
         if: steps.cache-weights.outputs.cache-hit != 'true'
@@ -83,33 +90,48 @@ jobs:
           lfs: true
           sparse-checkout-cone-mode: false
           sparse-checkout: |
-            models/v23
-            v37/structure_spatial
+            models/trackformer_1_1
           path: typhoon-predict-weights
 
       - name: Move weights into cache path
         if: steps.cache-weights.outputs.cache-hit != 'true'
         run: |
-          mkdir -p typhoon-predict-models/v23 typhoon-predict-models/v37
-          mv typhoon-predict-weights/models/v23/* typhoon-predict-models/v23/
-          mv typhoon-predict-weights/v37/* typhoon-predict-models/v37/
+          mkdir -p typhoon-predict-models
+          mv typhoon-predict-weights/models/trackformer_1_1 typhoon-predict-models/
           rm -rf typhoon-predict-weights
+          # An LFS pointer is ~130 bytes and a real checkpoint ~8.5 MB. If lfs
+          # smudging silently no-ops, fail HERE with a clear reason rather than
+          # 40 minutes later inside torch.load.
+          for f in typhoon-predict-models/trackformer_1_1/*.pt; do
+            sz=$(wc -c < "$f")
+            if [ "$sz" -lt 1000000 ]; then
+              echo "::error::$f is $sz bytes — LFS content did not download"
+              exit 1
+            fi
+          done
+          ls -la typhoon-predict-models/trackformer_1_1
 
-      - name: Checkout v62 source modules
+      - name: Checkout Trackformer1.1 source modules
         uses: actions/checkout@v4
         with:
           repository: yu314-coder/typhoon-predict
           sparse-checkout-cone-mode: false
           sparse-checkout: |
-            v62_pacific_domain_route.py
-            v61_big_system_route.py
+            trackformer_1_1_route.py
+            trackformer_1_1_base_route.py
+            trackformer_1_1_intensity.py
+            trackformer_1_1_temporal.py
             analysis_level_mean_route.py
-            v62_intensity_structure.py
             scripts/predict_ibtracs_jma_only.py
           path: typhoon-predict-src
 
-      - name: Link cached v37 weights into the source tree
-        run: ln -sfn "$GITHUB_WORKSPACE/typhoon-predict-models/v37" typhoon-predict-src/v37
+      # The calibration file names its structure/temporal checkpoint roots as
+      # paths relative to the MODULE that loads them, so models/ has to sit beside
+      # trackformer_1_1_intensity.py rather than anywhere else.
+      - name: Link cached weights into the source tree
+        run: |
+          ln -sfn "$GITHUB_WORKSPACE/typhoon-predict-models" typhoon-predict-src/models
+          test -f typhoon-predict-src/models/trackformer_1_1/trackformer_1_1_calibration.json
 
       - uses: actions/setup-python@v5
         with:

@@ -314,18 +314,31 @@ def pct(vals, p):
 def run_storm(sid, season_year, storm, intensity_on=True):
     sys.path.insert(0, V62_SRC)
     sys.path.insert(0, str(Path(V62_SRC) / "scripts"))
+    # typhoon-predict repackaged these as Trackformer1.1 and deleted the old
+    # module names from its default branch, which is what broke this job. Same
+    # code and same weights -- the 1.1 checkpoints hash-match the v37 ones this
+    # already ran -- so only the import paths moved:
+    #   v61_big_system_route        -> trackformer_1_1_base_route
+    #   v62_pacific_domain_route    -> trackformer_1_1_route
+    #   v62_intensity_structure     -> trackformer_1_1_intensity
+    #   V62IntensityEnsemble        -> Trackformer11IntensityEnsemble
     from analysis_level_mean_route import build_level_analysis_mean_route
-    from v61_big_system_route import weighted_route
-    from v62_pacific_domain_route import build_pacific_route, forecast_pacific_state
+    from trackformer_1_1_base_route import weighted_route
+    from trackformer_1_1_route import build_pacific_route, forecast_pacific_state
 
     intensity = None
     if intensity_on:
         try:
             from predict_ibtracs_jma_only import build_track_window
-            from v62_intensity_structure import V62IntensityEnsemble, couple_forecast_to_pressure_map
-            root = Path(V62_SRC) / "v37" / "structure_spatial"
-            intensity = (V62IntensityEnsemble(root / "checkpoints",
-                                              root / "v37g_intensity_calibration.json", device="cpu"),
+            from trackformer_1_1_intensity import (
+                Trackformer11IntensityEnsemble, couple_forecast_to_pressure_map)
+            # All three expert groups and the calibration now live in one
+            # directory. The structure/temporal roots come from the calibration
+            # file as paths relative to the MODULE, so models/ has to sit beside
+            # trackformer_1_1_intensity.py -- the workflow symlinks it there.
+            root = Path(V62_SRC) / "models" / "trackformer_1_1"
+            intensity = (Trackformer11IntensityEnsemble(
+                             root, root / "trackformer_1_1_calibration.json", device="cpu"),
                          build_track_window, couple_forecast_to_pressure_map)
         except Exception as e:
             log(f"  intensity head unavailable ({type(e).__name__}: {e}); track only")
