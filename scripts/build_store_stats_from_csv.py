@@ -109,12 +109,21 @@ def main():
             with open(out_path) as f:
                 previous = json.load(f)
 
-        funnel = read_funnel(os.path.join(args.downloads, app["funnel_csv"]))
+        funnel_path = os.path.join(args.downloads, app["funnel_csv"])
+        funnel = read_funnel(funnel_path)
+        # When the funnel CSV was actually exported, which is NOT the same as when
+        # this script ran. Re-exporting only the page-views trend and rebuilding
+        # would otherwise stamp today's date on funnel figures read weeks ago, and
+        # the page would claim they are current.
+        funnel_read_utc = datetime.datetime.fromtimestamp(
+            os.path.getmtime(funnel_path), datetime.timezone.utc
+        ).strftime("%Y-%m-%dT%H:%M:%SZ")
         rows = weekly_series(app, previous, args, "installs_csv", "installs", "rows")
         page_view_rows = weekly_series(app, previous, args, "page_views_csv", "views", "page_view_rows")
 
         out = {
             "app": app["name"], "id": app["id"], "updated_utc": now,
+            "funnel_read_utc": funnel_read_utc,
             "window": "Last 12 months",
             "downloads": funnel.get("Successful installs", 0),   # the true install count
             "install_attempts": funnel.get("Install attempts", 0),
@@ -125,14 +134,24 @@ def main():
         }
         # Carry the prior snapshot's headline numbers so the page can show
         # "+N since <date>" without needing its own history store.
+        #
+        # Only when the funnel was actually RE-EXPORTED, though. Re-running this
+        # script against the same CSVs used to overwrite prev with the current
+        # numbers, so every rebuild reset the comparison to itself and the page
+        # showed a confident "±0" that had never compared anything. When the
+        # export has not moved, keep whatever prev was already there.
         if previous:
-            out["prev"] = {
-                "downloads": previous.get("downloads", 0),
-                "page_views": previous.get("page_views", 0),
-                "install_attempts": previous.get("install_attempts", 0),
-                "first_launches": previous.get("first_launches", 0),
-                "updated_utc": previous.get("updated_utc"),
-            }
+            if previous.get("funnel_read_utc") == funnel_read_utc and previous.get("prev"):
+                out["prev"] = previous["prev"]
+            else:
+                out["prev"] = {
+                    "downloads": previous.get("downloads", 0),
+                    "page_views": previous.get("page_views", 0),
+                    "install_attempts": previous.get("install_attempts", 0),
+                    "first_launches": previous.get("first_launches", 0),
+                    "updated_utc": previous.get("updated_utc"),
+                    "funnel_read_utc": previous.get("funnel_read_utc"),
+                }
 
         with open(out_path, "w") as f:
             json.dump(out, f, separators=(",", ":"))

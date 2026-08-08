@@ -62,14 +62,16 @@
     .ss-panel-id .ss-store-id{font:500 .75rem/1.3 JetBrains Mono,monospace;color:var(--ink-3)}
 
     .ss-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin:1.25rem 0}
-    .ss-tile{background:var(--bg-alt);border:1px solid var(--line);border-radius:var(--r);padding:1rem 1.15rem}
+    .ss-tile{background:var(--bg-alt);border:1px solid var(--line);border-radius:var(--r);padding:1rem 1.15rem;
+      transition:border-color .14s ease,background .14s ease}
+    .ss-tile:hover{border-color:var(--line-2);background:var(--surface)}
     .ss-tile .ss-k{font:600 .72rem/1 JetBrains Mono,monospace;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2)}
-    .ss-tile .ss-v{font:800 1.7rem/1.1 Inter,sans-serif;margin-top:.4rem}
+    .ss-tile .ss-v{font:800 1.7rem/1.1 Inter,sans-serif;margin-top:.4rem;letter-spacing:-.02em}
     .ss-metric-sel{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;flex:none}
     .ss-metric-sel button{font:600 .74rem/1 JetBrains Mono,monospace;padding:.4rem .8rem;background:transparent;color:var(--ink-2);border:0;cursor:pointer}
     .ss-metric-sel button.on{background:var(--grad-btn,var(--accent));color:#fff}
-    .ss-chartwrap{background:var(--bg-alt);border:1px solid var(--line);border-radius:var(--r);padding:1rem;overflow-x:auto}
-    .ss-chart{width:100%;height:320px;display:block}
+    .ss-chartwrap{background:var(--bg-alt);border:1px solid var(--line);border-radius:var(--r);padding:1rem .9rem .5rem;overflow-x:auto}
+    .ss-chart{width:100%;display:block}
     .ss-legend{display:flex;gap:1.25rem;flex-wrap:wrap;font:500 .82rem/1 Inter,sans-serif;color:var(--ink-2);margin:.4rem .2rem 0}
     .ss-legend b{display:inline-block;width:.8rem;height:.8rem;border-radius:2px;margin-right:.35rem;vertical-align:-1px}
     .ss-markets{margin-top:1.25rem}
@@ -82,12 +84,36 @@
     .ss-delta.up{color:rgb(52,211,153);background:rgba(52,211,153,.14)}
     .ss-delta.down{color:rgb(248,113,113);background:rgba(248,113,113,.14)}
     .ss-delta.flat{color:var(--ink-3);background:var(--surface)}
-    .ss-funnel{margin-top:1.5rem}
-    .ss-fn-row{display:flex;align-items:center;gap:.75rem;margin:.45rem 0;font:500 .85rem/1.2 Inter,sans-serif}
-    .ss-fn-row .ss-fn-label{width:9.5rem;flex:none;color:var(--ink-2)}
-    .ss-fn-row .ss-fn-bar{height:.9rem;border-radius:3px;background:var(--accent);min-width:3px;transition:width .3s ease}
-    .ss-fn-row .ss-fn-val{font:700 .85rem/1 JetBrains Mono,monospace}
-    .ss-fn-row .ss-fn-conv{font:600 .72rem/1 JetBrains Mono,monospace;color:var(--ink-3);flex:none}
+    /* Chart + funnel colour, all validated against this page's dark surface
+       (#141a27) with the data-viz palette checker rather than picked by eye.
+       ss-fn-1..4 are one blue hue stepped light->dark for the FOUR ORDERED
+       funnel stages (an ordinal ramp: monotone lightness, visible step gaps,
+       dimmest end still clearing 2:1 on the surface). ss-series-1/2 are two
+       categorical slots for the trend's two different measures. */
+    :root{
+      --ss-fn-1:#184f95; --ss-fn-2:#256abf; --ss-fn-3:#3987e5; --ss-fn-4:#6da7ec;
+      --ss-series-1:#3987e5; --ss-series-2:#d95926;
+    }
+    .ss-funnel{margin-top:1.75rem}
+    .ss-fn-row{display:grid;grid-template-columns:10.5rem minmax(0,1fr) 4.5rem 9.5rem;align-items:center;
+      gap:.9rem;padding:.42rem .5rem;margin:.15rem -.5rem;border-radius:8px;
+      font:500 .85rem/1.2 Inter,sans-serif;transition:background .14s ease}
+    .ss-fn-row:hover{background:rgba(255,255,255,.035)}
+    .ss-fn-row .ss-fn-label{color:var(--ink-2);display:flex;flex-direction:column;gap:.15rem}
+    .ss-fn-row .ss-fn-label em{font:500 .68rem/1.2 Inter,sans-serif;font-style:normal;color:var(--ink-3)}
+    .ss-fn-track{background:rgba(255,255,255,.05);border-radius:5px;height:1.05rem;overflow:hidden}
+    .ss-fn-row .ss-fn-bar{display:block;height:100%;border-radius:5px;min-width:2px;transition:width .35s cubic-bezier(.4,0,.2,1)}
+    .ss-fn-row .ss-fn-val{font:700 .92rem/1 JetBrains Mono,monospace;text-align:right;font-variant-numeric:tabular-nums}
+    .ss-fn-row .ss-fn-conv{font:600 .7rem/1 JetBrains Mono,monospace;color:var(--ink-3)}
+    /* The headline stage, marked so it is not one of four lookalike bars. */
+    .ss-fn-row.is-key{background:rgba(57,135,229,.10);box-shadow:inset 2px 0 0 var(--ss-fn-3)}
+    .ss-fn-row.is-key .ss-fn-label{color:var(--ink)}
+    .ss-fn-row.is-key .ss-fn-val{color:var(--ink)}
+    @media (max-width:640px){
+      .ss-fn-row{grid-template-columns:1fr auto;row-gap:.3rem}
+      .ss-fn-track{grid-column:1/-1}
+      .ss-fn-row .ss-fn-conv{grid-column:1/-1;text-align:right}
+    }
     .ss-empty{background:var(--bg-alt);border:1px dashed var(--line);border-radius:var(--r);padding:2rem;text-align:center;color:var(--ink-2)}
   </style>
 </head>
@@ -246,7 +272,11 @@
         totalDownloads += a.downloads || 0;
         totalViews += a.page_views || 0;
         totalAttempts += a.install_attempts || 0;
-        if (a.prev) { havePrev = true; prevTotalDownloads += a.prev.downloads || 0; }
+        // Same rule as the per-app tiles: a baseline counts only when it is
+        // provably a different Partner Center export.
+        var p = a.prev;
+        var usable = p && p.funnel_read_utc && p.funnel_read_utc !== a.funnel_read_utc;
+        if (usable) { havePrev = true; prevTotalDownloads += p.downloads || 0; }
         else { prevTotalDownloads += a.downloads || 0; }
       });
       var rate = totalAttempts ? Math.round(100 * totalDownloads / totalAttempts) : 0;
@@ -301,7 +331,14 @@
 
     function showApp(app, body) {
       body.innerHTML = "";
+      // A prev whose funnel came from the SAME export is not a comparison -- it is
+      // the same reading twice. Treat it as no baseline, so the tiles stay silent
+      // instead of showing a "±0" that never compared anything.
       var prev = app.prev || null;
+      // Claim a comparison only when the baseline is PROVABLY a different export:
+      // same timestamp means the same reading twice, and a missing one (snapshots
+      // written before this field existed) cannot be shown to differ.
+      if (prev && (!prev.funnel_read_utc || prev.funnel_read_utc === app.funnel_read_utc)) prev = null;
       // Every time series this app has data for — currently just installs and
       // page views, both from the same Partner Center "over time" export with a
       // different metric selected. An app only gets a selector once it has more
@@ -343,23 +380,33 @@
       // acquisition funnel — page views → attempts → installs → launches, with
       // each stage's conversion rate off the one before it (not off page views),
       // so "38% of viewers attempted, 95% of those installed" reads directly.
+      // Four ordered stages of ONE process, so the colour is an ordinal ramp in a
+      // single hue rather than four unrelated hues -- brighter as the funnel
+      // narrows and the visitor gets more committed. (It used to be grey, blue,
+      // accent, green, which reads as four separate categories.) Bar width is a
+      // percentage now, so the shape survives a narrow screen instead of being
+      // clipped at a fixed 300px.
       var funnel = [
-        ["Page views", app.page_views, "rgba(150,160,180,0.55)"],
-        ["Install attempts", app.install_attempts, "rgba(120,150,240,0.72)"],
-        ["Successful installs", app.downloads, cssVar("--accent")],
-        ["First launches", app.first_launches, "rgba(110,205,170,0.85)"]
+        ["Page views", app.page_views, "--ss-fn-1", "saw the listing"],
+        ["Install attempts", app.install_attempts, "--ss-fn-2", "pressed Get"],
+        ["Successful installs", app.downloads, "--ss-fn-3", "actually installed"],
+        ["First launches", app.first_launches, "--ss-fn-4", "opened it"]
       ];
       var fmax = app.page_views || app.install_attempts || 1;
       var fu = document.createElement("div"); fu.className = "ss-funnel";
       fu.innerHTML = '<p class="eyebrow eyebrow--rule" style="margin-bottom:.6rem">acquisition funnel · last 12 months</p>';
-      funnel.forEach(function (s, i) {
-        var row = document.createElement("div"); row.className = "ss-fn-row";
+      funnel.forEach(function (st, i) {
+        var row = document.createElement("div");
+        // The installs row is the page's headline number, so it is marked rather
+        // than left to be picked out of four similar bars.
+        row.className = "ss-fn-row" + (st[0] === "Successful installs" ? " is-key" : "");
         var conv = "";
-        if (i > 0 && funnel[i - 1][1]) conv = Math.round(100 * s[1] / funnel[i - 1][1]) + "% ↓";
-        row.innerHTML = '<span class="ss-fn-label">' + s[0] + '</span>' +
-          '<span class="ss-fn-bar" style="width:' + Math.max(3, Math.round(300 * s[1] / fmax)) + 'px;background:' + s[2] + '"></span>' +
-          '<span class="ss-fn-val">' + fmt(s[1]) + '</span>' +
-          '<span class="ss-fn-conv">' + conv + '</span>';
+        if (i > 0 && funnel[i - 1][1]) conv = Math.round(100 * st[1] / funnel[i - 1][1]) + "%";
+        row.innerHTML = '<span class="ss-fn-label">' + st[0] + '<em>' + st[3] + '</em></span>' +
+          '<span class="ss-fn-track"><span class="ss-fn-bar" style="width:' +
+            Math.max(1.2, 100 * st[1] / fmax).toFixed(2) + '%;background:var(' + st[2] + ')"></span></span>' +
+          '<span class="ss-fn-val">' + fmt(st[1]) + '</span>' +
+          '<span class="ss-fn-conv">' + (conv ? conv + ' of the step above' : '') + '</span>';
         fu.appendChild(row);
       });
       body.appendChild(fu);
@@ -386,9 +433,9 @@
 
         function paint(m) {
           eyebrow.textContent = (GRAN_WORD[m.gran] ? GRAN_WORD[m.gran] + " " : "") + "trend";
-          wrap.innerHTML = ""; wrap.appendChild(chart(m.series));
-          legend.innerHTML = '<span><b style="background:' + cssVar("--accent") + '"></b>' + m.unit + '</span>' +
-                             '<span><b style="background:#ffffff"></b>cumulative</span>';
+          wrap.innerHTML = ""; wrap.appendChild(chart(m.series, m.unit));
+          legend.innerHTML = '<span><b style="background:' + cssVar("--ss-series-1") + '"></b>' + m.unit + '</span>' +
+                             '<span><b style="background:' + cssVar("--ss-series-2") + '"></b>cumulative total</span>';
         }
         if (metrics.length > 1) {
           var buttons = metrics.map(function (m, i) {
@@ -406,62 +453,127 @@
       }
 
       var up = document.createElement("p"); up.className = "ss-updated";
-      up.textContent = "Last 12 months · read from Partner Center " +
-                       (app.updated_utc || "").replace("T", " ").replace("Z", " UTC") +
-                       (prev && prev.updated_utc ? " · previous snapshot " + prev.updated_utc.replace("T", " ").replace("Z", " UTC") : "");
+      // Date the funnel by when its CSV was exported, not by when the build ran.
+      // Re-exporting just the trend and rebuilding used to restamp these figures
+      // with today's date, which claimed a freshness they did not have.
+      var readAt = app.funnel_read_utc || app.updated_utc || "";
+      up.textContent = "Funnel and headline figures: last 12 months, read from Partner Center " +
+                       readAt.replace("T", " ").replace("Z", " UTC") +
+                       (metrics.length ? " · the trend above carries its own dates on the axis" : "") +
+                       (prev && prev.funnel_read_utc ? " · previous reading " + prev.funnel_read_utc.replace("T", " ").replace("Z", " UTC") : "");
       body.appendChild(up);
     }
 
-    function chart(series) {
+    // Per-period and cumulative are different measures on wildly different
+    // scales (weekly views in the tens, the running total in the thousands).
+    // They used to share one plot with two y-scales -- a dual-axis chart, where
+    // the crossing point of the two marks is an artefact of the scaling and
+    // means nothing. Two stacked panels over ONE shared x-axis say the same
+    // thing without inviting that reading.
+    function chart(series, perLabel) {
       var wrap = document.querySelector(".ss-chartwrap");
-      var W = Math.max(320, (wrap ? wrap.clientWidth : 800) - 32), H = 320, pad = { l: 46, r: 46, t: 16, b: 26 };
-      var iw = W - pad.l - pad.r, ih = H - pad.t - pad.b, n = series.length;
+      var W = Math.max(320, (wrap ? wrap.clientWidth : 800) - 32);
+      var pad = { l: 52, r: 14, t: 14, b: 24 };
+      var topH = 176, gap = 26, botH = 104;
+      var H = pad.t + topH + gap + botH + pad.b;
+      var iw = W - pad.l - pad.r, n = series.length;
+      var topY = pad.t, botY = pad.t + topH + gap;
+
       var maxD = Math.max.apply(null, series.map(function (s) { return s.d; }).concat([1]));
       var maxC = Math.max.apply(null, series.map(function (s) { return s.c; }).concat([1]));
-      var x = function (i) { return pad.l + (n <= 1 ? iw / 2 : iw * i / (n - 1)); };
-      var yD = function (v) { return pad.t + ih - ih * v / maxD; };
-      var yC = function (v) { return pad.t + ih - ih * v / maxC; };
-      var accent = cssVar("--accent") || "#4f7cff";
-      var svg = el("svg", { viewBox: "0 0 " + W + " " + H, class: "ss-chart", preserveAspectRatio: "none" });
-      // gridlines + y labels (left daily, right cumulative)
-      [0, 0.5, 1].forEach(function (f) {
-        var yy = pad.t + ih - ih * f;
-        svg.appendChild(el("line", { x1: pad.l, y1: yy, x2: W - pad.r, y2: yy, stroke: "rgba(140,150,170,0.18)", "stroke-width": 1 }));
-        svg.appendChild(el("text", { x: pad.l - 6, y: yy + 3, "text-anchor": "end", "font-size": 10, fill: "rgba(150,160,180,0.85)" }, fmt(Math.round(maxD * f))));
-        svg.appendChild(el("text", { x: W - pad.r + 6, y: yy + 3, "text-anchor": "start", "font-size": 10, fill: "rgba(150,160,180,0.85)" }, fmt(Math.round(maxC * f))));
-      });
-      // daily bars
-      var bw = Math.max(1, iw / Math.max(n, 1) * 0.7);
+      var x  = function (i) { return pad.l + (n <= 1 ? iw / 2 : iw * i / (n - 1)); };
+      var yD = function (v) { return topY + topH - topH * v / maxD; };
+      var yC = function (v) { return botY + botH - botH * v / maxC; };
+
+      var cPer = cssVar("--ss-series-1") || "#3987e5";
+      var cCum = cssVar("--ss-series-2") || "#d95926";
+      var cGrid = "rgba(140,150,170,0.16)", cAxis = "rgba(150,160,180,0.85)";
+      var svg = el("svg", { viewBox: "0 0 " + W + " " + H, class: "ss-chart",
+                            preserveAspectRatio: "xMidYMid meet", role: "img" });
+      svg.style.height = H + "px";
+
+      function panel(label, y0, h, maxV, colour) {
+        [0, 0.5, 1].forEach(function (f) {
+          var yy = y0 + h - h * f;
+          svg.appendChild(el("line", { x1: pad.l, y1: yy, x2: W - pad.r, y2: yy,
+                                       stroke: cGrid, "stroke-width": 1 }));
+          svg.appendChild(el("text", { x: pad.l - 8, y: yy + 3, "text-anchor": "end",
+                                       "font-size": 10, fill: cAxis }, fmt(Math.round(maxV * f))));
+        });
+        // Each panel names its own series, so identity never rests on colour alone.
+        var t = el("text", { x: pad.l, y: y0 - 5, "font-size": 10.5, fill: colour,
+                             "font-weight": 700 }, label);
+        svg.appendChild(t);
+      }
+      panel(perLabel, topY, topH, maxD, cPer);
+      panel("cumulative total", botY, botH, maxC, cCum);
+
+      // Per-period bars. A 2px surface gap between neighbours keeps adjacent
+      // weeks legible instead of reading as one solid block.
+      var slot = iw / Math.max(n, 1);
+      var bw = Math.max(1.5, Math.min(slot - 2, slot * 0.72));
       series.forEach(function (s, i) {
-        var hh = ih * s.d / maxD;
-        if (hh > 0.2) svg.appendChild(el("rect", { x: x(i) - bw / 2, y: yD(s.d), width: bw, height: Math.max(0.6, hh), fill: accent, opacity: 0.55, rx: 1 }));
+        var hh = topH * s.d / maxD;
+        if (hh <= 0.2) return;
+        svg.appendChild(el("rect", { x: x(i) - bw / 2, y: yD(s.d), width: bw,
+                                     height: Math.max(1, hh), fill: cPer,
+                                     rx: Math.min(2, bw / 2) }));
       });
-      // cumulative area + line
-      var areaD = "M" + x(0) + "," + (pad.t + ih), lineD = "";
-      series.forEach(function (s, i) { areaD += " L" + x(i) + "," + yC(s.c); lineD += (i ? " L" : "M") + x(i) + "," + yC(s.c); });
-      areaD += " L" + x(n - 1) + "," + (pad.t + ih) + " Z";
-      svg.appendChild(el("path", { d: areaD, fill: "rgba(255,255,255,0.06)" }));
-      svg.appendChild(el("path", { d: lineD, fill: "none", stroke: "#ffffff", "stroke-width": 2, "stroke-linejoin": "round" }));
-      // x labels: first, middle, last
+
+      // Cumulative area + line.
+      var areaD = "M" + x(0) + "," + (botY + botH), lineD = "";
+      series.forEach(function (s, i) {
+        areaD += " L" + x(i) + "," + yC(s.c);
+        lineD += (i ? " L" : "M") + x(i) + "," + yC(s.c);
+      });
+      areaD += " L" + x(n - 1) + "," + (botY + botH) + " Z";
+      svg.appendChild(el("path", { d: areaD, fill: cCum, opacity: 0.14 }));
+      svg.appendChild(el("path", { d: lineD, fill: "none", stroke: cCum,
+                                   "stroke-width": 2, "stroke-linejoin": "round",
+                                   "stroke-linecap": "round" }));
+
+      // x labels: first, middle, last -- shared by both panels.
       [0, Math.floor((n - 1) / 2), n - 1].forEach(function (i) {
         if (i < 0 || i >= n) return;
-        svg.appendChild(el("text", { x: x(i), y: H - 8, "text-anchor": i === 0 ? "start" : (i === n - 1 ? "end" : "middle"), "font-size": 10, fill: "rgba(150,160,180,0.85)" }, series[i].date));
+        svg.appendChild(el("text", { x: x(i), y: H - 7, "font-size": 10, fill: cAxis,
+          "text-anchor": i === 0 ? "start" : (i === n - 1 ? "end" : "middle") }, series[i].date));
       });
-      // hover: nearest-point tooltip
-      var tip = el("g", { visibility: "hidden" });
-      var tdot = el("circle", { r: 3.5, fill: "#fff" }), trect = el("rect", { rx: 4, fill: "rgba(10,14,22,0.92)", stroke: "rgba(255,255,255,0.15)" }), ttxt = el("text", { "font-size": 11, fill: "#fff" });
-      tip.appendChild(trect); tip.appendChild(tdot); tip.appendChild(ttxt); svg.appendChild(tip);
-      var hit = el("rect", { x: pad.l, y: pad.t, width: iw, height: ih, fill: "transparent" });
-      hit.addEventListener("mousemove", function (ev) {
-        var r = svg.getBoundingClientRect(), px = (ev.clientX - r.left) / r.width * W;
-        var i = Math.round((px - pad.l) / (iw / Math.max(n - 1, 1))); i = Math.max(0, Math.min(n - 1, i));
-        var s = series[i]; tdot.setAttribute("cx", x(i)); tdot.setAttribute("cy", yC(s.c));
-        ttxt.textContent = s.date + " · +" + fmt(s.d) + " · Σ " + fmt(s.c);
-        var tw = ttxt.getComputedTextLength ? ttxt.getComputedTextLength() + 14 : 150;
-        var tx = Math.min(Math.max(x(i) - tw / 2, pad.l), W - pad.r - tw), ty = Math.max(pad.t + 2, yC(s.c) - 30);
-        trect.setAttribute("x", tx); trect.setAttribute("y", ty); trect.setAttribute("width", tw); trect.setAttribute("height", 20);
-        ttxt.setAttribute("x", tx + 7); ttxt.setAttribute("y", ty + 14); tip.setAttribute("visibility", "visible");
-      });
+
+      // Hover: one crosshair down both panels, so a week is read in both at once.
+      var tip = el("g", { visibility: "hidden", "pointer-events": "none" });
+      var rule = el("line", { stroke: "rgba(255,255,255,0.28)", "stroke-width": 1 });
+      var dotD = el("circle", { r: 3.5, fill: cPer, stroke: "#141a27", "stroke-width": 2 });
+      var dotC = el("circle", { r: 3.5, fill: cCum, stroke: "#141a27", "stroke-width": 2 });
+      var trect = el("rect", { rx: 5, fill: "rgba(10,14,22,0.95)", stroke: "rgba(255,255,255,0.16)" });
+      var ttxt = el("text", { "font-size": 11, fill: "#fff" });
+      [rule, dotD, dotC, trect, ttxt].forEach(function (e) { tip.appendChild(e); });
+      svg.appendChild(tip);
+
+      var hit = el("rect", { x: pad.l, y: topY, width: iw, height: botY + botH - topY, fill: "transparent" });
+      function move(px) {
+        var i = Math.round((px - pad.l) / (iw / Math.max(n - 1, 1)));
+        i = Math.max(0, Math.min(n - 1, i));
+        var s = series[i], xi = x(i);
+        rule.setAttribute("x1", xi); rule.setAttribute("x2", xi);
+        rule.setAttribute("y1", topY); rule.setAttribute("y2", botY + botH);
+        dotD.setAttribute("cx", xi); dotD.setAttribute("cy", yD(s.d));
+        dotC.setAttribute("cx", xi); dotC.setAttribute("cy", yC(s.c));
+        ttxt.textContent = s.date + "  ·  " + fmt(s.d) + "  ·  \u03a3 " + fmt(s.c);
+        var tw = ttxt.getComputedTextLength ? ttxt.getComputedTextLength() + 16 : 170;
+        var tx = Math.min(Math.max(xi - tw / 2, pad.l), W - pad.r - tw);
+        var ty = topY + 2;
+        trect.setAttribute("x", tx); trect.setAttribute("y", ty);
+        trect.setAttribute("width", tw); trect.setAttribute("height", 21);
+        ttxt.setAttribute("x", tx + 8); ttxt.setAttribute("y", ty + 15);
+        tip.setAttribute("visibility", "visible");
+      }
+      function fromEvent(ev) {
+        var r = svg.getBoundingClientRect();
+        var pt = ev.touches ? ev.touches[0] : ev;
+        move((pt.clientX - r.left) / r.width * W);
+      }
+      hit.addEventListener("mousemove", fromEvent);
+      hit.addEventListener("touchmove", function (ev) { fromEvent(ev); ev.preventDefault(); }, { passive: false });
       hit.addEventListener("mouseleave", function () { tip.setAttribute("visibility", "hidden"); });
       svg.appendChild(hit);
       return svg;
