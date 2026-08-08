@@ -520,6 +520,9 @@ def main():
                          "cdas ~78 MB -- the scheduled backfill uses cfsr for that reason")
     ap.add_argument("--retry-blocked", action="store_true",
                     help="ignore the unavailable ledger and try those storms again")
+    ap.add_argument("--force", action="store_true",
+                    help="overwrite a storm file even when this run produced fewer "
+                         "initialisations than it already has")
     ap.add_argument("--prune", action="store_true",
                     help="delete each storm's analyses after it is written (CI: a CDAS storm is ~3.7 GB)")
     args = ap.parse_args()
@@ -682,7 +685,7 @@ def main():
             index["unavailable"].pop(sid, None)   # it built, so it is no longer blocked
         payload = {
             "storm": storm.get("name"), "sid": sid, "season": year,
-            "model": "Trackformer1.1 causal route + the frozen structure intensity/structure head",
+            "model": "Trackformer1.1 causal route + intensity/structure head",
             "source": ("NOAA CFSR 6-hourly low-resolution reanalysis (to 2011-03-31) / CDAS CFSv2 "
                        "6-hourly low-resolution analysis (from 2011-04-01, falling back to the "
                        "0.5 deg pressure file where it is missing), at or before each issue"),
@@ -696,6 +699,20 @@ def main():
             "runs": runs,
         }
         out = OUT_DIR / f"{sid}.json"
+        # Never trade a fuller file for a thinner one. A rebuild that loses most
+        # of its initialisations to archive 404s still writes -- and would replace
+        # 39 real hindcasts with the 1 that happened to fetch. That is silent data
+        # loss: the storm still appears in the index, just with almost nothing in
+        # it. Keep the richer file and say why, unless --force says otherwise.
+        if out.exists() and not args.force:
+            try:
+                have = len(json.loads(out.read_text()).get("runs") or [])
+            except Exception:
+                have = 0
+            if have > len(runs):
+                log(f"  keeping the existing {have} initialisations; this run produced only "
+                    f"{len(runs)} (archive gaps). Re-run with --force to overwrite anyway.")
+                continue
         out.write_text(json.dumps(payload, separators=(",", ":")) + "\n")
         scored = [r["track_mae_km"] for r in runs if "track_mae_km" in r]
         index["hindcasts"][sid] = {

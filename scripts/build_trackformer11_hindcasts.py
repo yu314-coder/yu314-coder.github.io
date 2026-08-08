@@ -14,7 +14,7 @@ yu314-coder/typhoon-predict's track_build/*_v62_pacific_domain_case_map.json
 manifests -- those carry the full Trackformer1.1 state, not just the route:
 
     track      lat/lon at 20 six-hour leads
-    intensity  vmax, central pressure, RMW  (frozen the frozen structure structure head,
+    intensity  vmax, central pressure, RMW  (frozen structure head,
                coupled to the causal pressure map)
     structure  four-quadrant R34/R50/R64
     ensemble   189 route members -> a cone from Trackformer1.1's OWN spread
