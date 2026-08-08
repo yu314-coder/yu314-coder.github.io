@@ -560,3 +560,152 @@ th:last-child {
   color: var(--muted);
 }
 .breakdown-note[hidden] { display: none; }
+
+/* ---------------------------------------------------------------------------
+   2026-08 refresh: the mirror switch, and a pass over the surfaces so the page
+   reads as panels of data rather than one flat slab. Appended rather than
+   edited in place so every rule above still applies and this only layers on
+   top -- nothing here changes what a number means, only how it is presented.
+   --------------------------------------------------------------------------- */
+
+.mirror-toggle {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 6px 12px;
+  margin-bottom: 14px;
+}
+.mirror-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+.segmented {
+  display: inline-flex;
+  justify-self: start;
+  padding: 3px;
+  gap: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #0d1426;
+}
+.mirror-opt {
+  height: 30px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 650;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.mirror-opt:hover:not([aria-pressed="true"]):not(:disabled) {
+  background: rgba(34, 211, 238, 0.1);
+  color: #a5f3fc;
+}
+.mirror-opt[aria-pressed="true"] {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #06121f;
+}
+.mirror-note {
+  grid-column: 1 / -1;
+  max-width: 74ch;
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+/* Surfaces: a hairline accent along the top of each panel, and enough depth to
+   separate the cards from the page behind the iframe. */
+.toolbar,
+.summary,
+.panel {
+  position: relative;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -18px rgba(0, 0, 0, 0.9);
+}
+.toolbar::before,
+.panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  border-radius: 12px 12px 0 0;
+  background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.5), rgba(168, 85, 247, 0.4), transparent);
+}
+.toolbar {
+  padding: 20px;
+}
+
+h1 {
+  background: linear-gradient(120deg, var(--text) 30%, var(--accent) 75%, var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -0.015em;
+}
+
+/* Summary cards: rules between cells instead of only to the right, so the grid
+   still reads correctly once it wraps to two columns on a narrow screen. */
+.summary {
+  background: var(--line);
+  padding: 1px;
+}
+.summary div {
+  background: var(--panel);
+  border-right: 0;
+  transition: background 0.14s ease;
+}
+.summary div:hover {
+  background: #17203a;
+}
+.summary strong {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  background: linear-gradient(120deg, var(--text), var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+td,
+.bar-list strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.chip {
+  transition: background 0.14s ease, transform 0.1s ease;
+}
+.chip:active {
+  transform: translateY(1px);
+}
+
+button:not(.chip):not(.mirror-opt) {
+  background: linear-gradient(135deg, var(--accent), #0ea5b7);
+  color: #06121f;
+}
+
+@media (max-width: 720px) {
+  .summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .mirror-toggle {
+    grid-template-columns: 1fr;
+  }
+  .segmented {
+    width: 100%;
+  }
+  .mirror-opt {
+    flex: 1;
+  }
+}
+
+/* The note turns into a warning when it is explaining why the choice above it
+   cannot bite -- muted grey there reads as boilerplate and gets skipped. */
+.mirror-note.is-warn {
+  padding: 8px 10px;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: 8px;
+  background: rgba(251, 191, 36, 0.08);
+  color: #fcd34d;
+}

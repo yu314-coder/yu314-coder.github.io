@@ -26,13 +26,31 @@ def fetch(pkg):
     req = urllib.request.Request(url, headers={"User-Agent": "yu314-coder.github.io stats refresher"})
     with urllib.request.urlopen(req, timeout=30) as resp:
         data = json.load(resp)
-    # sum the with-mirrors series (matches the ClickHouse counts) per day
+    # Keep BOTH series, not just one.
+    #
+    # pypistats splits every day into with_mirrors and without_mirrors. Mirrors
+    # are bandwidth: CDN and mirror fetches, CI caches, anything re-serving the
+    # file rather than a person or a build installing it. The difference between
+    # the two is often most of the number, and which one you want depends on the
+    # question -- "how much traffic did this cause" is a different question from
+    # "how many installs were there".
+    #
+    # Only with_mirrors used to be stored, so the page could not answer the
+    # second question at all and the choice had already been made for the reader.
     per_day = {}
     for row in data.get("data", []):
-        if row.get("category") != "with_mirrors":
+        cat = row.get("category")
+        if cat not in ("with_mirrors", "without_mirrors"):
             continue
-        per_day[row["date"]] = per_day.get(row["date"], 0) + int(row.get("downloads") or 0)
-    return [{"date": d, "downloads": per_day[d]} for d in sorted(per_day)]
+        d = per_day.setdefault(row["date"], {"with_mirrors": 0, "without_mirrors": 0})
+        d[cat] += int(row.get("downloads") or 0)
+    # `downloads` stays as the with-mirrors figure so an older page still reads
+    # this file correctly.
+    return [{"date": d,
+             "downloads": per_day[d]["with_mirrors"],
+             "with_mirrors": per_day[d]["with_mirrors"],
+             "without_mirrors": per_day[d]["without_mirrors"]}
+            for d in sorted(per_day)]
 
 
 def main():
@@ -50,7 +68,10 @@ def main():
         }
         with open(os.path.join(OUT_DIR, f"{pkg}.json"), "w") as f:
             json.dump(out, f, separators=(",", ":"))
-        print(f"{pkg}: {len(rows)} days, latest {rows[-1]['date'] if rows else 'none'}")
+        last = rows[-1] if rows else None
+        print(f"{pkg}: {len(rows)} days, latest "
+              + (f"{last['date']} ({last['with_mirrors']} with mirrors, "
+                 f"{last['without_mirrors']} without)" if last else "none"))
 
 
 if __name__ == "__main__":

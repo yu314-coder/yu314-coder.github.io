@@ -16,7 +16,15 @@ const PYPISTATS_URL = "https://pypistats.org/api/packages/";
 const CORS_PROXY = "https://cors.eu.org/";
 const formatNumber = new Intl.NumberFormat();
 
-// Fresh per-day totals (with mirrors) as [{date, downloads}] ascending. Prefers a
+// Which of the two series the reader has asked for. Mirrors are bandwidth --
+// CDN and mirror fetches, CI caches, anything re-serving the file rather than a
+// person or a build installing it. The gap is often most of the number
+// (python-to-binary: 2940 with, 936 without on the same day), so this is a real
+// question rather than a rounding preference, and the page should not answer it
+// on the reader's behalf.
+let countMirrors = true;
+
+// Fresh per-day totals as [{date, downloads}] ascending. Prefers a
 // same-origin snapshot (assets/pypi-tracker/data/<pkg>.json) that a daily GitHub
 // Action commits — always reachable, no proxy — and falls back to a live fetch
 // via a CORS proxy for packages that aren't snapshotted. Throws on total failure
@@ -27,7 +35,15 @@ async function fetchPypistatsDaily(pkg) {
     if (snap.ok) {
       const j = await snap.json();
       if (Array.isArray(j.rows) && j.rows.length) {
-        return j.rows.map((r) => ({ date: r.date, downloads: Number(r.downloads || 0) }));
+        return j.rows.map((r) => ({
+          date: r.date,
+          // Older snapshots only carry `downloads`, which was always the
+          // with-mirrors figure. Fall back to it so a stale file still reads.
+          downloads: Number(
+            (countMirrors
+              ? (r.with_mirrors !== undefined ? r.with_mirrors : r.downloads)
+              : (r.without_mirrors !== undefined ? r.without_mirrors : r.downloads)) || 0)
+        }));
       }
     }
   } catch (_) { /* no snapshot for this package — try the live proxy below */ }
@@ -37,7 +53,7 @@ async function fetchPypistatsDaily(pkg) {
   const json = await res.json();
   const byDate = new Map();
   for (const row of json.data || []) {
-    if (row.category !== "with_mirrors") continue;
+    if (row.category !== (countMirrors ? "with_mirrors" : "without_mirrors")) continue;
     byDate.set(row.date, (byDate.get(row.date) || 0) + Number(row.downloads || 0));
   }
   return Array.from(byDate, ([date, downloads]) => ({ date, downloads }))
@@ -58,7 +74,36 @@ function applyFullHistoryState() {
   const disabled = fullHistory.checked;
   startDate.disabled = disabled;
   endDate.disabled = disabled;
+  // Full history is served by ClickHouse, which carries no mirror split. Say so,
+  // but never disable the buttons -- a control that cannot be pressed gives the
+  // reader nothing to learn from, and the note is the honest way to explain it.
+  const note = document.querySelector("#mirror-note");
+  if (note) {
+    note.textContent = disabled
+      ? "Full history is served by ClickPy, which has no mirror split, so this choice only changes the recent-range view. Untick Full history to use it."
+      : MIRROR_NOTE;
+    note.classList.toggle("is-warn", disabled);
+  }
 }
+
+const MIRROR_NOTE = document.querySelector("#mirror-note")
+  ? document.querySelector("#mirror-note").textContent.trim().replace(/\s+/g, " ")
+  : "";
+
+// The two series are the same query displayed differently, so flipping the flag
+// and re-running is the whole implementation -- chart, total and table move
+// together and nothing can drift out of step with the button.
+document.querySelectorAll(".mirror-opt").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const on = btn.dataset.mirrors === "1";
+    if (on === countMirrors) return;
+    countMirrors = on;
+    document.querySelectorAll(".mirror-opt").forEach((b) => {
+      b.setAttribute("aria-pressed", String((b.dataset.mirrors === "1") === on));
+    });
+    if (startDate.value && endDate.value) form.requestSubmit();
+  });
+});
 
 function renderBars(targetId, rows) {
   const target = document.querySelector(targetId);
@@ -258,14 +303,25 @@ async function webAnalyze(payload) {
     // range pypistats actually covers (it keeps ~180 days) — full history stays on
     // ClickHouse. Any proxy/parse failure silently keeps the ClickHouse data, so a
     // flaky proxy never breaks the query; worst case is the old (lagging) chart.
+    //
+    // This used to additionally require that pypistats covered the WHOLE requested
+    // range, and fall back to ClickHouse otherwise. That quietly broke the mirror
+    // switch: ClickHouse has no mirror split, so on any range starting before the
+    // snapshot began, both settings drew the same series and the button looked
+    // dead. pypistats is the only source that can answer the question at all, so
+    // whenever it has days in range it wins, and the shorter window it covers is
+    // reported rather than hidden.
+    let dailyClamped = false;
     if (!options.fullHistory) {
       try {
         const ps = await fetchPypistatsDaily(options.package);
         const inRange = ps.filter((r) => r.date >= options.startDate && r.date <= options.endDate);
-        if (inRange.length && ps[0].date <= options.startDate) {
+        if (inRange.length) {
           daily = inRange;
           total = inRange.reduce((sum, r) => sum + r.downloads, 0);
-          dailySource = "pypistats.org";
+          dailySource = "pypistats.org · " + (countMirrors ? "with mirrors" : "without mirrors");
+          dailyClamped = inRange[0].date > options.startDate ||
+                         inRange[inRange.length - 1].date < options.endDate;
         }
       } catch (_) { /* keep the ClickHouse daily series */ }
     }
@@ -279,6 +335,7 @@ async function webAnalyze(payload) {
         fullHistory: options.fullHistory,
         totalDownloads: total,
         dailySource,
+        dailyClamped,
         breakdownLatest,
         countries: normalizeRows(countries),
         packageVersions: normalizeRows(packageVersions),
@@ -508,6 +565,16 @@ function renderResult(data) {
   document.querySelector("#total-downloads").textContent = formatNumber.format(
     data.totalDownloads,
   );
+  // When the daily series is shorter than the range that is still sitting in the
+  // Start/End boxes, this total covers the shorter window. Saying which one keeps
+  // the big number from being read against the dates the reader typed.
+  const totalLabel = document.querySelector("#total-label");
+  if (totalLabel) {
+    const d = data.dailyDownloads;
+    totalLabel.textContent = (data.dailyClamped && d && d.length)
+      ? `Total downloads · ${d[0].date} to ${d[d.length - 1].date}`
+      : "Total downloads";
+  }
   document.querySelector("#country-count").textContent = formatNumber.format(
     data.countries.length,
   );
@@ -571,6 +638,11 @@ async function loadDefaults() {
 }
 
 fullHistory.addEventListener("change", applyFullHistoryState);
+// Browsers restore checkbox state across a reload, so the box can already be
+// ticked before anyone touches it. Without this call the page would then show
+// enabled date fields and an unswapped note while actually running a
+// full-history query -- which is how the mirror switch came to look broken.
+applyFullHistoryState();
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
