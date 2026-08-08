@@ -1954,8 +1954,15 @@
       // Trackformer1.0" there claims a second model ran when the arrays are simply
       // absent -- which is what the readout shows as dashes.
       var iSrc = pre.intensity_source;
+      // A run can have wind and pressure but no wind FIELD: those are re-anchored to
+      // the observed intensity downstream, while RMW and the radii need an observed
+      // structure to take a residual from and are simply absent without one.
+      var hasField = pre.rmw_km || pre.radii_km;
       var intensityNote =
-          iSrc === "trackformer11" ? " for everything here — track, wind, pressure, RMW and the 34/50/64 kt radii."
+          iSrc === "trackformer11" && hasField ? " for everything here — track, wind, pressure, RMW and the 34/50/64 kt radii."
+        : iSrc === "trackformer11" ? " for the track, wind and pressure. No RMW or wind-radius forecast:"
+                                     + " those need the storm's observed wind field as a starting point, and a live"
+                                     + " fix doesn't report one, so none is drawn rather than one that would be wrong."
         : iSrc === "trackformer10" ? " for the track; wind and pressure come from the historical Trackformer1.0"
                                      + " because Trackformer1.1's structure head couldn't run for this storm."
         : " for the track only. Its structure head could not run for this storm, so there is no wind,"

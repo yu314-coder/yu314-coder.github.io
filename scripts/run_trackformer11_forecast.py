@@ -633,8 +633,20 @@ def process_storm(tc, models):
         if rows:
             out["vmax_kt"] = [round(float(r["vmax_kt"]), 1) for r in rows]
             out["pres_hpa"] = [round(float(r.get("pressure_hpa", r.get("central_pressure_hpa"))), 1) for r in rows]
-            out["rmw_km"] = [round(float(r["rmw_km"]), 1) for r in rows]
-            out["radii_km"] = [[round(float(x), 1) for x in r["wind_radii_km"]] for r in rows]
+            # Wind and pressure survive an unanchored run because
+            # couple_forecast_to_pressure_map re-anchors them to the observed
+            # current intensity. RMW and the quadrant radii do not: the structure
+            # head is residual, and with nothing to take a residual FROM its output
+            # is not merely noisy but wrong by an order of magnitude -- on the first
+            # live run it put Dolphin's 50 kt radius at 9 km while JMA had the storm
+            # radius at 272 km, and those numbers get drawn as rings on the map.
+            # A live fix carries no observed radii, so ship none rather than rings
+            # that are eight times too small.
+            anchored = int(np.isfinite(observed_structure(fixes[-1])).sum())
+            if anchored:
+                out["rmw_km"] = [round(float(r["rmw_km"]), 1) for r in rows]
+                out["radii_km"] = [[round(float(x), 1) for x in r["wind_radii_km"]] for r in rows]
+            out["structure_anchor"] = anchored
             out["intensity_source"] = "trackformer11"
             tf11["intensity_model"] = meta
         else:
