@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-08T17:00:17Z",
+  "generated_at": "2026-08-08T17:42:01Z",
   "storms": {
     "TC2615": {
       "issue_time": "2026-08-08T16:00",
@@ -121,6 +121,7 @@
       "tcId": "TC2615",
       "name": "Dolphin",
       "track_source": "trackformer11",
+      "structure_anchor": 0,
       "intensity_source": "trackformer11",
       "trackformer11": {
         "lats": [
@@ -1406,8 +1407,7 @@
         "official_forecasts_used_for_inference": false,
         "forecast_products_used": [],
         "enforcement": "every input above was checked against the issue time before use; a later-valid input raises CausalityError and the storm falls back"
-      },
-      "structure_anchor": 0
+      }
     },
     "TC2617": {
       "issue_time": "2026-08-08T15:00",
@@ -1529,6 +1529,7 @@
       "tcId": "TC2617",
       "name": "Chan-hom",
       "track_source": "trackformer11",
+      "structure_anchor": 0,
       "intensity_source": "trackformer11",
       "trackformer11": {
         "lats": [
@@ -2439,8 +2440,7 @@
         "official_forecasts_used_for_inference": false,
         "forecast_products_used": [],
         "enforcement": "every input above was checked against the issue time before use; a later-valid input raises CausalityError and the storm falls back"
-      },
-      "structure_anchor": 0
+      }
     }
   }
 }
