@@ -337,6 +337,36 @@ def intensity_records(fixes):
     return rows
 
 
+
+# Trackformer1.1's primary intensity experts are structure-residual: they predict a
+# correction on top of the storm's OBSERVED structure, so predict() wants a 13-vector
+# -- RMW then R34/R50/R64 by quadrant, in nautical miles, the model's native unit --
+# and raises without it. The set they replaced (v37G) was not residual and took no
+# such argument, which is why both callers passed six positional arguments and both
+# started failing the moment the bundle moved to 1.1.
+#
+# Anything not observed goes in as NaN. That is the model's own contract for missing
+# structure, not a workaround: it derives structure_available from isfinite(), so an
+# absent anchor contributes exactly zero to the state and the expert falls back to
+# predicting the absolute value -- the behaviour the non-residual set had. Wind and
+# pressure are still anchored downstream by couple_forecast_to_pressure_map.
+_STRUCTURE_FIELDS = (("rmw_nm",)
+                     + tuple(f"r{a}_{q}_nm" for a in (34, 50, 64) for q in ("ne", "se", "sw", "nw")))
+
+
+def observed_structure(rec):
+    """The 13-vector predict() anchors on, NaN wherever the fix does not report it."""
+    out = np.full(len(_STRUCTURE_FIELDS), np.nan, dtype="float32")
+    for i, key in enumerate(_STRUCTURE_FIELDS):
+        v = rec.get(key)
+        if v is not None:
+            try:
+                out[i] = float(v)
+            except (TypeError, ValueError):
+                pass
+    return out
+
+
 def tf11_intensity(fixes, field, state_pressure, state_fields, lat, lon,
                   base_lat, base_lon, route_points):
     """vmax / central pressure / RMW / R34-R50-R64, then coupled to Trackformer1.1's own
@@ -374,7 +404,8 @@ def tf11_intensity(fixes, field, state_pressure, state_fields, lat, lon,
     rows, meta = intensity_model().predict(
         track, field,
         float(cur["vmax_kt"]), float(cur["pressure_hpa"]),
-        fnum(prev["vmax_kt"], cur["vmax_kt"]), fnum(prev["pressure_hpa"], cur["pressure_hpa"]))
+        fnum(prev["vmax_kt"], cur["vmax_kt"]), fnum(prev["pressure_hpa"], cur["pressure_hpa"]),
+        current_structure=observed_structure(cur))
     rows, map_meta = couple_forecast_to_pressure_map(
         rows, state_pressure, state_fields, lat, lon, base_lat, base_lon,
         route_points, float(cur["vmax_kt"]), float(cur["pressure_hpa"]))

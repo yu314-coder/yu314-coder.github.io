@@ -311,6 +311,47 @@ def pct(vals, p):
 
 
 # ---------------------------------------------------------------------------
+
+# Trackformer1.1's primary intensity experts are structure-residual: they predict a
+# correction on top of the storm's OBSERVED structure, so predict() wants a 13-vector
+# -- RMW then R34/R50/R64 by quadrant, in nautical miles, the model's native unit --
+# and raises without it. The set they replaced (v37G) was not residual and took no
+# such argument, which is why both callers passed six positional arguments and both
+# started failing the moment the bundle moved to 1.1.
+#
+# Anything not observed goes in as NaN. That is the model's own contract for missing
+# structure, not a workaround: it derives structure_available from isfinite(), so an
+# absent anchor contributes exactly zero to the state and the expert falls back to
+# predicting the absolute value -- the behaviour the non-residual set had. Wind and
+# pressure are still anchored downstream by couple_forecast_to_pressure_map.
+_STRUCTURE_FIELDS = (("rmw_nm",)
+                     + tuple(f"r{a}_{q}_nm" for a in (34, 50, 64) for q in ("ne", "se", "sw", "nw")))
+
+
+def nm(km_value):
+    """Site JSONs store radii in km; the model was trained on IBTrACS nautical miles."""
+    if km_value is None:
+        return None
+    try:
+        v = float(km_value)
+    except (TypeError, ValueError):
+        return None
+    return v / 1.852 if v >= 0 else None
+
+
+def observed_structure(rec):
+    """The 13-vector predict() anchors on, NaN wherever the fix does not report it."""
+    out = np.full(len(_STRUCTURE_FIELDS), np.nan, dtype="float32")
+    for i, key in enumerate(_STRUCTURE_FIELDS):
+        v = rec.get(key)
+        if v is not None:
+            try:
+                out[i] = float(v)
+            except (TypeError, ValueError):
+                pass
+    return out
+
+
 def run_storm(sid, season_year, storm, intensity_on=True):
     sys.path.insert(0, TF11_SRC)
     sys.path.insert(0, str(Path(TF11_SRC) / "scripts"))
@@ -443,10 +484,20 @@ def run_storm(sid, season_year, storm, intensity_on=True):
                 model, build_win, couple = intensity
                 recs = []
                 for p in pts[max(0, i - 8): i + 1]:
-                    recs.append({"time_utc": p["t"] + "Z", "lat": float(p["la"]), "lon": float(p["lo"]),
-                                 "vmax_kt": p.get("w"), "pressure_hpa": p.get("p"),
-                                 "rmw_nm": None, "roci_nm": None, "dist2land_km": None,
-                                 **{f"r{a}_{q}_nm": None for a in (34, 50, 64) for q in ("ne", "se", "sw", "nw")}})
+                    rec = {"time_utc": p["t"] + "Z", "lat": float(p["la"]), "lon": float(p["lo"]),
+                           "vmax_kt": p.get("w"), "pressure_hpa": p.get("p"),
+                           "rmw_nm": nm(p.get("rm")), "roci_nm": None, "dist2land_km": None}
+                    # The observed wind field, which the intensity head anchors on. The
+                    # season files carry it per fix as rm / r3 / r5 / r6 -- RMW and the
+                    # R34/R50/R64 quadrants, NE,SE,SW,NW, in KILOMETRES (they were built
+                    # from IBTrACS nautical miles times 1.852). The model wants the native
+                    # nautical miles back, so divide. Pre-2001 storms have no quadrant
+                    # reporting at all and stay None, which the head reads as unavailable.
+                    for alpha, key in ((34, "r3"), (50, "r5"), (64, "r6")):
+                        quad = p.get(key) or [None] * 4
+                        for q, v in zip(("ne", "se", "sw", "nw"), quad):
+                            rec[f"r{alpha}_{q}_nm"] = nm(v)
+                    recs.append(rec)
                 cw, cp = recs[-1]["vmax_kt"], recs[-1]["pressure_hpa"]
                 if cw is not None and cp is not None:
                     tw, _, _ = build_win(recs, stats["tmean"].astype("float32"),
@@ -457,9 +508,11 @@ def run_storm(sid, season_year, storm, intensity_on=True):
                     raw = np.stack([mslp0 - float(mslp0.mean()), mslp0 - mslp_prev, u_dlm, v_dlm], 0).astype("float32")
                     field = np.clip(raw / DLM4_SCALE[:, None, None], -4.0, 4.0).astype("float32")
                     prev = recs[-2] if len(recs) > 1 else recs[-1]
+                    anchor = observed_structure(recs[-1])
                     rows, _meta = model.predict(tw, field, float(cw), float(cp),
                                                 float(prev["vmax_kt"] if prev["vmax_kt"] is not None else cw),
-                                                float(prev["pressure_hpa"] if prev["pressure_hpa"] is not None else cp))
+                                                float(prev["pressure_hpa"] if prev["pressure_hpa"] is not None else cp),
+                                                current_structure=anchor)
                     sf_, sp_, _ = forecast_pacific_state(fields, press)
                     rows, _ = couple(rows, sp_, sf_, lat, lon, base_lat, base_lon,
                                      [{"lead_hours": h, "lat": a, "lon": o}
@@ -468,6 +521,11 @@ def run_storm(sid, season_year, storm, intensity_on=True):
                     run["pres_hpa"] = [round(float(r.get("pressure_hpa", r.get("central_pressure_hpa")))) for r in rows]
                     run["rmw_km"] = [round(float(r["rmw_km"])) for r in rows]
                     run["radii_km"] = [[round(float(x)) for x in r["wind_radii_km"]] for r in rows]
+                    # How many of the 13 observed-structure slots the head actually had.
+                    # Pre-2001 storms report no quadrants, so their runs are unanchored and
+                    # their radii are correspondingly weaker -- worth recording rather than
+                    # leaving two different things looking identical in the same file.
+                    run["structure_anchor"] = int(np.isfinite(anchor).sum())
                     run["has_intensity"] = True
 
             # post-issue truth is used ONLY to score, never to forecast
