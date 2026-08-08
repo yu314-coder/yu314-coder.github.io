@@ -3288,6 +3288,24 @@
 
     // Unfold the wall bounces: the path is a triangle wave over the playable
     // span, so one modulo gets the landing point without a stepped simulation.
+    // Straight-line extrapolation with the walls unfolded. It does NOT model
+    // GALE, and that is deliberate rather than an oversight.
+    //
+    // Under GALE stepBalls adds `gale` to dx once a frame, so the true
+    // displacement is f*(N*dx + gale*N*(N-1)/2) and this is out by the second
+    // term -- measured at 36.8px over 40 frames against a 104px bat, which is
+    // a big error. Adding the term takes it to 1.7px, so the physics fix
+    // works exactly as intended.
+    //
+    // It also makes the bot play slightly WORSE. Paired A/B, two seed
+    // families, n=18-20 a row: ordinary normal -0.72 then -0.25, hard -0.11
+    // then -0.55, easy -0.05, buried normal 0.00. Six cells, none positive.
+    // Everything downstream -- aimBias, the arrival grouping, plannedShot's
+    // reachable span -- was tuned against this predictor's actual behaviour,
+    // so correcting one term in isolation moves the aim off what the rest
+    // expects. Fixing it properly would mean retuning the aim around it, which
+    // is a much larger change than the error justifies given GALE is one
+    // mutator among six.
     predictX: function(ball, frames, canvas, factor) {
       const lo = ball.radius, hi = canvas.width - ball.radius;
       const span = hi - lo;
