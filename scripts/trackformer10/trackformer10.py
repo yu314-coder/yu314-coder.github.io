@@ -4,7 +4,7 @@ prediction (v21) plus a temporal history of that steering representation (Trackf
 
 This file has zero notebook/exec tricks: every class below is copied verbatim from the training
 scripts that produced the released checkpoints (colab_train_v17.ipynb for TrackFormerV17, the "Base"
-that v21/Trackformer1.0 build on; colab_v26_train.py for TrackFormerCoT, v21's chain-of-thought forward pass;
+that v21/v23 build on; colab_v26_train.py for TrackFormerCoT, v21's chain-of-thought forward pass;
 colab_v28_train.py for HistStem/TrackFormerHist, Trackformer1.0's temporal-history addition) -- so this module
 IS the architecture the checkpoints were trained with, not a reimplementation from memory. See
 run_v23.py for how to load a checkpoint and get a forecast, in either IBTrACS-only or full-steering
@@ -28,7 +28,7 @@ TARGET_SCALE = torch.tensor([100., 100., 35., 20., 50.] + [50.] * 12)
 # produced the checkpoints. STEER_DROP only affects self.training branches, irrelevant at eval.
 G = {"KIN_COLS": KIN_COLS, "THERMO_COLS": THERMO_COLS, "ENV_COLS": ENV_COLS, "STEER_DROP": 0.0}
 STEER_DROP = 0.0     # bare-name fallback referenced by TrackFormerV17.forward (never actually
-                      # called for v21/Trackformer1.0 -- TrackFormerCoT overrides forward entirely -- kept
+                      # called for v21/v23 -- TrackFormerCoT overrides forward entirely -- kept
                       # only so the class body is valid to define)
 USE_FLOW = 1
 USE_HIST = 1
@@ -58,7 +58,7 @@ def dec(d, h, ffn, dr, depth):
 
 class TrackFormerV17(nn.Module):
     """Base architecture: track/thermo/env history encoders + steering-CNN + cross-attention
-    decoders. v21/Trackformer1.0 build on this but override forward() -- it is never called directly for Trackformer1.0,
+    decoders. v21/v23 build on this but override forward() -- it is never called directly for Trackformer1.0,
     kept here only because TrackFormerCoT inherits __init__ from it."""
 
     def __init__(self, d=256, h=8, ffn=1024, dr=0.15, hist=9, leads=20):

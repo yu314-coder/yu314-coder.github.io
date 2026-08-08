@@ -2020,7 +2020,7 @@
        Trackformer1.1 -> Trackformer1.1  the current release. Server-side causal route plus
                               the structure head. The same model, not just the
                               same name: the 1.1 checkpoints upstream are
-                              byte-identical to the v37/Trackformer1.1 weights this pipeline
+                              byte-identical to the v37/v62 weights this pipeline
                               already ran.
        Trackformer1.0 -> Trackformer1.0  a historical release; the field-free 5-seed int8
                               ensemble that runs in the browser. The release notes

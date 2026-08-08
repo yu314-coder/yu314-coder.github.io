@@ -81,7 +81,7 @@ UA = {"User-Agent": "typhoon-tracker-history-builder/1.0 (+https://yu314-coder.g
 # to a thousand requests an hour at a public archive, and it started refusing
 # them. The fetches dominate wall-clock anyway, so this costs little and is the
 # difference between a courteous client and one that gets blocked.
-FETCH_PAUSE_S = float(os.environ.get("V62_FETCH_PAUSE", "0.4"))
+FETCH_PAUSE_S = float(os.environ.get("TF11_FETCH_PAUSE", "0.4"))
 # Wall-clock budget. The archive does not only refuse or answer -- it can also
 # answer slowly, and a storm that normally takes five minutes can then take an
 # hour. Without a budget the job runs until the runner kills it, and a killed
@@ -343,8 +343,8 @@ def run_storm(sid, season_year, storm, intensity_on=True):
         except Exception as e:
             log(f"  intensity head unavailable ({type(e).__name__}: {e}); track only")
 
-    stats = np.load(HERE / "Trackformer1.0" / "trackformer10_norm_stats.npz")
-    terr = np.load(HERE / "Trackformer1.0" / "trackformer10_terrain_wp.npz")
+    stats = np.load(HERE / "trackformer10" / "trackformer10_norm_stats.npz")
+    terr = np.load(HERE / "trackformer10" / "trackformer10_terrain_wp.npz")
     ri, ci = np.where(terr["lsm"] > 0.5)
     land_lat, land_lon = terr["lat"][ri].astype("float32"), terr["lon"][ci].astype("float32")
 

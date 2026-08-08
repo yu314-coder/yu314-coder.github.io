@@ -45,18 +45,27 @@ jobs:
 
       # The Trackformer1.0 seeds (~500 MB, git-lfs) that the fallback path still loads.
       #
-      # DO NOT BUMP THIS KEY. typhoon-predict deleted models/Trackformer1.0 from its default
+      # DO NOT BUMP THIS KEY. typhoon-predict deleted models/v23 from its default
       # branch when it published Trackformer1.1, so the "Checkout weights" step
       # below can no longer fetch them -- this cache is the only surviving copy
       # the job can reach. A bump would evict it with nothing to restore from.
       # If these are ever needed again from scratch they must be re-published
       # upstream first.
+      # The Trackformer1.0 seeds (~500 MB, git-lfs) the fallback path still loads.
+      #
+      # THE KEY BELOW IS A LITERAL AND MUST NOT CHANGE -- not to bump it, not to
+      # tidy the name. Upstream deleted models/v23 when it published
+      # Trackformer1.1, so this cache entry is the only copy of those weights any
+      # runner can still reach, and an Actions cache is addressed by exact string:
+      # renaming the key misses just as surely as bumping it, and the re-fetch
+      # below then has nothing to restore from. The v62- prefix is a dead label
+      # kept alive by that one constraint.
       - name: Cache Trackformer1.0 weights
         id: cache-weights
         uses: actions/cache@v4
         with:
           path: typhoon-predict-models
-          key: trackformer10-weights-v3
+          key: v62-weights-v3
 
       - name: Checkout weights
         if: steps.cache-weights.outputs.cache-hit != 'true'
@@ -66,20 +75,32 @@ jobs:
           lfs: true
           sparse-checkout-cone-mode: false
           sparse-checkout: |
-            models/Trackformer1.0
+            models/v23
           path: typhoon-predict-weights
 
       - name: Move weights into cache path
         if: steps.cache-weights.outputs.cache-hit != 'true'
         run: |
-          mkdir -p typhoon-predict-models/Trackformer1.0
-          if [ -d typhoon-predict-weights/models/Trackformer1.0 ]; then
-            mv typhoon-predict-weights/models/Trackformer1.0/* typhoon-predict-models/Trackformer1.0/
+          mkdir -p typhoon-predict-models/trackformer10
+          # models/v23 was the upstream path; it no longer exists, so this only
+          # succeeds against an older ref. On a miss, say so rather than failing.
+          if [ -d typhoon-predict-weights/models/v23 ]; then
+            mv typhoon-predict-weights/models/v23/* typhoon-predict-models/trackformer10/
           else
-            echo "::warning::models/Trackformer1.0 is no longer published upstream and the cache missed;" \
-                 "the Trackformer1.0 fallback will be unavailable this run"
+            echo "::warning::models/v23 is no longer published upstream and the cache missed;" \
+                 "the Trackformer1.0 fallback is unavailable this run"
           fi
           rm -rf typhoon-predict-weights
+
+      # The cached blob was written when the directory was still called v23, and
+      # it cannot be rewritten without losing it. Normalise the name on the way
+      # in so everything downstream sees one spelling.
+      - name: Normalise the restored weights directory
+        run: |
+          if [ -d typhoon-predict-models/v23 ] && [ ! -d typhoon-predict-models/trackformer10 ]; then
+            mv typhoon-predict-models/v23 typhoon-predict-models/trackformer10
+          fi
+          ls typhoon-predict-models || true
 
       # Trackformer1.1's checkpoint bundle, cached separately so it can be
       # re-fetched without touching the Trackformer1.0 cache above.
@@ -146,15 +167,15 @@ jobs:
       - name: Cache GFS analysis files
         uses: actions/cache@v4
         with:
-          path: /tmp/Trackformer1.1-grib
-          key: Trackformer1.1-grib-${{ github.run_id }}
-          restore-keys: Trackformer1.1-grib-
+          path: /tmp/trackformer11-grib
+          key: trackformer11-grib-${{ github.run_id }}
+          restore-keys: trackformer11-grib-
 
       - name: Prune GFS cache older than 3 days
         run: |
-          mkdir -p /tmp/Trackformer1.1-grib
-          find /tmp/Trackformer1.1-grib -name '*.grib2' -mtime +3 -delete || true
-          echo "cached cycles: $(ls -1 /tmp/Trackformer1.1-grib 2>/dev/null | wc -l)"
+          mkdir -p /tmp/trackformer11-grib
+          find /tmp/trackformer11-grib -name '*.grib2' -mtime +3 -delete || true
+          echo "cached cycles: $(ls -1 /tmp/trackformer11-grib 2>/dev/null | wc -l)"
 
       - uses: actions/setup-python@v5
         with:
@@ -169,9 +190,9 @@ jobs:
 
       - name: Run Trackformer1.1 + Trackformer1.0 forecast
         env:
-          V23_MODELS_DIR: ${{ github.workspace }}/typhoon-predict-models/Trackformer1.0
+          TF10_MODELS_DIR: ${{ github.workspace }}/typhoon-predict-models/trackformer10
           TF11_SRC_DIR: ${{ github.workspace }}/typhoon-predict-src
-          V62_GRIB_DIR: /tmp/Trackformer1.1-grib
+          TF11_GRIB_DIR: /tmp/trackformer11-grib
           MPLBACKEND: Agg
         run: python scripts/run_trackformer11_forecast.py
 

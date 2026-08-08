@@ -350,7 +350,7 @@ def tf11_intensity(fixes, field, state_pressure, state_fields, lat, lon,
     from trackformer_1_1_intensity import couple_forecast_to_pressure_map
 
     stats = np.load(HERE / "trackformer10" / "trackformer10_norm_stats.npz")
-    terrain = np.load(HERE / "trackformer10" / "v23_terrain_wp.npz")
+    terrain = np.load(HERE / "trackformer10" / "trackformer10_terrain_wp.npz")
     rows_i, cols_i = np.where(terrain["lsm"] > 0.5)
     land_lat = terrain["lat"][rows_i].astype("float32")
     land_lon = terrain["lon"][cols_i].astype("float32")

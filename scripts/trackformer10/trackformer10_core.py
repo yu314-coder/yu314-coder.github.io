@@ -3,7 +3,7 @@
 
 Why vendored: this used to be imported from yu314-coder/typhoon-predict's
 models/run_v23.py, but that repo was restructured (models/ became models/v10 +
-models/Trackformer1.0) and run_v23.py, trackformer10_terrain_wp.npz and models/trackformer10.py no
+models/v23) and run_v23.py, v23_terrain_wp.npz and models/trackformer_v23.py no
 longer exist there at all. The scheduled workflow only kept working because
 actions/cache still held a pre-restructure copy; the next cache eviction would
 have broken it silently. Only the 10 seed checkpoints are still fetched

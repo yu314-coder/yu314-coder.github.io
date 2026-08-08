@@ -18,7 +18,7 @@ no way for this script to silently drift from the reference pipeline.
 Run by .github/workflows/refresh-typhoon-forecast.yml, which checks out yu314-coder/
 typhoon-predict's Trackformer1.0 weights alongside this repo and sets V23_MODELS_DIR to them.
 The architecture, norm stats, terrain and inference core are vendored in
-scripts/Trackformer1.0/ so a repo-layout change upstream cannot break this job.
+scripts/trackformer10/ so a repo-layout change upstream cannot break this job.
 """
 import json
 import math
@@ -39,8 +39,8 @@ HERE = Path(__file__).resolve().parent
 REPO_ROOT = HERE.parent
 # Weights are large and fetched by the workflow; everything needed to run them
 # is vendored beside this file.
-MODELS_DIR = os.environ.get("V23_MODELS_DIR", str(REPO_ROOT.parent / "typhoon-predict" / "models" / "Trackformer1.0"))
-sys.path.insert(0, str(HERE / "Trackformer1.0"))
+MODELS_DIR = os.environ.get("TF10_MODELS_DIR", str(REPO_ROOT.parent / "typhoon-predict" / "models" / "trackformer10"))
+sys.path.insert(0, str(HERE / "trackformer10"))
 from trackformer10 import build_v23  # noqa: E402
 import trackformer10_core as ref  # noqa: E402  (build_window/run_forecast/HIST — verified equivalent)
 
