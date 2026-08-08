@@ -1913,7 +1913,13 @@
     var tf11 = pre.trackformer11 || {}, full = pre.intensity_source === "trackformer11";
     var pts = pre.lats.map(function (la, i) {
       return { lead_hours: pre.lead_hours[i], lat: la, lon: pre.lons[i],
-        vmax: pre.vmax_kt[i], pres: pre.pres_hpa[i],
+        // Guarded like rmw/radiiKm below. A run can carry a track with no
+        // intensity at all -- the writer sets intensity_source to null and omits
+        // these arrays -- and reading vmax_kt[i] off that threw, killing the whole
+        // overlay for a storm whose route was sitting right there. A missing
+        // number is a dash; it is not a reason to draw nothing.
+        vmax: pre.vmax_kt ? pre.vmax_kt[i] : null,
+        pres: pre.pres_hpa ? pre.pres_hpa[i] : null,
         // RMW and the quadrant radii only exist when Trackformer1.1's structure head ran
         rmw: full && pre.rmw_km ? pre.rmw_km[i] : null,
         radiiKm: full && pre.radii_km ? pre.radii_km[i] : null,
@@ -1943,10 +1949,19 @@
         ? " This storm is younger than 24 h, so the t-12/t-24 snapshots have no observed centre and are"
           + " flagged unavailable — the route runs on the current analysis alone rather than on invented history."
         : "";
-      return "🧪 " + storm + " — MODEL: Trackformer1.1"
-        + (full ? " for everything here — track, wind, pressure, RMW and the 34/50/64 kt radii."
-                : " for the track; wind and pressure fall back to the historical Trackformer1.0 because"
-                  + " Trackformer1.1's structure head couldn't run for this storm.")
+      // Three states, not two. intensity_source names the model that produced the
+      // wind and pressure; when it is null NOTHING did, and saying "falls back to
+      // Trackformer1.0" there claims a second model ran when the arrays are simply
+      // absent -- which is what the readout shows as dashes.
+      var iSrc = pre.intensity_source;
+      var intensityNote =
+          iSrc === "trackformer11" ? " for everything here — track, wind, pressure, RMW and the 34/50/64 kt radii."
+        : iSrc === "trackformer10" ? " for the track; wind and pressure come from the historical Trackformer1.0"
+                                     + " because Trackformer1.1's structure head couldn't run for this storm."
+        : " for the track only. Its structure head could not run for this storm, so there is no wind,"
+          + " pressure or wind-radius forecast here at all — those read as dashes rather than being"
+          + " filled in from somewhere else.";
+      return "🧪 " + storm + " — MODEL: Trackformer1.1" + intensityNote
         + " The route and the causal pressure state are integrated from the GFS "
         + v.analysis_cycle.replace("_", " ") + "Z analysis"
         + (lag != null ? " (" + lag + " h before this issuance)" : "")
@@ -2416,8 +2431,17 @@
     if (r34 > 1) rads.push("R34 ~" + Math.round(r34));
     if (r50 > 1) rads.push("R50 ~" + Math.round(r50));
     if (r64 > 1) rads.push("R64 ~" + Math.round(r64));
+    // A run can carry a route with no intensity. Math.round(null) is 0, so the
+    // hover used to read "0 kt · 0 mb" and tfCat called it a Tropical Depression
+    // -- three numbers invented from an absent field. Say the position, say the
+    // intensity is missing, and leave it at that.
+    var known = p.vmax != null && isFinite(p.vmax);
+    if (!known) {
+      return "<b>Intensity not available</b><br>AI +" + p.lead_hours + " h · " + fmtLatLon(p.lat, p.lon)
+        + "<br>route only — the intensity head did not run for this storm";
+    }
     return "<b>" + tfCat(p.vmax)[0] + "</b><br>AI +" + p.lead_hours + " h · " + fmtLatLon(p.lat, p.lon)
-      + "<br>" + Math.round(p.vmax) + " kt · " + Math.round(p.pres) + " mb"
+      + "<br>" + Math.round(p.vmax) + " kt · " + (p.pres != null && isFinite(p.pres) ? Math.round(p.pres) + " mb" : "pressure n/a")
       + (p.rmw ? " · RMW " + Math.round(p.rmw) + " km" : "")
       + (rads.length ? "<br>wind radii: " + rads.join(" · ") + " km" : "");
   }
