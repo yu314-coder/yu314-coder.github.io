@@ -2601,8 +2601,12 @@
     for (var n = 0; n < run.lead_hours.length; n++) {
       fc.points.push({
         lead_hours: run.lead_hours[n], lat: run.lats[n], lon: run.lons[n],
-        vmax: run.vmax_kt[n], pres: run.pres_hpa[n], rmw: run.rmw_km[n],
-        radiiKm: run.radii_km[n],
+        // Guarded for the same reason the live path is: a run can carry a track
+        // with no intensity, and one with intensity but no wind field.
+        vmax: run.vmax_kt ? run.vmax_kt[n] : null,
+        pres: run.pres_hpa ? run.pres_hpa[n] : null,
+        rmw: run.rmw_km ? run.rmw_km[n] : null,
+        radiiKm: run.radii_km ? run.radii_km[n] : null,
         p10_lat: run.lats[n], p10_lon: run.lons[n], p90_lat: run.lats[n], p90_lon: run.lons[n]
       });
     }
@@ -2637,9 +2641,19 @@
       var members = r.member_count ? (" The cone is Trackformer1.1's own " + (r.cone_percentile || 90)
         + "% radius over " + r.member_count + " route members, and the faint lines are those members — real"
         + " routes, not samples from a covariance.") : "";
-      return "🧪 " + storm + " — MODEL: Trackformer1.1 for everything here — track, wind, pressure,"
-        + " RMW and the 34/50/64 kt radii. The route is integrated from real analysis fields at this"
-        + " initialisation; the intensity and wind structure come from its frozen structure head, coupled to"
+      // Only claim the wind field when the run actually carries one. A storm from
+      // before quadrant radii were reported has no observed structure to anchor
+      // the residual head on, so those runs ship wind and pressure and no radii.
+      var field = (r.radii_km && r.rmw_km)
+        ? " for everything here — track, wind, pressure, RMW and the 34/50/64 kt radii."
+        : (r.radii_km
+            ? " for the track, wind, pressure and the 34/50/64 kt radii, but no RMW."
+            : " for the track, wind and pressure. No RMW or wind radii: this storm predates quadrant"
+              + " wind-radius reporting, so there is no observed wind field to anchor them on and none"
+              + " is drawn rather than one that would be wrong.");
+      return "🧪 " + storm + " — MODEL: Trackformer1.1" + field
+        + " The route is integrated from real analysis fields at this"
+        + " initialisation; the intensity comes from its frozen structure head, coupled to"
         + " the same causal pressure map. White is what actually happened." + score + members
         + " Scrub away from this initialisation and it falls back to the historical Trackformer1.0, which is"
         + " field-free and can run anywhere in a storm's life. Experimental, not an official forecast.";

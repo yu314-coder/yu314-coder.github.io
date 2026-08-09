@@ -519,8 +519,16 @@ def run_storm(sid, season_year, storm, intensity_on=True):
                                       for h, a, o in zip(run["lead_hours"], lats, lons)], float(cw), float(cp))
                     run["vmax_kt"] = [round(float(r["vmax_kt"])) for r in rows]
                     run["pres_hpa"] = [round(float(r.get("pressure_hpa", r.get("central_pressure_hpa")))) for r in rows]
-                    run["rmw_km"] = [round(float(r["rmw_km"])) for r in rows]
-                    run["radii_km"] = [[round(float(x)) for x in r["wind_radii_km"]] for r in rows]
+                    # Per field, matching the live path. A pre-2001 storm reports no
+                    # quadrant radii, so the residual head has nothing to correct and
+                    # its wind field comes out wrong by a large factor -- Amber 1997
+                    # got R34 of 46 km at 110 kt. Wind and pressure survive because
+                    # the pressure-map coupling re-anchors them; the wind field does
+                    # not, so it is left out rather than drawn.
+                    if np.isfinite(anchor[1:9]).all():
+                        run["radii_km"] = [[round(float(x)) for x in r["wind_radii_km"]] for r in rows]
+                    if np.isfinite(anchor[0]):
+                        run["rmw_km"] = [round(float(r["rmw_km"])) for r in rows]
                     # How many of the 13 observed-structure slots the head actually had.
                     # Pre-2001 storms report no quadrants, so their runs are unanchored and
                     # their radii are correspondingly weaker -- worth recording rather than
