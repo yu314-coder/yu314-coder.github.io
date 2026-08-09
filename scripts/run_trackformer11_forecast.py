@@ -318,6 +318,76 @@ def field_patch(path_now, path_prev24, center):
     return np.clip(raw / DLM4_SCALE[:, None, None], -4.0, 4.0).astype("float32")
 
 
+# --- observed wind field, from JMA via Digital Typhoon ----------------------
+# JMA does not publish R34/R50/R64 by quadrant. It publishes two wind AREAS, each
+# as a pair of semicircles: a direction, the radius on that side, and the radius
+# on the other. The storm area is the 50 kt wind, which is exactly the model's R50
+# slot. The gale area is 30 kt, which is NOT R34 -- so R34 is interpolated between
+# the two thresholds that ARE measured, and R64 and RMW, which JMA never reports,
+# stay unavailable.
+_BEARING = {"N": 0, "NE": 45, "E": 90, "SE": 135, "S": 180, "SW": 225, "W": 270, "NW": 315}
+_QUADRANT_BEARING = {"ne": 45, "se": 135, "sw": 225, "nw": 315}
+
+
+def _semicircle_quadrants(direction, major_nm, minor_nm):
+    """JMA's two semicircles -> a radius per quadrant, in nautical miles.
+
+    A quadrant whose centre bearing is within 90 degrees of the major-axis
+    direction sits in the major semicircle; the rest sit in the minor one. A
+    'symmetric' area reports the same number for both, so the split is a no-op.
+    """
+    if major_nm is None:
+        return {q: None for q in _QUADRANT_BEARING}
+    if minor_nm is None:
+        minor_nm = major_nm
+    axis = _BEARING.get((direction or "").upper())
+    if axis is None:                       # 'symmetric', or a direction we don't know
+        return {q: float(major_nm) for q in _QUADRANT_BEARING}
+    out = {}
+    for q, bearing in _QUADRANT_BEARING.items():
+        delta = abs((bearing - axis + 180) % 360 - 180)
+        out[q] = float(major_nm) if delta <= 90 else float(minor_nm)
+    return out
+
+
+def _semicircles_to_quadrants(semis):
+    """JMA's own [(bearing, radius_nm)] list -> a radius per quadrant."""
+    if not semis:
+        return None
+    if len(semis) == 1 or all(b is None for b, _ in semis):
+        return {q: semis[0][1] for q in _QUADRANT_BEARING}
+    out = {}
+    for q, bearing in _QUADRANT_BEARING.items():
+        # the named semicircle whose centre this quadrant falls closest to
+        best = min(semis, key=lambda s: 999 if s[0] is None else abs((bearing - s[0] + 180) % 360 - 180))
+        out[q] = best[1]
+    return out
+
+
+def wind_field_from_jma(fix):
+    """The 13 anchor slots a live fix can support, in nautical miles.
+
+    R50 is measured. R34 is interpolated between the 30 kt gale radius and the
+    50 kt storm radius -- linear in wind threshold, four knots above the lower
+    measurement -- and is only produced where BOTH are reported, so it is never
+    an extrapolation from one. RMW and R64 are not reported by JMA at all.
+    """
+    # Prefer JMA's own analysis record; fall back to Digital Typhoon's transcription
+    # of the same numbers for the historical fixes, which JMA does not re-publish.
+    storm = (_semicircles_to_quadrants(fix.get("storm_semicircles"))
+             or _semicircle_quadrants(fix.get("storm_dir"), fix.get("storm_major_nm"), fix.get("storm_minor_nm")))
+    gale = (_semicircles_to_quadrants(fix.get("gale_semicircles"))
+            or _semicircle_quadrants(fix.get("gale_dir"), fix.get("gale_major_nm"), fix.get("gale_minor_nm")))
+    out = {"rmw_nm": None}
+    for q in _QUADRANT_BEARING:
+        r50, r30 = storm[q], gale[q]
+        out[f"r50_{q}_nm"] = r50
+        out[f"r34_{q}_nm"] = (r30 + (34.0 - 30.0) / (50.0 - 30.0) * (r50 - r30)) \
+            if (r50 is not None and r30 is not None) else None
+        out[f"r64_{q}_nm"] = None
+    return out
+
+
 def intensity_records(fixes):
     """The v37G record schema. Anything genuinely unobserved for a live storm --
     RMW, ROCI, the quadrant radii -- is left as None so build_track_window flags it
@@ -329,10 +399,8 @@ def intensity_records(fixes):
             "lat": float(f["lat"]), "lon": float(f["lon"]),
             "vmax_kt": f["vmax_kt"],
             "pressure_hpa": f["pres_hpa"],
-            "rmw_nm": None, "roci_nm": None, "dist2land_km": None,
-            "r34_ne_nm": None, "r34_se_nm": None, "r34_sw_nm": None, "r34_nw_nm": None,
-            "r50_ne_nm": None, "r50_se_nm": None, "r50_sw_nm": None, "r50_nw_nm": None,
-            "r64_ne_nm": None, "r64_se_nm": None, "r64_sw_nm": None, "r64_nw_nm": None,
+            "roci_nm": None, "dist2land_km": None,
+            **wind_field_from_jma(f),
         })
     return rows
 
@@ -642,10 +710,15 @@ def process_storm(tc, models):
             # radius at 272 km, and those numbers get drawn as rings on the map.
             # A live fix carries no observed radii, so ship none rather than rings
             # that are eight times too small.
-            anchored = int(np.isfinite(observed_structure(fixes[-1])).sum())
-            if anchored:
-                out["rmw_km"] = [round(float(r["rmw_km"]), 1) for r in rows]
+            # Per field, not all-or-nothing. JMA reports both wind areas, so the
+            # radii ARE anchored; it never reports RMW, so that slot is empty and
+            # its output stays the unanchored kind. Ship what has a footing.
+            anchor = observed_structure(intensity_records(fixes)[-1])
+            anchored = int(np.isfinite(anchor).sum())
+            if np.isfinite(anchor[1:9]).all():          # the R34 and R50 quadrants
                 out["radii_km"] = [[round(float(x), 1) for x in r["wind_radii_km"]] for r in rows]
+            if np.isfinite(anchor[0]):                  # RMW, which JMA does not publish
+                out["rmw_km"] = [round(float(r["rmw_km"]), 1) for r in rows]
             out["structure_anchor"] = anchored
             out["intensity_source"] = "trackformer11"
             tf11["intensity_model"] = meta

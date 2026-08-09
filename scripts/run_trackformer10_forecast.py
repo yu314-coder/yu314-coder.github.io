@@ -95,6 +95,29 @@ def num(v):
 # JMA specifications.json -- same fields as app.js's parseJma, current-analysis point only
 # (spec[0] is the title block, spec[1] is the current "実況/Analysis" point).
 # ---------------------------------------------------------------------------
+# 北/南/東/西 and the four inter-cardinals, as JMA writes them in the wind-area
+# records. A single entry means the area is a circle.
+JP_BEARING = {"北": 0, "北東": 45, "東": 90, "南東": 135,
+              "南": 180, "南西": 225, "西": 270, "北西": 315}
+
+
+def jma_semicircles(warning):
+    """[{area, range:{nm}}] -> [(bearing_or_None, radius_nm)], or None."""
+    if not warning:
+        return None
+    out = []
+    for part in warning:
+        nm_value = ((part.get("range") or {}).get("nm"))
+        if nm_value in (None, ""):
+            continue
+        try:
+            radius = float(nm_value)
+        except (TypeError, ValueError):
+            continue
+        out.append((JP_BEARING.get((part.get("area") or "").strip()), radius))
+    return out or None
+
+
 def parse_jma(tc_id, spec):
     if not spec or len(spec) < 2:
         return None
@@ -112,6 +135,13 @@ def parse_jma(tc_id, spec):
         "windKt": num(sus.get("kt")),
         "pressure": num(a.get("pressure")),
         "validUTC": (a.get("validtime") or {}).get("UTC"),
+        # JMA publishes both wind areas on the analysis itself, as one entry per
+        # semicircle with the side named in Japanese and the radius in nautical
+        # miles. Same numbers as Digital Typhoon's major/minor columns, from the
+        # issuing agency and already fetched, so this is the better source for the
+        # current fix -- which is the one the intensity anchor reads.
+        "storm_semicircles": jma_semicircles(a.get("stormWarning")),
+        "gale_semicircles": jma_semicircles(a.get("galeWarning")),
     }
 
 
@@ -155,7 +185,16 @@ def parse_dt_wind(html):
         return -1
 
     ci = {"y": col("Year"), "mo": col("Month"), "d": col("Day"), "h": col("Hour"),
-          "lat": col("Lat"), "lon": col("Long"), "wind": col("Wind")}
+          "lat": col("Lat"), "lon": col("Long"), "wind": col("Wind"),
+          # JMA describes each wind area as two semicircles, not a circle: a
+          # direction, the radius on that side (major) and the radius on the other
+          # (minor). Both areas are published -- storm is 50 kt, gale is 30 kt.
+          "storm_dir": col("Direc. of Major Storm Axis"),
+          "storm_major": col("Radius of Major Storm Axis"),
+          "storm_minor": col("Radius of Minor Storm Axis"),
+          "gale_dir": col("Direc. of Major Gale Axis"),
+          "gale_major": col("Radius of Major Gale Axis"),
+          "gale_minor": col("Radius of Minor Gale Axis")}
     if ci["y"] < 0 or ci["lat"] < 0:
         return None
     out = []
@@ -166,7 +205,19 @@ def parse_dt_wind(html):
         lat, lon = dt_num(cell_at(c, ci["lat"])), dt_num(cell_at(c, ci["lon"]))
         if lat is None or lon is None:
             continue
-        out.append({"ms": dt_time_ms(c, ci), "lat": lat, "lon": lon, "wind": dt_num(cell_at(c, ci["wind"]))})
+        def rad(key):
+            return dt_num(cell_at(c, ci[key])) if ci.get(key, -1) >= 0 else None
+
+        def direction(key):
+            v = (cell_at(c, ci[key]) or "").strip() if ci.get(key, -1) >= 0 else ""
+            return v if v and v not in ("-", "\u2014") else None
+
+        out.append({"ms": dt_time_ms(c, ci), "lat": lat, "lon": lon,
+                    "wind": dt_num(cell_at(c, ci["wind"])),
+                    "storm_dir": direction("storm_dir"),
+                    "storm_major_nm": rad("storm_major"), "storm_minor_nm": rad("storm_minor"),
+                    "gale_dir": direction("gale_dir"),
+                    "gale_major_nm": rad("gale_major"), "gale_minor_nm": rad("gale_minor")})
     return out or None
 
 
@@ -214,9 +265,13 @@ def build_points(a, dt_wind, dt_pres):
             if now_ms is not None and abs(o["ms"] - now_ms) < 3600000:
                 continue
             raw.append({"ms": o["ms"], "lat": o["lat"], "lon": o["lon"],
-                        "wind": o["wind"], "pres": (dt_pres or {}).get(o["ms"])})
+                        "wind": o["wind"], "pres": (dt_pres or {}).get(o["ms"]),
+                        **{k: o.get(k) for k in ("storm_dir", "storm_major_nm", "storm_minor_nm",
+                                                 "gale_dir", "gale_major_nm", "gale_minor_nm")}})
     raw.append({"ms": now_ms if now_ms is not None else 0, "lat": a["lat"], "lon": a["lon"],
-                "wind": a["windKt"], "pres": a["pressure"]})
+                "wind": a["windKt"], "pres": a["pressure"],
+                "storm_semicircles": a.get("storm_semicircles"),
+                "gale_semicircles": a.get("gale_semicircles")})
     raw.sort(key=lambda o: o["ms"])
     return raw
 
@@ -229,7 +284,10 @@ def fixes_from_points(points):
     fixes = []
     for o in usable[-ref.HIST:]:
         t = datetime.fromtimestamp(o["ms"] / 1000, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M")
-        fixes.append({"time": t, "lat": o["lat"], "lon": o["lon"], "vmax_kt": o["wind"], "pres_hpa": o["pres"]})
+        fixes.append({"time": t, "lat": o["lat"], "lon": o["lon"], "vmax_kt": o["wind"], "pres_hpa": o["pres"],
+                      **{k: o.get(k) for k in ("storm_dir", "storm_major_nm", "storm_minor_nm",
+                                               "gale_dir", "gale_major_nm", "gale_minor_nm",
+                                               "storm_semicircles", "gale_semicircles")}})
     return fixes
 
 
