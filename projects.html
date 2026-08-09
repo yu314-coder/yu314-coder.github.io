@@ -1587,7 +1587,7 @@
               <h3 class="h2 mb-1 fw-bold">py2bin</h3>
               <div class="d-flex flex-wrap gap-2">
                 <span class="badge-neutral mono">python-to-binary</span>
-                <span class="badge-accent mono">v0.8.5 on PyPI</span>
+                <span class="badge-accent mono">v0.9.11 on PyPI</span>
                 <span class="badge-neutral mono">MIT</span>
               </div>
             </div>
@@ -1603,7 +1603,7 @@
             <div class="kpi-sub">macOS, Windows, Linux &mdash; each on x86-64 and ARM64</div>
           </div>
           <div class="kpi">
-            <div class="kpi-val">878<span class="unit">/889</span></div>
+            <div class="kpi-val">886<span class="unit">/889</span></div>
             <div class="kpi-lab">Corpus match</div>
             <div class="kpi-sub">Programs byte-identical to CPython, output and exit status</div>
           </div>
@@ -1613,9 +1613,9 @@
             <div class="kpi-sub">Build and runtime both empty; enforced by tests</div>
           </div>
           <div class="kpi">
-            <div class="kpi-val">1,328</div>
+            <div class="kpi-val">1,828</div>
             <div class="kpi-lab">Tests</div>
-            <div class="kpi-sub">Across 38 files, 51 modules under <code>src/py2bin</code></div>
+            <div class="kpi-sub">Plus 1,494 of 1,500 randomly generated programs matching CPython exactly</div>
           </div>
         </div>
 
@@ -1630,21 +1630,22 @@
               <div class="tier-name">compile</div>
               <p class="tier-role">Fastest and smallest. No interpreter in the artifact, and none on the machine it runs on.</p>
               <dl>
-                <dt>Speed</dt><dd><strong>0.062 s</strong> on a 30M-iteration loop &mdash; 11&times; CPython</dd>
-                <dt>Artifact</dt><dd><strong>48 KB</strong>, runs on a bare system</dd>
+                <dt>Speed</dt><dd><strong>0.05 s</strong> on a 30M-iteration loop &mdash; ~15&times; CPython</dd>
+                <dt>Artifact</dt><dd><strong>32 KB</strong>, runs on a bare system</dd>
                 <dt>Python</dt><dd>Not needed at all</dd>
                 <dt>Accepts</dt><dd>A documented static subset &mdash; ints, floats, strings, control flow, your own functions</dd>
                 <dt>Packages</dt><dd>None; it will not import one</dd>
+                <dt>Integers</dt><dd><strong>64 bits, and they wrap</strong> &mdash; the one place a program can be quietly wrong rather than refused. Constants are folded exactly, so <code>2 ** 70</code> written down is right; a value the program computes past 2<sup>63</sup> is not. The other two tiers use the interpreter’s own arithmetic and are exact.</dd>
               </dl>
             </div>
             <div class="tier" style="--tier-hue: var(--accent);">
               <div class="tier-name">compile-capi <span class="badge-accent mono" style="vertical-align:middle;">active</span></div>
               <p class="tier-role">The middle, and where the work is. Python &rarr; C driving the CPython C API &rarr; machine code, through py2bin's own C compiler.</p>
               <dl>
-                <dt>Speed</dt><dd>1.27 s on that loop; <strong>1.67&times; CPython</strong> on a loop it can claim</dd>
-                <dt>Artifact</dt><dd><strong>66 KB</strong> plus the interpreter it links</dd>
+                <dt>Speed</dt><dd><strong>0.44 s</strong> on that loop; 8 of 27 benchmark rows beat CPython</dd>
+                <dt>Artifact</dt><dd><strong>50 KB</strong> plus the interpreter it links; starts in 10.1 ms</dd>
                 <dt>Python</dt><dd>Yes &mdash; linked, or bundled alongside</dd>
-                <dt>Accepts</dt><dd>Almost the whole language &mdash; 878 of 889 corpus programs</dd>
+                <dt>Accepts</dt><dd>Almost the whole language &mdash; 886 of 889 corpus programs</dd>
                 <dt>Packages</dt><dd>Anything the interpreter can import</dd>
               </dl>
             </div>
@@ -1652,8 +1653,8 @@
               <div class="tier-name">freeze</div>
               <p class="tier-role">The most complete. Ships your program beside an interpreter that runs it; nothing is translated, so nothing is faster.</p>
               <dl>
-                <dt>Speed</dt><dd>0.66 s &mdash; CPython's, because it is CPython</dd>
-                <dt>Artifact</dt><dd>Tens of MB &mdash; an interpreter and every dependency inside</dd>
+                <dt>Speed</dt><dd>0.74 s &mdash; CPython's, because it is CPython</dd>
+                <dt>Artifact</dt><dd>24 MB &mdash; an interpreter and every dependency inside</dd>
                 <dt>Python</dt><dd>Not needed; it carries one</dd>
                 <dt>Accepts</dt><dd>Everything</dd>
                 <dt>Packages</dt><dd>NumPy, Torch, a GUI toolkit &mdash; all carried inside</dd>
@@ -1667,19 +1668,19 @@
           <div>
             <div class="sec-head">
               <h4 class="h5 fw-bold">Every target reached</h4>
-              <span class="sec-note">v0.8.5</span>
+              <span class="sec-note">v0.9.11 &middot; and how far each is proven</span>
             </div>
             <table class="matrix">
               <thead>
                 <tr><th scope="col">Platform</th><th scope="col">x86-64</th><th scope="col">ARM64</th></tr>
               </thead>
               <tbody>
-                <tr><th scope="row">macOS</th><td><span class="chip-ok">works</span></td><td><span class="chip-ok">works</span></td></tr>
-                <tr><th scope="row">Windows</th><td><span class="chip-ok">works</span></td><td><span class="chip-ok">works</span></td></tr>
-                <tr><th scope="row">Linux</th><td><span class="chip-ok">works</span></td><td><span class="chip-ok">works</span></td></tr>
+                <tr><th scope="row">macOS</th><td><span class="chip-ok">Rosetta&nbsp;2</span></td><td><span class="chip-ok">native &middot; app</span></td></tr>
+                <tr><th scope="row">Windows</th><td><span class="chip-ok">real hardware &middot; app</span></td><td><span class="chip-no">built, never started</span></td></tr>
+                <tr><th scope="row">Linux</th><td><span class="chip-ok">container</span></td><td><span class="chip-ok">container &middot; app</span></td></tr>
               </tbody>
             </table>
-            <p class="small mt-3 mb-0" style="color:var(--ink-3); line-height:1.5;">Each is held to the same bar: the 889-program corpus compiled for it, every program's output and exit code compared against CPython's. The 7 that differ do so inherently &mdash; CPython's &ldquo;Did you mean&rdquo; needs a live Python frame to suggest from, and the repr of a compiled function really is a builtin function's.</p>
+            <p class="small mt-3 mb-0" style="color:var(--ink-3); line-height:1.5;">All six build, and each is held to the same bar &mdash; the 889-program corpus compiled for it, every program's output and exit code compared against CPython's. macOS agrees on <strong>886</strong> and differs on 3, inherently: CPython's &ldquo;Did you mean&rdquo; needs a live Python frame to suggest from, the repr of a compiled function really is a builtin function's, and <code>"v" is "v"</code> turns on an interning the compiler doesn't reproduce. <strong>The cells say how far each target is actually proven, because they differ.</strong> &ldquo;app&rdquo; marks one a complete third-party GUI application has been built and run on &mdash; ManimStudio, 10,100 lines with pywebview, Pillow and manim. Windows x86-64 was run on a physical machine, and that run found four bugs fatal to every Windows program the compiler produced &mdash; all in packaging rather than compiled code, none reachable by comparing output, because the program never got as far as a <code>print</code>. <strong>Windows ARM64 has never been started:</strong> the images are parsed and checked against the format and nothing more, and that is the honest limit of what has been verified.</p>
           </div>
           <div>
             <div class="sec-head">
@@ -1743,6 +1744,48 @@
           </div>
           <p class="small mb-0" style="color:var(--ink-3); line-height:1.5;"><strong style="color:var(--ink);">Compile time: 16.7 s against Nuitka's minutes</strong> &mdash; left out of the figure above because &ldquo;minutes&rdquo; is not a number to scale a bar against. Nuitka wins the fourth row, and the binary is a third the size because Nuitka compiles every module it reaches while this compiles the program and ships its dependencies as bytecode &mdash; 7.8 MB of it, which is where most of the 20 MB comes back.</p>
         </div>
+
+        <!-- correctness vs Nuitka, and what a build costs -->
+        <div class="mb-5">
+          <div class="sec-head">
+            <h4 class="h5 fw-bold">Against Nuitka on getting Python right</h4>
+            <span class="sec-note">78 programs &middot; Nuitka 4.1.3 &middot; CPython 3.14.3</span>
+          </div>
+          <p class="small mb-3" style="color:var(--ink-2); line-height:1.55;">Speed is one question; agreeing with CPython is the other, and here <strong>Nuitka is ahead</strong>. Seventy-eight whole programs compiled by both, each output compared with what CPython answers for the same source &mdash; stdout and exit code, character for character, same machine for all three columns.</p>
+          <table class="matrix">
+            <thead>
+              <tr><th scope="col">Of 78 programs</th><th scope="col">py2bin</th><th scope="col">Nuitka</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">answers exactly what CPython answers</th><td>69</td><td><strong>76</strong></td></tr>
+              <tr><th scope="row">answers something else</th><td>6</td><td><strong>2</strong></td></tr>
+              <tr><th scope="row">refuses, with a <code>file:line:col</code></th><td>3</td><td>0</td></tr>
+            </tbody>
+          </table>
+          <p class="small mt-3 mb-0" style="color:var(--ink-3); line-height:1.5;">It should be ahead: it is a mature project that reimplements CPython's semantics rather than restricting them. Most of the gap is one fact and its consequences &mdash; a compiled function here is a <code>builtin_function_or_method</code>, so it has no code object and builds no frame, which is exactly what makes a direct call 2.4&times; faster and what costs it <code>sys._getframe</code>, tracebacks naming a source line, and <code>inspect.getsource</code>. Two of the differing rows are not a py2bin problem at all: <em>neither</em> compiler reports <code>function</code> for <code>type(f).__name__</code>, and neither has bytecode to hand back. One goes the other way &mdash; <code>except*</code> agrees with CPython on 42,100 shapes here and Nuitka answers differently. A corpus covers what somebody thought of, so 1,500 programs drawn at random from the grammar were compiled and compared too: <strong>1,494 match exactly and none is refused</strong>, the six that differ all printing a function object. Every number on this page was measured locally rather than read off a green tick: the repository's workflow runs the suite on three operating systems and three Pythons, the corpus on Linux and a cross-build for all six targets, but <strong>it has never actually executed</strong> &mdash; runs queue on that account and never start.</p>
+        </div>
+
+        <!-- what a build costs -->
+        <div class="mb-5">
+          <div class="sec-head">
+            <h4 class="h5 fw-bold">What a build costs</h4>
+            <span class="sec-note">peak RSS of the whole process tree</span>
+          </div>
+          <p class="small mb-3" style="color:var(--ink-2); line-height:1.55;">Run time is what you wait for; build memory decides whether the build runs at all. py2bin writes the machine code, the object file and the container in Python and never starts a C toolchain &mdash; Nuitka writes C and hands it to clang. <em>Cold</em> is a first build or a CI runner; Nuitka keeps a ccache, py2bin has no build cache of any kind, so its column is the same either way.</p>
+          <table class="matrix">
+            <thead>
+              <tr><th scope="col">Building</th><th scope="col">py2bin</th><th scope="col">Nuitka cold</th><th scope="col">Nuitka warm</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">a small program</th><td><strong>42 MB &middot; 0.1 s</strong></td><td>557&ndash;656 MB &middot; 16.5 s</td><td>296 MB &middot; 3.7 s</td></tr>
+              <tr><th scope="row">200 functions</th><td><strong>186 MB &middot; 2.0 s</strong></td><td>681 MB &middot; 18.1 s</td><td>423 MB &middot; 4.9 s</td></tr>
+              <tr><th scope="row">1,000 functions</th><td><strong>602 MB &middot; 7.3 s</strong></td><td>946 MB &middot; 22.0 s</td><td>713 MB &middot; 8.1 s</td></tr>
+              <tr><th scope="row">3,000 functions</th><td>1,567 MB &middot; 21.3 s</td><td>1,744 MB &middot; 35.5 s</td><td><strong>1,516 MB &middot; 17.5 s</strong></td></tr>
+            </tbody>
+          </table>
+          <p class="small mt-3 mb-0" style="color:var(--ink-3); line-height:1.5;"><strong>The advantage narrows as the program grows, and by three thousand functions it is gone.</strong> Nothing here streams &mdash; the whole module is held as objects, then as C, then as machine code, all at once &mdash; so memory grows with the program, while Nuitka's is dominated by a fixed toolchain cost. That toolchain is counted, and it is most of Nuitka's column: on a small program its tree holds <code>clang</code> at 181 MB and <code>ld</code> at 150 MB beside Python's 300; at three thousand functions <code>ld</code> alone holds 1,210 MB. py2bin's tree holds one Python process and nothing else. The artifact starts in <strong>10.1 ms</strong> from <strong>49 KB</strong>, against CPython's 13.8 ms and a Nuitka <code>--standalone</code>'s 15.4 ms from 17.2 MB.</p>
+        </div>
+
 
         <!-- benchmark: micro -->
         <div class="mb-5">
@@ -1864,7 +1907,7 @@
                 <tr><th scope="row">Language</th><td>Python, standard library only &middot; 51 modules</td></tr>
                 <tr><th scope="row">Requires</th><td>Python 3.10+ on the build machine</td></tr>
                 <tr><th scope="row">Licence</th><td>MIT</td></tr>
-                <tr><th scope="row">Status</th><td>v0.8.5 &mdash; <code>compile-capi</code> under active work</td></tr>
+                <tr><th scope="row">Status</th><td>v0.9.11 &mdash; <code>compile-capi</code> under active work</td></tr>
               </tbody>
             </table>
           </div>
