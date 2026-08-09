@@ -388,6 +388,35 @@ def wind_field_from_jma(fix):
     return out
 
 
+def mask_unanchored_radii(rows_radii, anchor):
+    """Blank the wind-radius thresholds the anchor did not cover.
+
+    The residual head is only trustworthy where it had a residual. R34 and R50 come
+    from JMA's storm and gale areas, or from IBTrACS quadrants on a hindcast; R64 is
+    published by neither, so it rides along unanchored inside the same 12-value row
+    and was being shown -- 27 km for an 84 kt typhoon. Blank per threshold rather
+    than dropping the whole row, and the readout skips nulls on its own.
+
+    anchor slots: 0 RMW | 1-4 R34 | 5-8 R50 | 9-12 R64
+    row slots:    0-3 R34 | 4-7 R50 | 8-11 R64
+    """
+    import numpy as _np
+    keep = [bool(_np.isfinite(anchor[1:5]).all()),
+            bool(_np.isfinite(anchor[5:9]).all()),
+            bool(_np.isfinite(anchor[9:13]).all())]
+    if all(keep):
+        return rows_radii
+    out = []
+    for row in rows_radii:
+        masked = list(row)
+        for band, ok in enumerate(keep):
+            if not ok:
+                for i in range(band * 4, band * 4 + 4):
+                    masked[i] = None
+        out.append(masked)
+    return out
+
+
 def intensity_records(fixes):
     """The v37G record schema. Anything genuinely unobserved for a live storm --
     RMW, ROCI, the quadrant radii -- is left as None so build_track_window flags it
@@ -715,8 +744,9 @@ def process_storm(tc, models):
             # its output stays the unanchored kind. Ship what has a footing.
             anchor = observed_structure(intensity_records(fixes)[-1])
             anchored = int(np.isfinite(anchor).sum())
-            if np.isfinite(anchor[1:9]).all():          # the R34 and R50 quadrants
-                out["radii_km"] = [[round(float(x), 1) for x in r["wind_radii_km"]] for r in rows]
+            if np.isfinite(anchor[1:13]).any():
+                out["radii_km"] = mask_unanchored_radii(
+                    [[round(float(x), 1) for x in r["wind_radii_km"]] for r in rows], anchor)
             if np.isfinite(anchor[0]):                  # RMW, which JMA does not publish
                 out["rmw_km"] = [round(float(r["rmw_km"]), 1) for r in rows]
             out["structure_anchor"] = anchored

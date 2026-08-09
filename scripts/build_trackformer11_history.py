@@ -339,6 +339,35 @@ def nm(km_value):
     return v / 1.852 if v >= 0 else None
 
 
+def mask_unanchored_radii(rows_radii, anchor):
+    """Blank the wind-radius thresholds the anchor did not cover.
+
+    The residual head is only trustworthy where it had a residual. R34 and R50 come
+    from JMA's storm and gale areas, or from IBTrACS quadrants on a hindcast; R64 is
+    published by neither, so it rides along unanchored inside the same 12-value row
+    and was being shown -- 27 km for an 84 kt typhoon. Blank per threshold rather
+    than dropping the whole row, and the readout skips nulls on its own.
+
+    anchor slots: 0 RMW | 1-4 R34 | 5-8 R50 | 9-12 R64
+    row slots:    0-3 R34 | 4-7 R50 | 8-11 R64
+    """
+    import numpy as _np
+    keep = [bool(_np.isfinite(anchor[1:5]).all()),
+            bool(_np.isfinite(anchor[5:9]).all()),
+            bool(_np.isfinite(anchor[9:13]).all())]
+    if all(keep):
+        return rows_radii
+    out = []
+    for row in rows_radii:
+        masked = list(row)
+        for band, ok in enumerate(keep):
+            if not ok:
+                for i in range(band * 4, band * 4 + 4):
+                    masked[i] = None
+        out.append(masked)
+    return out
+
+
 def observed_structure(rec):
     """The 13-vector predict() anchors on, NaN wherever the fix does not report it."""
     out = np.full(len(_STRUCTURE_FIELDS), np.nan, dtype="float32")
@@ -525,8 +554,9 @@ def run_storm(sid, season_year, storm, intensity_on=True):
                     # got R34 of 46 km at 110 kt. Wind and pressure survive because
                     # the pressure-map coupling re-anchors them; the wind field does
                     # not, so it is left out rather than drawn.
-                    if np.isfinite(anchor[1:9]).all():
-                        run["radii_km"] = [[round(float(x)) for x in r["wind_radii_km"]] for r in rows]
+                    if np.isfinite(anchor[1:13]).any():
+                        run["radii_km"] = mask_unanchored_radii(
+                            [[round(float(x)) for x in r["wind_radii_km"]] for r in rows], anchor)
                     if np.isfinite(anchor[0]):
                         run["rmw_km"] = [round(float(r["rmw_km"])) for r in rows]
                     # How many of the 13 observed-structure slots the head actually had.
