@@ -1750,6 +1750,13 @@
   var ORT_URL = "https://cdn.jsdelivr.net/npm/onnxruntime-web@" + ORT_VER + "/dist/ort.min.js";
   var ORT_WASM = "https://cdn.jsdelivr.net/npm/onnxruntime-web@" + ORT_VER + "/dist/";
   var aiTraceCount = 0, aiLoading = false;
+  // The overlay stays on across a storm switch and redraws itself for the new
+  // storm, so by the time you look at it the button is very often already on.
+  // With one fixed label that read as an invitation to press -- and pressing it
+  // HID a forecast that had just drawn itself, which looks exactly like the
+  // forecast never coming. The label says which way it goes now.
+  var AI_BTN_OFF = "\u{1F9EA} Overlay my AI model (Trackformer1.1)";
+  var AI_BTN_ON  = "\u{1F9EA} Hide the AI overlay (Trackformer1.1)";
   var aiEnabled = false; // the user wants the overlay shown — survives rebuilds,
                          // storm switches and the animation ending
   var aiLastFc = null;   // last drawn AI forecast, tagged with .tcId + .dataKey so a
@@ -1771,7 +1778,10 @@
   }
   function aiClearState() {
     aiTraceCount = 0;
-    if (els.aiBtn) { els.aiBtn.setAttribute("aria-pressed", "false"); els.aiBtn.classList.remove("is-on"); }
+    if (els.aiBtn) {
+      els.aiBtn.setAttribute("aria-pressed", "false"); els.aiBtn.classList.remove("is-on");
+      els.aiBtn.textContent = AI_BTN_OFF;
+    }
     aiSetStatus("");
   }
   function aiRemoveTraces() {
@@ -1836,7 +1846,10 @@
     Plotly.addTraces(els.map, allTraces);   // appended after the sweep — sweep indices unaffected
     aiTraceCount = allTraces.length;
     aiLastFc = fc;   // remember it so a same-storm map rebuild can restore it
-    if (els.aiBtn) { els.aiBtn.setAttribute("aria-pressed", "true"); els.aiBtn.classList.add("is-on"); }
+    if (els.aiBtn) {
+      els.aiBtn.setAttribute("aria-pressed", "true"); els.aiBtn.classList.add("is-on");
+      els.aiBtn.textContent = AI_BTN_ON;
+    }
     aiSetStatus("🧪 " + (fc.storm || "AI") + " — MODEL: Trackformer1.0 for everything here — track,"
       + " wind, pressure and wind-field size — run in your own browser (5-seed int8 ensemble of the"
       + " historical release). Trackformer1.1 is computed server-side and only for the latest JMA issuance;"
@@ -2060,7 +2073,9 @@
   function aiToggle() {
     if (appMode !== "predict") return;
     if (aiTraceCount > 0) { aiRemoveTraces(); return; }   // toggle off
-    if (aiLoading) return;
+    // A click during the fetch used to return in silence, which is the other way
+    // this control could look broken. Say it is working.
+    if (aiLoading) { aiSetStatus("Still running \u2014 the forecast will appear when it lands.", ""); return; }
     aiEnabled = true;   // keep it on across rebuilds, storm switches and play-end
     aiRun(els.typhoonSelect ? jmaCache[els.typhoonSelect.value] : null);
   }
