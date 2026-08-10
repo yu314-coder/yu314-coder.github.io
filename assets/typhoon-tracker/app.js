@@ -1718,12 +1718,20 @@
     // boundaries — the outer gale ring (30kt, thin yellow) and the inner
     // storm ring (50kt, orange). Added last so their indices are stable for
     // per-frame Plotly.restyle().
+    // Empty, NOT a single point. These are placeholders that the sweep restyles
+    // into real rings per frame -- but with fill:"toself" a one-vertex polygon is
+    // not a degenerate shape to Plotly's geo renderer, it is a crash: its path
+    // builder walks the ring and throws on the missing second vertex. The throw
+    // aborts the whole draw, so every trace added AFTER these silently never
+    // renders -- and the AI overlay is added after, by aiRestoreOrClear. That is
+    // why a storm could hold a complete Trackformer1.1 forecast in memory, report
+    // 12 traces, and draw 9. An empty trace renders nothing and breaks nothing.
     fcSweepGaleIdx = traces.length;
-    traces.push({ type: "scattergeo", mode: "lines", lat: [a.lat], lon: [a.lon],
+    traces.push({ type: "scattergeo", mode: "lines", lat: [], lon: [],
       fill: "toself", fillcolor: "rgba(255,205,60,0.06)", line: { color: "rgba(255,210,80,0.65)", width: 1 },
       hoverinfo: "skip", showlegend: false });
     fcSweepCircleIdx = traces.length;
-    traces.push({ type: "scattergeo", mode: "lines", lat: [a.lat], lon: [a.lon],
+    traces.push({ type: "scattergeo", mode: "lines", lat: [], lon: [],
       fill: "toself", fillcolor: "rgba(255,120,0,0.14)", line: { color: "rgba(255,150,0,0.85)", width: 1.6 },
       hoverinfo: "skip", showlegend: false });
     fcSweepMarkerIdx = traces.length;
@@ -3183,13 +3191,23 @@
     return last;
   }
   // Draw both wind rings (gale outer, storm inner) + the marker at point p.
-  // A ring with no radius (weak storm / no forecast data) collapses to a point.
+  // A ring with no radius collapses to NOTHING, not to a point. These traces are
+  // fill:"toself", and a one-vertex polygon makes Plotly's geo path builder throw
+  // rather than draw a dot: it walks the ring and reads a second vertex that isn't
+  // there. The throw aborts the entire redraw, so every trace after these -- the
+  // whole AI overlay, which is added last -- silently fails to render.
+  //
+  // That is not a rare shape. JMA publishes a 50 kt storm ring only once a storm
+  // HAS 50 kt winds, so every tropical storm hits it on the inner ring, on every
+  // frame and every zoom. It is why a typhoon showed its Trackformer1.1 route and
+  // the tropical storms beside it showed none, with a complete forecast sitting in
+  // memory for all of them.
   // ONE combined restyle → one map redraw per frame instead of three (the
   // marker.size entries for the two line-mode ring traces are inert).
   function restyleSweep(p, pulse) {
     if (fcSweepCircleIdx < 0) return;
-    var gale = (p.galeKm > 0) ? circlePolygon(p.lat, p.lon, p.galeKm) : { lat: [p.lat], lon: [p.lon] };
-    var storm = (p.stormKm > 0) ? circlePolygon(p.lat, p.lon, p.stormKm) : { lat: [p.lat], lon: [p.lon] };
+    var gale = (p.galeKm > 0) ? circlePolygon(p.lat, p.lon, p.galeKm) : { lat: [], lon: [] };
+    var storm = (p.stormKm > 0) ? circlePolygon(p.lat, p.lon, p.stormKm) : { lat: [], lon: [] };
     Plotly.restyle(els.map, {
       lat: [gale.lat, storm.lat, [p.lat]],
       lon: [gale.lon, storm.lon, [p.lon]],
