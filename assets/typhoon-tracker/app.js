@@ -1653,7 +1653,7 @@
     // does, redraw the panel so a depression's boxes fill in rather than
     // staying dashed for the rest of the session.
     if (!tfLiveAll) {
-      tfLiveLoad().then(function () {
+      tfLiveLoadFor(d.tcId).then(function () {
         if (tfLiveFor(d.tcId) && els.typhoonSelect && els.typhoonSelect.value === d.tcId) {
           updateForecastPanel(d);
         }
@@ -1897,14 +1897,38 @@
   // a complete Trackformer1.1 forecast for it sat in this file unused.
   var tfLiveAll = null;
   var tfLivePending = null;
-  function tfLiveLoad() {
-    if (tfLiveAll) return Promise.resolve(tfLiveAll);
+  var tfLiveFetchedAt = 0;
+  // The server re-runs this about every twenty minutes, and the storm LIST beside
+  // it is re-fetched from JMA on every look. Holding the forecast for the life of
+  // the page made those two disagree: a page left open since before a storm formed
+  // showed it in the dropdown -- fresh from JMA -- with no forecast behind it,
+  // because the payload cached at load predated the storm. Three storms listed,
+  // one with a forecast, and nothing to say why. So the payload expires too.
+  var TF_LIVE_TTL_MS = 5 * 60 * 1000;
+  function tfLiveLoad(force) {
+    var fresh = tfLiveAll && !force && (Date.now() - tfLiveFetchedAt) < TF_LIVE_TTL_MS;
+    if (fresh) return Promise.resolve(tfLiveAll);
     if (tfLivePending) return tfLivePending;
     tfLivePending = fetch(TF_LIVE_JSON_URL + "?_=" + Date.now())
       .then(function (r) { return r.ok ? r.json() : null; })
       .catch(function () { return null; })
-      .then(function (all) { tfLiveAll = all; tfLivePending = null; return all; });
+      .then(function (all) {
+        // Keep the last good payload if a refresh fails, rather than dropping a
+        // forecast that is merely stale in favour of none at all.
+        if (all) { tfLiveAll = all; tfLiveFetchedAt = Date.now(); }
+        tfLivePending = null;
+        return tfLiveAll;
+      });
     return tfLivePending;
+  }
+  // A storm the payload has never heard of is the one case worth one more request:
+  // it is exactly what a just-formed storm looks like, and the answer may have been
+  // published since the last fetch.
+  function tfLiveLoadFor(tcId) {
+    return tfLiveLoad().then(function (all) {
+      var has = all && all.storms && all.storms[tcId];
+      return has ? all : tfLiveLoad(true);
+    });
   }
   function tfLiveFor(tcId) {
     return (tfLiveAll && tfLiveAll.storms && tfLiveAll.storms[tcId]) || null;
@@ -2001,7 +2025,7 @@
     if (!live) { aiSetStatus("No storm loaded to run the model on.", "err"); return; }
     aiLoading = true;
     var dataKey = jmaIssueKey(d);
-    tfLiveLoad()
+    tfLiveLoadFor(d.tcId)
       .then(function (all) {
         var pre = all && all.storms && all.storms[d.tcId];
         // If a fresh server-side run exists, it's STRICTLY better than the browser's own
