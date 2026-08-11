@@ -35,6 +35,8 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+from urllib.error import HTTPError
+
 import numpy as np
 
 HERE = Path(__file__).resolve().parent
@@ -788,8 +790,29 @@ def process_storm(tc, models):
 INTERNAL_FAILURES: list[str] = []
 
 
+def active_storms():
+    """JMA's list of live tropical cyclones, or [] when it says there are none.
+
+    JMA does not serve an empty array when the basin is quiet -- it takes
+    targetTc.json down, so the honest reading of a 404 there is "no active
+    storms", not "the fetch broke". Treating it as an error failed this job every
+    twenty minutes for as long as nothing was spinning, which is most of the year.
+
+    Only a 404 is read that way, and only after the retries in _fetch are spent.
+    A 500, a timeout or a DNS failure still raises: those mean the request did not
+    get an answer, which is a different thing from getting the answer "none".
+    """
+    try:
+        return tf10run.get_json(tf10run.JMA_BASE + "targetTc.json")
+    except HTTPError as e:
+        if e.code != 404:
+            raise
+        log("JMA reports no active tropical cyclones (targetTc.json is 404)")
+        return []
+
+
 def main():
-    active = tf10run.get_json(tf10run.JMA_BASE + "targetTc.json")
+    active = active_storms()
     storms = {}
     if active:
         models = tf10run.load_models()
@@ -812,6 +835,25 @@ def main():
         log(f"{len(active)} storm(s) active and none forecast; leaving {OUT_PATH.name} "
             f"untouched rather than replacing it with an empty file")
         return 1
+
+    # Reading a 404 as "no storms" is right at the end of a season and wrong during
+    # a momentary gap in JMA's publishing, and one run cannot tell those apart. So
+    # do not blank a payload that is still fresh: a transient miss is repaired by
+    # the next cycle twenty minutes later, whereas a season that has genuinely
+    # ended stays 404 and the file ages out of this window on its own.
+    if not storms and OUT_PATH.exists():
+        try:
+            prev = json.loads(OUT_PATH.read_text())
+            had = len(prev.get("storms") or {})
+            stamp = dt.datetime.strptime(prev["generated_at"], "%Y-%m-%dT%H:%M:%SZ").replace(
+                tzinfo=dt.timezone.utc)
+            age_h = (dt.datetime.now(dt.timezone.utc) - stamp).total_seconds() / 3600.0
+        except Exception:
+            had, age_h = 0, 99.0
+        if had and age_h < 2.0:
+            log(f"no active storms reported, but {OUT_PATH.name} still holds {had} from "
+                f"{age_h:.1f} h ago; leaving it rather than blanking on a single empty read")
+            return 0
 
     out = {
         "generated_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
