@@ -7,7 +7,7 @@
   "use strict";
 
   var DATA_BASE = "../data/typhoons/";
-  var DATA_V = "?v=da29a4faf";   // bump when the season/index JSON is regenerated (e.g. RMW added)
+  var DATA_V = "?v=d1e4e544f";   // bump when the season/index JSON is regenerated (e.g. RMW added)
   var DEFAULT_STORM = { name: "Haiyan", season: 2013 };
   var DEFAULT_GEO = { lon: 150, lat: 20, lonRange: [95, 205], latRange: [-2, 55], scale: 1 };
   var currentGeoScale = DEFAULT_GEO.scale;
