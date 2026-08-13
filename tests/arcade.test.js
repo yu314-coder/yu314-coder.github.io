@@ -1826,8 +1826,17 @@ const buildPlain = (B, h, name) => {
   check('lawn: with sun it plants and charges', bought && L.grid[2][3] &&
     L.sun === 1000 - L.SEEDS[pricey].cost, `sun ${L.sun}`);
 
+  // Fusion made "occupied" a legal target, so what stops an immediate second
+  // plant here is the cooldown, not the cell. Say which, or this passes for a
+  // reason its name does not describe.
   const twice = L.plant(3, 2, 1e6 + 1, g);
-  check('lawn: a taken cell is not replanted or recharged', !twice);
+  check('lawn: the same seed cannot be replayed on the same tick', !twice);
+
+  // and with the cooldown cleared, that same pair fuses rather than refusing
+  L.cool = {}; L.sun = 1000;
+  const fusedHere = L.plant(3, 2, 1e6 + 2, g);
+  check('lawn: an occupied cell fuses once the cooldown is clear',
+    fusedHere && L.grid[2][3].key === 'repeater', L.grid[2][3] && L.grid[2][3].key);
 
   // cooldown: the same seed cannot be spammed even with sun to burn
   L.sun = 1000;
@@ -1864,6 +1873,36 @@ const buildPlain = (B, h, name) => {
     L.grid.flat().some((x) => x !== null), `sun left ${L.sun}`);
 
   // art is optional: the harness has no Image, and init must survive that
+  // fusion: planting onto an occupied tile makes a hybrid rather than being refused
+  L.init(g);
+  L.sun = 2000; L.cool = {};
+  const iShoot = L.SEEDS.findIndex((x) => x.key === 'shooter');
+  L.pick = iShoot;
+  L.plant(4, 1, 2e6, g);
+  const beforeSun = L.sun;
+  L.cool = {};
+  const fused = L.plant(4, 1, 2e6 + 1, g);
+  check('lawn: planting onto a plant fuses it', fused && L.grid[1][4].key === 'repeater',
+    L.grid[1][4] && L.grid[1][4].key);
+  check('lawn: the fusion charges for the seed', L.sun === beforeSun - L.SEEDS[iShoot].cost);
+  check('lawn: a Repeater fires two shots', (L.grid[1][4].fused || {}).shots === 2);
+
+  // a pair with no recipe is still refused rather than silently eaten
+  L.init(g); L.sun = 2000; L.cool = {};
+  L.pick = L.SEEDS.findIndex((x) => x.key === 'sunflower');
+  L.plant(2, 0, 3e6, g);
+  L.cool = {};
+  L.pick = L.SEEDS.findIndex((x) => x.key === 'wall');
+  const noRecipe = L.plant(2, 0, 3e6 + 1, g);
+  check('lawn: a pair with no recipe does not plant or charge',
+    !noRecipe && L.grid[0][2].key === 'sunflower' && L.sun === 2000 - 50);
+
+  // every recipe names a sprite that exists, in both orders
+  const recipesOk = Object.entries(L.FUSIONS).every(([k, v]) =>
+    L.ART[v.art] && k === k.split('+').sort().join('+'));
+  check('lawn: every fusion recipe is order-free and has art', recipesOk,
+    `${Object.keys(L.FUSIONS).length} recipes`);
+
   check('lawn: it initialises with no Image constructor', L.imgReady === false);
   check('lawn: every sprite is an inline data URI, so nothing is fetched',
     Object.values(L.ART).every((v) => /^data:image\/png;base64,/.test(v)),

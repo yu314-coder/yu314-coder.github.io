@@ -415,7 +415,7 @@
       breakout: 'Arrows / mouse / drag — 10 boards, each rolling a modifier · ? = mystery, KEY clears a row · dodge the red capsules · the wall creeps down',
       dino: 'Space/⬆️ jump · a 2nd is free; a 3rd to 5th only at the top of the arc · ⬇️ duck',
       snake: 'Arrows / WASD / swipe — edges wrap around · gold +50 · ✂️ trims your tail',
-      lawn: '1–5 pick a seed · arrows move, space plants · click a sun to bank it · sunflowers pay for shooters · each lane has one mower, and that is your last life'
+      lawn: '1–5 pick a seed · arrows move, space plants · plant ONTO a plant to FUSE it — shooter+shooter is a Repeater, shooter+wall a Bulwark, bomb+frost a Glacier · click a sun to bank it · each lane has one mower, and that is your last life'
     },
 
     // Same games, described in the gestures a phone actually has.
@@ -423,7 +423,7 @@
       breakout: 'Drag or hold ⬅ ➡ — 10 boards, each rolling a modifier · ? = mystery, KEY clears a row · dodge the red capsules · the wall creeps down',
       dino: 'Tap to jump · a 2nd is free; a 3rd to 5th only at the top of the arc · hold ⬇ to duck',
       snake: 'Swipe or use the pad — edges wrap around · gold +50 · ✂️ trims your tail',
-      lawn: 'Tap a seed, then tap a tile to plant · tap falling suns to bank them · sunflowers pay for shooters · each lane has one mower, and that is your last life'
+      lawn: 'Tap a seed, then a tile to plant · tap a tile you already own to FUSE — shooter+shooter is a Repeater, shooter+wall a Bulwark, bomb+frost a Glacier · tap falling suns to bank them · each lane has one mower, and that is your last life'
     },
 
     touchPad: null,
@@ -4740,6 +4740,23 @@
       { key: 'bomb',      name: 'Bomb bud',  cost: 150, cool: 18000, hp: 60,  art: 'bomb'      }
     ],
 
+    // Planting onto an occupied tile FUSES rather than being refused. Two plants
+    // become one that keeps both jobs -- a shooter in a nut shell still shoots and
+    // still soaks, a shooter wearing petals pays for itself. The pair is looked up
+    // unordered, so it does not matter which half was already there.
+    FUSIONS: {
+      'shooter+shooter':   { key: 'repeater', name: 'Repeater',  art: 'repeater', hp: 60,  shots: 2, dmg: 34 },
+      'shooter+sunflower': { key: 'sunshot',  name: 'Sunshot',   art: 'sunshot',  hp: 60,  shots: 1, dmg: 30, makesSun: true },
+      'shooter+wall':      { key: 'bulwark',  name: 'Bulwark',   art: 'bulwark',  hp: 400, shots: 1, dmg: 30 },
+      'frost+shooter':     { key: 'sleet',    name: 'Sleet',     art: 'sleet',    hp: 60,  shots: 2, dmg: 26, chill: true },
+      'frost+frost':       { key: 'sleet',    name: 'Sleet',     art: 'sleet',    hp: 60,  shots: 2, dmg: 26, chill: true },
+      'bomb+wall':         { key: 'minewall', name: 'Mine-nut',  art: 'minewall', hp: 400, mine: true },
+      'bomb+frost':        { key: 'glacier',  name: 'Glacier',   art: 'glacier',  hp: 60,  freeze: true },
+      'bomb+bomb':         { key: 'glacier',  name: 'Glacier',   art: 'glacier',  hp: 60,  freeze: true }
+    },
+
+    fuseKey: function(a, b) { return [a, b].sort().join('+'); },
+
     // Difficulty moves the three things that actually decide a run: how fast the
     // sky pays you, how hard the wave pushes, and how many lawnmowers you get.
     TIERS: {
@@ -4791,7 +4808,13 @@
       sprinter : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAwFBMVEXb2+IaUlQgKDUWFn9WXGtIWHBIWHBNXXUAAP99kar///+MISKXrMiHm7eUobJcaZOYoa+Jn7o8S2JziqVGPUassup6DxG90u04SF2RpcIkJCSOo8AA//90iKAAfwB///+q//8AAABKWnMuOkxcbohVVVVTYnb6+/2TqcVecIyImrI5RlkvPE2OorssOkpyg5m3y+UuOkyluNHY5/YtOUkAf39reItKWHR/f38tOUwtOUwuOUuMkZl5jKSvwts9PT0xTRCuAAAAQHRSTlP/Bv8C7qFSHQH+Af/pY+obEqHzHf8L//9caQeqAWcCAgMA+/v+A/3//f/9/Uf9Ev7/zv7/MgL+EQKWbqv//f4EIkJVMwAAAzBJREFUeNrtl3tzojAQwEGwqOer7fXae18SiTHIU0EE0e//rW4DVFsNTmjnZm5ubv8oS8P+srvZZKOG3inavw/ovQcQG7Z42Eb6JkBPWE+sjSX0tD0AzDc3XRNj3O1a5Ws7gI2sLhhjKv5gQKTtADa6AbuERyCuD+oNMtoAhP2dv1+tVlqwD4KoACcaotAa5+crTZsDIoj2+8AVBEMZ0NvgOz4vBQhgHwRMRGErAmzUxclKG0daSdCG/f5Q62NTH6h6sME4KszdmI7Bfs7pbkf9gMpdkAAMyEBRJGL6BBLBK61w5XnU5BEUVHM/giHVtGcN8rhRDGFj0oI65qcP2nznMlxrRYJl5SQF4Bk3O50Pwoy7Ry2RJkEOoMzkHVM4HkX0WVMHWBjvfb9MnR8ER20GISgBUkgif0yqxYMq8kvtMVJOogEAmDnq9yOxEfaVFnBsxilS82BScMYY7MNahhG88v53pAAwYMf8REPGQTCpxeEuB+TDt0H1wRVAOTpAU+aCDenUgI7PXJeN0BTOyesexCjbwmOKRkwAyAnA2S36Jaq0/KAJEMcZIbmHDg/oFnxwOrWQwmXjaTqACbbwgR43AmwYJyEQBkBg3K+lYOzrPRKbuR5vDOEHysQXawRbfzRkJ/kMgzrychjdXk2iXRIIECbIGt1yDovIx6N7ZFke8sJL+4tlPKC1ICxReZzjGQjFojvQyVrYZ+fVfFFINSGjFNOqKVRP+kRk9pJKtCtXHfxa7qrQDkonkiCcAxy5vXQ7G+iQh3VTe+ECLJ+t3hutM3NMb77AQqoCDHGynwMk/jcCeucAip0neXNUAFCohcSB0mgJKBdfGC8Wi9niDQD8bCykLQB2DiGz2vhtAE8AZv8BfxUAKnHdCqCjnODFURJoUl7LuzIcbM5JSFMETQADLfOQnCTMs8uudg0QH0KSL0+yFedZ2uaunJVH4FHgLW+1G72yhei6XYqOlqQpCw2XbdEDX6RdtyEhoa16JqZlb9m+OAPtZhfkl21oouGrJi7517XGsr6YrnIqU7vmxboIWNevp+VaCKKzXVR+uTCSWpCvQpZf1J0OtyPvT/x2/g2sKR5OOYdqCgAAAABJRU5ErkJggg==',
       sun      : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAwFBMVEXlqxXosB/osBdqagDlzBnepBb//38AAAD+1DbrsRb//wD9zS/+00PmqhP/vTr/9cn/yS3+0y7/qlX+6ZXYmgn+zC3/4zL//1X/1Cv/0i79qgD/AAD+zS3/1S7/1DD9yyz/0y7/zi39zSv+zSzsuCb/7aX9vQz//z//0S7//PT/3WvTmgvZmwv/5DTttBj/8brlrBT/fz/YmwzVmAr9wBnipRDnrhXsmQ3/fwDTlwvWmQvyux7xvSL/4n7yvCDsshnR+uemAAAAQHRSTlOqFUwCBf8CAP3+Afn+/gb/DtID//g1/wMOMwMBjI1JSW3Pcaz6/wgEr///Ds0O0v9qBKdq/6mXCwI5UIlp/89zoAixrAAABEhJREFUeNrdVwl34jgMhs7sStiJSULICSEECBR6Te92rv//r1ZyAiSQUObNvt19q9dSalufPx2W5Q78pnT+4wBCy7/CQPj6jxVY9KO/+uJ8gNiPChSYoZQ4g0I38uPzGYTjDMQSRp6UXgZLAdk4PJeBiINkhd5UCQUJM0iIvpp6uEqCWHwIIMCB0EOJaIEPQ0T+EoGFNOSFNClOAwiIadGINx6CAouApoFgJBoZ0VR8iNA50FcQCxHYtB+bLqbIPlxCRgN2IERMC0Q7gIKhPQThwAS18zkMmMVLHQ6cgCP0AtUGQNPkPItcRkbgtJt3X1MkHwYbRUxGoIRvkTOHNQ6duj6ypUsRWTYix22CtJ6iimhbEceV3VtD6FTy3kIKOzJVnzWz96crl+Sq8/CNR302jZzpoVU5H1UGVmizs21L5DTRc82duL0fABthFfOh1cRAcPqqtDACNh3XNedSGiQo56brPr1BYUDKPoxEA4OIiREJ8tsb7SqxFAYhDPMhoX/skI2NjhjEEJCzHIrQlzHinHZHYz0YfF8bBKBBJNmBOP5CSxyAYQBxDcCHzBsrChSRSObuH9IYaFkMvhsaATVCwiWGlo3phPk1AJ1zdgKcK2+uqfX7l/1bhtgiGD33AXJin5CZ020gCgCnSHYkEtGm1L9k6TPC1hdomu/k6DEWR8WpAPhi5ulhewL3ZP96Qftf9kkWhFBSYCuuYKJDid6sLFqlCXm6KvfpuKaBAwboa7kdLNYlABpz96ZctkrzwzBeh+nYlthzpQZY9Eu5rQBI10Rpj9Pw+iiRVGFRMCECBptwuwXo70zQFH4GhddUHUApSiP6gHdzzqHfE+j3Bzt99kIHPiuKdqTUUSa+KhWIewoBKRiDPYBRAUDz6sVZqtd6JgqwRmlYlP8rBmCNHcJir08TpvuiL4wwHVn6VBcACr3COV2Ogd7KWBwT0E64KJztoaoA6KLLIksAbQX7cVDTZ4ByIVfrBgDcArCasd6epQ8B2AS0Z+NksgOg3N9/VgHukmxFh6FuQjBKh9fO3on7QoB1ISdudL7UnLgVRwXOfQWgSUw3V5YTHxUUpRzOjQgeOJGMFuFEuocXTiTnMJG2qfyNs71te2nMzefmVN4fpkezd0LMXsth2h/nGS0yW4SmWo5ztaDcnNq/FzUXlEpJE129sFke71pK2r6oRjnctVN49nPRWFQrZV1AIs1mDmZv0lrW6xdLr8EKHpDtF8vB1XbXsPvj0+TE1XZ4uV7c9IqwlXvT788PL9fK9d6FTz92xAvpgsiDU9d7vcGIie7XZ0oJkyE6X2lUfNxgHLQ4AVj5hZRZbsH1OS3OUZO1yR1ujlL4M9+c1WQdt3mfP2WkKM5u844bTe4TKefObjQPWl1fBERdWszszFa33mzrHpt95p/fbNfafX/b7qtfaPfrD46MHxyjX3xw/D1Pnt97dP0/Hp7/IMBfY8i8PozVx18AAAAASUVORK5CYII=',
       pea      : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAMAAADXqc3KAAAAwFBMVEUAAAB93WJNozyE4mhHnTnI97Q9kzYA/wBnwlBSqkJVqlU8fzw5izP3/fVXskZQqjt32F1FlTdBlThOpTxPpz2m649NpDxPpjx//387jDRBlDh/f39Opjw7mTs+kjc/vz89kTa686WF22w8kDdBlTdguU09kzd+4GLW+cc9kTZ/fwBAkzhV/1U7jTdMojs9jzU4jThVVVVMmUxElTc+kDiz8J7m/9j///8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAdtyKwAAAAQHRSTlMA/v3+/v/9Af7+AwTv//0P/RNrL0L/rY4C2UgC2ghGBLT//pWl+y///9UCnwOwa4AJAwopf///AQAAAAAAAAAANqdw3wAAASJJREFUeNpVkteahCAMhQOBKIrdcXZ6b9v7vv+bbRicb+RcWM6fHEQC0CtJ/TWCQB/OLIrC3YZ+Cun06WKtXdcVzO5NEUwvRMoYqYhq997HQ02UC1GiKA+K9lUU9TlvSm213oyEQBSG1n6dBJak8DfLtGYiTmjo+0r+3idU6izLzlqjcFL2yMuk3JCjA5pByT7GtIMFgx3Fp5Hmer0RXmqy4qjFRPHziP2frffR2C8GhTXoPhWxrxeY05RBdQWMxAAsXZSVIhRHHd32XsjlDKXsJ8AKapnHgQ5yz/VRVEipQpnWbT2B11wGyjv/s56hC4iZV/5IOKwzQ7+Bh9s5wVj2yMiuuvmuB5rx/ArGLdx9PwFJ07YNT8NjOCezVT8WtyH5BxnWEQ3OqYP7AAAAAElFTkSuQmCC',
-      frostpea : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAMAAADXqc3KAAAAwFBMVEUAAACd5f5cs9Ck6f7v/P5Xrco8lbN3yuYA//9kutdUqatDm7pDl7XQ9P6R2PBLoL45jas/f79Tq8lHlrNAlLE/v79ctdNDmLR///9ctNE8ka5ettVAlrNVqv9Dl7VeuNVdt9QAAP////8/f39rwNyBzudXtsx/f/8/mb8zmZlVVaqk3e1twtpV//9gudh/f38+kq9LoL5asMxxxuLB7/5Lob1Cl7R/f79Cn8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAMsc4BAAAAQHRSTlMA/v3+//76/gH8BP5H//z+7AQNEZIEL3MCrdjasAMtQo4BAQT9/RECCgUD/RUDQgKwomsJ/2LUBP8AAAAAAAAA/vHbAwAAARxJREFUeNpVkoeOgzAQRNcYLy60QCAJkEtIv97L/3/ZrXEKHgtZnifPSIsBnHo9sZueSPD0QN+yKArLxv4EdDxtMMduVsLr7ZKE+AcxE0IYxJk9O2k5Q1QpY5ynO4NdKeU5Z/pnHsMw+RqQMJ3r0RBjxkOrhFmkKM2STdGYNHTizC6Dd1SzpQuKjwDje5zCvW0wKU9cFNkEWNZUPfSnJqNTcvWJCMoCKHLBh1Kb4oDCmEA5gIExNganXDBfBChqC29U7ivLS4AKvoXaR57EO/yClE8qEJ4C9QJLO5KPKPAULdywnmHhEdUejsN4pTyMiWprmF/+E6yD3dlWC33xiWygXrdkBsF6BTffvQBdr1b1J8DRfyfzyu3V8mz8AzENEWdx7I7rAAAAAElFTkSuQmCC'
+      frostpea : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAMAAADXqc3KAAAAwFBMVEUAAACd5f5cs9Ck6f7v/P5Xrco8lbN3yuYA//9kutdUqatDm7pDl7XQ9P6R2PBLoL45jas/f79Tq8lHlrNAlLE/v79ctdNDmLR///9ctNE8ka5ettVAlrNVqv9Dl7VeuNVdt9QAAP////8/f39rwNyBzudXtsx/f/8/mb8zmZlVVaqk3e1twtpV//9gudh/f38+kq9LoL5asMxxxuLB7/5Lob1Cl7R/f79Cn8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAMsc4BAAAAQHRSTlMA/v3+//76/gH8BP5H//z+7AQNEZIEL3MCrdjasAMtQo4BAQT9/RECCgUD/RUDQgKwomsJ/2LUBP8AAAAAAAAA/vHbAwAAARxJREFUeNpVkoeOgzAQRNcYLy60QCAJkEtIv97L/3/ZrXEKHgtZnifPSIsBnHo9sZueSPD0QN+yKArLxv4EdDxtMMduVsLr7ZKE+AcxE0IYxJk9O2k5Q1QpY5ynO4NdKeU5Z/pnHsMw+RqQMJ3r0RBjxkOrhFmkKM2STdGYNHTizC6Dd1SzpQuKjwDje5zCvW0wKU9cFNkEWNZUPfSnJqNTcvWJCMoCKHLBh1Kb4oDCmEA5gIExNganXDBfBChqC29U7ivLS4AKvoXaR57EO/yClE8qEJ4C9QJLO5KPKPAULdywnmHhEdUejsN4pTyMiWprmF/+E6yD3dlWC33xiWygXrdkBsF6BTffvQBdr1b1J8DRfyfzyu3V8mz8AzENEWdx7I7rAAAAAElFTkSuQmCC',
+      repeater : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAwFBMVEUbKCbW2tsiXCZTamckaCwdLBkpcjAlNStlZWUEc28xXkZ0eYaSmJ990IVYnGZTplMvgjcugTYmZiuS2ZgdLBg0mzougTe95sE9j0AA//9//39WwGAAAAAtfTY9pkYwhDcVSBskZiv8/PwdJxdBq0k8lkI0lj0iXCgAfwA4fDtEs00AVQBAlEQueDGkpq+D1IsufTFtxHUYUR4mZSodLByQk5xndHslZSoA/wAlZip7zYMdLBkgNRwBCxgDPQMpajCDqj06AAAAQHRSTlP0//H/IF1jFAIC//////8DVdGM/5YMn///AQL/AP7+/v/8//r//v75Agj/A/26//+E//9JFP//rwE2/6v+/wQLouGAoAAAA5NJREFUeNrtl9ly6jgQhuUFsyQBQpbZtCAsS7YxeAiEPeH93+q0ZGzsQ8g4ZKqmaur0Df9Nf/q73WpjhL8Z6BfgF+ATwPs4F9c7aC4WCyPGXwVAwqLxiHwItGs0r3DQ2Olkf783kF3jMxPo/PjFI2QpwgJKA0bUHhBNHNYFvOMGGOeS6hBCxHFAANG4SEA/nw/5KohnEF2RUWLBff+xngOTz+PZw/bu7i5NZ4IaSMw0YfzPAJNP/kq36W+W9bBN021OkD56/Hgkqg4W+vzt3cNIB9hIZ7oPIvPQ+NADqhjY+Yp205k1siwgpFBGTKWkMRCIj5pN7SHUg9Ee5wqV85s+CugsTW9vlsvldJRut2nScRyHgAlhgwXsRofjaGYqrAJ2UAAAujf6/FsHenGUCh4G89F8pZRaeZA5X3GtXNxG1Q4Egs66N5AzfR1NnYdCAljYNuecEM5tSD+qTcmBHiEb+iUcOPTVQmi0nJ2kFJQrImE6JdHZudqUHex8AgdJZzSy0C16m067y0KSmNgMHii0FEi5klyVAchn0CxpspDO4idJApvohJchJypTL0BkZcACnoEeHHAwct7e0OiGnaQkSlL5MoSwea6GjPIKYK/nLia3WeesTklSzgPKTZYq1NCm5BxAhZrqQbQ6gSgkFE7yY1WhhkPJqoDAAGjHeX1ddkw9heS8APATgJUBTdNEc4ElIVKIshS6B3kJuRq+BOTsMR53QJwtg0IKpns+zGvIFGJSVQdJHQHnoedIUmbDqeykoLATIIS7tA/oxQgUh/mRLJAwiYXySiW0/5gQwi6HGWHzM1C58sq3McJ9Rj4JNhlwpS/hBrtH5eKo3MR2ZH9CYOwJR5v5JoLnBesgU5V9gP/ELrtMYB5uZ3sjxOtmrqo7sYc9drkAqBGPx/lezFV1qfbw3xcI7D5qr2u8WNr4mV3Iv/Bu+gmwboMHdt6/5wi3ar+dvfsqAkagj2u+G1t4M5lj3L83g1M6/uP6PwIMEmYQz/fZ9Jnqobn1/h+0sEuSJEM8Pbl9z4OGTPDTGtcGrAKII8L0AwDrsO5fHGMgKBCHqNcyDmoDeuEqyQAawQ/hAX8NgKP5hCUZIyEbHEZfBUDMJwRODxK4Oi38dUAL+u0OyO8JG+ADxtc4GMPEup690lfvKgDWleP3w3FHXQOAGxUVS+46QGlLfhvg/QsO7G8A1tjt993/9psp7PXC//1n3w/oKdiJl1YcOAAAAABJRU5ErkJggg==',
+      sunshot  : 'data:image/png;base64,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',
+      bulwark  : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAwFBMVEUdKSChZip3WCTX2dxkXSwnXCnerm6QYy1l1GmaaTChkEtRbF1/NzOWaC9jmlZ9ViV8VSWT5ZOVmp///wA3dkm5t8JggzyqqlX/eHije0L/fwA7gkv/qlXAu8p3fYR+3IC3gTm/w8UA/wDywYAAAACgbjLKk049m0WbbDGndDZVxVt6VSWDWihCnEa5h0ZPuVV/fwAsdzL6+vv/AAAOGRGYczUdWCPFjUoYJRU1hzpbzWBHpkxVVQBTY2mqVVWM24wigYINAAAAQHRSTlP/Fhb/7///pf9Z//8Dzf+hW///Af///wMC/wL/A///////Af8A/v/+/fz/+/3//v8C/v8B//7///////4D/wP/LJt+OQAABGNJREFUeNrtl2t3okgQhptbuKh4jZNkstdBpRsQEBhREv3//2qqGgg0YnRmz56zH/Y9SWyj79NV1dXQEOcfivwP+NcBCehXAdFwGFUjafj2s4BkWL5KsiyVmJp2FyDCCWVT11UPpOq6KUkAfbsTkEjoHnm+71XyfX+ky44zj+4BwDyyjmbfpXQLotTFd75u8g9vAYal3c+265a21EWE7ETJDUDkTNBO1xfaImKC3/gEkKC/tO9RHQR8hEFcB0Cdx77ngg9+HkDIaSMyzx91CESMH/wU7WD+9lBKCOKZE4ZXAFLl55NbA5WA1MGzmAYS2u1N2vXnfj69peZpmhMCf1Oidgjj9mqS1vpPPvwq2OKgCMOwsLU8Jc9dwvASkESy57k8/meSksAAHRk7GizQ0txtEajny00MpAkAEuAld/NUM6bT83l6NhjoeIxzgeB6qhx1AZEjlwX8k5JU+2N6VhRlCggkMMPO82chiQlUXARgAD7vWRXmP093KAjCYBiFcUjJXgxhLgISByrAA1BzEkIAs8FgpmAa4WIwWISGlnql2bKgTzCENwEwxC2ADQwJ2Gxqv8+U3ePAnsLoUdkp70WYE9hdlq3Gsbq0XG9c92MFiCLVy8oKaozZ78pupyi79/MZR3/BiGmp+mDFcXw4HIDhe7KTtAC8hHz/eml8NBa/7XazGZkptv1Yjb4WqQp+aA0WFgcgTKpeIEIG67WaBkc2gKjJjJDHQTOCHOID2vEXCLpzEgBjn6/0nuRFBUjRtvgYMaLh/BtN0w4shCyqdahTGPM1WG8JCRlP4XeCgX+tRwsDjCHbfAcBYRN7UlmECiCrLQAL6yKGzYgDQu07V1HEqlQWgXx0wbYE5AA4BuXiBcdmxARAEKtm2QkdABSxwC1Utk97FGIN2AEJmgZVrFupC/DSJd9BBv9pRsci12AV2AEAcRjwdewFZNhIPYId6dlYxrAouF8EzOsirtfBJujVZmOtl9CIQbGJteUWWzHqWUZo9w1891LBxsYPAQEtYMGOrnu5BJzqRipD6PNDAJwP9zp+VVLlv5O+VsYQeghB5W+uCPWVtbuZ+gllAi35nc0EN+SPKl4S4E3Hz0sQiRcU3XW3lfYWWIKKwV+t/batfeaP5uIF5cmR6MqttcqWQWnmL3bWfFSJmvVVtU7hxdGpu6qUrRBRMZYZ/4cgSqX69lYDTo7ZAFYuOjIufOd2/C7VndfujUUIARH1m6xr5wHMky4Aq0DF77plABfCCjxd3lzFJD4RJBC99t3eX8UkrvtHTQICIHmRRrcJcPaTmgTEE0rk3CZw/+naGenpJoH7pevHPCDo0JFX7Zi/6O8eNKHBTXolCLBTXYy/56QKe8QcAeKy+8AO69/19xy2ZTyqUwyjpuAIug+nvzgq9x33YQ7J1CmXi3Y+GpmQ+5c7Hzjwe8AYrbgXKqej2/kyv/+R5/TCj66SCZIkPnGv/ZOHrkhuxXuSol967JtHJ1A0/28/uf4Ag6U3QNZ65G4AAAAASUVORK5CYII=',
+      sleet    : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAwFBMVEUedR78/f3a6OyZnKItdi8kX3ie2u5Zk6oykKcrdaZUpq0+kERidYQPGSYA///6/f0afnpAlENUaXgvgZ50xOAwgp8pbor///8xg6BaqchqamoqaywxeDRQosZ///8AAP9OnbtTo9RVVapZpcROnbt/f/+YuMUA/wAufptVqlUrfJmw//8zgzQrNUA2g06jxtMAf/8ZMxkA/38AAABOnbt5yeRUpcT7/P0zhqT///8se5houNQiXXaD0+0zgzbG7fqG5H3QAAAAQHRSTlMMofX/pP/7+BkRB/z//wEwA/3/8v6m9lda5wJc6VoCAakhA5xeAvwBjANUBUH/lXUCCgIA/v79/v4E+P7///7/Eefb3AAABANJREFUeNrdlwlzokgUxxuQMwjIpcYjOrlnZndmtw+bbjHf/1vNa0CEGBMnbtVWzauy8o/wfu/o1w0ifKGhPx5QXAQoivpzQQbFJRkUOAzH4zBsIUXxFg+djAkAXdP08IM+oKOmtfeHY22z0cZF801RhOM3UnidwXhc/YkiNyoqgFanAOlrYMdVoF76GkQNtcLz1L+uKkEr8De3jq9w4fuAfdUYO5MsEYTYln3rYBxEAGgKegdQQP7VTeHXLOFgCpGLJJtg7J1TAgC0quoHwRPCZEppKiXhCc8cfH9OE+sSNDvnTNLayrKkDJKZ4OUZy6iaGFpEJ7S0lJUNhDLBM3y/PGuQflg5K60XZfqLZTUICWVg7+NB8vCEC1aC82az0SvEgfCEo48AMD0H/5pgqTZUBMG/QoCbIGhu3ivUS+CJE2rpFjjrQFB1WFRK6AItmUhcN6rCgKf3Za9Q19/lnFLrRX/w/Tg2qhTsGMyGFbUIpIAdB+YKK+9aRX1AxlkJGdi+im/4+stexim1pEgmmRAim4Bno1zsHQABdkWiQj34ysfYGLbeSh+qsAUMBIFPPskalbidDFxYAqKaFkNQQx8ON77lt1KWlAsC/UhhNmFQG5W4B4BTV1DKGHo4NIZDw7DtVpKSCAbLAY5A2ivJxQEQ3eRcWgDwldfwAKgkSQWBmHZuCtIqBmWhbgt4qqYGMtjEw+FfG5/5rZRESCpzc7s1RdKo7ZZR3gE4gldTZxt15/TYaqWfci6pbZomAFq1zSk5BtA0NqpBhLWjBwl5y1xFNVsFhCnrl9BsYj82DN9Py1bCGiScSrMG8LRWW9NkrDMHbtXEeu8QMi170lI9EKZyVCVUCoqQvDsHGZdl5yDpSdgLNmUq6DaHGmplEileDVLrdmwcUmBQu0kOKuXJAfCv2kvpaYAUan7kVEqY4b1KJp3NdF+sGGGnTQ0/YTbnIhONgrOyA3DwHSPvGFs9JUJtQgc7ajOCcrHbPVCWrv0OgbE1HAITdQzAueLW6mfvRFpij50msLvmWPUi9ahq1OtD9XQRbAXrdON6X+qjsFX9Y32NVycIbOpdBx+/HwRLvJqe8H/7VH/9YAkKvDjuA2O33qlnWx9wjdEArad9BIzAQl06DzAY7QazxbQaHDBbCQh/H5z1jgQJzEejCnE7tWuIfbXGJx6LbwEGV2AKgfC39eJu8fduN8BOcOZbWpXA1R4xU1/NABCgc1/zntFgVAMUYh45kTdQGZwNwGg22I1qxmiOMEL4NwEq58Ecol+NdjNV0W8Drh/hG4Wo3T6TAbpWlcxrr88AsKoc/4Oai58BYPyI2oufA3QuXgyY/QcZzC8APGL0/Tv6f383oudn9Mf/dv4FwkDWcuqFRmwAAAAASUVORK5CYII=',
+      minewall : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAwFBMVEWaYjHX1dWRmaQOFySKYCtsRxvhZl6MYynrqJleYWNyXSnej3KKYijly6RsUS1xOBt4JCSqVVX//wCUdUnDQj5weol+g4q+kE+qqlX/fwC8v8IAfwC/yNSqqgAA/wAAAACvgD6LYymzhEFsRxvZU0v9/f3Qo2OpejqUKybSTEV/fwCKWSiONyZ4VyvJmliuNTNVVQCdcjVrSBxsSBx+PgH/AABaORKLRiZlanFsSByqVQBsSRzvpZyiLi1rRxtbVU3T1n51AAAAQHRSTlPr////Hlv/WP//Cv+m//76AwMB//////8DAv8C/wMBAP/9//z////+/v4C/v/9//4D/hPOBAH///+yA5L//y3/6/53AAAABDhJREFUeNrtl1t74jYQhmViYjDnZLvZdtvKkgEb2zJHcwzw///VzkjGlgwktH16s8/ORRax870ajUYjQeh/NPIL8H8CotUqyj/NVrN/CshW6t8FmMJcaA8BIpzwVD/slj7Ycneon/YAnT0KAMdFXWpLWx5OgIgeAYD8dEBNVzA2B2MsFjje1eV/fgZY0YWUsyDghXkBQ8buRPufASJax8kZqr3SYDRHBATR/xCg9AznlOZxjTHvQhALGn0AmFEIXwQcw397S984NxEMslkhEHP+A07vBTwdK0tTQGgrUYT+HcBM6bmUp2CK4emEAAnZbcAK9L0wSQiqxp1OpzGWiFTLZoCEnb6bRJu/3gunw8mXkIzTzgjNaqVmDJCTYO77B7q6AYjcXjh5fm8NhyFRerBxCwmXPHCShGGy8f1TGQPREpBMh+/vjefhJLQugI4eAicywmPPX7pRFRDRkx9Ohq1GYwghFABLJVKGAHoV4bQHBTWrAGZ054eghfnvApLpM0Y4mYT+cvVSXcLCxwhQDoDGBdAoATxILhHqIZDLFtZ9EWMIEMSUjDt6CmAj0RCgIgTA7lKPOSCKllBCmyPGcExS2MeOZXVaeUGm3nwOxZ18URFOEijIhbGE75BCH1ziMDyGBGWvze32/JoXNDvDQEAS8wg3HM/lSgPgCgAA6yQkkPrfMI+1ptQLNejmEU6TgMewhr0BOPiC5wc/4KCHDahZktBil4FQEW4CPFTL/osGiGATGS8L/myNvta+PlmjLU+9cjCXEeJphXp29RxE/aUG4PPtaPS0bT41cVZj4KlGhUdqYewCVMG8AgBDTYtpA66d6rwSbgKCM+QMNNaoyczBYwCPi9po9AfkzTp7r/rgUYDndWtYiH82A14d3Aa8uHoSwcET21qteZYSY1ACTqqYb22jaj1wMeUhG4M8zZVt3AMg1gGyosqrxRio7rx0/66UsvA+tQIiS3lmVKI8TFW/qhzvG/VZVA4TpSqL6irVr1XNoKMmSaw8MIffzYZyEEJdh8ovuLJY9fwNfoYUZGZD+Z3aTNlG+SWsYnHeUY8bOXQqHQmG7apfrMtZ2fPl9y7NTMCeOtKz9BNrv9D7a7/oqEcEtOlf1a6sQoiLu2G6AZWQswl/vRZh0VHxO/slqwJUFuLCDyYC3RqeGz34C0vIe75cgpP3M+NuVIsw/ASKQd6Vyc07KqS3HX27db1/w0XofhhRLESezAQ76nCaxIyUCzAAWWQT3a9qsMHTEL+39UcOMV44SCj8riwGwwSWCbh+IyEh97tnNnXvv9JgK9rsQyMV/fU7MS+oO9Z2jfhvvFThjDjkrt6hVf2Nx3af9u8g2pD+7IHnPszhOlepII5N6eDBHxzoZzvtIg7SRjUdZI//5BnIUrFtB8y2ZeHelH/woyvqa/Hu3ehf/ezLosF+P4iyn/yX6w/bxgjTi3OcWQAAAABJRU5ErkJggg==',
+      glacier  : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAwFBMVEWS0uhWm7HQ6fGWn6cxgqBYY2wveKMyg58RfXswgp8hcSE0jqU3iTddq9N5//9DlVFweIJuRRlwcG5isM4IDRhjr80ufpoxdzMudTB4xN9irsopaSt/f/9xs7yiucU9j0t4OgUqOBUvf5oA/wBvWBJVVar///8AAP9wPg1VqlU7cIQzgzRqRBkzmWZGlHJeqr+q//90OAT/AP8AAACb2e1ircrx+/6j2+6r4/ZrttIxhaMqe5nX8vxZqMYA//9Vqqo82Eo5AAAAQHRSTlP+/P//6P4PpQVRDB39GAL6//MH3v+bT+Oc/mhgAgb//hgEjgEdAwEB4wPvQWUFoLwDcAEA/v7///7+/P3//gED5uQ3iwAABDZJREFUeNrNl2l34joMhm2TjYRAgTJAKaWdmXa2u9uJl2z//1+NnNWBQKGfrk5P6pDosfTKNgLR9206dSUTbGsFeX7yEL3vH9KxFAIJsXXp40cA/wUWE0gbDmh+OyCnDi7dkViOafEBwNcAVxGILPgI4Jn+a281QDDLebtdg2f6x3yOt6AhAwluFjF/oc/z+feFi5eZFdApvQHwrXAc+Pd1Pp8vKA3GwWJg/vOA10qtQPs/15959GrAa67ndF1L2d/nP113HEA2Dr0WkMNUY1cplYDZtkqUstyxNxzCAKCo3BMLR1KXX0YYbpQFiOIaQEEdV1kJloyLxtgWJ4myHLp4H+DRTzA7RlywzgCFMEQxpo/5OwAH/BMFu48LQuAKzjVEI5RLi/wioND+sPRJnMbaUlIFwhkRnEea4H27AKj8BSfaN05LCCn9RQwkIcsYzgMa/7SevzKiAXDlFeEzdc4BvNzR/ozEfdNzx7UQkMWnXgwm4JV+Vkq/fGQpBCBqMQUUI/DyQUCZgDwKINVCgKZNMTizIIliEOBR14IEWJc/QTLLIgmaiq6aUQILKh8AFHSsEmQASJTBauQcRRlc2zXFFKwnbxDgKizKipXGMUrLHEADTWJGCN5ACnD4WloBmKMMAeEalBJASNmFgCxlHK7IlNBinNUhCEzip6dKTwIDKdu9wTGsJucE4OgMOKuXXRyxkT2CP/AvB3hpyuh63glA1yBqFr7gcnSnJ78bxfXg57YFSLMOnQaVBLwyKe2YEPsutkkzwPUj2JYa4B0BSg1Rm6fEo9i27fvR6K4ZJP1CFsMAkpZGSsD9fQ0oB0l3Pl0BiDhEDvPGNmoGmLR76wKgCTMTxyJiidoTbhBgighCo7guY1oPRGaIqLrj1SxjEol2tSGRcox5CilXA4TaMm4HyxhWW6EhcIaqC6sHvLcZnHxgKY/hNOGsb1XQfRPDS7lUcSt4Z8ec2qDPME+1bjtPIYeMtVJ3OVd37YhJpYwTpQPs6YOMDMtQHUW5tDPjiVzRf4aOtLdgaRKymEutHwgoY9QDhEarYgCmvRAyHkdwHoLpYOJ+AMOHKp3ujRD0rNKIpr2RMnxbnAHQsHMhJDP1iFsV5MPZLxZ40CSRPcU93ToeJLA//+U6pSvZxmyWJGp0lMtwkZ8H5A1BEtkHwFbKKv+jLuWoP8iLmtB3bz7R/tPLHUquiymjYZN/n/gPNFlAWA4iZDRbX9Wt72m4kicIaPZmk8OOvlzRaMIs4WopZUORsHgwuE9ms7WfX9Pq5tDZFuHDKqqXMniX7pP1zr+y2c7DMpnwr8NhFnrryeQA7pvdyy3tfrGH7n43mWzgup4d1psdfOjf9oPjz8UGAI8+3aw34PplQeltAPCcTNbUB6N04VN6K+AL9X/9qvx8/8w7V/zwrFD0YwD/xw//8htXRvB/BvwGlg3o5iAsEwwAAAAASUVORK5CYII='
     },
 
     init: function(game) {
@@ -4861,11 +4884,23 @@
     plant: function(c, r, now, game) {
       if (this.pick < 0 || !this.grid) return false;
       if (r < 0 || r >= this.ROWS || c < 0 || c >= this.COLS) return false;
-      if (this.grid[r][c]) return false;
       const s = this.SEEDS[this.pick];
+      const sitting = this.grid[r][c];
+      // Occupied is not automatically a refusal: if the two make a known hybrid,
+      // the seed is spent fusing instead of planting.
+      const recipe = sitting ? this.FUSIONS[this.fuseKey(sitting.key, s.key)] : null;
+      if (sitting && !recipe) return false;
       if (!this.affordable(this.pick, now)) { SFX.beep(150, 0.06, 'sine', 0.05); return false; }
       this.sun -= s.cost;
       this.cool[s.key] = now;
+      if (recipe) {
+        this.grid[r][c] = { key: recipe.key, hp: recipe.hp, maxHp: recipe.hp, at: now,
+                            fired: 0, art: recipe.art, fused: recipe };
+        Fx.burst(this.cx(c), this.cy(r), '#ffd23f', 22, 4);
+        Fx.text(this.cx(c), this.cy(r) - 22, recipe.name + '!', '#ffd23f');
+        SFX.powerup();
+        return true;
+      }
       this.grid[r][c] = { key: s.key, hp: s.hp, maxHp: s.hp, at: now, fired: 0, art: s.art };
       Fx.burst(this.cx(c), this.cy(r), '#7ede63', 8, 2);
       SFX.brick(1);
@@ -4989,11 +5024,39 @@
         for (let c = 0; c < this.COLS; c++) {
           const p = this.grid[r][c];
           if (!p) continue;
-          if (p.key === 'sunflower') {
-            if (now - p.fired > 7000) {
-              p.fired = now;
+          const f = p.fused;
+          if (p.key === 'sunflower' || (f && f.makesSun)) {
+            if (now - (p.sunAt || 0) > 7000) {
+              p.sunAt = now;
               this.suns.push({ x: this.cx(c), y: this.cy(r), vy: 0, amt: 25,
                                rest: this.cy(r), life: 9000 });
+            }
+          }
+          if (f && f.freeze) {                       // Glacier: chills a wide area
+            const near = this.zombies.some(z => Math.abs(z.r - r) <= 1 &&
+                                                Math.abs(z.x - this.cx(c)) < this.cellW * 2.2);
+            if (now - p.at > 1200 && near) {
+              this.zombies.forEach((z) => {
+                if (Math.abs(z.r - r) <= 2 && Math.abs(z.x - this.cx(c)) < this.cellW * 2.6) {
+                  z.slow = now + 7000; z.hp -= 240; z.hit = now;
+                }
+              });
+              Fx.burst(this.cx(c), this.cy(r), '#9fe6ff', 34, 5.5);
+              Fx.text(this.cx(c), this.cy(r) - 18, 'FREEZE', '#9fe6ff');
+              this.grid[r][c] = null;
+              game.shake(8, 14);
+              SFX.lifeLost();
+            }
+          } else if (f && f.shots) {                 // Repeater / Sunshot / Bulwark / Sleet
+            const target = this.zombies.some(z => z.r === r && z.x > this.cx(c) - 10);
+            if (target && now - p.fired > 820) {
+              p.fired = now;
+              for (let k = 0; k < f.shots; k++) {
+                this.shots.push({ x: this.cx(c) + 14 - k * 16, y: this.cy(r) - 4, r: r,
+                                  dmg: f.dmg, chill: !!f.chill,
+                                  art: f.chill ? 'frostpea' : 'pea' });
+              }
+              SFX.beep(520, 0.03, 'square', 0.05);
             }
           } else if (p.key === 'shooter' || p.key === 'frost') {
             // Only fire into a lane that has something in it and to the right --
@@ -5061,8 +5124,19 @@
           p.hp -= z.dmg;
           if (p.hp <= 0) {
             this.grid[cell.r][cell.c] = null;
-            Fx.burst(this.cx(cell.c), this.cy(cell.r), '#c08a4a', 14, 3);
-            SFX.beep(150, 0.06, 'sine', 0.05);
+            if (p.fused && p.fused.mine) {          // Mine-nut takes the lane with it
+              this.zombies.forEach((z) => {
+                if (Math.abs(z.r - cell.r) <= 1 &&
+                    Math.abs(z.x - this.cx(cell.c)) < this.cellW * 2.0) { z.hp -= 700; z.hit = now; }
+              });
+              Fx.burst(this.cx(cell.c), this.cy(cell.r), '#ff8f6b', 30, 5);
+              Fx.text(this.cx(cell.c), this.cy(cell.r) - 18, 'MINE', '#ff8f6b');
+              game.shake(9, 14);
+              SFX.lifeLost();
+            } else {
+              Fx.burst(this.cx(cell.c), this.cy(cell.r), '#c08a4a', 14, 3);
+              SFX.beep(150, 0.06, 'sine', 0.05);
+            }
           }
         } else {
           z.x -= z.speed * chilled * 3.2;
@@ -5147,7 +5221,27 @@
         for (let r = 0; r < this.ROWS; r++) if (try_('sunflower', 0, r)) return;
         for (let r = 0; r < this.ROWS; r++) if (try_('sunflower', 1, r)) return;
       }
-      // 4. shooters, front-loaded into the lanes that are actually threatened
+      // 4. fuse what is already down before adding more of the same -- a Repeater
+      //    in a held column beats a seventh lone shooter somewhere else.
+      if (this.sun >= 220) {
+        for (let r = 0; r < this.ROWS; r++) {
+          for (let c = 2; c < this.COLS - 1; c++) {
+            const have = this.grid[r][c];
+            if (!have || have.fused) continue;
+            for (const seed of ['shooter', 'wall', 'frost']) {
+              if (!this.FUSIONS[this.fuseKey(have.key, seed)]) continue;
+              const i = this.SEEDS.findIndex(x => x.key === seed);
+              if (i < 0 || !this.affordable(i, now)) continue;
+              const keep = this.pick; this.pick = i;
+              const ok = this.plant(c, r, now, game);
+              this.pick = keep;
+              if (ok) return;
+            }
+          }
+        }
+      }
+
+      // 5. shooters, front-loaded into the lanes that are actually threatened
       const threat = [];
       for (let r = 0; r < this.ROWS; r++) threat.push({ r: r, n: this.zombies.filter(z => z.r === r).length });
       threat.sort((a, b) => b.n - a.n);
