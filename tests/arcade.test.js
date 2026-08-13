@@ -1872,6 +1872,46 @@ const buildPlain = (B, h, name) => {
   check('lawn: given sun the autopilot does plant',
     L.grid.flat().some((x) => x !== null), `sun left ${L.sun}`);
 
+  // the expanded roster: every seed and every recipe must be coherent
+  check('lawn: eight seeds in the shop', L.SEEDS.length === 8, `${L.SEEDS.length}`);
+  const seedKeys = L.SEEDS.map((x) => x.key);
+  const allArt = L.SEEDS.every((x) => L.ART[x.art]);
+  check('lawn: every seed has art', allArt);
+
+  // every recipe must name real ingredients, or it can never fire
+  const badIngredient = Object.keys(L.FUSIONS).filter((k) =>
+    k.split('+').some((part) => seedKeys.indexOf(part) < 0 &&
+      !Object.values(L.FUSIONS).some((v) => v.key === part)));
+  check('lawn: every recipe is reachable from real plants', badIngredient.length === 0,
+    badIngredient.join(' ') || `${Object.keys(L.FUSIONS).length} recipes`);
+
+  // Cherryshooter is Peashooter + Cherry Bomb in the mod; keep that shape
+  L.init(g); L.sun = 3000; L.cool = {};
+  L.pick = seedKeys.indexOf('shooter'); L.plant(5, 2, 4e6, g);
+  L.cool = {};
+  L.pick = seedKeys.indexOf('bomb');    L.plant(5, 2, 4e6 + 1, g);
+  check('lawn: shooter + bomb is the exploding shot', L.grid[2][5].key === 'cherry',
+    L.grid[2][5] && L.grid[2][5].key);
+
+  // three-lane plants keep three lanes through a fusion
+  L.init(g); L.sun = 3000; L.cool = {};
+  L.pick = seedKeys.indexOf('three'); L.plant(5, 2, 5e6, g);
+  L.cool = {};
+  L.pick = seedKeys.indexOf('frost'); L.plant(5, 2, 5e6 + 1, g);
+  check('lawn: three + frost keeps three lanes and chills',
+    L.grid[2][5].fused && L.grid[2][5].fused.lanes === 3 && L.grid[2][5].fused.chill);
+
+  // a leftward pea has to be able to leave the board
+  L.init(g);
+  L.shots = [{ x: 5, y: 10, r: 0, dmg: 1, back: true, art: 'pea' }];
+  for (let f = 0; f < 8 && L.shots.length; f++) L.update(g, 6e5 + f);
+  check('lawn: a backward shot despawns off the left edge', L.shots.length === 0);
+
+  // and a forward one still leaves by the right
+  L.shots = [{ x: h.canvas.width - 5, y: 10, r: 0, dmg: 1, art: 'pea' }];
+  for (let f = 0; f < 12 && L.shots.length; f++) L.update(g, 7e5 + f);
+  check('lawn: a forward shot despawns off the right edge', L.shots.length === 0);
+
   // art is optional: the harness has no Image, and init must survive that
   // fusion: planting onto an occupied tile makes a hybrid rather than being refused
   L.init(g);
