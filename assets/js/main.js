@@ -5669,6 +5669,41 @@
         }
       }
 
+      // Wear in the grass: a fixed scatter of darker patches, so the lawn reads
+      // as ground rather than as a tiled fill.
+      ctx.save();
+      ctx.globalAlpha = 0.09;
+      for (let r = 0; r < this.ROWS; r++) {
+        for (let k = 0; k < 3; k++) {
+          const h = Math.sin((r * 7 + k * 13) * 12.9898) * 43758.5453;
+          const fx = h - Math.floor(h);
+          const g = Math.sin((r * 3 + k * 29) * 78.233) * 43758.5453;
+          const fy = g - Math.floor(g);
+          ctx.fillStyle = (k % 2) ? '#22401a' : '#7fbf5e';
+          ctx.beginPath();
+          ctx.ellipse(this.originX + fx * this.cellW * this.COLS,
+                      this.TOP + (r + fy) * this.cellH,
+                      this.cellW * 0.22, this.cellH * 0.10, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      ctx.restore();
+
+      // The fence the zombies come round, at the far end of every lane.
+      const fx0 = this.originX + this.cellW * this.COLS;
+      const fh = this.cellH * this.ROWS;
+      for (let k = 0; k * 7 < 14; k++) {                 // two pickets per gap
+        const px = fx0 + 2 + k * 7;
+        ctx.fillStyle = '#b98a4c';
+        ctx.fillRect(px, this.TOP, 4, fh);
+        ctx.fillStyle = 'rgba(90,60,24,0.45)';
+        ctx.fillRect(px + 3, this.TOP, 1, fh);
+      }
+      ctx.fillStyle = '#8b6231';                         // the rail behind them
+      for (let r = 0; r < this.ROWS; r++) {
+        ctx.fillRect(fx0 + 1, this.TOP + r * this.cellH + this.cellH * 0.34, 13, 3);
+      }
+
       // The strip the mowers are parked on, and the mowers themselves: a body, a
       // handle and two wheels, drawn rather than sprited.
       const porchW = this.originX;
@@ -5691,11 +5726,11 @@
       for (let r = 0; r < this.ROWS; r++) {
         if (!this.mowers[r]) continue;
         const mxp = Math.max(9, this.originX - 11), myp = this.cy(r);
-        ctx.fillStyle = '#3f7d3a';                     // body
+        ctx.fillStyle = '#b8342a';                     // body
         ctx.fillRect(mxp - 8, myp - 6, 15, 10);
-        ctx.fillStyle = '#5aa04f';
+        ctx.fillStyle = '#e05548';
         ctx.fillRect(mxp - 8, myp - 6, 15, 4);
-        ctx.strokeStyle = '#2a5726'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+        ctx.strokeStyle = '#7a1f18'; ctx.lineWidth = 2; ctx.lineCap = 'round';
         ctx.beginPath();                               // handle
         ctx.moveTo(mxp + 5, myp - 5); ctx.lineTo(mxp + 9, myp - 12);
         ctx.stroke();
@@ -5811,8 +5846,9 @@
           if (!p) continue;
           const arming = p.key === 'mine' && now - p.at < 9000;
           if (arming) ctx.globalAlpha = 0.55;
-          this.drawSprite(ctx, p.art, this.cx(c), this.cy(r),
-                          this.cellW * (arming ? 0.5 : 0.8), this.cellH * (arming ? 0.5 : 0.8));
+          this.drawSprite(ctx, p.art, this.cx(c), this.cy(r) - this.cellH * 0.04,
+                          this.cellW * (arming ? 0.55 : 0.98),
+                          this.cellH * (arming ? 0.55 : 0.98));
           ctx.globalAlpha = 1;
           if (p.hp < p.maxHp) {
             const w = this.cellW * 0.6;
@@ -5832,8 +5868,8 @@
         if (now < z.slow) { ctx.globalAlpha = 0.9; }
         if (flash) { ctx.globalAlpha = 0.6; }
         const zs = z.big || 1;
-        this.drawSprite(ctx, z.art, z.x, this.cy(z.r) - (zs - 1) * this.cellH * 0.2,
-                        this.cellW * 0.78 * zs, this.cellH * 0.86 * zs);
+        this.drawSprite(ctx, z.art, z.x, this.cy(z.r) - this.cellH * 0.06 - (zs - 1) * this.cellH * 0.2,
+                        this.cellW * 0.92 * zs, this.cellH * 1.02 * zs);
         ctx.globalAlpha = 1;
         if (now < z.slow) {                       // chilled tint
           ctx.fillStyle = 'rgba(159,230,255,0.22)';
