@@ -49,5 +49,16 @@ placeholders appeared only in early commits, and the current files are his. No
 PopCap asset is used here, and none should be added — being free to download is
 not a licence to redistribute.
 
+### Sprites this project drew
+
+The Potato Mine, Tall-nut, Squash and Jalapeno are **this project's own work**,
+drawn from shapes in `tools/lawn_plants2.py`; nothing was traced. The same file
+derives nine hybrids by hue-shifting: Cherry-nut, Blaze Pea, Blaze Repeater,
+Charred Threepeater and Chomp-shooter are recolours of the ZombieGardenTD wall,
+shooter, repeater, threepeater and chomper (a modification the MIT licence
+permits), and Flame Tall-nut, Frost Tall-nut, Cherry Squash and Chomp-mine are
+recolours of the four plants above. Running the tool reproduces every one of
+those thirteen sprites byte-for-byte from what is shipped in `main.js`.
+
 `tools/lawn_sprites.py` still contains the original sprite set this project drew
 before adopting these, should a fully self-owned set ever be wanted again.

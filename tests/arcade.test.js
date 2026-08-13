@@ -1887,7 +1887,10 @@ const buildPlain = (B, h, name) => {
     L.grid.flat().some((x) => x !== null), `sun left ${L.sun}`);
 
   // the expanded roster: every seed and every recipe must be coherent
-  check('lawn: eight seeds in the shop', L.SEEDS.length === 8, `${L.SEEDS.length}`);
+  check('lawn: a full dozen seeds in the shop', L.SEEDS.length === 12, `${L.SEEDS.length}`);
+  check('lawn: every seed is named and priced once',
+    new Set(L.SEEDS.map((x) => x.key)).size === L.SEEDS.length &&
+    L.SEEDS.every((x) => x.name && x.cost > 0 && x.cool > 0));
   const seedKeys = L.SEEDS.map((x) => x.key);
   const allArt = L.SEEDS.every((x) => L.ART[x.art]);
   check('lawn: every seed has art', allArt);
@@ -1914,6 +1917,86 @@ const buildPlain = (B, h, name) => {
   L.pick = seedKeys.indexOf('frost'); L.plant(5, 2, 5e6 + 1, g);
   check('lawn: three + frost keeps three lanes and chills',
     L.grid[2][5].fused && L.grid[2][5].fused.lanes === 3 && L.grid[2][5].fused.chill);
+
+  // Potato Mine: slow to arm, then it takes one attacker with it
+  L.init(g); L.sun = 3000; L.cool = {};
+  const seedIdx = (k) => L.SEEDS.findIndex((x) => x.key === k);
+  L.pick = seedIdx('mine'); L.plant(4, 1, 1e7, g);
+  check('lawn: the mine is the cheapest thing on the strip',
+    L.SEEDS[seedIdx('mine')].cost === Math.min(...L.SEEDS.map((x) => x.cost)));
+  const mark = { kind:'walker', art:'walker', hp:300, maxHp:300, speed:0, dmg:0,
+                 score:10, r:1, x:L.cx(4), slow:0, hit:0, tag:'mine' };
+  L.zombies = [mark];
+  L.update(g, 1e7 + 1000);
+  check('lawn: an unarmed mine does not go off', !!L.grid[1][4] && mark.hp === 300);
+  L.update(g, 1e7 + 9500);
+  check('lawn: an armed mine takes the attacker with it',
+    L.grid[1][4] === null && mark.hp < 0 && !L.zombies.includes(mark),
+    `hp ${Math.round(mark.hp)}`);
+
+  // Squash: lands on what came closest
+  L.init(g); L.sun = 3000; L.cool = {};
+  L.pick = seedIdx('squash'); L.plant(4, 1, 2e7, g);
+  const sq = { kind:'walker', art:'walker', hp:400, maxHp:400, speed:0, dmg:0,
+               score:10, r:1, x:L.cx(5), slow:0, hit:0 };
+  L.zombies = [sq];
+  L.update(g, 2e7 + 800);
+  check('lawn: the squash lands on the zombie next to it',
+    L.grid[1][4] === null && sq.hp < 0, `hp ${Math.round(sq.hp)}`);
+
+  // Jalapeno: the whole lane, once
+  L.init(g); L.sun = 3000; L.cool = {};
+  L.pick = seedIdx('jala'); L.plant(1, 2, 3e7, g);
+  const lane = [0, 1, 2].map((i) => ({ kind:'walker', art:'walker', hp:500, maxHp:500,
+    speed:0, dmg:0, score:10, r: i === 2 ? 3 : 2, x: 200 + i * 120, slow:0, hit:0 }));
+  L.zombies = lane.slice();
+  L.update(g, 3e7 + 900);
+  check('lawn: the jalapeno burns its own lane and only its own lane',
+    lane[0].hp < 0 && lane[1].hp < 0 && lane[2].hp === 500,
+    lane.map((z) => Math.round(z.hp)).join('/'));
+  check('lawn: and is spent doing it', L.grid[2][1] === null);
+
+  // Tall-nut soaks far more than a Wall-nut, and its hybrids answer back
+  check('lawn: the tall-nut is the heaviest wall',
+    L.SEEDS[seedIdx('tall')].hp > L.SEEDS[seedIdx('wall')].hp * 2);
+  L.init(g); L.sun = 3000; L.cool = {};
+  L.pick = seedIdx('tall'); L.plant(3, 2, 4e7, g);
+  L.cool = {};
+  L.pick = seedIdx('frost'); L.plant(3, 2, 4e7 + 1, g);
+  check('lawn: tall-nut + snow pea is the Frost Tall-nut',
+    L.grid[2][3].fused && L.grid[2][3].fused.chillbite, L.grid[2][3].key);
+  L.zombies = [{ kind:'walker', art:'walker', hp:200, maxHp:200, speed:0.2, dmg:2,
+                 score:10, r:2, x:L.cx(3) + 15, slow:0, hit:0 }];
+  L.update(g, 4e7 + 100);
+  check('lawn: biting a Frost Tall-nut chills the biter', L.zombies[0].slow > 4e7);
+
+  // a hybrid that both bites and shoots must do both
+  L.init(g); L.sun = 3000; L.cool = {};
+  L.pick = seedIdx('chomp'); L.plant(3, 2, 5e7, g);
+  L.cool = {};
+  L.pick = seedIdx('shooter'); L.plant(3, 2, 5e7 + 1, g);
+  const cs = L.grid[2][3];
+  check('lawn: chomper + peashooter is the Chomp-shooter',
+    cs.fused && cs.fused.eats && cs.fused.shots === 1, cs.key);
+  L.zombies = [{ kind:'walker', art:'walker', hp:2000, maxHp:2000, speed:0, dmg:0,
+                 score:10, r:2, x:L.cx(4), slow:0, hit:0 }];
+  L.shots = [];
+  L.update(g, 5e7 + 2000);
+  check('lawn: it shoots as well as bites',
+    L.shots.length > 0 && L.zombies[0].hp <= 2000 - 900, `${L.shots.length} shots, hp ${L.zombies[0].hp}`);
+
+  // A mower clears its whole lane in one go. That splices several entries out
+  // of the list the zombie loop is already walking, which used to leave the
+  // index past the end and throw on the next zombie.
+  L.init(g);
+  L.mowers = L.mowers.map(() => true);
+  L.zombies = [0, 1, 2, 3].map((i) => ({ kind:'walker', art:'walker', hp:50, maxHp:50,
+    speed:0.2, dmg:1, score:10, r:1, x: L.originX + 4 + i * 12, slow:0, hit:0 }));
+  let threw = null;
+  try { L.update(g, 6e7); } catch (e) { threw = e.message; }
+  check('lawn: a mower clearing a packed lane does not throw', !threw, threw || 'clean');
+  check('lawn: and the lane is empty afterwards',
+    !L.zombies.some((z) => z.r === 1 && z.x < L.originX + 60), `${L.zombies.length} left`);
 
   // a leftward pea has to be able to leave the board
   L.init(g);
