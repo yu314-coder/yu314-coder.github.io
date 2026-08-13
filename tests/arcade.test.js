@@ -2012,7 +2012,7 @@ const buildPlain = (B, h, name) => {
   // the play-through: a level is a fixed number of waves, and clearing the last
   // one with the lawn empty advances rather than just spawning more
   L.init(g);
-  check('lawn: normal is a five-wave level', L.tier.waves === 5, `${L.tier.waves}`);
+  check('lawn: a level opens short', L.waves <= 3, `${L.waves} waves`);
   check('lawn: a run starts on level 1', L.level === 1 && L.waveInLevel === 0);
 
   L.waveInLevel = L.tier.waves;      // last wave spawned...
@@ -2028,9 +2028,8 @@ const buildPlain = (B, h, name) => {
     `level ${L.level}`);
   check('lawn: finishing a level pays a bonus', g.score > beforeScore, `+${g.score - beforeScore}`);
 
-  // hard is the ten-wave level the mod uses
   A.Difficulty.set('hard'); L.init(g);
-  check('lawn: hard is a ten-wave level', L.tier.waves === 10, `${L.tier.waves}`);
+  check('lawn: hard opens one wave longer than normal', L.waves === 3, `${L.waves}`);
   A.Difficulty.set('normal');
 
   // areas: the play-through is grouped into worlds, and it never runs out
@@ -2049,9 +2048,17 @@ const buildPlain = (B, h, name) => {
   check('lawn: one area has fog and one has no mowers',
     L.AREAS.some(a => a.fog > 0) && L.AREAS.some(a => !a.mowers));
 
-  check('lawn: a level gains a flag at the halfway mark and again on the boss',
-    L.wavesFor(1) === L.tier.waves && L.wavesFor(5) === L.tier.waves + 1 &&
-    L.wavesFor(10) === L.tier.waves + 2, `${L.wavesFor(1)}/${L.wavesFor(5)}/${L.wavesFor(10)}`);
+  // Short levels that grow slowly: a wave every third level, one more on the
+  // boss level, and one more each time the areas come round again.
+  check('lawn: levels grow a wave at a time, not all at once',
+    L.wavesFor(1) === L.tier.waves && L.wavesFor(4) === L.tier.waves + 1 &&
+    L.wavesFor(10) === L.tier.waves + 4 && L.wavesFor(11) > L.wavesFor(1),
+    [1, 2, 4, 7, 10, 11, 21].map((n) => `${L.stageName(n)}:${L.wavesFor(n)}`).join(' '));
+  check('lawn: and never run longer than eight waves',
+    Array.from({ length: 200 }, (_, i) => L.wavesFor(i + 1)).every((w) => w <= 8));
+  // 1-1 has no huge wave in the original, and none here either
+  check('lawn: the first level of a run flies no flag',
+    !L.hasFlag(1) && L.hasFlag(2));
   check('lawn: every tenth level is a boss level',
     L.isBossLevel(10) && L.isBossLevel(20) && !L.isBossLevel(9));
   check('lawn: the brute is slower and far tougher than a walker',
