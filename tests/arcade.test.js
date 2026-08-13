@@ -1794,10 +1794,87 @@ const buildPlain = (B, h, name) => {
   }
 }
 
+/* ---------------------------------------------------------------------------
+   Lawn Siege — the lane-defense game.
+
+   It is the only game with an economy, so the things worth pinning are the ones
+   that let a board be won or lost silently: a seed you cannot afford must not
+   plant, a mower must be spent instead of a life, and the autopilot must not buy
+   what it has no sun for.
+   --------------------------------------------------------------------------- */
+{
+  const { h, A } = boot('lawn', false);
+  const L = A.LawnGame;
+  const g = fakeGame(h);
+  A.Difficulty.set('normal');
+  L.init(g);
+
+  check('lawn: a fresh board has no plants and full mowers',
+    L.grid.flat().every((x) => x === null) && L.lives === L.tier.mowers,
+    `${L.lives} mowers`);
+
+  // affordability
+  L.sun = 0;
+  const pricey = L.SEEDS.findIndex((s) => s.key === 'shooter');
+  L.pick = pricey;
+  const broke = L.plant(3, 2, 1e6, g);
+  check('lawn: a seed you cannot pay for does not plant', !broke && !L.grid[2][3]);
+
+  L.sun = 1000;
+  L.cool = {};
+  const bought = L.plant(3, 2, 1e6, g);
+  check('lawn: with sun it plants and charges', bought && L.grid[2][3] &&
+    L.sun === 1000 - L.SEEDS[pricey].cost, `sun ${L.sun}`);
+
+  const twice = L.plant(3, 2, 1e6 + 1, g);
+  check('lawn: a taken cell is not replanted or recharged', !twice);
+
+  // cooldown: the same seed cannot be spammed even with sun to burn
+  L.sun = 1000;
+  const tooSoon = L.plant(4, 2, 1e6 + 10, g);
+  check('lawn: a seed on cooldown refuses', !tooSoon && !L.grid[2][4]);
+
+  // a zombie that reaches the left edge spends a mower, not the run
+  L.init(g);
+  const before = L.lives;
+  L.zombies = [{ kind: 'walker', art: 'walker', hp: 10, maxHp: 10, speed: 0, dmg: 1,
+                 score: 10, r: 1, x: L.originX - 1, slow: 0, hit: 0 }];
+  L.update(g, 5e5);
+  check('lawn: a breach spends a mower rather than ending the run',
+    L.lives === before - 1 && !L.over, `${before} -> ${L.lives}`);
+
+  // with the lane's mower gone, the next breach does end it
+  L.zombies = [{ kind: 'walker', art: 'walker', hp: 10, maxHp: 10, speed: 0, dmg: 1,
+                 score: 10, r: 1, x: L.originX - 1, slow: 0, hit: 0 }];
+  L.update(g, 5e5 + 20);
+  check('lawn: a second breach in a mown lane is the run', L.over);
+
+  // the autopilot buys within its means
+  L.init(g);
+  L.sun = 0;
+  L.suns = [];
+  L.autoAt = 0;
+  L.autoPlay(g, 6e5);
+  check('lawn: the autopilot plants nothing while broke',
+    L.grid.flat().every((x) => x === null) && L.sun === 0);
+
+  L.sun = 500; L.autoAt = 0; L.cool = {};
+  L.autoPlay(g, 6e5 + 1);
+  check('lawn: given sun the autopilot does plant',
+    L.grid.flat().some((x) => x !== null), `sun left ${L.sun}`);
+
+  // art is optional: the harness has no Image, and init must survive that
+  check('lawn: it initialises with no Image constructor', L.imgReady === false);
+  check('lawn: every sprite is an inline data URI, so nothing is fetched',
+    Object.values(L.ART).every((v) => /^data:image\/png;base64,/.test(v)),
+    `${Object.keys(L.ART).length} sprites`);
+}
+
 let failed = 0;
 for (const r of results) {
   if (!r.pass) failed++;
   console.log(`${r.pass ? '  ok  ' : ' FAIL '} ${r.name}${r.detail ? '   [' + r.detail + ']' : ''}`);
 }
 console.log(`\n${results.length - failed}/${results.length} passed`);
+
 process.exit(failed ? 1 : 0);

@@ -414,14 +414,16 @@
     HINTS: {
       breakout: 'Arrows / mouse / drag — 10 boards, each rolling a modifier · ? = mystery, KEY clears a row · dodge the red capsules · the wall creeps down',
       dino: 'Space/⬆️ jump · a 2nd is free; a 3rd to 5th only at the top of the arc · ⬇️ duck',
-      snake: 'Arrows / WASD / swipe — edges wrap around · gold +50 · ✂️ trims your tail'
+      snake: 'Arrows / WASD / swipe — edges wrap around · gold +50 · ✂️ trims your tail',
+      lawn: '1–5 pick a seed · arrows move, space plants · click a sun to bank it · sunflowers pay for shooters · each lane has one mower, and that is your last life'
     },
 
     // Same games, described in the gestures a phone actually has.
     TOUCH_HINTS: {
       breakout: 'Drag or hold ⬅ ➡ — 10 boards, each rolling a modifier · ? = mystery, KEY clears a row · dodge the red capsules · the wall creeps down',
       dino: 'Tap to jump · a 2nd is free; a 3rd to 5th only at the top of the arc · hold ⬇ to duck',
-      snake: 'Swipe or use the pad — edges wrap around · gold +50 · ✂️ trims your tail'
+      snake: 'Swipe or use the pad — edges wrap around · gold +50 · ✂️ trims your tail',
+      lawn: 'Tap a seed, then tap a tile to plant · tap falling suns to bank them · sunflowers pay for shooters · each lane has one mower, and that is your last life'
     },
 
     touchPad: null,
@@ -444,7 +446,7 @@
       if (!this.canvas) return;
 
       this.ctx = this.canvas.getContext('2d');
-      this.games = { breakout: Breakout, dino: DinoGame, snake: SnakeGame };
+      this.games = { breakout: Breakout, dino: DinoGame, snake: SnakeGame, lawn: LawnGame };
       this.setupGameSequence();
       this.setupControls();
       this.setupPointer();
@@ -647,7 +649,7 @@
     refreshBests: function() {
       const el = this.bestsEl || document.getElementById('gameBests');
       if (!el) return;
-      const names = { breakout: 'Breakout', dino: 'Dino', snake: 'Snake' };
+      const names = { breakout: 'Breakout', dino: 'Dino', snake: 'Snake', lawn: 'Lawn Siege' };
       el.textContent = '🏆 ' + Difficulty.LABEL[Difficulty.current] + ':  ' + Object.keys(names)
         .map((k) => names[k] + ' ' + HighScores.get(k)).join('   ·   ');
     },
@@ -782,7 +784,12 @@
       if (hintEl) {
         const touch = this.isTouch();
         const base = (touch ? this.TOUCH_HINTS : this.HINTS)[this.currentGame] || '';
-        const ind = Difficulty.indestructible
+        // Everything in `ind` describes the BREAKOUT wall -- the steel vault, the
+        // lit columns, the seekers. It was being appended whatever was selected,
+        // so Dino and Snake had both been telling the reader to dodge a column
+        // that is not in their game. Only Breakout gets it.
+        const isBreakout = this.currentGame === 'breakout';
+        const ind = !isBreakout ? '' : Difficulty.indestructible
           ? ' · INDESTRUCTIBLE: a pyramid, a disc, a ring — steel that never breaks,'
             + ' several courses thick, with everything worth hitting sealed inside it.'
             + ' Thread a 6px seam through the shell or clip a corner on a true diagonal;'
@@ -4698,6 +4705,568 @@
         }
       }
       return q.length;
+    }
+  };
+
+
+  // ===================================
+  // Arcade: Lawn Siege — lane defense
+  //
+  // The fourth game, and the only one that is not a reflex test: you spend a
+  // currency you have to farm, on a grid, against waves that arrive whether you
+  // are ready or not. Same shell contract as the other three (init/update/draw
+  // plus autoPlay), so it inherits pause, mute, the difficulty tiers, hearts and
+  // the autopilot switch for free.
+  //
+  // The art is ORIGINAL and drawn for this file — eleven small PNGs inlined as
+  // data URIs below, no external requests and nothing copied from any published
+  // game. They are real bitmaps rather than emoji so the sprites keep their
+  // proportions on every platform, which emoji do not.
+  // ===================================
+  const LawnGame = {
+    COLS: 9,
+    ROWS: 5,
+    TOP: 78,            // shop strip above the lawn
+    cellW: 0,
+    cellH: 0,
+    originX: 0,
+
+    // cost, cooldown (ms), and what the thing does once planted
+    SEEDS: [
+      { key: 'sunflower', name: 'Sunflower', cost: 50,  cool: 5000,  hp: 60,  art: 'sunflower' },
+      { key: 'shooter',   name: 'Shooter',   cost: 100, cool: 5000,  hp: 60,  art: 'shooter'   },
+      { key: 'wall',      name: 'Wall-nut',  cost: 50,  cool: 12000, hp: 400, art: 'wall'      },
+      { key: 'frost',     name: 'Frost pea', cost: 175, cool: 12000, hp: 60,  art: 'frost'     },
+      { key: 'bomb',      name: 'Bomb bud',  cost: 150, cool: 18000, hp: 60,  art: 'bomb'      }
+    ],
+
+    // Difficulty moves the three things that actually decide a run: how fast the
+    // sky pays you, how hard the wave pushes, and how many lawnmowers you get.
+    TIERS: {
+      baby:   { sunMs: 3200, sunAmt: 40, waveMs: 16000, ramp: 0.030, hp: 0.70, speed: 0.75, mowers: 5, start: 300 },
+      easy:   { sunMs: 3800, sunAmt: 30, waveMs: 14000, ramp: 0.045, hp: 0.85, speed: 0.9,  mowers: 4, start: 225 },
+      normal: { sunMs: 4400, sunAmt: 25, waveMs: 11500, ramp: 0.065, hp: 1.0,  speed: 1.0,  mowers: 3, start: 175 },
+      hard:   { sunMs: 5400, sunAmt: 25, waveMs: 9000,  ramp: 0.095, hp: 1.15, speed: 1.15, mowers: 2, start: 125 }
+    },
+
+    // Kills are the only score, and a tower defense kills slowly, so they are
+    // worth more than a Breakout brick. Surviving a wave pays as well -- holding
+    // the line is the thing the game is actually about, and it was scoring zero.
+    ZOMBIES: {
+      walker:   { hp: 100, speed: 0.22, dmg: 0.9,  art: 'walker',   score: 25 },
+      armoured: { hp: 260, speed: 0.18, dmg: 1.1,  art: 'armoured', score: 70 },
+      sprinter: { hp: 70,  speed: 0.50, dmg: 0.8,  art: 'sprinter', score: 45 }
+    },
+
+    grid: null,
+    zombies: [],
+    shots: [],
+    suns: [],
+    mowers: [],
+    sun: 0,
+    wave: 0,
+    waveAt: 0,
+    sunAt: 0,
+    pick: 0,            // index into SEEDS, or -1 for none
+    cursor: { c: 4, r: 2 },
+    cool: {},
+    img: {},
+    imgReady: false,
+    keyHandler: null,
+    clickHandler: null,
+    lives: 0,
+    maxLives: 0,
+    over: false,
+    flash: 0,
+    autoAt: 0,
+
+    ART: {
+      shooter  : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAwFBMVEUUICTV2tkVNxQrbi8qai1NmFQeLRkdLRlTamY3aksscTCXmqQ6i0V/f39Am0Y0ljdzeYY8l0gcSh89nEU9mEN+04BhzWU0hjdAnEax6bF//39FlEkwgDb///8AAAA+mkVWxVz7/PtBmkYvejMcJhZEpktOuFQ0gzgAfwAcVyKS45E5fDpb0WEueDFTqVNazGCJ3IknZysAVQARORWkpq4A/wBAlUNlcnhVVVVw13Q6kD0gNBwuezOPk5woWSkdKxs42S4EAAAAQHRSTlP1/xJPIu6jXf//mv/2AmYP/xn+Xqz//0Gn/wIR2QEA/v///fv6/f7+Av//B/+5BP///AP+/wGH/wP//v7Q//wUsYZfdgAAA4hJREFUeNrtl9ty4jgQhoUPnA8BkklmZrdtJEtybCNjDgEyjnn/t5qWDYQAZgi52Kqt6aqEvuD/+ldLahsCXwzyF/AXcBFgTHfJ7Q4MY1Oop58FoGBTqxIPg1Rrxg0OalUt/oWhP6u1chPkXPmNlmc2FRjcThBSNcC/FmBADWsz7kaujjiKhD3wvFoJgZzWR30m1uvJ5GH9LWcgiqGJ6xzkeonqSaBjHW8RdIaE6Z8BW30wCSqjyneETHYErj0Yf3awyesHk5GOnJA3oiDUcg+LRTlgClUvc9EA1q8gAZ0E2AchsA2R9IgB01B/T63OA6ZgeL+Ei6rW3XK5nOeAtVNf1utttJF5NV087Cl43xJybIBF7kNg3+n6rTquYJc33Jh6BKxmyljaNPcIctwBEbtr+w4l87fR3A6Cfd6I3IHXZBgS/8bhlkCOjlCG/YrrWPOtQsho+RC85yKSmWQOx+PpMJmGRTM/Oqh67ciNxXI0qpAWIfOWvd7n8/aaMzyg2FLhCinHvn8KIB6NdwCiRfQgb7taL2SSJEwgwQR1DNjoPcCo47LrKBrd8cOcJw7qZ7Pn50EiOEtzC+cAUbtVNK7SOMy/STSAeiRkz0wwlvfxrAO3oVWoER9yhs6THIDBJTNhVQZwG/W3t2VDxIe5yAHPs9kgB7yeARjE48XliYTjcNf9mMscsA10YJ0sAbfRjnayaHsP93nsYBPZIMv1CTbROneQksgtjWIN+QIyLmUTwiOAD8aMiHIAdlEKwfL6DkvD04PU+fcel0tLw5FMcsEx8DpYcAroQZc7F4Lfj1EpX/HfPxasztzGTti+QKBUgZnq+5g2w63+CPAD+pyWGxiiR+iZj73V+0Q5mokKhrx8Adh2tfte2VBVcF9C4Ha/oyeAv1L+ham8UPDCS/Rnn00nTyalt+IEQflTHzt03cNVQdf+iKCcd+GqZ2MHrLGpJ/cQEdv9QDV/+QmdxTXPxhU0qSwQ3RdbS5Hw1FWHbb8EQAMMT2yBANUfDp8cOdbp4ro3FDRQnLgtAqAr2ViFiytfcXIDzh4Rdn6ql1d04F/7jqT8JqX7c59Yfg8+B4DQHEtaMKi+ruFnARjmmGF1h0o9MT8PWGG7rCZrU5xXOPFucTDFm2qZaTHvbgGAXjkYVtGTmwB4I8NdU28EvO/K1wHdLztwZPoFwAL6j4/Wf/ubyVfK/9//7PsN2uny32HedFUAAAAASUVORK5CYII=',
+      sunflower: 'data:image/png;base64,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',
+      wall     : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAwFBMVEWdYiSbazHn4dh2WimXaC+Tm6bszqUTHSlmZWTcrGyJbUn/eHiqqlWecDd+g4r/fwBveoh/FQD/qlXhuYO9xtK0kWK8v8IA/wBcOxIAAADKk06gbjKndTSbbDLjtXb9/fy6hkZ8VSWDWijEjUl/fwD/AADYqGlrRxpVVQBlWk1/Pz+qVVVma3H//wB1Vhx9ViajcTN8ViW3gjx8VSV9ViaKkpyYaS/Cxst8ViV+ViW8fzxWXmaBWCeBWSetfUIECxcEINDUAAAAQHRSTlMbWv8Nq////////wID/P8C/wID/////wH/AP/+/f3///76/f8CAf//A/8EA/8BENHOLP9Kr/8T/5BwCP/Lk///yXjPhgAAA+xJREFUeNrtl2lz4jgQhn1xmJlMJsnO7spISBYyxAZzJSEZEpL//6+mWz6QjAns7Let7UqlLKz3UXerddgh/9Kc/wHnAAnY7wJUlqnyycnu/ykgycrXvu8UmIp2EUDhgGt3HyxjsGWwdx3ol9xfCEjgN999i6WMS5NSvu3XhOTqEgCMs96jWDJKBRilDFsycPXLc4Ab4qNcXonIMEEZItZEJWcAijygnEZHJhDxE3t8AkgU+VnKx2BNBLwKFg2CBYA8v8iYgRD+JmD6wbCrWL75NsGx/Qc9RdVkVNrEduJdE25OAJxCX8hh/LAFIZBglrcByCr9aBSGXbRRO+HRnE3HmP8H7X80gZmnoss597rthBeSHQMStYhjBh02VER33QkVQOB3mmCnksZyffDBOTgAAUBHSiEDqP2BBC+sXRhTdAyfWLz0VROgyFoHIFB/hwAuQgAUadCO0fEY/hVBPNRCp3bgUUr0L0KBBnhe5cEI9UUYmgAuLHIbkBDIAK0AYZeXVk4E+F+lAaPQLtxbgAxKWEa1ByPP0k+izaZK4Ua7AFOpLIBSy/hKAza6CCddz/O63SKAURgx2pjKeEESA6BTKMoBtEak83k6KOt5AI3+wCRIiCEzAHUE2lDyHYPo9At90UgNAMYwswAvklUvoZZ/fOf8uePxzmAUgr5spGYxLf3cCuExPkQ5jlKPf+t8+3jmc1jSh4Ywk+AXSSgB/tIARGLOeW/++vHKn5jdsAA3NUBXgbEHij5oPnq9V95h0bvZqJ2UVSW0AsYp50+9Xu+Z99/txoWAaNDh/E/I23PabFwIiNIOFuIfff1j32y0A/KFlUQkzJ+e+uk40ntzXzeEXYrropjbprE8BpiIqJxOp5KNofHerGVrGmewmFnzJAnptLKjd1BIi7+SU6VcdYLBYROB4Y8JrN5Zm4vJOAKmU1o7/HeDgIdcZu1I/vI4CdR4Fs0UlDk8bCh7SJpl6HzbMzav5FtubyhfiEOHzLAhLYy1G3XJzt5Ur0lA2bAyatiwxSjdVsdbBZgR1waAE8PCkWM9owG5bR4shgtwtWGHvgb3wHfypAnALFR920SWAy50PzpcjSA+B0AA6rbteL+tgmCfAhhdbfOkDZBcb1daydpTXyfFOQRg31AUKQnDM/rZqTvSl7MErd+dvuYBIYCKPCmH+Bv65kUTCtw9lUKQ08D2v+WmCmvEXekl0CKH+W/qWy7bPlzVV1jLw4rCypqG4Y+uym3XfRjDcYNyMaJcP63cLSFfL/zgwH7AWBXLEjIXuNjva375J8/sGv/vti6Ys9MDt8o/+ehSvuHvbKd+67MvVzMwlf/HP31/AUL1sNaAFDTQAAAAAElFTkSuQmCC',
+      frost    : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAwFBMVEWd3/Iedx8wgZ/V4ueYm6I1hjharKw+kEIMfX4A//8tdDD+/v5alathdIJAlEUPGSYsj6Qxgp8sd6H+/v5bbHlZrclbr+IyhKD8/P1ClEhra2tftdIkY3wxeDMoZStctNB///+eucNRo1sA/wAvfps4izcxf5wAAP9/f/8tfZkMGScznmJVVaorNUAzmTMA/39HeEtCkkSq//8AAABcs9CK2O78/P0xhaP+/v4te5gqa4TQ8/tmuNJ2yeN0wtpNl7ECJNMqAAAAQHRSTlP+Ce32//4D/gMBtJ/+//3/GKIRXP/tDlo2gwKi/+tRWgL/BAHOU00BApUMEwP/BQJOfwMA/v7+/gb5///+/v77QvHb5AAAA8pJREFUeNrtl2lzqkoQhocBERGURdDoMWY5OftdWxgmGYb//69uNxgX3OOHW3XrdiWptlLvM2/39DDI4MZg/wOuBBS3AYpDhKscFNc66GFsy+N4H8GOreI4tlMnvxyn8V/0MYp2FWxfTr+RTZ+CIApqJ/SpiPt53o+Lcw4mMQpQFoxDLjF4OA5qBBpAwJ4Ftrt+PIn7hEC1WAcyAOxLSihgYvb75sQJUVUpzbIs08oTUoQBfDvfRNRTnXFcCZGU2SaU4GJ8wTYWEFOdJvOqjNWxRiRoAqs4N0hUQmyaVcLMtybWCM2REJ0bJGrihFWMoTTPcyKYW4Tv4JybRAd+VF6SmW9mnq8IGw9SfKEqYHs62wAbQoH1k940V4SMZVrjn0xJHjlBbcL+dRhgQyBEhoC3R98fjazGgjfC8NBDVW8Fzif6cHqHAaFICOD5tL7lYw/WORXBIaL5rCfL2Qf0IOIc9589+iSxcssjL+85y4QMpWhGNIxWhG1ABGPsAAJoTcscDnOfvW1yzZQUslJlqRMueNQ0cxsQYAWK+j3CHg6t4dCyHtkmr1giOf6/1GVWoofmmG8DnK+fhSaAT6IhibwGUOdVJqXKygqPqFciodlUttMCKeojgKJ8NBz+lvtqK9eJrFD/6fX19ZMsFee1hR1AIAXpWWU1jTN9tp17aKDWI8Erhaz7eAiQZT6pcnPEdnLcolK+rkJXfEw1tEtYza03sizfZ9s5AkSp1wBVyS8tAPSipolUhfY8xVq5kHrjQAkZ4JqtOWi2sZFtHgbvuSeTzFv1QCr+OTo2SMcCzyM2od4FrACfD61dgD/oLLEThIoIHsql8iQP6gO1c5geitlyqZZHI+FcqFIrhR0Uq8PQOo2Lcnki9Ow7nqWqEnQU6jlsP1AegkSdIqQw5pLjT/iubwMgPSEvF5DSlTWunyiHr7YUi8ALRR3yUc5wVftrU2zv2N34N8xMZpoHACpJv5HMsW3nxOVaFBN8gjC9v36SwvSCd6TCjuvLad+/jR267CUL72CztZt6uYCD67cBUzDcP4tJXMySTR+VXs5SeOjBRQB30HHvqc2LWbKaytkipe255D0RDcwHgxUC0nSxuBt0XUp7cCHA7WKsEQAvnblr/+xd+KZaG+iuEcb0Kb3rdlwwLn3VfTLcQQMgxNwwfoe7zjUAMO7dzqBhoB4M41oAxr07x9W7g849VXQ1YPqMNgjRyD7iwJhSJfNG9REAUOXwo9F8DADw/K74KGBj5nbAXzc76HbmNwCe4efLi/Hvfu0znp6M//xX338AiETS1DyjoXUAAAAASUVORK5CYII=',
+      bomb     : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAwFBMVEWhHRmSLSn5oi17FhNmW2SWKiWTKSTkb2bzdAbi2dKVoKgSGydqUSL0o5t5IRkebRyzRzjPXymlVQQweDQ5lkNBkkNrYxF5gYn/2Yo1iTr//wCmVFNxO0AucTApZS3/tEEA/wCqVVXhdQxVVVXeeBBpQhcfNB80iThtVyhvfYlNgz5VqlVBkUO8v8K6zNJgPhklgjI9kkU0nkf/qgAA//8AAADYUkqpMSqRJyPNSkP9/f2nLifwi4Hvhnv/AADkVkwj4xqIAAAAQHRSTlMO7f0D/6BV/w3////2//4K/u4J5v3+EP/+/gH//6Bb/gEDVQOvXAVBnf//A4P//6u6IXkDAQD//vv+//3//wH/eVnbtwAAA55JREFUeNrNl2l3qkAMhjMOmxQE1Nqq1a5335dhEYT//69uAlhmEBT76eacHkzlfXiTGSGAOB+W9TKiCKzV6uhLOK//I55G97e396PRi7DeAFitrGB0Ox7fogfrmDAAIKzRAfD0FsBCTIO6hLc5WIgf/mh06OLlPeDio+MEFcC6vIk5F+8cx5m+lNfv0J8A5MA5Hki/wL3wZC269L0AmFaHWl9tKDEYADn+GbrO4onjMF038LQVF0MBWLgw9LiKyaQ86Aanhg4CwKs8ioIkSaIoooQhYjoEAAJIHvlJ+BpJQAwGHR7geN0NkqMaLy4zCGGIPD8DgFLvo8KkCCVGQq0o+3sCUOrx8qaZZZmbZXvTlFxEROD5CUClx6ujlAIpmdkAQr/00A9o9Pu9Ox6PXUTsjwm8D8BzIH1C+vGOYowe9m6rCkMRKQCB61f5d3dVuFTFXrKABAZyG6BVgE8GstpAbSGTLSStNoBqABtwBkBFgMg7AKWBpAbIJbQACXWBdwAeKwNlDw+EqgVZGLa6wDtKyAVUOzAM9yWBotKbBW3rQrIAjQ7aFVQ1uGsNY13q90VECXu1oOwFaK1hRXDXn6iNtkYEk92UyV1Tg867AVF9RrH+hAuAMnvtmkV0Uyd3dRWBvA5NDzh7BYQanv7t5sreaeinSRKpCbwFyAWP4+DQJm23u9K0q6udzQolaRYSjgBQ9xBjTRoK0ijJQABd1EYJuvYLOQkHAgpmV30ba4WanADkIDUxvLNpI36v2qYkfU1UlpFEmm1rWr39lKRcRn68jI8qoEgY84uupLol5Ce28kFV9CVR51YuuxiEA0LpofRzzqmGZECodxTlhhKlgyLSpSc9yBMFi4YFdAMssiCdlkqJ8lGXn9IgVAvNmfGEpc3nWDaQL7oBlgDZAJuwmBBpzCYNII0MZUxQHm1TtQjUTRjGRPJCBUD/w9USukygSxMklvTqc6kNyFsEtB/HSgOPppTWfJBPkaAg1GDQHvbaEwqOMEYfIU31I33HkIUE1olII2fmPQ8a80BvbyRK/M/z5Va8HzBo4jKDzhR1ypzP8/n19cz7O2TUpVEVcNQ9/Hh8x7km+XK29QYO2/lj+SXgu4IDi9m8lG+27y8Z96eAPn4vlz+F2M7Q/GaL//Que+FY8K/L2YZ7YjPboPThWYjLAJ74Ol/OhIchxLMnxKWAB/Hrw4dK53l9byZiUDz0fnMG4H354p0+Y6CD/xnwDwtP9f9InOtGAAAAAElFTkSuQmCC',
+      walker   : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAwFBMVEXZ2NNbYSVmbViVmZa2ypnIqqRHVjtELCghGR68vcaNFhVHVjxslF9HVjs6RiyMinE4RCs5RSxbbE3//wBZaUe+wMvO1refpmk/Hy8qO0Uffx9/AAB4il56j2J+hI////+NfXPMzJl+k2R0eogAAABsfFc4RStbaktHVTlxglt6i2RUVVSluIg6RiyClWmTp3j9/f09PTTI2aszPid9kWU8Szd/f39KVzg6Ri09KiK6tKmCiJROXUfp5NGdsYJDTTTf9421AAAAQHRSTlP/F/7///+n/v///2YVyq3w2nQoAU///g8G/wMCYZ//Af8F3/8A/vr9/P7+A/5B/f7/C/7//RACDzj////9/v7+rycxWQAAAwpJREFUeNrll4ly2jAQhn0QIOGGhKS5eumyLAvbMdgBB97/rbqSISGNAEGm05n2H41ZGO+n1Wq1Ng76pJx/G+Am4dbH0QBXXfI8197h8QBwcVt1BurU3RDNjgXMkKu9y1IzWjuD2BmBcsdyApIBZaw+3RHEDoCanosaSICWGQThmglGQALzlyJNx2ma1sRyuRQTyjq5NSBELVbW0jSO4xdAAMFfCszqxjQ4xvwxNtH+cTyupXoVYlKylolgBHQYrqX+wnfiOIVIOKVcCMlYbrkEFcDS8535408HkgDW+YJOBIUQEgtAAhnAgl45MP+5l6beubKuSpFBFmYWgBlsgeSLud84i+OF7z+uLb40rsExr8BbfPEvLs4gBL6xKKzB/ZhGAyBnTHh+s6ndMN9YtEbZpTWA+35TB55lG4vXqGkjdyxBUEenjopty24Jqgwk1M16894sKCWrJMJBWGEovap8xJslV53EZhtDNMR4YlCAL9GtzTZ+ve5JznmW8UBmeoABv2Ty2qqQ0DW6l1mWec684YjNGAeZfEBtu7PQRg8wb+Nl/vw6nDSQP9qzkR1gNGv3ZNBwtgHjTLaNLcnYkdxhGwAvZ8/OZryk2X3etm5pIaU0WH3zmj3vuaeuzZ7vUTy0aCjVHUOKKQwPe56+YvgKP1wa2sGHCPJ8muffqXYIuFTKsgB7FcDwjHoHGN0NiFKXboRxNbu2hzfhNN8XQYgGZKUeRIRRk+p9BU/2RDAlK67Enkz+TNFXpHvn7gEw5S+pEUCIWhAjxbs82AKUJ6sA0ZEAD2sF7Ol4wNoVdDSgfHUN8EkREPzmeioA478H4J8CwOE5OYIQdatTACVvAJDVwUpESVefxr4ZQPRB67ujff2giKKocM2AvoYXyD3Y0nIzoAB6kRzoSG4YJuHUDIj0HbcWTXUXAOih3YvmjiVYvuZBkrqkDH4T7G1i+1yYoYJUzXFLhAxs31SVIvJBgyNetnUWKi8oi7VZmP8xHAAUCN2szegkQARl8TnAtvm/AdSxBk3fmX/kv/MvLTBIrM1lDY8AAAAASUVORK5CYII=',
+      armoured : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAwFBMVEWcpJhibGBWXVfl4dpISzVNOjKzucM0Oi1caF8A/wBWWR83Qyt9kmU0Tyb5+frPzbZnmJ06RSy8xdAjHiiIjG2IHR45RS1EUziPenZ7h5HKoKH//wB7imd1h12HlGiQmaF8kmNaYm//AP+TPkBpc4B8iJNHVj9teYU8S0tmmTN/f/9xf42BlWUAAABsfFc4RCt8iJRcakpJVjqYo7B6i2VaZHA5RizDzNWSnal+fn43RS1xgVpZaWqPpHQAAP+Dlmq8a4JBAAAAQHRSTlP++gv+/P/+DFABENb6JAL+EKX//+v/d63/Tv8BGmYnGJmrAf/+lkRBEQUCEr0A/vb+/v3+/vZI/v0CG/4Q/gH8n77uXQAAAvBJREFUeNrll2l3qjAQhifBCrK4tFa72/b27jeJiYAsWv7/v7oJYgFFSNuPfU88neRkHieDeTkFcqzXUmQ4fK1OjwVHK5i0CGsACMabN+HFcFMR7q5gGFtBRShaB6gyf8IdAEys6n4URAaqAZ/iuL2CTRDAKork2Km/3of5XxTggz40AFYrOF+fwyqXBOQqll4CqxsQrc7XUnVAsYT0AGrzGmqAYkkTAHJz/+AIuyVNgETIj1K0BxRL3YBfaFkTRPX5SztgSDZLWLYJfpJxK2C8bBdcdwD+fhYw7jrCuBVA/pBrgBxRcioRwHfccRdeyfia88xfoqtvl2AAKiOg3Fp0+4FJTCa2PlxcXF7eGH1URsB7IVl0G0qMBZcAuDi7MQxw3X3kAxXW4WVudCS7h7aA+mvDUF9bibj4casFmIsMttKL+iBJZbRFwiZanjgXVPbbR/L8uYooE3Nbz5Utmm4b5FMLexqAAbmbZr7vu1mWVoZaeCCxzhFifJ+5bopG0CvHyHWzx4fBQAcwIPFj5qY9A87KMXIz947oNVFuu/uX1QGjUTZtOkAzgPzG99OjCu4xHugCMOKUiit0Ns2HCoAiZDWVcAB43gE45Vxm7AeVU4m0SPe70bOTJLExQiojTWXrs8z1UwXgsoL8urYBkpnDGHMmvBDNtZ9Ypp3YZgvgOZkxocQEb9LcUXCvpYLEEan8DfqCNeUL1lPwSdICYELl+7wRwJg6kmBerZe6AJUpaA4Ia6bQDaCFSsBAG7DPTdN3A8RbavqxCnrV1A8CKP2SAHOyuwXyQrUByEkA8SZMyWkG5DeNOUmbHyReKOU5jUdwcnhYt9YjSxve2rIXjYBQ0ZMOT7Tj2DwJIPFAuX63qZ4C2DGOtVw5cY6amOYVYE1bl48THRbAD9vfAohJuHtkVTE2M4e6LxZihvkjq2lmEqINIGYBmMkHVwC85v/nTgGKrLBkhY3v1lOAZA8wic0+BaiGXwxghjt5tfAdAH39B0qIrnjZlqraAAAAAElFTkSuQmCC',
+      sprinter : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAwFBMVEXb2+IaUlQgKDUWFn9WXGtIWHBIWHBNXXUAAP99kar///+MISKXrMiHm7eUobJcaZOYoa+Jn7o8S2JziqVGPUassup6DxG90u04SF2RpcIkJCSOo8AA//90iKAAfwB///+q//8AAABKWnMuOkxcbohVVVVTYnb6+/2TqcVecIyImrI5RlkvPE2OorssOkpyg5m3y+UuOkyluNHY5/YtOUkAf39reItKWHR/f38tOUwtOUwuOUuMkZl5jKSvwts9PT0xTRCuAAAAQHRSTlP/Bv8C7qFSHQH+Af/pY+obEqHzHf8L//9caQeqAWcCAgMA+/v+A/3//f/9/Uf9Ev7/zv7/MgL+EQKWbqv//f4EIkJVMwAAAzBJREFUeNrtl3tzojAQwEGwqOer7fXae18SiTHIU0EE0e//rW4DVFsNTmjnZm5ubv8oS8P+srvZZKOG3inavw/ovQcQG7Z42Eb6JkBPWE+sjSX0tD0AzDc3XRNj3O1a5Ws7gI2sLhhjKv5gQKTtADa6AbuERyCuD+oNMtoAhP2dv1+tVlqwD4KoACcaotAa5+crTZsDIoj2+8AVBEMZ0NvgOz4vBQhgHwRMRGErAmzUxclKG0daSdCG/f5Q62NTH6h6sME4KszdmI7Bfs7pbkf9gMpdkAAMyEBRJGL6BBLBK61w5XnU5BEUVHM/giHVtGcN8rhRDGFj0oI65qcP2nznMlxrRYJl5SQF4Bk3O50Pwoy7Ry2RJkEOoMzkHVM4HkX0WVMHWBjvfb9MnR8ER20GISgBUkgif0yqxYMq8kvtMVJOogEAmDnq9yOxEfaVFnBsxilS82BScMYY7MNahhG88v53pAAwYMf8REPGQTCpxeEuB+TDt0H1wRVAOTpAU+aCDenUgI7PXJeN0BTOyesexCjbwmOKRkwAyAnA2S36Jaq0/KAJEMcZIbmHDg/oFnxwOrWQwmXjaTqACbbwgR43AmwYJyEQBkBg3K+lYOzrPRKbuR5vDOEHysQXawRbfzRkJ/kMgzrychjdXk2iXRIIECbIGt1yDovIx6N7ZFke8sJL+4tlPKC1ICxReZzjGQjFojvQyVrYZ+fVfFFINSGjFNOqKVRP+kRk9pJKtCtXHfxa7qrQDkonkiCcAxy5vXQ7G+iQh3VTe+ECLJ+t3hutM3NMb77AQqoCDHGynwMk/jcCeucAip0neXNUAFCohcSB0mgJKBdfGC8Wi9niDQD8bCykLQB2DiGz2vhtAE8AZv8BfxUAKnHdCqCjnODFURJoUl7LuzIcbM5JSFMETQADLfOQnCTMs8uudg0QH0KSL0+yFedZ2uaunJVH4FHgLW+1G72yhei6XYqOlqQpCw2XbdEDX6RdtyEhoa16JqZlb9m+OAPtZhfkl21oouGrJi7517XGsr6YrnIqU7vmxboIWNevp+VaCKKzXVR+uTCSWpCvQpZf1J0OtyPvT/x2/g2sKR5OOYdqCgAAAABJRU5ErkJggg==',
+      sun      : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAwFBMVEXlqxXosB/osBdqagDlzBnepBb//38AAAD+1DbrsRb//wD9zS/+00PmqhP/vTr/9cn/yS3+0y7/qlX+6ZXYmgn+zC3/4zL//1X/1Cv/0i79qgD/AAD+zS3/1S7/1DD9yyz/0y7/zi39zSv+zSzsuCb/7aX9vQz//z//0S7//PT/3WvTmgvZmwv/5DTttBj/8brlrBT/fz/YmwzVmAr9wBnipRDnrhXsmQ3/fwDTlwvWmQvyux7xvSL/4n7yvCDsshnR+uemAAAAQHRSTlOqFUwCBf8CAP3+Afn+/gb/DtID//g1/wMOMwMBjI1JSW3Pcaz6/wgEr///Ds0O0v9qBKdq/6mXCwI5UIlp/89zoAixrAAABEhJREFUeNrdVwl34jgMhs7sStiJSULICSEECBR6Te92rv//r1ZyAiSQUObNvt19q9dSalufPx2W5Q78pnT+4wBCy7/CQPj6jxVY9KO/+uJ8gNiPChSYoZQ4g0I38uPzGYTjDMQSRp6UXgZLAdk4PJeBiINkhd5UCQUJM0iIvpp6uEqCWHwIIMCB0EOJaIEPQ0T+EoGFNOSFNClOAwiIadGINx6CAouApoFgJBoZ0VR8iNA50FcQCxHYtB+bLqbIPlxCRgN2IERMC0Q7gIKhPQThwAS18zkMmMVLHQ6cgCP0AtUGQNPkPItcRkbgtJt3X1MkHwYbRUxGoIRvkTOHNQ6duj6ypUsRWTYix22CtJ6iimhbEceV3VtD6FTy3kIKOzJVnzWz96crl+Sq8/CNR302jZzpoVU5H1UGVmizs21L5DTRc82duL0fABthFfOh1cRAcPqqtDACNh3XNedSGiQo56brPr1BYUDKPoxEA4OIiREJ8tsb7SqxFAYhDPMhoX/skI2NjhjEEJCzHIrQlzHinHZHYz0YfF8bBKBBJNmBOP5CSxyAYQBxDcCHzBsrChSRSObuH9IYaFkMvhsaATVCwiWGlo3phPk1AJ1zdgKcK2+uqfX7l/1bhtgiGD33AXJin5CZ020gCgCnSHYkEtGm1L9k6TPC1hdomu/k6DEWR8WpAPhi5ulhewL3ZP96Qftf9kkWhFBSYCuuYKJDid6sLFqlCXm6KvfpuKaBAwboa7kdLNYlABpz96ZctkrzwzBeh+nYlthzpQZY9Eu5rQBI10Rpj9Pw+iiRVGFRMCECBptwuwXo70zQFH4GhddUHUApSiP6gHdzzqHfE+j3Bzt99kIHPiuKdqTUUSa+KhWIewoBKRiDPYBRAUDz6sVZqtd6JgqwRmlYlP8rBmCNHcJir08TpvuiL4wwHVn6VBcACr3COV2Ogd7KWBwT0E64KJztoaoA6KLLIksAbQX7cVDTZ4ByIVfrBgDcArCasd6epQ8B2AS0Z+NksgOg3N9/VgHukmxFh6FuQjBKh9fO3on7QoB1ISdudL7UnLgVRwXOfQWgSUw3V5YTHxUUpRzOjQgeOJGMFuFEuocXTiTnMJG2qfyNs71te2nMzefmVN4fpkezd0LMXsth2h/nGS0yW4SmWo5ztaDcnNq/FzUXlEpJE129sFke71pK2r6oRjnctVN49nPRWFQrZV1AIs1mDmZv0lrW6xdLr8EKHpDtF8vB1XbXsPvj0+TE1XZ4uV7c9IqwlXvT788PL9fK9d6FTz92xAvpgsiDU9d7vcGIie7XZ0oJkyE6X2lUfNxgHLQ4AVj5hZRZbsH1OS3OUZO1yR1ujlL4M9+c1WQdt3mfP2WkKM5u844bTe4TKefObjQPWl1fBERdWszszFa33mzrHpt95p/fbNfafX/b7qtfaPfrD46MHxyjX3xw/D1Pnt97dP0/Hp7/IMBfY8i8PozVx18AAAAASUVORK5CYII=',
+      pea      : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAMAAADXqc3KAAAAwFBMVEUAAAB93WJNozyE4mhHnTnI97Q9kzYA/wBnwlBSqkJVqlU8fzw5izP3/fVXskZQqjt32F1FlTdBlThOpTxPpz2m649NpDxPpjx//387jDRBlDh/f39Opjw7mTs+kjc/vz89kTa686WF22w8kDdBlTdguU09kzd+4GLW+cc9kTZ/fwBAkzhV/1U7jTdMojs9jzU4jThVVVVMmUxElTc+kDiz8J7m/9j///8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAdtyKwAAAAQHRSTlMA/v3+/v/9Af7+AwTv//0P/RNrL0L/rY4C2UgC2ghGBLT//pWl+y///9UCnwOwa4AJAwopf///AQAAAAAAAAAANqdw3wAAASJJREFUeNpVkteahCAMhQOBKIrdcXZ6b9v7vv+bbRicb+RcWM6fHEQC0CtJ/TWCQB/OLIrC3YZ+Cun06WKtXdcVzO5NEUwvRMoYqYhq997HQ02UC1GiKA+K9lUU9TlvSm213oyEQBSG1n6dBJak8DfLtGYiTmjo+0r+3idU6izLzlqjcFL2yMuk3JCjA5pByT7GtIMFgx3Fp5Hmer0RXmqy4qjFRPHziP2frffR2C8GhTXoPhWxrxeY05RBdQWMxAAsXZSVIhRHHd32XsjlDKXsJ8AKapnHgQ5yz/VRVEipQpnWbT2B11wGyjv/s56hC4iZV/5IOKwzQ7+Bh9s5wVj2yMiuuvmuB5rx/ArGLdx9PwFJ07YNT8NjOCezVT8WtyH5BxnWEQ3OqYP7AAAAAElFTkSuQmCC',
+      frostpea : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAMAAADXqc3KAAAAwFBMVEUAAACd5f5cs9Ck6f7v/P5Xrco8lbN3yuYA//9kutdUqatDm7pDl7XQ9P6R2PBLoL45jas/f79Tq8lHlrNAlLE/v79ctdNDmLR///9ctNE8ka5ettVAlrNVqv9Dl7VeuNVdt9QAAP////8/f39rwNyBzudXtsx/f/8/mb8zmZlVVaqk3e1twtpV//9gudh/f38+kq9LoL5asMxxxuLB7/5Lob1Cl7R/f79Cn8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAMsc4BAAAAQHRSTlMA/v3+//76/gH8BP5H//z+7AQNEZIEL3MCrdjasAMtQo4BAQT9/RECCgUD/RUDQgKwomsJ/2LUBP8AAAAAAAAA/vHbAwAAARxJREFUeNpVkoeOgzAQRNcYLy60QCAJkEtIv97L/3/ZrXEKHgtZnifPSIsBnHo9sZueSPD0QN+yKArLxv4EdDxtMMduVsLr7ZKE+AcxE0IYxJk9O2k5Q1QpY5ynO4NdKeU5Z/pnHsMw+RqQMJ3r0RBjxkOrhFmkKM2STdGYNHTizC6Dd1SzpQuKjwDje5zCvW0wKU9cFNkEWNZUPfSnJqNTcvWJCMoCKHLBh1Kb4oDCmEA5gIExNganXDBfBChqC29U7ivLS4AKvoXaR57EO/yClE8qEJ4C9QJLO5KPKPAULdywnmHhEdUejsN4pTyMiWprmF/+E6yD3dlWC33xiWygXrdkBsF6BTffvQBdr1b1J8DRfyfzyu3V8mz8AzENEWdx7I7rAAAAAElFTkSuQmCC'
+    },
+
+    init: function(game) {
+      const cv = game.canvas;
+      this.cellW = Math.floor((cv.width - 20) / this.COLS);
+      this.cellH = Math.floor((cv.height - this.TOP - 10) / this.ROWS);
+      this.originX = Math.floor((cv.width - this.cellW * this.COLS) / 2);
+
+      this.tier = Difficulty.pick(this.TIERS);
+      this.grid = [];
+      for (let r = 0; r < this.ROWS; r++) this.grid.push(new Array(this.COLS).fill(null));
+      this.zombies = []; this.shots = []; this.suns = [];
+      this.sun = this.tier.start;
+      this.wave = 0;
+      this.waveAt = 0; this.sunAt = 0; this.autoAt = 0;
+      this.pick = 0;
+      this.cursor = { c: 4, r: 2 };
+      this.cool = {};
+      this.over = false;
+      this.flash = 0;
+      // A mower is the lane's last word: it fires once, clears everything in that
+      // lane, and is gone. They ARE the hearts, so the shell's counter is the
+      // number of lanes still covered.
+      this.mowers = [];
+      for (let r = 0; r < this.ROWS; r++) this.mowers.push(r < this.tier.mowers ? true : false);
+      this.lives = this.tier.mowers;
+      this.maxLives = this.tier.mowers;
+      game.updateScore(0);
+      this.loadArt();
+      this.bind(game);
+    },
+
+    // Decode once per session. Until they land the game still runs and draws
+    // flat shapes, so a slow decode never blocks the first frame.
+    loadArt: function() {
+      if (this.imgReady) return;
+      // No Image constructor means this is not a browser -- the headless test
+      // harness, say. The game is fully playable without the bitmaps (drawSprite
+      // falls back to shapes), so degrade rather than throw on init.
+      if (typeof Image === 'undefined') { this.imgReady = false; return; }
+      const keys = Object.keys(this.ART);
+      let left = keys.length;
+      keys.forEach((k) => {
+        const im = new Image();
+        im.onload = () => { if (--left === 0) this.imgReady = true; };
+        im.onerror = () => { if (--left === 0) this.imgReady = true; };
+        im.src = this.ART[k];
+        this.img[k] = im;
+      });
+    },
+
+    cellAt: function(px, py) {
+      const c = Math.floor((px - this.originX) / this.cellW);
+      const r = Math.floor((py - this.TOP) / this.cellH);
+      if (c < 0 || c >= this.COLS || r < 0 || r >= this.ROWS) return null;
+      return { c: c, r: r };
+    },
+
+    cx: function(c) { return this.originX + c * this.cellW + this.cellW / 2; },
+    cy: function(r) { return this.TOP + r * this.cellH + this.cellH / 2; },
+
+    affordable: function(i, now) {
+      const s = this.SEEDS[i];
+      return this.sun >= s.cost && (now - (this.cool[s.key] || -1e9)) >= s.cool;
+    },
+
+    plant: function(c, r, now, game) {
+      if (this.pick < 0 || !this.grid) return false;
+      if (r < 0 || r >= this.ROWS || c < 0 || c >= this.COLS) return false;
+      if (this.grid[r][c]) return false;
+      const s = this.SEEDS[this.pick];
+      if (!this.affordable(this.pick, now)) { SFX.beep(150, 0.06, 'sine', 0.05); return false; }
+      this.sun -= s.cost;
+      this.cool[s.key] = now;
+      this.grid[r][c] = { key: s.key, hp: s.hp, maxHp: s.hp, at: now, fired: 0, art: s.art };
+      Fx.burst(this.cx(c), this.cy(r), '#7ede63', 8, 2);
+      SFX.brick(1);
+      return true;
+    },
+
+    // A seed you cannot pay for should not be silently ignored, and a click on a
+    // taken cell should not cost anything -- both read as the game not working.
+    bind: function(game) {
+      const self = this;
+      this.unbind();
+      this.keyHandler = function(e) {
+        if (!game.gameActive || game.currentGame !== 'lawn' || game.auto) return;
+        const k = (e.key || '').toLowerCase();
+        const now = performance.now();
+        if (k >= '1' && k <= '5') { self.pick = Number(k) - 1; SFX.beep(520, 0.03, 'square', 0.05); return; }
+        if (k === 'arrowleft'  || k === 'a') { self.cursor.c = Math.max(0, self.cursor.c - 1); e.preventDefault(); }
+        else if (k === 'arrowright' || k === 'd') { self.cursor.c = Math.min(self.COLS - 1, self.cursor.c + 1); e.preventDefault(); }
+        else if (k === 'arrowup'    || k === 'w') { self.cursor.r = Math.max(0, self.cursor.r - 1); e.preventDefault(); }
+        else if (k === 'arrowdown'  || k === 's') { self.cursor.r = Math.min(self.ROWS - 1, self.cursor.r + 1); e.preventDefault(); }
+        else if (k === ' ' || k === 'enter') { self.plant(self.cursor.c, self.cursor.r, now, game); e.preventDefault(); }
+      };
+      document.addEventListener('keydown', this.keyHandler);
+
+      this.clickHandler = function(ev) {
+        if (!game.gameActive || game.currentGame !== 'lawn' || game.auto) return;
+        const rect = game.canvas.getBoundingClientRect();
+        const t = (ev.touches && ev.touches[0]) || ev;
+        const px = (t.clientX - rect.left) * (game.canvas.width / rect.width);
+        const py = (t.clientY - rect.top) * (game.canvas.height / rect.height);
+        const now = performance.now();
+        // sun first: collecting is the action you take most, so it wins ties
+        for (let i = self.suns.length - 1; i >= 0; i--) {
+          const s = self.suns[i];
+          if (Math.abs(px - s.x) < 26 && Math.abs(py - s.y) < 26) {
+            self.sun += s.amt; self.suns.splice(i, 1);
+            Fx.text(s.x, s.y - 10, '+' + s.amt, '#ffd23f'); SFX.bonus();
+            return;
+          }
+        }
+        if (py < self.TOP) {                      // shop strip
+          const i = Math.floor(px / (game.canvas.width / self.SEEDS.length));
+          if (i >= 0 && i < self.SEEDS.length) { self.pick = i; SFX.beep(520, 0.03, 'square', 0.05); }
+          return;
+        }
+        const cell = self.cellAt(px, py);
+        if (cell) { self.cursor = cell; self.plant(cell.c, cell.r, now, game); }
+      };
+      game.canvas.addEventListener('mousedown', this.clickHandler);
+      game.canvas.addEventListener('touchstart', this.clickHandler, { passive: true });
+    },
+
+    unbind: function() {
+      if (this.keyHandler) { document.removeEventListener('keydown', this.keyHandler); this.keyHandler = null; }
+      const cv = GameSystem.canvas;
+      if (this.clickHandler && cv) {
+        cv.removeEventListener('mousedown', this.clickHandler);
+        cv.removeEventListener('touchstart', this.clickHandler);
+        this.clickHandler = null;
+      }
+    },
+
+    spawnWave: function(now, game) {
+      this.wave++;
+      // Count rises with the wave; the mix hardens rather than just multiplying.
+      const n = Math.min(7, 1 + Math.floor(this.wave * 0.45));
+      for (let i = 0; i < n; i++) {
+        const roll = Math.random();
+        let kind = 'walker';
+        if (this.wave >= 3 && roll < 0.22) kind = 'sprinter';
+        else if (this.wave >= 5 && roll < 0.45) kind = 'armoured';
+        const z = this.ZOMBIES[kind];
+        this.zombies.push({
+          kind: kind, art: z.art,
+          hp: z.hp * this.tier.hp * (1 + this.wave * this.tier.ramp),
+          maxHp: z.hp * this.tier.hp * (1 + this.wave * this.tier.ramp),
+          speed: z.speed * this.tier.speed,
+          dmg: z.dmg, score: z.score,
+          r: Math.floor(Math.random() * this.ROWS),
+          x: game.canvas.width + 20 + i * (40 + Math.random() * 70),
+          slow: 0, hit: 0
+        });
+      }
+      Fx.text(game.canvas.width / 2, this.TOP + 24, 'WAVE ' + this.wave, '#ff8f6b');
+      SFX.levelUp();
+    },
+
+    update: function(game, ts) {
+      if (this.over) return;
+      const now = ts || performance.now();
+      if (!this.waveAt) { this.waveAt = now + 2500; this.sunAt = now + 1200; }
+
+      if (now >= this.waveAt) {
+        // Clearing the board before the next wave is the win condition of a round,
+        // so pay for it -- and pay more the deeper in you are.
+        if (this.wave > 0 && !this.zombies.length) {
+          const bonus = 50 * this.wave;
+          game.updateScore(game.score + bonus);
+          Fx.text(game.canvas.width / 2, this.TOP + 46, 'LINE HELD +' + bonus, '#7ede63');
+          SFX.bonus();
+        }
+        this.spawnWave(now, game);
+        this.waveAt = now + this.tier.waveMs;
+      }
+
+      // Sky sun, so a board with no sunflowers is still playable -- just poorer.
+      if (now >= this.sunAt) {
+        this.sunAt = now + this.tier.sunMs;
+        this.suns.push({ x: 40 + Math.random() * (game.canvas.width - 80),
+                         y: this.TOP, vy: 0.45, amt: this.tier.sunAmt,
+                         rest: this.TOP + 40 + Math.random() * (this.cellH * this.ROWS - 80), life: 9000 });
+      }
+      for (let i = this.suns.length - 1; i >= 0; i--) {
+        const s = this.suns[i];
+        if (s.y < s.rest) s.y += s.vy; else s.life -= 16;
+        if (s.life <= 0) this.suns.splice(i, 1);
+      }
+
+      // plants act
+      for (let r = 0; r < this.ROWS; r++) {
+        for (let c = 0; c < this.COLS; c++) {
+          const p = this.grid[r][c];
+          if (!p) continue;
+          if (p.key === 'sunflower') {
+            if (now - p.fired > 7000) {
+              p.fired = now;
+              this.suns.push({ x: this.cx(c), y: this.cy(r), vy: 0, amt: 25,
+                               rest: this.cy(r), life: 9000 });
+            }
+          } else if (p.key === 'shooter' || p.key === 'frost') {
+            // Only fire into a lane that has something in it and to the right --
+            // a plant shooting at nothing is the classic wasted-DPS look.
+            const target = this.zombies.some(z => z.r === r && z.x > this.cx(c) - 10);
+            const rate = p.key === 'frost' ? 1250 : 900;
+            if (target && now - p.fired > rate) {
+              p.fired = now;
+              this.shots.push({ x: this.cx(c) + 14, y: this.cy(r) - 4, r: r,
+                                dmg: p.key === 'frost' ? 26 : 34,
+                                chill: p.key === 'frost', art: p.key === 'frost' ? 'frostpea' : 'pea' });
+              SFX.beep(520, 0.03, 'square', 0.05);
+            }
+          } else if (p.key === 'bomb') {
+            // Arms, then goes off on its own once anything is close enough.
+            const near = this.zombies.some(z => z.r >= r - 1 && z.r <= r + 1 &&
+                                                Math.abs(z.x - this.cx(c)) < this.cellW * 1.6);
+            if (now - p.at > 1400 && near) {
+              this.zombies.forEach((z) => {
+                if (z.r >= r - 1 && z.r <= r + 1 && Math.abs(z.x - this.cx(c)) < this.cellW * 1.9) {
+                  z.hp -= 900; z.hit = now;
+                }
+              });
+              Fx.burst(this.cx(c), this.cy(r), '#ffb03a', 34, 5.5);
+              Fx.text(this.cx(c), this.cy(r) - 18, 'BOOM', '#ffb03a');
+              this.grid[r][c] = null;
+              game.shake(10, 16);
+              SFX.lifeLost();
+            }
+          }
+        }
+      }
+
+      // shots
+      for (let i = this.shots.length - 1; i >= 0; i--) {
+        const b = this.shots[i];
+        b.x += 5.2;
+        if (b.x > game.canvas.width + 20) { this.shots.splice(i, 1); continue; }
+        for (let j = 0; j < this.zombies.length; j++) {
+          const z = this.zombies[j];
+          if (z.r !== b.r || Math.abs(z.x - b.x) > 18) continue;
+          z.hp -= b.dmg; z.hit = now;
+          if (b.chill) z.slow = now + 3000;
+          Fx.burst(b.x, b.y, b.chill ? '#9fe6ff' : '#7ede63', 5, 2);
+          this.shots.splice(i, 1);
+          break;
+        }
+      }
+
+      // zombies
+      for (let i = this.zombies.length - 1; i >= 0; i--) {
+        const z = this.zombies[i];
+        if (z.hp <= 0) {
+          game.updateScore(game.score + z.score);
+          Fx.burst(z.x, this.cy(z.r), '#8a6a58', 12, 3);
+          this.zombies.splice(i, 1);
+          SFX.brick(1);
+          continue;
+        }
+        const chilled = now < z.slow ? 0.45 : 1;
+        // eat what is in front of it rather than walking through
+        const cell = this.cellAt(z.x - 16, this.cy(z.r));
+        const p = cell ? this.grid[cell.r][cell.c] : null;
+        if (p) {
+          p.hp -= z.dmg;
+          if (p.hp <= 0) {
+            this.grid[cell.r][cell.c] = null;
+            Fx.burst(this.cx(cell.c), this.cy(cell.r), '#c08a4a', 14, 3);
+            SFX.beep(150, 0.06, 'sine', 0.05);
+          }
+        } else {
+          z.x -= z.speed * chilled * 3.2;
+        }
+
+        if (z.x < this.originX + 6) {
+          if (this.mowers[z.r]) {                       // the lane's last word
+            this.mowers[z.r] = false;
+            this.lives = this.mowers.filter(Boolean).length;
+            const lane = z.r;
+            for (let k = this.zombies.length - 1; k >= 0; k--) {
+              if (this.zombies[k].r === lane) {
+                Fx.burst(this.zombies[k].x, this.cy(lane), '#ffd23f', 10, 3);
+                this.zombies.splice(k, 1);
+              }
+            }
+            Fx.text(this.cx(1), this.cy(lane), 'MOWER!', '#ffd23f');
+            game.shake(8, 14);
+            SFX.lifeLost();
+          } else {
+            this.over = true;
+            this.flash = 30;
+            game.shake(14, 20);
+            game.showGameOver();
+          }
+        }
+      }
+      if (this.flash > 0) this.flash--;
+    },
+
+    // Autopilot. Economy first while the lawn is quiet, then a shooter column,
+    // then react: wall the lane that is about to be breached, bomb a crowd.
+    // Deliberately plays the same board a person does -- it buys from the same
+    // purse and waits out the same cooldowns.
+    autoPlay: function(game, ts) {
+      const now = ts || performance.now();
+      if (now < this.autoAt) return;
+      this.autoAt = now + 260;                  // human-ish decision rate
+
+      // collect sun on sight; it is free score and the whole economy
+      if (this.suns.length) {
+        const s = this.suns[0];
+        this.sun += s.amt; this.suns.splice(0, 1);
+        Fx.text(s.x, s.y - 10, '+' + s.amt, '#ffd23f');
+        return;
+      }
+
+      const free = (c, r) => !this.grid[r][c];
+      const count = (key) => {
+        let n = 0;
+        for (let r = 0; r < this.ROWS; r++) for (let c = 0; c < this.COLS; c++)
+          if (this.grid[r][c] && this.grid[r][c].key === key) n++;
+        return n;
+      };
+      const try_ = (seedKey, c, r) => {
+        const i = this.SEEDS.findIndex(s => s.key === seedKey);
+        if (i < 0 || !free(c, r) || !this.affordable(i, now)) return false;
+        const keep = this.pick; this.pick = i;
+        const ok = this.plant(c, r, now, game);
+        this.pick = keep;
+        return ok;
+      };
+
+      // 1. a lane about to be lost gets a wall, whatever else was planned
+      for (let r = 0; r < this.ROWS; r++) {
+        const near = this.zombies.filter(z => z.r === r && z.x < this.originX + this.cellW * 3);
+        if (near.length && this.mowers[r]) {
+          for (let c = 1; c < 4; c++) if (try_('wall', c, r)) return;
+        }
+      }
+      // 2. a crowd in one lane is worth a bomb
+      for (let r = 0; r < this.ROWS; r++) {
+        const pack = this.zombies.filter(z => z.r === r && z.x < this.originX + this.cellW * 6);
+        if (pack.length >= 3) {
+          const c = Math.max(1, Math.min(this.COLS - 2,
+            Math.floor((pack[0].x - this.originX) / this.cellW)));
+          if (try_('bomb', c, r)) return;
+        }
+      }
+      // 3. economy until it can sustain a shooter every wave, then guns
+      if (count('sunflower') < 6) {
+        for (let r = 0; r < this.ROWS; r++) if (try_('sunflower', 0, r)) return;
+        for (let r = 0; r < this.ROWS; r++) if (try_('sunflower', 1, r)) return;
+      }
+      // 4. shooters, front-loaded into the lanes that are actually threatened
+      const threat = [];
+      for (let r = 0; r < this.ROWS; r++) threat.push({ r: r, n: this.zombies.filter(z => z.r === r).length });
+      threat.sort((a, b) => b.n - a.n);
+      for (const t of threat) {
+        for (let c = 2; c < this.COLS - 1; c++) {
+          if (this.sun >= 175 && count('frost') < 3 && try_('frost', c, t.r)) return;
+          if (try_('shooter', c, t.r)) return;
+        }
+      }
+    },
+
+    drawSprite: function(ctx, key, x, y, w, h) {
+      const im = this.img[key];
+      if (this.imgReady && im && im.complete && im.naturalWidth) {
+        ctx.drawImage(im, x - w / 2, y - h / 2, w, h);
+      } else {                                   // pre-decode fallback
+        ctx.fillStyle = '#54c05a';
+        ctx.beginPath(); ctx.arc(x, y, w * 0.35, 0, Math.PI * 2); ctx.fill();
+      }
+    },
+
+    draw: function(game) {
+      const ctx = game.ctx, cv = game.canvas;
+      const now = performance.now();
+
+      // lawn: alternating stripes, so lanes read without gridlines
+      for (let r = 0; r < this.ROWS; r++) {
+        ctx.fillStyle = (r % 2) ? '#243b1c' : '#2b4622';
+        ctx.fillRect(this.originX, this.TOP + r * this.cellH, this.cellW * this.COLS, this.cellH);
+        if (!this.mowers[r]) continue;
+        ctx.fillStyle = '#ffd23f';
+        ctx.fillRect(this.originX - 12, this.cy(r) - 7, 9, 14);
+      }
+
+      // shop strip
+      ctx.fillStyle = '#161d2b';
+      ctx.fillRect(0, 0, cv.width, this.TOP);
+      const sw = cv.width / this.SEEDS.length;
+      this.SEEDS.forEach((s, i) => {
+        const x = i * sw, ready = this.affordable(i, now);
+        ctx.fillStyle = (i === this.pick) ? '#22304a' : '#1b2333';
+        ctx.fillRect(x + 3, 5, sw - 6, this.TOP - 12);
+        ctx.strokeStyle = (i === this.pick) ? '#7ede63' : 'rgba(255,255,255,0.12)';
+        ctx.lineWidth = (i === this.pick) ? 2 : 1;
+        ctx.strokeRect(x + 3, 5, sw - 6, this.TOP - 12);
+        ctx.globalAlpha = ready ? 1 : 0.35;
+        this.drawSprite(ctx, s.art, x + sw / 2, 30, 34, 34);
+        ctx.globalAlpha = 1;
+        ctx.font = 'bold 12px "Segoe UI", Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = ready ? '#ffd23f' : '#7d8797';
+        ctx.fillText(s.cost, x + sw / 2, 58);
+        ctx.fillStyle = '#8b95a7';
+        ctx.font = '10px "Segoe UI", Arial, sans-serif';
+        ctx.fillText((i + 1) + ' · ' + s.name, x + sw / 2, 70);
+        const wait = s.cool - (now - (this.cool[s.key] || -1e9));
+        if (wait > 0) {                                   // cooldown wipe
+          ctx.fillStyle = 'rgba(10,14,22,0.62)';
+          ctx.fillRect(x + 3, 5, sw - 6, (this.TOP - 12) * Math.min(1, wait / s.cool));
+        }
+      });
+
+      // cursor
+      ctx.strokeStyle = 'rgba(126,222,99,0.7)'; ctx.lineWidth = 2;
+      ctx.strokeRect(this.originX + this.cursor.c * this.cellW + 2,
+                     this.TOP + this.cursor.r * this.cellH + 2, this.cellW - 4, this.cellH - 4);
+
+      // plants, with a health bar once they are actually hurt
+      for (let r = 0; r < this.ROWS; r++) {
+        for (let c = 0; c < this.COLS; c++) {
+          const p = this.grid[r][c];
+          if (!p) continue;
+          this.drawSprite(ctx, p.art, this.cx(c), this.cy(r), this.cellW * 0.8, this.cellH * 0.8);
+          if (p.hp < p.maxHp) {
+            const w = this.cellW * 0.6;
+            ctx.fillStyle = 'rgba(0,0,0,0.45)';
+            ctx.fillRect(this.cx(c) - w / 2, this.cy(r) + this.cellH * 0.34, w, 4);
+            ctx.fillStyle = '#7ede63';
+            ctx.fillRect(this.cx(c) - w / 2, this.cy(r) + this.cellH * 0.34, w * (p.hp / p.maxHp), 4);
+          }
+        }
+      }
+
+      this.suns.forEach((s) => this.drawSprite(ctx, 'sun', s.x, s.y, 30, 30));
+      this.shots.forEach((b) => this.drawSprite(ctx, b.art, b.x, b.y, 15, 15));
+
+      this.zombies.forEach((z) => {
+        const flash = (now - z.hit) < 90;
+        if (now < z.slow) { ctx.globalAlpha = 0.9; }
+        if (flash) { ctx.globalAlpha = 0.6; }
+        this.drawSprite(ctx, z.art, z.x, this.cy(z.r), this.cellW * 0.78, this.cellH * 0.86);
+        ctx.globalAlpha = 1;
+        if (now < z.slow) {                       // chilled tint
+          ctx.fillStyle = 'rgba(159,230,255,0.22)';
+          ctx.fillRect(z.x - this.cellW * 0.39, this.cy(z.r) - this.cellH * 0.43,
+                       this.cellW * 0.78, this.cellH * 0.86);
+        }
+        if (z.hp < z.maxHp) {
+          const w = this.cellW * 0.55;
+          ctx.fillStyle = 'rgba(0,0,0,0.45)';
+          ctx.fillRect(z.x - w / 2, this.cy(z.r) - this.cellH * 0.46, w, 4);
+          ctx.fillStyle = '#ff6b6b';
+          ctx.fillRect(z.x - w / 2, this.cy(z.r) - this.cellH * 0.46, w * Math.max(0, z.hp / z.maxHp), 4);
+        }
+      });
+
+      // readouts
+      ctx.textAlign = 'left';
+      ctx.font = 'bold 15px "Segoe UI", Arial, sans-serif';
+      ctx.fillStyle = '#ffd23f';
+      ctx.fillText('☀ ' + this.sun, 10, cv.height - 10);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#8b95a7';
+      ctx.fillText('Wave ' + this.wave + ' · mowers ' + this.mowers.filter(Boolean).length, cv.width - 10, cv.height - 10);
+
+      if (this.flash > 0) {
+        ctx.fillStyle = 'rgba(220,60,60,' + (this.flash / 60) + ')';
+        ctx.fillRect(0, 0, cv.width, cv.height);
+      }
     }
   };
 
