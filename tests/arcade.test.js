@@ -1810,8 +1810,22 @@ const buildPlain = (B, h, name) => {
   L.init(g);
 
   check('lawn: a fresh board has no plants and full mowers',
-    L.grid.flat().every((x) => x === null) && L.lives === L.tier.mowers,
+    L.grid.flat().every((x) => x === null) && L.lives === L.ROWS &&
+    L.mowers.every(Boolean),
     `${L.lives} mowers`);
+
+  // Every lane starts covered on every difficulty. A lane without a mower was
+  // sudden death from the first wave, which made two of the five unplayable
+  // rather than merely hard; difficulty decides how often a spent one comes
+  // back instead.
+  ['baby', 'easy', 'normal', 'hard'].forEach((t) => {
+    A.Difficulty.set(t); L.init(g);
+    check(`lawn: ${t} covers every lane`, L.mowers.length === L.ROWS && L.mowers.every(Boolean));
+  });
+  check('lawn: an easier tier replaces mowers sooner than a harder one',
+    A.LawnGame.TIERS.baby.regen < A.LawnGame.TIERS.hard.regen,
+    `${A.LawnGame.TIERS.baby.regen} vs ${A.LawnGame.TIERS.hard.regen}`);
+  A.Difficulty.set('normal'); L.init(g);
 
   // affordability
   L.sun = 0;
@@ -1911,6 +1925,130 @@ const buildPlain = (B, h, name) => {
   L.shots = [{ x: h.canvas.width - 5, y: 10, r: 0, dmg: 1, art: 'pea' }];
   for (let f = 0; f < 12 && L.shots.length; f++) L.update(g, 7e5 + f);
   check('lawn: a forward shot despawns off the right edge', L.shots.length === 0);
+
+  // the play-through: a level is a fixed number of waves, and clearing the last
+  // one with the lawn empty advances rather than just spawning more
+  L.init(g);
+  check('lawn: normal is a five-wave level', L.tier.waves === 5, `${L.tier.waves}`);
+  check('lawn: a run starts on level 1', L.level === 1 && L.waveInLevel === 0);
+
+  L.waveInLevel = L.tier.waves;      // last wave spawned...
+  L.zombies = [{ kind:'walker', art:'walker', hp:10, maxHp:10, speed:0, dmg:1,
+                 score:10, r:2, x:400, slow:0, hit:0 }];
+  L.update(g, 8e5);
+  check('lawn: the level does not clear while a zombie is still up', L.level === 1);
+
+  L.zombies = [];                    // ...and now the lawn is empty
+  const beforeScore = g.score;
+  L.update(g, 8e5 + 20);
+  check('lawn: clearing the last wave advances the level', L.level === 2 && L.waveInLevel === 0,
+    `level ${L.level}`);
+  check('lawn: finishing a level pays a bonus', g.score > beforeScore, `+${g.score - beforeScore}`);
+
+  // hard is the ten-wave level the mod uses
+  A.Difficulty.set('hard'); L.init(g);
+  check('lawn: hard is a ten-wave level', L.tier.waves === 10, `${L.tier.waves}`);
+  A.Difficulty.set('normal');
+
+  // areas: the play-through is grouped into worlds, and it never runs out
+  L.init(g);
+  check('lawn: level 1 is stage 1-1 on the front lawn',
+    L.stageName(1) === '1-1' && L.areaFor(1).name === 'FRONT LAWN', L.stageName(1));
+  check('lawn: level 11 opens the second area at 2-1',
+    L.stageName(11) === '2-1' && L.areaFor(11) === L.AREAS[1], L.stageName(11));
+  check('lawn: the areas cycle rather than running out',
+    L.areaFor(51) === L.AREAS[0] && L.stageName(51) === '6-1', L.stageName(51));
+  check('lawn: every area has ground, a sun rate and a fog depth',
+    L.AREAS.every(a => a.name && a.stripe.length === 2 && a.sun > 0 && a.fog >= 0),
+    `${L.AREAS.length} areas`);
+  check('lawn: the night garden pays less sun than the lawn',
+    L.AREAS[1].sun < L.AREAS[0].sun);
+  check('lawn: one area has fog and one has no mowers',
+    L.AREAS.some(a => a.fog > 0) && L.AREAS.some(a => !a.mowers));
+
+  check('lawn: a level gains a flag at the halfway mark and again on the boss',
+    L.wavesFor(1) === L.tier.waves && L.wavesFor(5) === L.tier.waves + 1 &&
+    L.wavesFor(10) === L.tier.waves + 2, `${L.wavesFor(1)}/${L.wavesFor(5)}/${L.wavesFor(10)}`);
+  check('lawn: every tenth level is a boss level',
+    L.isBossLevel(10) && L.isBossLevel(20) && !L.isBossLevel(9));
+  check('lawn: the brute is slower and far tougher than a walker',
+    L.ZOMBIES.brute.hp > L.ZOMBIES.armoured.hp * 3 &&
+    L.ZOMBIES.brute.speed < L.ZOMBIES.walker.speed);
+
+  // entering a level picks up that area's rules
+  L.level = 41; L.enterLevel(g);                       // the roof: no mowers
+  check('lawn: the roof takes the mowers away',
+    !L.area.mowers && L.mowers.every(m => !m) && L.lives === 0, L.area.name);
+  L.level = 1; L.init(g);
+  check('lawn: a fresh run is back on the lawn with its mowers',
+    L.area === L.AREAS[0] && L.mowers.some(Boolean));
+
+  // the shovel: the strip is sun | packets | shovel, and digging clears a tile
+  const W = g.canvas.width;
+  check('lawn: the far left of the strip is the sun counter', L.slotAt(W, 10) === 'sun');
+  check('lawn: the far right of the strip is the shovel', L.slotAt(W, W - 8) === 'shovel');
+  check('lawn: the packets sit between them',
+    L.slotAt(W, L.SUNW + 4) === 0 && L.slotAt(W, W - L.SHOVW - 8) === L.SEEDS.length - 1,
+    `${L.slotAt(W, L.SUNW + 4)}..${L.slotAt(W, W - L.SHOVW - 8)}`);
+  L.sun = 999; L.pick = 0; L.cool = {};
+  L.plant(2, 2, 1e6, g);
+  check('lawn: something is planted to dig up', !!L.grid[2][2]);
+  L.dig = true;
+  L.shovel(2, 2);
+  check('lawn: the shovel clears the tile', L.grid[2][2] === null);
+  check('lawn: and puts itself away after one dig', L.dig === false);
+  check('lawn: digging bare ground is not an error', L.shovel(0, 0) === false);
+
+  // The flag wave is the last one in the level: while it is still on the lawn
+  // nothing further spawns. Without this a level that stalls stacks wave after
+  // wave on top of itself -- an autopilot run once reached wave 88 by level 6.
+  A.Difficulty.set('normal'); L.init(g);
+  L.waveInLevel = L.waves;
+  L.wave = L.waves;
+  L.zombies = [{ kind:'walker', art:'walker', hp:10, maxHp:10, speed:0, dmg:1,
+                 score:10, r:0, x:400, slow:0, hit:0 }];
+  L.waveAt = 1;
+  L.update(g, 9e5);
+  check('lawn: no wave spawns past the flag while the lawn is still busy',
+    L.waveInLevel === L.waves, `${L.waveInLevel}/${L.waves}`);
+
+  // A full autopilot run: the play-through has to actually go somewhere, not
+  // stall on level 1 or die in the first minute. The bar is set where the
+  // simple autopilot lands, not where a person would -- on hard its ten-wave
+  // opening level kills it about half the time, so that one is only held to
+  // surviving the early waves.
+  const runOut = (tier, minutes) => {
+    A.Difficulty.set(tier);
+    g.auto = true; g.score = 0;
+    L.init(g);
+    let t = 0;
+    for (let i = 0; i < (minutes * 60000) / 16.7 && !L.over; i++) {
+      t += 16.7;
+      L.autoPlay(g, t);
+      L.update(g, t);
+    }
+    return { level: L.level, wave: L.wave, over: L.over, stage: L.stageName(L.level) };
+  };
+  // Lane assignment is random, so a single run is a coin toss at the margins:
+  // judge each tier on three runs rather than one.
+  const three = (tier, minutes) => [runOut(tier, minutes), runOut(tier, minutes), runOut(tier, minutes)];
+  ['baby', 'normal'].forEach((tier) => {
+    const rs = three(tier, 8);
+    check(`lawn: ${tier} plays through several levels unattended`,
+      Math.max(...rs.map((r) => r.level)) >= 3,
+      rs.map((r) => r.stage + (r.over ? '✗' : '✓')).join(' '));
+    // and the waves stay inside the plan: this is the wave-88-by-level-6 bug,
+    // where the flag wave stalled and the next one spawned anyway
+    check(`lawn: ${tier} waves stay inside the level plan`,
+      rs.every((r) => r.wave <= (r.level + 1) * (L.tier.waves + 2)),
+      rs.map((r) => `${r.wave}w@${r.stage}`).join(' '));
+  });
+  const hardRuns = three('hard', 8);
+  check('lawn: hard holds the line for the opening waves at least',
+    hardRuns.every((r) => r.wave >= 4),
+    hardRuns.map((r) => `w${r.wave} ${r.stage}`).join(', '));
+  g.auto = false;
+  A.Difficulty.set('normal'); L.init(g);
 
   // art is optional: the harness has no Image, and init must survive that
   // fusion: planting onto an occupied tile makes a hybrid rather than being refused

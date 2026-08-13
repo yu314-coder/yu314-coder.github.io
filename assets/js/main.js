@@ -4734,6 +4734,7 @@
     COLS: 9,
     ROWS: 5,
     TOP: 78,            // shop strip above the lawn
+    PORCH: 34,          // paved strip to the left of the lawn, where mowers park
     cellW: 0,
     cellH: 0,
     originX: 0,
@@ -4779,10 +4780,59 @@
     // Difficulty moves the three things that actually decide a run: how fast the
     // sky pays you, how hard the wave pushes, and how many lawnmowers you get.
     TIERS: {
-      baby:   { sunMs: 3200, sunAmt: 40, waveMs: 16000, ramp: 0.030, hp: 0.70, speed: 0.75, mowers: 5, start: 300 },
-      easy:   { sunMs: 3800, sunAmt: 30, waveMs: 14000, ramp: 0.045, hp: 0.85, speed: 0.9,  mowers: 4, start: 225 },
-      normal: { sunMs: 4400, sunAmt: 25, waveMs: 11500, ramp: 0.065, hp: 1.0,  speed: 1.0,  mowers: 3, start: 175 },
-      hard:   { sunMs: 5400, sunAmt: 25, waveMs: 9000,  ramp: 0.095, hp: 1.15, speed: 1.15, mowers: 2, start: 125 }
+      baby:   { sunMs: 3200, sunAmt: 40, waveMs: 16000, ramp: 0.030, hp: 0.70, speed: 0.75, regen: 1, start: 300, waves: 4 },
+      easy:   { sunMs: 3800, sunAmt: 30, waveMs: 14000, ramp: 0.045, hp: 0.85, speed: 0.9,  regen: 1, start: 225, waves: 4 },
+      normal: { sunMs: 4400, sunAmt: 25, waveMs: 11500, ramp: 0.065, hp: 1.0,  speed: 1.0,  regen: 2, start: 175, waves: 5 },
+      hard:   { sunMs: 4600, sunAmt: 25, waveMs: 10500, ramp: 0.055, hp: 1.10, speed: 1.05, regen: 3, start: 200, waves: 10 }
+    },
+
+    // A run is a play-through, not one endless lane. Levels are grouped into
+    // areas the way the original groups them into worlds: each has its own
+    // ground, its own rules about what the sky pays and what you can see, and a
+    // brute waiting on the last level. Past the final area they cycle, and the
+    // wave ramp keeps climbing -- so there is always a next stage.
+    AREAS: [
+      { name: 'FRONT LAWN',   stripe: ['#2b4622', '#243b1c'], grass: true,
+        tint: null,                      sun: 1.0,  mowers: true,  fog: 0 },
+      { name: 'NIGHT GARDEN', stripe: ['#1a2740', '#152034'], grass: true,
+        tint: 'rgba(18,30,86,0.52)',     sun: 0.45, mowers: true,  fog: 0 },
+      { name: 'BACK YARD',    stripe: ['#2a4436', '#22392c'], grass: true,
+        tint: 'rgba(28,96,86,0.24)',     sun: 0.85, mowers: true,  fog: 0 },
+      { name: 'FOG BANK',     stripe: ['#26382f', '#1f3028'], grass: true,
+        tint: 'rgba(120,140,150,0.26)',  sun: 0.55, mowers: true,  fog: 3 },
+      { name: 'THE ROOF',     stripe: ['#7a4a3a', '#653c2f'], grass: false,
+        tint: 'rgba(40,20,12,0.18)',     sun: 0.9,  mowers: false, fog: 0 }
+    ],
+    LEVELS_PER_AREA: 10,
+
+    areaFor: function(level) {
+      return this.AREAS[Math.floor((level - 1) / this.LEVELS_PER_AREA) % this.AREAS.length];
+    },
+    // "3-7": which pass through the areas, then which level inside this one.
+    stageName: function(level) {
+      return (Math.floor((level - 1) / this.LEVELS_PER_AREA) + 1) + '-' +
+             (((level - 1) % this.LEVELS_PER_AREA) + 1);
+    },
+    // Flags per level: the difficulty's base, one more from the halfway level on,
+    // and one more again on the boss level.
+    wavesFor: function(level) {
+      const sub = ((level - 1) % this.LEVELS_PER_AREA) + 1;
+      return this.tier.waves + (sub >= 5 ? 1 : 0) + (sub === this.LEVELS_PER_AREA ? 1 : 0);
+    },
+    isBossLevel: function(level) { return level % this.LEVELS_PER_AREA === 0; },
+
+    // Entering a level: pick up the area's ground rules and announce the stage.
+    enterLevel: function(game) {
+      this.area = this.areaFor(this.level);
+      this.waves = this.wavesFor(this.level);
+      this.turfPat = null;
+      if (!this.area.mowers && this.mowers.some(Boolean)) {
+        this.mowers = this.mowers.map(() => false);
+        this.lives = 0;
+        Fx.text(game.canvas.width / 2, this.TOP + 116, 'NO MOWERS UP HERE', '#ff5d5d');
+      }
+      Fx.text(game.canvas.width / 2, this.TOP + 20,
+              'LEVEL ' + this.stageName(this.level) + '  ' + this.area.name, '#ffd23f');
     },
 
     // Kills are the only score, and a tower defense kills slowly, so they are
@@ -4791,7 +4841,9 @@
     ZOMBIES: {
       walker:   { hp: 100, speed: 0.22, dmg: 0.9,  art: 'walker',   score: 25 },
       armoured: { hp: 260, speed: 0.18, dmg: 1.1,  art: 'armoured', score: 70 },
-      sprinter: { hp: 70,  speed: 0.50, dmg: 0.8,  art: 'sprinter', score: 45 }
+      sprinter: { hp: 70,  speed: 0.50, dmg: 0.8,  art: 'sprinter', score: 45 },
+      // the boss of an area: slow, enormous, and worth the whole level
+      brute:    { hp: 900, speed: 0.13, dmg: 2.6,  art: 'armoured', score: 400, big: 1.45 }
     },
 
     grid: null,
@@ -4801,15 +4853,22 @@
     mowers: [],
     sun: 0,
     wave: 0,
+    level: 1,
+    waveInLevel: 0,
+    levelFlash: 0,
+    area: null,         // the AREAS entry this level belongs to
+    waves: 5,           // flags in this level, from wavesFor()
     waveAt: 0,
     sunAt: 0,
     pick: 0,            // index into SEEDS, or -1 for none
+    dig: false,         // shovel armed: the next lawn click removes a plant
     cursor: { c: 4, r: 2 },
     cool: {},
     img: {},
     turfPat: null,
     imgReady: false,
     keyHandler: null,
+    moveHandler: null,
     clickHandler: null,
     lives: 0,
     maxLives: 0,
@@ -4849,9 +4908,11 @@
 
     init: function(game) {
       const cv = game.canvas;
-      this.cellW = Math.floor((cv.width - 20) / this.COLS);
+      // The lawn is pushed right to leave the paved strip the mowers park on,
+      // the way the board sits against the house in the original.
+      this.cellW = Math.floor((cv.width - this.PORCH - 8) / this.COLS);
       this.cellH = Math.floor((cv.height - this.TOP - 10) / this.ROWS);
-      this.originX = Math.floor((cv.width - this.cellW * this.COLS) / 2);
+      this.originX = this.PORCH;
 
       this.tier = Difficulty.pick(this.TIERS);
       this.grid = [];
@@ -4859,8 +4920,12 @@
       this.zombies = []; this.shots = []; this.suns = [];
       this.sun = this.tier.start;
       this.wave = 0;
+      this.level = 1;
+      this.waveInLevel = 0;
+      this.levelFlash = 0;
       this.waveAt = 0; this.sunAt = 0; this.autoAt = 0;
       this.pick = 0;
+      this.dig = false;
       this.cursor = { c: 4, r: 2 };
       this.cool = {};
       this.over = false;
@@ -4869,9 +4934,10 @@
       // lane, and is gone. They ARE the hearts, so the shell's counter is the
       // number of lanes still covered.
       this.mowers = [];
-      for (let r = 0; r < this.ROWS; r++) this.mowers.push(r < this.tier.mowers ? true : false);
-      this.lives = this.tier.mowers;
-      this.maxLives = this.tier.mowers;
+      for (let r = 0; r < this.ROWS; r++) this.mowers.push(true);
+      this.lives = this.ROWS;
+      this.maxLives = this.ROWS;
+      this.enterLevel(game);
       game.updateScore(0);
       this.loadArt();
       this.bind(game);
@@ -4906,9 +4972,36 @@
     cx: function(c) { return this.originX + c * this.cellW + this.cellW / 2; },
     cy: function(r) { return this.TOP + r * this.cellH + this.cellH / 2; },
 
+    // The shop strip is laid out the way the real one is: sun counter pinned to
+    // the left end, seed packets in the middle, shovel on the right.
+    SUNW: 84,
+    SHOVW: 44,
+    slotW: function(w) { return (w - this.SUNW - this.SHOVW) / this.SEEDS.length; },
+    slotX: function(w, i) { return this.SUNW + i * this.slotW(w); },
+    slotAt: function(w, px) {
+      if (px < this.SUNW) return 'sun';
+      if (px > w - this.SHOVW) return 'shovel';
+      const i = Math.floor((px - this.SUNW) / this.slotW(w));
+      return (i >= 0 && i < this.SEEDS.length) ? i : null;
+    },
+
     affordable: function(i, now) {
       const s = this.SEEDS[i];
       return this.sun >= s.cost && (now - (this.cool[s.key] || -1e9)) >= s.cool;
+    },
+
+    // Digging a plant up returns nothing, as in the original -- it exists so a
+    // misplaced plant (or a fusion you did not want) is recoverable ground, not
+    // a refund. One dig per press: the shovel puts itself away afterwards.
+    shovel: function(c, r) {
+      if (!this.grid || !this.grid[r] || !this.grid[r][c]) { this.dig = false; return false; }
+      const p = this.grid[r][c];
+      this.grid[r][c] = null;
+      this.dig = false;
+      Fx.burst(this.cx(c), this.cy(r), '#8b6b3f', 8);
+      Fx.text(this.cx(c), this.cy(r) - 12, 'dug up', '#8b95a7');
+      SFX.beep(200, 0.05, 'square', 0.05);
+      return !!p;
     },
 
     plant: function(c, r, now, game) {
@@ -4949,11 +5042,16 @@
         if (k >= '1' && k <= '9' && Number(k) <= self.SEEDS.length) {
           self.pick = Number(k) - 1; SFX.beep(520, 0.03, 'square', 0.05); return;
         }
+        if (k === 'x') { self.dig = !self.dig; SFX.beep(300, 0.04, 'square', 0.05); return; }
         if (k === 'arrowleft'  || k === 'a') { self.cursor.c = Math.max(0, self.cursor.c - 1); e.preventDefault(); }
         else if (k === 'arrowright' || k === 'd') { self.cursor.c = Math.min(self.COLS - 1, self.cursor.c + 1); e.preventDefault(); }
         else if (k === 'arrowup'    || k === 'w') { self.cursor.r = Math.max(0, self.cursor.r - 1); e.preventDefault(); }
         else if (k === 'arrowdown'  || k === 's') { self.cursor.r = Math.min(self.ROWS - 1, self.cursor.r + 1); e.preventDefault(); }
-        else if (k === ' ' || k === 'enter') { self.plant(self.cursor.c, self.cursor.r, now, game); e.preventDefault(); }
+        else if (k === ' ' || k === 'enter') {
+          if (self.dig) self.shovel(self.cursor.c, self.cursor.r);
+          else self.plant(self.cursor.c, self.cursor.r, now, game);
+          e.preventDefault();
+        }
       };
       document.addEventListener('keydown', this.keyHandler);
 
@@ -4974,15 +5072,28 @@
           }
         }
         if (py < self.TOP) {                      // shop strip
-          const i = Math.floor(px / (game.canvas.width / self.SEEDS.length));
-          if (i >= 0 && i < self.SEEDS.length) { self.pick = i; SFX.beep(520, 0.03, 'square', 0.05); }
+          const hit = self.slotAt(game.canvas.width, px);
+          if (hit === 'shovel') { self.dig = !self.dig; SFX.beep(300, 0.04, 'square', 0.05); }
+          else if (typeof hit === 'number') { self.pick = hit; self.dig = false; SFX.beep(520, 0.03, 'square', 0.05); }
           return;
         }
         const cell = self.cellAt(px, py);
-        if (cell) { self.cursor = cell; self.plant(cell.c, cell.r, now, game); }
+        if (!cell) return;
+        self.cursor = cell;
+        if (self.dig) { self.shovel(cell.c, cell.r); return; }
+        self.plant(cell.c, cell.r, now, game);
       };
       game.canvas.addEventListener('mousedown', this.clickHandler);
       game.canvas.addEventListener('touchstart', this.clickHandler, { passive: true });
+
+      this.moveHandler = function(ev) {
+        if (!game.gameActive || game.currentGame !== 'lawn' || game.auto) return;
+        const rect = game.canvas.getBoundingClientRect();
+        const cell = self.cellAt((ev.clientX - rect.left) * (game.canvas.width / rect.width),
+                                (ev.clientY - rect.top) * (game.canvas.height / rect.height));
+        if (cell) self.cursor = cell;
+      };
+      game.canvas.addEventListener('mousemove', this.moveHandler);
     },
 
     unbind: function() {
@@ -4993,12 +5104,19 @@
         cv.removeEventListener('touchstart', this.clickHandler);
         this.clickHandler = null;
       }
+      if (this.moveHandler && cv) {
+        cv.removeEventListener('mousemove', this.moveHandler);
+        this.moveHandler = null;
+      }
     },
 
     spawnWave: function(now, game) {
       this.wave++;
+      this.waveInLevel++;
       // Count rises with the wave; the mix hardens rather than just multiplying.
-      const n = Math.min(7, 1 + Math.floor(this.wave * 0.45));
+      // The last wave of a level is the flagged one and comes in heavy.
+      const big = this.waveInLevel >= this.waves;
+      const n = Math.min(9, (1 + Math.floor(this.wave * 0.45)) * (big ? 2 : 1));
       for (let i = 0; i < n; i++) {
         const roll = Math.random();
         let kind = 'walker';
@@ -5006,7 +5124,7 @@
         else if (this.wave >= 5 && roll < 0.45) kind = 'armoured';
         const z = this.ZOMBIES[kind];
         this.zombies.push({
-          kind: kind, art: z.art,
+          kind: kind, art: z.art, big: z.big || 0,
           hp: z.hp * this.tier.hp * (1 + this.wave * this.tier.ramp),
           maxHp: z.hp * this.tier.hp * (1 + this.wave * this.tier.ramp),
           speed: z.speed * this.tier.speed,
@@ -5016,8 +5134,22 @@
           slow: 0, hit: 0
         });
       }
-      Fx.text(game.canvas.width / 2, this.TOP + 24, 'WAVE ' + this.wave, '#ff8f6b');
+      // the area's last level ends on a brute, not just more of the same
+      if (big && this.isBossLevel(this.level)) {
+        const z = this.ZOMBIES.brute;
+        const hp = z.hp * this.tier.hp * (1 + this.wave * this.tier.ramp);
+        this.zombies.push({
+          kind: 'brute', art: z.art, big: z.big, hp: hp, maxHp: hp,
+          speed: z.speed * this.tier.speed, dmg: z.dmg, score: z.score,
+          r: Math.floor(this.ROWS / 2), x: game.canvas.width + 90, slow: 0, hit: 0
+        });
+      }
+      Fx.text(game.canvas.width / 2, this.TOP + 52,
+              big ? (this.isBossLevel(this.level) ? 'A BRUTE IS COMING!' : 'HUGE WAVE!')
+                  : 'WAVE ' + this.waveInLevel + ' / ' + this.waves,
+              big ? '#ff5d5d' : '#ff8f6b');
       SFX.levelUp();
+      if (big) game.shake(6, 12);
     },
 
     update: function(game, ts) {
@@ -5025,22 +5157,42 @@
       const now = ts || performance.now();
       if (!this.waveAt) { this.waveAt = now + 2500; this.sunAt = now + 1200; }
 
-      if (now >= this.waveAt) {
-        // Clearing the board before the next wave is the win condition of a round,
-        // so pay for it -- and pay more the deeper in you are.
+      // A level is a fixed number of waves, the last of them the big one. Survive
+      // it with the lawn clear and the level is done -- which is what makes this a
+      // play-through rather than a tide that never ends.
+      if (this.waveInLevel >= this.waves && !this.zombies.length) {
+        const bonus = 250 * this.level;
+        game.updateScore(game.score + bonus);
+        Fx.text(game.canvas.width / 2, this.TOP + 40,
+                'LEVEL ' + this.stageName(this.level) + ' CLEARED  +' + bonus, '#ffd23f');
+        SFX.highScore();
+        this.level++;
+        this.waveInLevel = 0;
+        this.levelFlash = 90;
+        this.enterLevel(game);
+        this.waveAt = now + this.tier.waveMs * 1.4;    // a breath before the next one
+        // a mower back each level, capped, so a long run is survivable
+        const idle = this.mowers.findIndex(m => !m);
+        if (idle >= 0 && this.level % this.tier.regen === 0 && this.area.mowers) {
+          this.mowers[idle] = true;
+          this.lives = this.mowers.filter(Boolean).length;
+          Fx.text(this.cx(1), this.cy(idle), 'MOWER BACK', '#ffd23f');
+        }
+      } else if (now >= this.waveAt && this.waveInLevel < this.waves) {
         if (this.wave > 0 && !this.zombies.length) {
           const bonus = 50 * this.wave;
           game.updateScore(game.score + bonus);
-          Fx.text(game.canvas.width / 2, this.TOP + 46, 'LINE HELD +' + bonus, '#7ede63');
+          Fx.text(game.canvas.width / 2, this.TOP + 84, 'LINE HELD +' + bonus, '#7ede63');
           SFX.bonus();
         }
         this.spawnWave(now, game);
         this.waveAt = now + this.tier.waveMs;
       }
+      if (this.levelFlash > 0) this.levelFlash--;
 
       // Sky sun, so a board with no sunflowers is still playable -- just poorer.
-      if (now >= this.sunAt) {
-        this.sunAt = now + this.tier.sunMs;
+      if (now >= this.sunAt && this.area.sun > 0) {
+        this.sunAt = now + this.tier.sunMs / this.area.sun;
         this.suns.push({ x: 40 + Math.random() * (game.canvas.width - 80),
                          y: this.TOP, vy: 0.45, amt: this.tier.sunAmt,
                          rest: this.TOP + 40 + Math.random() * (this.cellH * this.ROWS - 80), life: 9000 });
@@ -5297,8 +5449,11 @@
           if (try_('bomb', c, r)) return;
         }
       }
-      // 3. economy until it can sustain a shooter every wave, then guns
-      if (count('sunflower') < 6) {
+      // 3. Economy, but never more than two sunflowers ahead of the guns. Six
+      //    sunflowers before the first shooter reads as good economics and loses
+      //    the run on level one, which is exactly how it used to die.
+      const guns = count('shooter') + count('three') + count('frost') + count('chomp');
+      if (count('sunflower') < 6 && count('sunflower') <= guns + 2) {
         for (let r = 0; r < this.ROWS; r++) if (try_('sunflower', 0, r)) return;
         for (let r = 0; r < this.ROWS; r++) if (try_('sunflower', 1, r)) return;
       }
@@ -5361,11 +5516,11 @@
 
       // lawn: alternating stripes, so lanes read without gridlines
       for (let r = 0; r < this.ROWS; r++) {
-        ctx.fillStyle = (r % 2) ? '#243b1c' : '#2b4622';
+        ctx.fillStyle = this.area.stripe[r % 2];
         ctx.fillRect(this.originX, this.TOP + r * this.cellH, this.cellW * this.COLS, this.cellH);
         // Real grass over the stripe, dimmed on alternate rows so the lanes still
         // read. Falls through to the flat fill above until the tile decodes.
-        const turf = this.img.lawn;
+        const turf = this.area.grass ? this.img.lawn : null;
         if (this.imgReady && turf && turf.complete && turf.naturalWidth) {
           if (!this.turfPat) this.turfPat = ctx.createPattern(turf, 'repeat');
           if (this.turfPat) {
@@ -5381,41 +5536,156 @@
             ctx.fillRect(this.originX, this.TOP + r * this.cellH, this.cellW * this.COLS, this.cellH);
           }
         }
-        if (!this.mowers[r]) continue;
-        ctx.fillStyle = '#ffd23f';
-        ctx.fillRect(this.originX - 12, this.cy(r) - 7, 9, 14);
+        // the area's own light, over whatever ground it has
+        if (this.area.tint) {
+          ctx.fillStyle = this.area.tint;
+          ctx.fillRect(this.originX, this.TOP + r * this.cellH, this.cellW * this.COLS, this.cellH);
+        }
+        if (!this.area.grass) {                        // roof tiles, not turf
+          ctx.strokeStyle = 'rgba(0,0,0,0.22)'; ctx.lineWidth = 1;
+          for (let c = 0; c <= this.COLS; c++) {
+            const gx = this.originX + c * this.cellW;
+            ctx.beginPath(); ctx.moveTo(gx, this.TOP + r * this.cellH);
+            ctx.lineTo(gx, this.TOP + (r + 1) * this.cellH); ctx.stroke();
+          }
+          ctx.beginPath();
+          ctx.moveTo(this.originX, this.TOP + r * this.cellH + 0.5);
+          ctx.lineTo(this.originX + this.cellW * this.COLS, this.TOP + r * this.cellH + 0.5);
+          ctx.stroke();
+        }
       }
 
-      // shop strip
-      ctx.fillStyle = '#161d2b';
+      // The strip the mowers are parked on, and the mowers themselves: a body, a
+      // handle and two wheels, drawn rather than sprited.
+      const porchW = this.originX;
+      if (porchW > 6) {
+        const pav = ctx.createLinearGradient(0, 0, porchW, 0);
+        pav.addColorStop(0, '#6e6a63');
+        pav.addColorStop(1, '#8b867c');
+        ctx.fillStyle = pav;
+        ctx.fillRect(0, this.TOP, porchW, this.cellH * this.ROWS);
+        ctx.fillStyle = 'rgba(0,0,0,0.22)';
+        ctx.fillRect(porchW - 3, this.TOP, 3, this.cellH * this.ROWS);
+        ctx.strokeStyle = 'rgba(0,0,0,0.15)'; ctx.lineWidth = 1;
+        for (let r = 1; r < this.ROWS; r++) {          // paving joints
+          ctx.beginPath();
+          ctx.moveTo(0, this.TOP + r * this.cellH + 0.5);
+          ctx.lineTo(porchW, this.TOP + r * this.cellH + 0.5);
+          ctx.stroke();
+        }
+      }
+      for (let r = 0; r < this.ROWS; r++) {
+        if (!this.mowers[r]) continue;
+        const mxp = Math.max(9, this.originX - 11), myp = this.cy(r);
+        ctx.fillStyle = '#3f7d3a';                     // body
+        ctx.fillRect(mxp - 8, myp - 6, 15, 10);
+        ctx.fillStyle = '#5aa04f';
+        ctx.fillRect(mxp - 8, myp - 6, 15, 4);
+        ctx.strokeStyle = '#2a5726'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+        ctx.beginPath();                               // handle
+        ctx.moveTo(mxp + 5, myp - 5); ctx.lineTo(mxp + 9, myp - 12);
+        ctx.stroke();
+        ctx.fillStyle = '#22252a';                     // wheels
+        ctx.beginPath(); ctx.arc(mxp - 5, myp + 5, 3.2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(mxp + 4, myp + 5, 3.2, 0, Math.PI * 2); ctx.fill();
+      }
+
+      // Shop strip, laid out and coloured like the original's: a wooden bar with
+      // the sun counter pinned to the left end, tan seed packets across the
+      // middle each with its cost on a bar at the foot, and the shovel on the
+      // right. Every part of it is drawn here -- shapes and a wood palette, no
+      // borrowed art.
+      const wood = ctx.createLinearGradient(0, 0, 0, this.TOP);
+      wood.addColorStop(0, '#a5773c');
+      wood.addColorStop(0.5, '#8b6231');
+      wood.addColorStop(1, '#6d4a24');
+      ctx.fillStyle = wood;
       ctx.fillRect(0, 0, cv.width, this.TOP);
-      const sw = cv.width / this.SEEDS.length;
+      ctx.fillStyle = 'rgba(0,0,0,0.28)';
+      ctx.fillRect(0, this.TOP - 4, cv.width, 4);
+      ctx.fillStyle = 'rgba(255,255,255,0.10)';
+      ctx.fillRect(0, 0, cv.width, 2);
+
+      // a packet: tan card, dark cost bar at the foot, raised while picked
+      const packet = (x, w, picked) => {
+        ctx.fillStyle = picked ? '#f0dda6' : '#d9c48c';
+        ctx.fillRect(x, 6, w, this.TOP - 14);
+        ctx.fillStyle = 'rgba(0,0,0,0.18)';
+        ctx.fillRect(x, this.TOP - 22, w, 14);
+        ctx.strokeStyle = picked ? '#ffe98a' : '#6d4a24';
+        ctx.lineWidth = picked ? 2 : 1;
+        ctx.strokeRect(x + 0.5, 6.5, w - 1, this.TOP - 15);
+      };
+
+      packet(4, this.SUNW - 8, false);
+      this.drawSprite(ctx, 'sun', this.SUNW / 2, 26, 28, 28);
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 15px "Segoe UI", Arial, sans-serif';
+      ctx.fillStyle = '#3a2a12';
+      ctx.fillText(this.sun, this.SUNW / 2, this.TOP - 11);
+
+      const shx = cv.width - this.SHOVW;              // shovel: dig a plant back up
+      packet(shx + 3, this.SHOVW - 7, this.dig);
+      ctx.save();                                     // a spade, drawn not sprited
+      ctx.translate(shx + this.SHOVW / 2, 28);
+      ctx.strokeStyle = '#7a4f22'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(5, -11); ctx.lineTo(-3, 2); ctx.stroke();
+      ctx.fillStyle = '#b9c4d0';
+      ctx.beginPath();
+      ctx.moveTo(-1, 0); ctx.lineTo(-10, 4); ctx.lineTo(-5, 12); ctx.lineTo(3, 5);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#6f7c8a'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.restore();
+      ctx.font = 'bold 9px "Segoe UI", Arial, sans-serif';
+      ctx.fillStyle = '#3a2a12';
+      ctx.fillText('X', shx + this.SHOVW / 2, this.TOP - 12);
+
+      const sw = this.slotW(cv.width);
       this.SEEDS.forEach((s, i) => {
-        const x = i * sw, ready = this.affordable(i, now);
-        ctx.fillStyle = (i === this.pick) ? '#22304a' : '#1b2333';
-        ctx.fillRect(x + 3, 5, sw - 6, this.TOP - 12);
-        ctx.strokeStyle = (i === this.pick) ? '#7ede63' : 'rgba(255,255,255,0.12)';
-        ctx.lineWidth = (i === this.pick) ? 2 : 1;
-        ctx.strokeRect(x + 3, 5, sw - 6, this.TOP - 12);
-        ctx.globalAlpha = ready ? 1 : 0.35;
-        this.drawSprite(ctx, s.art, x + sw / 2, 30, 34, 34);
+        const x = this.slotX(cv.width, i), ready = this.affordable(i, now);
+        packet(x + 2, sw - 4, i === this.pick);
+        ctx.globalAlpha = ready ? 1 : 0.4;
+        this.drawSprite(ctx, s.art, x + sw / 2, 28, 32, 32);
         ctx.globalAlpha = 1;
         ctx.font = 'bold 11px "Segoe UI", Arial, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillStyle = ready ? '#ffd23f' : '#7d8797';
-        ctx.fillText(s.cost, x + sw / 2, 58);
-        ctx.fillStyle = '#8b95a7';
-        ctx.font = '9px "Segoe UI", Arial, sans-serif';
-        ctx.fillText(String(i + 1), x + sw / 2, 70);
+        ctx.fillStyle = ready ? '#3a2a12' : '#8d3b2c';
+        ctx.fillText(s.cost, x + sw / 2, this.TOP - 12);
+        ctx.font = '8px "Segoe UI", Arial, sans-serif';
+        ctx.fillStyle = 'rgba(58,42,18,0.55)';
+        ctx.fillText(String(i + 1), x + sw - 9, 15);
         const wait = s.cool - (now - (this.cool[s.key] || -1e9));
         if (wait > 0) {                                   // cooldown wipe
-          ctx.fillStyle = 'rgba(10,14,22,0.62)';
-          ctx.fillRect(x + 3, 5, sw - 6, (this.TOP - 12) * Math.min(1, wait / s.cool));
+          ctx.fillStyle = 'rgba(20,14,6,0.55)';
+          ctx.fillRect(x + 2, 6, sw - 4, (this.TOP - 14) * Math.min(1, wait / s.cool));
         }
       });
 
-      // cursor
-      ctx.strokeStyle = 'rgba(126,222,99,0.7)'; ctx.lineWidth = 2;
+      // cursor: the seed you are holding shows as a ghost on the tile it would
+      // land on, and an armed shovel marks the tile it would clear instead
+      const cur = this.grid[this.cursor.r][this.cursor.c];
+      if (this.dig) {
+        ctx.fillStyle = 'rgba(255,93,93,0.18)';
+        ctx.fillRect(this.originX + this.cursor.c * this.cellW + 2,
+                     this.TOP + this.cursor.r * this.cellH + 2, this.cellW - 4, this.cellH - 4);
+      } else if (this.pick >= 0 && this.affordable(this.pick, now)) {
+        const seed = this.SEEDS[this.pick];
+        const pair = cur ? this.FUSIONS[this.fuseKey(cur.key, seed.key)] : null;
+        if (!cur || pair) {
+          ctx.globalAlpha = 0.42;
+          this.drawSprite(ctx, (pair || seed).art, this.cx(this.cursor.c), this.cy(this.cursor.r),
+                          this.cellW * 0.8, this.cellH * 0.8);
+          ctx.globalAlpha = 1;
+        }
+        if (pair) {                                  // name the hybrid before you buy it
+          ctx.textAlign = 'center';
+          ctx.font = 'bold 10px "Segoe UI", Arial, sans-serif';
+          ctx.fillStyle = '#7ede63';
+          ctx.fillText(pair.name, this.cx(this.cursor.c), this.cy(this.cursor.r) + this.cellH * 0.46);
+        }
+      }
+      ctx.strokeStyle = this.dig ? 'rgba(255,93,93,0.8)' : 'rgba(126,222,99,0.7)';
+      ctx.lineWidth = 2;
       ctx.strokeRect(this.originX + this.cursor.c * this.cellW + 2,
                      this.TOP + this.cursor.r * this.cellH + 2, this.cellW - 4, this.cellH - 4);
 
@@ -5442,7 +5712,9 @@
         const flash = (now - z.hit) < 90;
         if (now < z.slow) { ctx.globalAlpha = 0.9; }
         if (flash) { ctx.globalAlpha = 0.6; }
-        this.drawSprite(ctx, z.art, z.x, this.cy(z.r), this.cellW * 0.78, this.cellH * 0.86);
+        const zs = z.big || 1;
+        this.drawSprite(ctx, z.art, z.x, this.cy(z.r) - (zs - 1) * this.cellH * 0.2,
+                        this.cellW * 0.78 * zs, this.cellH * 0.86 * zs);
         ctx.globalAlpha = 1;
         if (now < z.slow) {                       // chilled tint
           ctx.fillStyle = 'rgba(159,230,255,0.22)';
@@ -5458,14 +5730,59 @@
         }
       });
 
-      // readouts
-      ctx.textAlign = 'left';
-      ctx.font = 'bold 15px "Segoe UI", Arial, sans-serif';
-      ctx.fillStyle = '#ffd23f';
-      ctx.fillText('☀ ' + this.sun, 10, cv.height - 10);
+      // Fog rolls in from the far end in the areas that have it, so a lane is
+      // dark until whatever is walking down it is nearly on top of your plants.
+      if (this.area.fog > 0) {
+        const fw = this.cellW * this.area.fog;
+        const fx = this.originX + this.cellW * this.COLS - fw;
+        const g = ctx.createLinearGradient(fx, 0, fx + fw, 0);
+        g.addColorStop(0, 'rgba(198,214,222,0)');
+        g.addColorStop(0.45, 'rgba(198,214,222,0.55)');
+        g.addColorStop(1, 'rgba(210,224,231,0.82)');
+        ctx.fillStyle = g;
+        ctx.fillRect(fx, this.TOP, fw, this.cellH * this.ROWS);
+      }
+
+      // --- HUD ------------------------------------------------------------
+      // Sun in a panel on the left with the real sun sprite, and a wave meter on
+      // the right that fills across the level and carries a flag on the last
+      // wave -- so "how much of this level is left" is answerable at a glance
+      // instead of only after it ends.
+      const barY = cv.height - 22;
+      const mw = 190, mx = cv.width - mw - 10, my = barY + 2;
+      ctx.fillStyle = 'rgba(109,74,36,0.92)';          // the same wood as the strip
+      ctx.fillRect(mx - 6, barY - 12, mw + 12, 30);
+      ctx.strokeStyle = 'rgba(58,42,18,0.9)'; ctx.lineWidth = 1;
+      ctx.strokeRect(mx - 6, barY - 12, mw + 12, 30);
+      ctx.fillStyle = 'rgba(30,20,8,0.55)';
+      ctx.fillRect(mx, my - 4, mw, 8);
+      const done = Math.min(1, this.waveInLevel / this.waves);
+      ctx.fillStyle = done >= 1 ? '#ff5d5d' : '#7ede63';
+      ctx.fillRect(mx, my - 4, mw * done, 8);
+      for (let w = 1; w <= this.waves; w++) {               // a tick per wave
+        const tx = mx + mw * (w / this.waves);
+        const last = (w === this.waves);
+        ctx.fillStyle = last ? '#ff5d5d' : 'rgba(240,221,166,0.55)';
+        ctx.fillRect(tx - 1, my - (last ? 9 : 6), 2, last ? 18 : 12);
+        if (last) {                                        // the flag on the big one
+          ctx.beginPath();
+          ctx.moveTo(tx + 1, my - 9); ctx.lineTo(tx + 9, my - 6); ctx.lineTo(tx + 1, my - 3);
+          ctx.closePath(); ctx.fill();
+        }
+      }
       ctx.textAlign = 'right';
-      ctx.fillStyle = '#8b95a7';
-      ctx.fillText('Wave ' + this.wave + ' · mowers ' + this.mowers.filter(Boolean).length, cv.width - 10, cv.height - 10);
+      ctx.font = 'bold 12px "Segoe UI", Arial, sans-serif';
+      ctx.fillStyle = '#f0dda6';
+      ctx.fillText('LEVEL ' + this.stageName(this.level), mx - 12, barY + 2);
+      ctx.font = '9px "Segoe UI", Arial, sans-serif';
+      ctx.fillStyle = 'rgba(240,221,166,0.65)';
+      ctx.fillText(this.area.name, mx - 12, barY + 14);
+      // no mower readout: the mowers are already drawn parked in their lanes
+
+      if (this.levelFlash > 0) {                            // level-clear wash
+        ctx.fillStyle = 'rgba(126,222,99,' + (this.levelFlash / 260) + ')';
+        ctx.fillRect(0, 0, cv.width, cv.height);
+      }
 
       if (this.flash > 0) {
         ctx.fillStyle = 'rgba(220,60,60,' + (this.flash / 60) + ')';
