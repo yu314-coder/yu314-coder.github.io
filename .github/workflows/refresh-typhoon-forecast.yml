@@ -188,6 +188,11 @@ jobs:
           pip install torch --index-url https://download.pytorch.org/whl/cpu
           pip install -r scripts/requirements-forecast.txt
 
+      # Cheap, no network, no models: catches a bulletin-parsing regression
+      # before it costs a run. One of these took a whole forecast down once.
+      - name: Check the JMA bulletin parser
+        run: python tests/jma_parse_test.py
+
       - name: Run Trackformer1.1 + Trackformer1.0 forecast
         env:
           TF10_MODELS_DIR: ${{ github.workspace }}/typhoon-predict-models/trackformer10

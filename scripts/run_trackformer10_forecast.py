@@ -99,14 +99,41 @@ def num(v):
 # records. A single entry means the area is a circle.
 JP_BEARING = {"北": 0, "北東": 45, "東": 90, "南東": 135,
               "南": 180, "南西": 225, "西": 270, "北西": 315}
+EN_BEARING = {"north": 0, "northeast": 45, "east": 90, "southeast": 135,
+              "south": 180, "southwest": 225, "west": 270, "northwest": 315}
+
+
+def jma_text(value):
+    """JMA writes a localisable field either as a plain string or as a
+    {"jp": ..., "en": ...} pair, and which one you get varies by storm and by
+    bulletin. Treating the pair as a string is what took the whole run down:
+    'dict' object has no attribute 'strip'."""
+    if isinstance(value, dict):
+        value = value.get("jp") or value.get("en") or ""
+    return str(value or "").strip()
+
+
+def jma_bearing(value):
+    """The named side of a wind area, in either language. An unnamed or
+    whole-area entry has no bearing, which downstream reads as a circle."""
+    name = jma_text(value)
+    if not name:
+        return None
+    return JP_BEARING.get(name, EN_BEARING.get(name.lower()))
 
 
 def jma_semicircles(warning):
-    """[{area, range:{nm}}] -> [(bearing_or_None, radius_nm)], or None."""
+    """[{area, range:{nm}}] -> [(bearing_or_None, radius_nm)], or None.
+
+    A part that does not parse is dropped rather than raised: a malformed wind
+    area should cost the radii, not the storm's whole track forecast.
+    """
     if not warning:
         return None
     out = []
     for part in warning:
+        if not isinstance(part, dict):
+            continue
         nm_value = ((part.get("range") or {}).get("nm"))
         if nm_value in (None, ""):
             continue
@@ -114,7 +141,7 @@ def jma_semicircles(warning):
             radius = float(nm_value)
         except (TypeError, ValueError):
             continue
-        out.append((JP_BEARING.get((part.get("area") or "").strip()), radius))
+        out.append((jma_bearing(part.get("area")), radius))
     return out or None
 
 
@@ -129,7 +156,7 @@ def parse_jma(tc_id, spec):
     sus = ((a.get("maximumWind") or {}).get("sustained")) or {}
     return {
         "tcId": tc_id,
-        "name": ((title.get("name") or {}).get("en")) or tc_id,
+        "name": jma_text((title.get("name") or {}).get("en")) or tc_id,
         "number": title.get("typhoonNumber") or "",
         "lat": pos[0], "lon": pos[1],
         "windKt": num(sus.get("kt")),
