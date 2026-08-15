@@ -27,6 +27,7 @@ opened.
     python scripts/build_trackformer11_history.py --top 20             # most intense first
 """
 import argparse
+import collections
 import datetime as dt
 import json
 import math
@@ -427,6 +428,12 @@ def run_storm(sid, season_year, storm, intensity_on=True):
         return dt.datetime.fromisoformat(p["t"]).replace(tzinfo=dt.timezone.utc)
 
     runs = []
+    # Why each initialisation was dropped, so a storm that builds nothing can say
+    # which of the two it was: the archive has not published those days, or the
+    # storm's own track never lined up. Recording None here is what left 34
+    # storms in the ledger reading 'reason: None' with no way to tell.
+    dropped = collections.Counter()
+    attempted = 0
     # need 24 h of history behind, and at least one lead ahead
     for i in range(4, len(pts) - 1):
         issue = when(pts[i])
@@ -440,7 +447,9 @@ def run_storm(sid, season_year, storm, intensity_on=True):
                 ok = False; break
             centres.append((float(near["la"]), float(near["lo"])))
         if not ok:
+            dropped["no 0/12/24 h fix within 3 h"] += 1
             continue
+        attempted += 1
         try:
             fields, press = [], []
             lat = lon = None
@@ -586,8 +595,14 @@ def run_storm(sid, season_year, storm, intensity_on=True):
             # keyed on this exception reaching the storm loop, never ran.
             raise
         except Exception as e:
+            dropped[f"{type(e).__name__}: {str(e)[:60]}"] += 1
             log(f"  init {issue:%Y-%m-%dT%H}Z skipped ({type(e).__name__}: {e})")
-    return runs, None
+    if runs:
+        return runs, None
+    if not dropped:
+        return runs, f"no initialisation had 24 h of history ({len(pts)} fixes)"
+    top = ", ".join(f"{k} x{n}" for k, n in dropped.most_common(3))
+    return runs, f"{attempted} init(s) attempted, none produced a run -- {top}"
 
 
 def load_index():
