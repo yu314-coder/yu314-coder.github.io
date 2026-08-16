@@ -154,6 +154,13 @@ body {
 }
 .tt-ai-btn:hover { background: rgba(52,211,153,0.18); }
 .tt-ai-btn.is-on { background: rgba(52,211,153,0.22); border-color: #34d399; }
+/* No published run for this storm: still pressable — it explains why — but it
+   should not look like a live control promising a forecast it cannot draw. */
+.tt-ai-btn--none {
+  border-color: rgba(148,163,184,0.45); background: rgba(148,163,184,0.08);
+  color: var(--muted); font-weight: 600;
+}
+.tt-ai-btn--none:hover { background: rgba(148,163,184,0.16); }
 .tt-ai-status { font-size: 12px; color: var(--muted); line-height: 1.4; }
 .tt-ai-status--loading { color: #fcd34d; }
 .tt-ai-status--on { color: #6ee7b7; }

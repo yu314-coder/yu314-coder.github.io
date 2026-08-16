@@ -859,6 +859,7 @@
     consensusTraceCount = 0;
     tfRunCache = {};          // forecasts are per-storm
     aiSetHindcastStatus("");
+    aiMarkHindcastAvailability();
     currentGeoScale = DEFAULT_GEO.scale;
     var pts = currentStorm.pts;
     var f = catFields();
@@ -2510,7 +2511,48 @@
     if (!els.hindcastStatus) return;
     els.hindcastStatus.textContent = msg || "";
     els.hindcastStatus.className = "tt-ai-status" + (cls ? " tt-ai-status--" + cls : "");
+    // This line sits at the very bottom of a page twice the height of the
+    // viewport, so a storm with no hindcast used to answer the button press
+    // with an explanation nobody could see -- the click read as doing nothing
+    // at all. Bring it into view whenever it has something to say.
+    if (msg) {
+      try {
+        var r = els.hindcastStatus.getBoundingClientRect();
+        if (r.bottom > window.innerHeight - 4 || r.top < 0) {
+          // Not smooth: a smooth scroll is dropped outright under
+          // prefers-reduced-motion and in a backgrounded tab, which is how this
+          // silently kept doing nothing. Land on it.
+          els.hindcastStatus.scrollIntoView({ block: "center" });
+        }
+      } catch (e) { /* older browsers: the message is still set, just not scrolled */ }
+    }
   }
+  // Say up front whether this storm has a published run, instead of letting the
+  // button promise a model and then explain in a line at the foot of the page.
+  // The index is 47 KB and already fetched for the overlay, so this costs
+  // nothing; before it arrives the button keeps its neutral label.
+  var HINDCAST_LABEL = "🧪 Run my AI model (Trackformer1.1)";
+  function aiMarkHindcastAvailability() {
+    var b = els.hindcastBtn;
+    if (!b) return;
+    var sid = currentSid;
+    tfEnsureTf11().then(function (idx) {
+      if (!b || sid !== currentSid) return;          // storm changed while loading
+      var have = idx && idx.hindcasts && idx.hindcasts[sid];
+      b.classList.toggle("tt-ai-btn--none", !have);
+      if (have) {
+        b.textContent = HINDCAST_LABEL;
+        b.title = "Trackformer1.1 runs " +
+          String(have.first_issue_utc).slice(0, 10) + " to " +
+          String(have.last_issue_utc).slice(0, 10) + " (" + have.runs + " initialisations)";
+      } else {
+        b.textContent = HINDCAST_LABEL + " — no run yet";
+        b.title = "Trackformer1.1 has no hindcast for this storm yet: its reanalysis " +
+          "fields have not been published and run. Click for the detail.";
+      }
+    });
+  }
+
   function aiClearHindcast() {
     var idx = tfTraceIdx(TF_HIND);
     if (idx.length) Plotly.deleteTraces(els.map, idx);
