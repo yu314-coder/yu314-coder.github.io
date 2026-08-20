@@ -2733,16 +2733,37 @@
       // Only claim the wind field when the run actually carries one. A storm from
       // before quadrant radii were reported has no observed structure to anchor
       // the residual head on, so those runs ship wind and pressure and no radii.
+      // Radii can be missing for two quite different reasons, and saying the
+      // wrong one is worse than saying nothing: a pre-2001 storm has no observed
+      // quadrant reporting to anchor on, whereas a run recovered from the live
+      // archive simply never published its radii per initialisation.
+      var liveArchive = !!(tfRT.tf11 && tfRT.tf11.hindcasts && tfRT.tf11.hindcasts[currentSid] &&
+                           tfRT.tf11.hindcasts[currentSid].origin === "live-archive");
+      var noRadiiWhy = liveArchive
+        ? " for the track, wind and pressure. No RMW or wind radii: the live forecast archive these"
+          + " runs come from published a route and an intensity per initialisation, not a wind field."
+        : " for the track, wind and pressure. No RMW or wind radii: this storm predates quadrant"
+          + " wind-radius reporting, so there is no observed wind field to anchor them on and none"
+          + " is drawn rather than one that would be wrong.";
       var field = (r.radii_km && r.rmw_km)
         ? " for everything here — track, wind, pressure, RMW and the 34/50/64 kt radii."
         : (r.radii_km
             ? " for the track, wind, pressure and the 34/50/64 kt radii, but no RMW."
-            : " for the track, wind and pressure. No RMW or wind radii: this storm predates quadrant"
-              + " wind-radius reporting, so there is no observed wind field to anchor them on and none"
-              + " is drawn rather than one that would be wrong.");
+            : noRadiiWhy);
+      // Two kinds of run reach this overlay and they are not the same claim. A
+      // reanalysis hindcast was integrated later, from fields reconstructed after
+      // the fact. A live-archive run is the forecast this site actually published
+      // while the storm was running, off the GFS analysis available at that
+      // moment -- a harder test, and worth saying so rather than letting both
+      // read as "hindcast".
+      var provenance = liveArchive
+        ? " This one is not a hindcast: it is the forecast this site published live at that"
+          + " initialisation, off the NOAA GFS analysis available at the time, recovered from"
+          + " the archive. It never saw anything after its issue time."
+        : " The route is integrated from real analysis fields at this initialisation.";
       return "🧪 " + storm + " — MODEL: Trackformer1.1" + field
-        + " The route is integrated from real analysis fields at this"
-        + " initialisation; the intensity comes from its frozen structure head, coupled to"
+        + provenance
+        + " Intensity comes from its frozen structure head, coupled to"
         + " the same causal pressure map. White is what actually happened." + score + members
         + " Scrub away from this initialisation and it falls back to the historical Trackformer1.0, which is"
         + " field-free and can run anywhere in a storm's life. Experimental, not an official forecast.";

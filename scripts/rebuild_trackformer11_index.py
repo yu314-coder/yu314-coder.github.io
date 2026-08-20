@@ -71,10 +71,25 @@ def main():
                 "mean_track_mae_km": round(sum(scored) / len(scored), 1) if scored else None,
                 "file": f"trackformer11/{sid}.json",
             }
+            # Where the runs came from IS derivable, and dropping it would be a
+            # lie by omission: a run recovered from the live archive is the
+            # forecast as it was published, not a reanalysis hindcast, and the
+            # overlay says so on the strength of this field.
+            if d.get("origin"):
+                hindcasts[sid]["origin"] = d["origin"]
 
     out = {"generated_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
            "note": NOTE, "hindcasts": hindcasts}
     out.update(keep)
+    # The ledger is carried over wholesale, and it is written by a different job
+    # than the one that writes the files -- so a storm can end up listed as
+    # having no runs while its runs sit right there on disk. Whatever is on disk
+    # is the answer.
+    both = [sid for sid in (out.get("unavailable") or {}) if sid in hindcasts]
+    for sid in both:
+        out["unavailable"].pop(sid, None)
+    if both:
+        print(f"  dropped {len(both)} stale unavailable entr(y/ies) that now have runs")
     with open(INDEX, "w") as f:
         f.write(json.dumps(out, separators=(",", ":")) + "\n")
     print(f"  rebuilt index from {len(hindcasts)} storm file(s)"

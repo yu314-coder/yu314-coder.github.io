@@ -144,6 +144,15 @@ jobs:
           pip install torch --index-url https://download.pytorch.org/whl/cpu
           pip install -r scripts/requirements-forecast.txt
 
+      # The reanalysis this job needs is not published for the current season,
+      # so recent storms would have nothing in history mode even though the live
+      # job forecast them every 20 minutes and every forecast was committed.
+      # Recover those before building, so a storm that had a route while it was
+      # live keeps one afterwards. Cheap: it only reads this repository's own
+      # git history, no network and no model.
+      - name: Recover hindcasts from the live forecast archive
+        run: python scripts/backfill_hindcasts_from_live.py
+
       - name: Generate hindcasts
         env:
           TF11_SRC_DIR: ${{ github.workspace }}/typhoon-predict-src
