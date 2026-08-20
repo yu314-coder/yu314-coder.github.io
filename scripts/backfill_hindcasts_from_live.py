@@ -63,6 +63,13 @@ def collect_runs():
     """Every distinct (tcId, issue_time) the live file ever published."""
     revs = [l.strip() for l in git("log", "--follow", "--format=%H", "--", LIVE).splitlines() if l.strip()]
     log(f"  walking {len(revs)} revisions of the live forecast")
+    # A shallow checkout has no history to walk, and this reported "1 revision,
+    # wrote 0 storms" and exited green -- which looks identical to "nothing new
+    # to recover". Say which it is, because the difference is a workflow that
+    # quietly does nothing forever.
+    if len(revs) < 5 and Path(HERE / ".git" / "shallow").exists():
+        log("  this is a SHALLOW clone, so almost none of the history is here. "
+            "Nothing can be recovered until it is checked out with fetch-depth: 0.")
     found = {}                      # (tcId, issue) -> (name, entry)
     for h in revs:
         raw = git("show", f"{h}:{LIVE}")

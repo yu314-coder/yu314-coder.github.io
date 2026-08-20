@@ -59,7 +59,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 350        # the job cap is 360; leave room to commit
     steps:
+      # The live-archive recovery below reads this repository's own git history,
+      # and checkout is shallow by default -- it saw exactly one revision and
+      # silently recovered nothing. blob:none keeps the full commit graph without
+      # dragging down every blob in a 281 MB history; the few hundred versions of
+      # the one file it reads are fetched on demand.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: blob:none
 
       - name: Free disk for the analysis cache
         run: |
