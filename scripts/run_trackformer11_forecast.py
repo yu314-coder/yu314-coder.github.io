@@ -144,6 +144,65 @@ def key_to_dt(key):
     return dt.datetime(int(key[:4]), int(key[4:6]), int(key[6:8]), int(key[9:11]), tzinfo=dt.timezone.utc)
 
 
+# The same ten GRIB messages the NOMADS filter query above asks for. Kept as a
+# set so the archive path cannot drift from the live one: if the model's field
+# contract changes, both sides have to change together.
+ARCHIVE_MESSAGES = frozenset(
+    [("PRMSL", "mean sea level")] +
+    [(v, f"{lev} mb") for lev in (850, 500, 200) for v in ("HGT", "UGRD", "VGRD")]
+)
+GFS_ARCHIVE = ("https://noaa-gfs-bdp-pds.s3.amazonaws.com/"
+               "gfs.{date}/{hh}/atmos/gfs.t{hh}z.pgrb2.0p25.f000")
+
+
+def fetch_cycle_archive(key):
+    """The same analysis out of NOAA's open-data GFS archive on S3.
+
+    NOMADS keeps about ten days, which is why nothing before that could ever be
+    run. The archive keeps years, but publishes whole 0.25-degree files at ~500
+    MB. GRIB2 ships a .idx sidecar giving the byte offset of every message, so
+    the ten this model wants come down in one range request each -- 8.5 MB
+    rather than 507, which is what makes running a past date affordable at all.
+    """
+    date, hh = key[:8], key[9:11]
+    base = GFS_ARCHIVE.format(date=date, hh=hh)
+    try:
+        with urllib.request.urlopen(urllib.request.Request(base + ".idx", headers=UA),
+                                    timeout=120) as r:
+            lines = [l for l in r.read().decode("utf-8", "replace").splitlines() if l.strip()]
+    except Exception as e:
+        log(f"  cycle {key}: archive index unavailable ({type(e).__name__}: {e})")
+        return None
+    spans = []
+    for i, line in enumerate(lines):
+        parts = line.split(":")
+        if len(parts) < 5:
+            continue
+        if (parts[3], parts[4]) not in ARCHIVE_MESSAGES:
+            continue
+        start = int(parts[1])
+        nxt = lines[i + 1].split(":") if i + 1 < len(lines) else None
+        spans.append((start, (int(nxt[1]) - 1) if nxt and len(nxt) > 1 else None))
+    if len(spans) < len(ARCHIVE_MESSAGES):
+        log(f"  cycle {key}: archive index has {len(spans)} of "
+            f"{len(ARCHIVE_MESSAGES)} needed messages; skipping")
+        return None
+    blob = bytearray()
+    for start, end in sorted(spans):
+        rng = f"bytes={start}-" + ("" if end is None else str(end))
+        try:
+            with urllib.request.urlopen(
+                    urllib.request.Request(base, headers=dict(UA, Range=rng)), timeout=180) as r:
+                blob += r.read()
+        except Exception as e:
+            log(f"  cycle {key}: archive range fetch failed ({type(e).__name__}: {e})")
+            return None
+    if blob[:4] != b"GRIB":
+        log(f"  cycle {key}: archive bytes are not GRIB")
+        return None
+    return bytes(blob)
+
+
 def fetch_cycle(key):
     """Download one f000 analysis, cached on disk. Returns None if not posted."""
     GRIB_DIR.mkdir(parents=True, exist_ok=True)
@@ -151,18 +210,26 @@ def fetch_cycle(key):
     if path.exists() and path.stat().st_size > 100_000:
         return path
     url = gfs_url(key)
+    data = None
     try:
         req = urllib.request.Request(url, headers=UA)
         with urllib.request.urlopen(req, timeout=180) as r:
             data = r.read()
     except Exception as e:
-        log(f"  cycle {key}: fetch failed ({type(e).__name__}: {e})")
-        return None
-    if data[:1] == b"<" or len(data) < 100_000:
-        log(f"  cycle {key}: not posted yet ({len(data)} bytes)")
-        return None
+        log(f"  cycle {key}: NOMADS fetch failed ({type(e).__name__}: {e})")
+    if data is not None and (data[:1] == b"<" or len(data) < 100_000):
+        log(f"  cycle {key}: not on NOMADS ({len(data)} bytes)")
+        data = None
+    # NOMADS holds roughly ten days. Anything older is not missing, just not
+    # there any more, and the archive has it.
+    if data is None:
+        data = fetch_cycle_archive(key)
+        if data is None:
+            return None
+        log(f"  cycle {key}: {len(data)/1e6:.1f} MB from the GFS archive")
+    else:
+        log(f"  cycle {key}: {len(data)/1e6:.1f} MB")
     path.write_bytes(data)
-    log(f"  cycle {key}: {len(data)/1e6:.1f} MB")
     return path
 
 
