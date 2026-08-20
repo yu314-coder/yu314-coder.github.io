@@ -2135,21 +2135,21 @@
      Transformer MatMul layers are quantized. Radii/RMW: IBTrACS is nmile, our JSON km, so
      ÷1.852 in and ×1.852 out. */
   var TF_MODEL_URLS = [0, 1, 2, 3, 4].map(function (s) { return "model/trackformer10-seed" + s + ".int8.onnx"; });
-  var TF_META_URL = "model/trackformer10-meta.json?v=20260808tf11";
+  var TF_META_URL = "model/trackformer10-meta.json?v=20260820tf11m";
   // Probabilistic ensemble, computed from Trackformer1.0's OWN residuals (never reused from v10's):
   // a 40x40 Cholesky L of the model's own per-STEP forecast-error covariance (20 leads x 2
   // axes, <=2019 validation split) + a per-lead 90% cone radius. Sampling L·z gives
   // CROSS-LEAD-CORRELATED noise, so drawn routes are coherent (smooth) rather than jagged.
   // cover90 measured out-of-sample on the >=2020 test split: 0.865 (honestly reported, not
   // assumed 0.90 — v10's own cover90 was likewise an imperfect 0.777).
-  var TF_ENS_URL = "model/trackformer10-ensemble.json?v=20260808tf11";
+  var TF_ENS_URL = "model/trackformer10-ensemble.json?v=20260820tf11m";
   // Multi-initialisation CONSENSUS, also computed from Trackformer1.0's own <=2019-validation
   // residuals: at each valid time the members are forecasts from different init times, so
   // they carry different leads. Combine them min-variance, w = C^-1 1 / (1' C^-1 1) over
   // the lead x lead position-error covariance C, then run a constant-velocity Kalman + RTS
   // smoother so the track has physical momentum instead of jumping when the short-lead
   // membership rotates.
-  var TF_CONS_URL = "model/trackformer10-consensus.json?v=20260808tf11";
+  var TF_CONS_URL = "model/trackformer10-consensus.json?v=20260820tf11m";
   // Global coastline points (Natural Earth 110m, ~5,100 points, 64 KB) for a
   // REAL dist2land feature (column 52). Previously this always fed the training
   // mean as an "unavailable" placeholder -- fine for a storm near its climatological
@@ -2157,14 +2157,14 @@
   // a storm sitting in open ocean far from any coast (Typhoon Dolphin, 2026-07-30):
   // that alone was most of why the browser's forecast pointed in nearly the
   // opposite direction from the reference implementation's.
-  var TF_COASTLINE_URL = "model/coastline.json?v=20260808tf11";
+  var TF_COASTLINE_URL = "model/coastline.json?v=20260820tf11m";
   // Published Trackformer1.1 hindcasts, keyed by IBTrACS storm id (scripts/build_trackformer11_hindcasts.py).
   // History mode uses Trackformer1.1 for the track ONLY where a real published run matches the
   // storm and initialisation on screen. Trackformer1.1 integrates a route from actual analysis
   // fields, which do not exist for most past storms -- NOMADS keeps ~9 days of GFS --
   // so everywhere else this stays on Trackformer1.0, which is field-free by design.
-  var TF_TF11_HINDCAST_URL = "model/trackformer11-hindcasts.json?v=20260808tf11";
-  var TF_TF11_RUNS_BUST = "?v=20260808tf11";
+  var TF_TF11_HINDCAST_URL = "model/trackformer11-hindcasts.json?v=20260820tf11m";
+  var TF_TF11_RUNS_BUST = "?v=20260820tf11m";
   var TF_NM = 1.852;                                    // km per nautical mile
   var TF_ENS_N = 40;                                    // ensemble routes to draw
   var TF_NSEED = 5;                                     // seeds actually shipped (of the 10 published)
@@ -2600,6 +2600,41 @@
     var ms = Date.parse(t);
     return isFinite(ms) ? ms : null;
   }
+  // The scrub hour whose storm time is closest to a run's issue time -- the
+  // inverse of tfStormTimeAt, used to walk the scrubber onto a run.
+  function tfHourForRun(run) {
+    var pts = (currentStorm && currentStorm.pts) || [];
+    var want = Date.parse(run && run.issue_time_utc);
+    if (!isFinite(want) || !pts.length) return null;
+    var best = null, bd = Infinity;
+    for (var i = 0; i < pts.length; i++) {
+      var t = pts[i].t;
+      if (!t) continue;
+      if (!/[Zz]$|[+\-]\d\d:?\d\d$/.test(t)) t += "Z";
+      var d = Math.abs(Date.parse(t) - want);
+      if (d < bd) { bd = d; best = pts[i]; }
+    }
+    return best ? best.h : null;
+  }
+
+  // The run nearest a given scrub point, whether or not it covers it. A storm's
+  // runs can sit in a narrow window -- the recovered live-archive ones cover
+  // only the days the storm was actually being forecast -- so "press the button
+  // anywhere in the storm and get nothing" was the common case, not the rare one.
+  function tfTf11NearestList(initHour) {
+    var runs = currentSid && tfTf11Runs[currentSid];
+    if (!runs || !runs.length) return [];
+    var ms = tfStormTimeAt(initHour);
+    var out = runs.slice();
+    if (ms != null) {
+      out.sort(function (a, b) {
+        return Math.abs(Date.parse(a.issue_time_utc) - ms) -
+               Math.abs(Date.parse(b.issue_time_utc) - ms);
+      });
+    }
+    return out;
+  }
+
   // A published Trackformer1.1 run for THIS storm at THIS initialisation, or null.
   function tfTf11For(initHour) {
     if (!currentSid) return null;
@@ -3178,10 +3213,37 @@
       .then(function () {
         var run = tfTf11For(initHour);
         var quick = run ? tfTf11Forecast(run, initHour) : null;
+        if (quick) { aiLoading = false; aiDrawHindcast(quick, initHour); return null; }
+        // The button says the model can run on this storm, so it should run it.
+        // A storm's runs often sit in a narrow window -- the recovered
+        // live-archive ones only cover the days it was actually being forecast --
+        // and refusing because the scrubber happens to sit elsewhere read as a
+        // button that does nothing. Walk to the nearest initialisation and draw
+        // that instead, saying where it went.
+        // Walk outwards from the scrub point and take the first run that
+        // actually renders. Not every run does: one without an intensity head
+        // has nothing to hover, and Dolphin's earliest run is exactly that, so
+        // trying only the single closest one gave up on the first candidate.
+        var cands = tfTf11NearestList(initHour);
+        for (var ci = 0; ci < cands.length; ci++) {
+          var nearHour = tfHourForRun(cands[ci]);
+          if (nearHour == null) continue;
+          var moved = tfTf11Forecast(cands[ci], nearHour);
+          if (!moved) continue;
+          aiLoading = false;
+          if (els.slider) {
+            els.slider.value = String(nearHour);
+            els.slider.dispatchEvent(new Event("input", { bubbles: true }));
+          }
+          aiDrawHindcast(moved, nearHour);
+          aiSetHindcastStatus(
+            "Moved to the nearest Trackformer1.1 initialisation, "
+            + String(cands[ci].issue_time_utc).slice(0, 16).replace("T", " ") + "Z. "
+            + els.hindcastStatus.textContent, "");
+          return null;
+        }
+        // Genuinely nothing to draw: no run on this storm at all.
         aiLoading = false;
-        if (quick) { aiDrawHindcast(quick, initHour); return null; }
-        // Trackformer1.1 only. Where no run covers this initialisation the overlay says so
-        // rather than quietly drawing a different model's forecast in its place.
         aiClearHindcast();
         aiSetHindcastStatus(tfTf11Unavailable(), "err");
         return null;
