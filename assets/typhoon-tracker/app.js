@@ -2707,7 +2707,26 @@
         + "Z to " + String(have.last_issue_utc).slice(0, 16).replace("T", " ") + "Z."
         + " Scrub inside that window. Nothing else is drawn here — this overlay is Trackformer1.1 only.";
     }
-    var src = (yr && yr >= 2012) ? "CDAS/CFSv2 (2011-04-01 onward)" : "CFSR (1979-01-01 to 2011-03-31)";
+    // The builder records WHY it could not run a storm. Where it has, say that
+    // instead of guessing: "fewer than 13 synoptic fixes" is a permanent fact
+    // about the storm, and telling someone its analyses are merely pending
+    // sends them back to wait for something that will never arrive.
+    var ledger = tfRT.tf11 && tfRT.tf11.unavailable && currentSid
+      && tfRT.tf11.unavailable[currentSid];
+    var why = ledger && ledger.reason && String(ledger.reason);
+    if (why && why !== "None") {
+      return "🧪 " + name + " — MODEL: Trackformer1.1 has no hindcast for this storm, and will"
+        + " not get one: " + why + ". Nothing is drawn rather than substituting a different model.";
+    }
+    // The archive changes product on 2011-04-01, mid-season. Deciding by year
+    // put every 2011 storm on the CFSR side, including the ones after the
+    // switch -- Tokage is 13 July 2011, which is CDAS.
+    var startMs = currentStorm && currentStorm.pts && currentStorm.pts.length
+      && Date.parse(String(currentStorm.pts[0].t).replace(/([^Z])$/, "$1Z"));
+    var cdas = isFinite(startMs)
+      ? startMs >= Date.UTC(2011, 3, 1)
+      : (yr && yr >= 2012);
+    var src = cdas ? "CDAS/CFSv2 (2011-04-01 onward)" : "CFSR (1979-01-01 to 2011-03-31)";
     return "🧪 " + name + " — MODEL: Trackformer1.1, and it has no hindcast for this storm yet."
       + " Trackformer1.1 integrates a route from real analysis fields, so a past storm needs its " + src
       + " analyses fetched and run first. Nothing is drawn rather than substituting a different model.";
