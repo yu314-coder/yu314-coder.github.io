@@ -130,12 +130,22 @@ jobs:
             fi
           done
 
-      # The source modules are small and always taken fresh, so a change upstream
-      # is picked up without a cache bump.
+      # The source modules are small, so they are checked out per run rather
+      # than cached -- but at a pinned commit, not the tip. See below.
       - name: Checkout Trackformer1.1 source modules
         uses: actions/checkout@v4
         with:
           repository: yu314-coder/typhoon-predict
+          # PINNED. The default branch dropped scripts/predict_ibtracs_jma_only.py
+          # in 4ddaca1c "Remove legacy scripts and track build artifacts" on
+          # 2026-08-20, and tf11_intensity imports build_track_window from it. An
+          # unpinned checkout silently loses the intensity head: the forecast
+          # still publishes, with intensity_source null and no wind or pressure,
+          # because that failure is caught and logged rather than raised. Losing
+          # v61_big_system_route broke this job the same way once already.
+          # 24369ea is the commit before the removal, and is what these runs were
+          # validated against. Unpin when the import has a home again.
+          ref: 24369eadefee1b7b28d50b700a0b834ff1c452f6
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             trackformer_1_1_route.py
