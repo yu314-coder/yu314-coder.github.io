@@ -365,7 +365,19 @@ jobs:
             # main and leaves our files in the working tree, so the next add
             # stages only ours.
             git reset --mixed origin/main
-            # Re-merge: the fragments still describe storms main may not have.
+            # Sync the WORKING TREE to main too, not just the index. --mixed
+            # leaves the tree as this runner checked it out, and `git add` on a
+            # DIRECTORY stages a deletion for every file main has that the tree
+            # does not -- so a storm another job committed while we were
+            # building gets silently removed by a job that never touched it.
+            # That is not hypothetical: ff083e9 and 99628bc each deleted
+            # Saudel (2026231N08155) exactly this way, in commits whose diffs
+            # otherwise only added storms. Take main's version of both paths
+            # first, then replay our fragments on top, so the commit contains
+            # only what we actually built.
+            git checkout origin/main -- \
+              assets/typhoon-tracker/model/trackformer11 \
+              assets/typhoon-tracker/model/trackformer11-hindcasts.json
             python3 scripts/merge_hindcast_fragments.py /tmp/fragments >/dev/null
             git add assets/typhoon-tracker/model/trackformer11 assets/typhoon-tracker/model/trackformer11-hindcasts.json
             if git diff --staged --quiet; then
