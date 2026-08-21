@@ -1394,7 +1394,7 @@
     <!-- Tab: Typhoon AI -->
     <div class="tab-pane fade" id="tab-typhoon" role="tabpanel" aria-labelledby="tab-typhoon-btn">
 
-    <!-- Featured Project: Typhoon Forecasting AI (Trackformer1.1) -->
+    <!-- Featured Project: Typhoon Forecasting AI (Trackformer 1.2 released; 1.1 deployed) -->
     <div class="card card--hue hue-typhoon reveal">
       <div class="card-body p-4 p-md-5">
         <div class="row g-0 align-items-center justify-content-center">
@@ -1402,11 +1402,12 @@
             <header class="mb-4">
               <h3 class="h2 mb-2 fw-bold">Typhoon Forecasting AI</h3>
               <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
-                <span class="badge-neutral mono">Trackformer1.1</span>
-                <span class="badge-accent mono">causal: analysis-only inputs</span>
+                <span class="badge-accent mono">Trackformer 1.2 &mdash; current release</span>
+                <span class="badge-neutral mono ms-1">1.1 deployed here</span>
+                <span class="badge-neutral mono">causal: analysis-only inputs</span>
                 <span class="badge-neutral mono">20 leads to +120 h</span>
               </div>
-              <p class="lead mb-0">My own tropical-cyclone model that forecasts a storm's next five days over the western Pacific &mdash; track, central pressure, intensity and the wind-field radii. The current release, <strong>Trackformer1.1</strong>, integrates its route from real NOAA analysis fields, so it runs server-side in GitHub Actions and the site serves the result; the historical <strong>Trackformer1.0</strong> ensemble still runs in your browser wherever no 1.1 run covers the initialisation. Live on the <a href="typhoon-tracks.html">Typhoon Tracks</a> explorer, over real JMA forecasts and past storms.</p>
+              <p class="lead mb-0">My own tropical-cyclone model that forecasts a storm's next five days over the western Pacific &mdash; track, central pressure, intensity and the wind-field radii. The current release is <strong>Trackformer&nbsp;1.2</strong>, which roughly halves track error against 1.1 on a matched benchmark. <strong>What this site serves is still Trackformer&nbsp;1.1</strong>: 1.2 takes sea-surface temperature, nearby-storm context and static geography that the live pipeline does not fetch yet, so every forecast and hindcast you see here is a 1.1 run and is labelled as one. The historical <strong>Trackformer1.0</strong> ensemble still runs in your browser wherever no 1.1 run covers the initialisation. Live on the <a href="typhoon-tracks.html">Typhoon Tracks</a> explorer, over real JMA forecasts and past storms.</p>
             </header>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
@@ -1436,10 +1437,11 @@
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">The models</h5>
                   <ul class="small mb-0 text-start">
-                    <li><strong>Trackformer1.1</strong> &mdash; the current release: causal western-Pacific route integrated from real NOAA analysis fields, plus the intensity and structure heads. Drives the live overlay and the past-storm hindcasts</li>
+                    <li><strong>Trackformer&nbsp;1.2</strong> &mdash; the current release. Adds a land/ocean-context intensity candidate and pooled log-radius structure groups, and widens the route state with coastline, terrain and ocean features. Not deployed here yet: it needs SST, nearby-storm context and static geography the live pipeline does not fetch</li>
+                    <li><strong>Trackformer1.1</strong> &mdash; what actually runs on this site: causal western-Pacific route integrated from real NOAA analysis fields, plus the intensity and structure heads. Drives the live overlay and the past-storm hindcasts</li>
                     <li><strong>Trackformer1.0</strong> &mdash; the historical family. The deployed member is a five-seed int8 ensemble running in your browser via onnxruntime-web, field-free by design, so it can run anywhere in a storm's life</li>
                     <li>9 frozen checkpoints: 3 primary intensity, 3 structure, 3 temporal experts</li>
-                    <li>Track history from IBTrACS v04r01; analysis from NOAA CFSR (1979&ndash;2011-03) and CFSv2/CDAS (2011-04&ndash;)</li>
+                    <li>Track history from IBTrACS v04r01; analysis from NOAA CFSR (1979&ndash;2011-03), CFSv2/CDAS (2011-04&ndash;) and, where the reanalysis is not published yet, NOAA's GFS f000 archive</li>
                     <li>Storm-held-out chronological train/validation/test split</li>
                     <li>MIT licensed; research output, not an operational forecast</li>
                   </ul>
@@ -1459,13 +1461,38 @@
             </div>
 
             <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">1.2 against 1.1</h4>
+              <p class="small mb-3">The canonical comparison from the model card: the same 100 storms, the
+                same earliest test initialisation for each, the same +6&nbsp;h to +120&nbsp;h leads and the
+                same issue-time boundary. Track error roughly halves. It is not a clean sweep &mdash; the
+                radius outputs come out slightly worse &mdash; and it is reported that way rather than by
+                picking the flattering rows.</p>
+              <div class="table-responsive d-inline-block text-start">
+                <table class="table table-sm small mb-0">
+                  <thead>
+                    <tr><th>Matched 100 storms</th><th class="text-end">1.1</th><th class="text-end">1.2</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Track error, all leads</td><td class="text-end">802.4 km</td><td class="text-end"><strong>398.4 km</strong></td></tr>
+                    <tr><td>Track error, +120&nbsp;h</td><td class="text-end">1604.3 km</td><td class="text-end"><strong>808.6 km</strong></td></tr>
+                    <tr><td>Wind MAE, all leads</td><td class="text-end">18.1 kt</td><td class="text-end"><strong>17.6 kt</strong></td></tr>
+                    <tr><td>Pressure MAE, all leads</td><td class="text-end">13.0 hPa</td><td class="text-end"><strong>12.8 hPa</strong></td></tr>
+                    <tr><td>RMW MAE, all leads</td><td class="text-end"><strong>26.4 km</strong></td><td class="text-end">27.0 km</td></tr>
+                    <tr><td>R34 MAE, +120&nbsp;h</td><td class="text-end"><strong>69.4 km</strong></td><td class="text-end">76.1 km</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="mb-4">
               <h4 class="h5 fw-bold mb-3">Technical Specifications</h4>
               <div class="d-inline-block text-start">
                 <p class="small mb-1"><strong>Created by:</strong> Yu Yao-Hsing</p>
                 <p class="small mb-1"><strong>Category:</strong> Research &amp; Education &mdash; ML / weather</p>
                 <p class="small mb-1"><strong>Frameworks:</strong> PyTorch &middot; onnxruntime-web &middot; Plotly</p>
                 <p class="small mb-1"><strong>Data:</strong> NOAA NCEI IBTrACS &middot; NOAA CFSR / CFSv2 analysis &middot; NOMADS f000 &middot; JMA (verification and display only)</p>
-                <p class="small mb-0"><strong>Status:</strong> Trackformer1.1 live on the Typhoon Tracks explorer</p>
+                <p class="small mb-1"><strong>Current release:</strong> Trackformer&nbsp;1.2 &mdash; weights on <a href="https://huggingface.co/euler314/typhoon-predict" target="_blank" rel="noopener noreferrer" class="lib-link">Hugging Face</a> and in the <a href="https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.2" target="_blank" rel="noopener noreferrer" class="lib-link">1.2 release</a></p>
+                <p class="small mb-0"><strong>Status:</strong> Trackformer1.1 is what runs the Typhoon Tracks explorer; 1.2 is released but not wired into the live pipeline</p>
               </div>
             </div>
 
