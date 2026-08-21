@@ -35,6 +35,11 @@ on:
         description: "Key from .github/trackformer-models.json"
         required: false
         default: "trackformer_1_1"
+      redo:
+        description: "Rebuild storms that already have a hindcast (default: skip them)"
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: write
@@ -80,14 +85,24 @@ jobs:
         id: pick
         run: |
           set -euo pipefail
+          # --season on its own selects every storm in the season, including
+          # the ones already built: dispatching season=2025 would have queued
+          # 28 storms to redo 11 of them, about thirty wasted runner-hours now
+          # that they run in parallel. Gap-filling is what this job is for, so
+          # --missing rides along unless `redo` is set. An explicit --sid is
+          # always taken at face value: naming one storm means you want it.
           ARGS=""
           if [ -n "${{ inputs.sid }}" ]; then
             ARGS="--sid ${{ inputs.sid }}"
-          elif [ -n "${{ inputs.season }}" ]; then
-            ARGS="--season ${{ inputs.season }}"
           else
-            ARGS="--missing"
+            if [ -n "${{ inputs.season }}" ]; then
+              ARGS="--season ${{ inputs.season }}"
+            fi
+            if [ "${{ inputs.redo }}" != "true" ]; then
+              ARGS="$ARGS --missing"
+            fi
           fi
+          echo "selection: $ARGS"
           STORMS=$(python3 scripts/hindcast_from_gfs_archive.py $ARGS \
                      --limit "${{ inputs.limit || 6 }}" --list)
           COUNT=$(printf '%s' "$STORMS" | python3 -c "import json,sys;print(len(json.load(sys.stdin)))")
