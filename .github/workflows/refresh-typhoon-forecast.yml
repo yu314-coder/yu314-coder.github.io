@@ -104,30 +104,52 @@ jobs:
 
       # Trackformer1.1's checkpoint bundle, cached separately so it can be
       # re-fetched without touching the Trackformer1.0 cache above.
+      #
+      # This key IS safe to bump, and that is the difference between it and the
+      # v62 one. These weights are published in the trackformer-1.1 release and
+      # on Hugging Face, so an eviction costs a 75 MB download and nothing else.
+      # Bumped to v2 to force the fetch below to run at least once, since a
+      # warm cache would otherwise hide whether it works.
       - name: Cache Trackformer1.1 weights
         id: cache-tf11
         uses: actions/cache@v4
         with:
           path: typhoon-predict-tf11
-          key: trackformer11-weights-v1
+          key: trackformer11-weights-v2
 
-      - name: Checkout Trackformer1.1 weights
-        if: steps.cache-tf11.outputs.cache-hit != 'true'
-        uses: actions/checkout@v4
-        with:
-          repository: yu314-coder/typhoon-predict
-          lfs: true
-          sparse-checkout-cone-mode: false
-          sparse-checkout: |
-            models/trackformer_1_1
-          path: typhoon-predict-tf11-src
-
-      - name: Move Trackformer1.1 weights into cache path
+      # models/ no longer exists on the default branch: typhoon-predict moved its
+      # weights out of git and into release archives when it published 1.2. A
+      # sparse checkout of models/trackformer_1_1 therefore silently produced an
+      # empty directory, and the only reason this job kept working was the cache
+      # above -- one eviction from a dead job, which is exactly how models/v23
+      # was lost. Unlike v23 these weights are still published, so fetch them
+      # from a real source instead of depending on a cache that cannot be
+      # rebuilt: the 1.1 release asset first, Hugging Face if that is down.
+      - name: Fetch Trackformer1.1 weights
         if: steps.cache-tf11.outputs.cache-hit != 'true'
         run: |
+          set -euo pipefail
           mkdir -p typhoon-predict-tf11
-          mv typhoon-predict-tf11-src/models/trackformer_1_1 typhoon-predict-tf11/
-          rm -rf typhoon-predict-tf11-src
+          ASSET="https://github.com/yu314-coder/typhoon-predict/releases/download/trackformer-1.1/trackformer_1_1.tar.gz"
+          if curl -fsSL --retry 3 --retry-delay 5 "$ASSET" -o /tmp/tf11.tar.gz; then
+            tar xzf /tmp/tf11.tar.gz -C /tmp
+            mv /tmp/models/trackformer_1_1 typhoon-predict-tf11/
+            rm -rf /tmp/tf11.tar.gz /tmp/models
+            echo "weights from the trackformer-1.1 release asset"
+          else
+            echo "::warning::release asset unavailable; falling back to Hugging Face"
+            mkdir -p typhoon-predict-tf11/trackformer_1_1
+            BASE="https://huggingface.co/euler314/typhoon-predict/resolve/main/models/trackformer_1_1"
+            for f in trackformer_1_1_calibration.json trackformer_1_1_norm_stats.npz manifest.json \
+                     trackformer_1_1_intensity_seed0.pt trackformer_1_1_intensity_seed1.pt \
+                     trackformer_1_1_intensity_seed2.pt trackformer_1_1_structure_seed0.pt \
+                     trackformer_1_1_structure_seed1.pt trackformer_1_1_structure_seed2.pt \
+                     trackformer_1_1_temporal_seed0.pt trackformer_1_1_temporal_seed1.pt \
+                     trackformer_1_1_temporal_seed2.pt; do
+              curl -fsSL --retry 3 --retry-delay 5 "$BASE/$f" -o "typhoon-predict-tf11/trackformer_1_1/$f"
+            done
+            echo "weights from Hugging Face"
+          fi
           # A pointer is ~130 bytes, a checkpoint ~8.5 MB. Fail here with a clear
           # reason rather than inside torch.load.
           for f in typhoon-predict-tf11/trackformer_1_1/*.pt; do
