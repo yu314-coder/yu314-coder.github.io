@@ -248,11 +248,69 @@ jobs:
           MPLBACKEND: Agg
         run: python scripts/run_trackformer11_forecast.py
 
+      # ---- Trackformer 1.2.28 route overlay -------------------------------
+      #
+      # Every step here is continue-on-error. This overlay is ADDITIONAL: the
+      # site reads the 1.1 forecast, and an optional extra must never be able
+      # to cost it. Marking only the run step non-fatal was not enough once --
+      # a failing fetch took the whole 1.1 job down with it.
+      #
+      # Module and weights both come from the release archive, deliberately.
+      # They used to be assembled from two places (module from the branch tip,
+      # weights from a release), which is exactly how code and checkpoints
+      # drift apart; run_trackformer12_live.py now refuses to publish if the
+      # module's MODEL_VERSION is not what it labels its output.
+      - name: Fetch Trackformer1.2.28
+        id: tf12
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          TAG=trackformer-1.2.28
+          BASE="https://github.com/yu314-coder/typhoon-predict/releases/download/$TAG"
+          curl -fsSL --retry 3 --retry-delay 5 "$BASE/trackformer_1_2_28.tar.gz" -o /tmp/tf12.tar.gz
+          curl -fsSL --retry 3 --retry-delay 5 "$BASE/trackformer_1_2_28.tar.gz.sha256" -o /tmp/tf12.sha256
+          # The release publishes a checksum, so check it rather than trusting
+          # a 14 MB download that feeds a model whose output we publish.
+          EXPECT=$(awk '{print $1}' /tmp/tf12.sha256)
+          GOT=$(sha256sum /tmp/tf12.tar.gz | awk '{print $1}')
+          if [ "$EXPECT" != "$GOT" ]; then
+            echo "::error::checksum mismatch for $TAG (expected $EXPECT, got $GOT)"
+            exit 1
+          fi
+          rm -rf /tmp/tf12x typhoon-predict-tf12 typhoon-predict-tf12-src
+          mkdir -p /tmp/tf12x typhoon-predict-tf12 typhoon-predict-tf12-src
+          tar xzf /tmp/tf12.tar.gz -C /tmp/tf12x
+          # Do not hardcode a path inside the archive. It was repackaged from
+          # ./models/trackformer_1_2/ to trackformer_1_2/models/trackformer_1_2/
+          # between two runs once, and a hardcoded mv took the job down with it.
+          MAN=$(find /tmp/tf12x -name manifest.json -path '*trackformer_1_2*' | head -1)
+          SRC=$(find /tmp/tf12x -name trackformer_1_2.py | head -1)
+          if [ -z "$MAN" ] || [ -z "$SRC" ]; then
+            echo "::warning::archive is missing the manifest or the module"
+            find /tmp/tf12x -maxdepth 3 | head -20
+            exit 1
+          fi
+          mv "$(dirname "$MAN")" typhoon-predict-tf12/trackformer_1_2
+          cp "$SRC" typhoon-predict-tf12-src/trackformer_1_2.py
+          python3 -c "import json;m=json.load(open('typhoon-predict-tf12/trackformer_1_2/manifest.json'));print('  manifest:',m['model_name'],m['release_tag'])"
+
+      - name: Run the Trackformer1.2.28 route overlay
+        continue-on-error: true
+        if: steps.tf12.outcome == 'success'
+        env:
+          TF12_SRC_DIR: ${{ github.workspace }}/typhoon-predict-tf12-src
+          TF12_MODELS_DIR: ${{ github.workspace }}/typhoon-predict-tf12/trackformer_1_2
+          TF12_EXPECT_VERSION: "1.2.28"
+          TF11_GRIB_DIR: /tmp/trackformer11-grib
+          MPLBACKEND: Agg
+        run: python scripts/run_trackformer12_live.py
+
       - name: Commit if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/typhoon-tracker/model/trackformer-live-forecast.json
+          git add assets/typhoon-tracker/model/trackformer-live-forecast.json \
+            assets/typhoon-tracker/model/trackformer12-live-forecast.json
           if git diff --staged --quiet; then
             echo "no change — nothing to commit"
             exit 0
@@ -283,7 +341,8 @@ jobs:
             # history hindcasts". --mixed resets the index to main and leaves
             # our files in the working tree, so the next add stages only ours.
             git reset --mixed origin/main
-            git add assets/typhoon-tracker/model/trackformer-live-forecast.json
+            git add assets/typhoon-tracker/model/trackformer-live-forecast.json \
+            assets/typhoon-tracker/model/trackformer12-live-forecast.json
             if git diff --staged --quiet; then
               echo "main already has an equivalent forecast"
               exit 0

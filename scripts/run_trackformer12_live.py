@@ -39,6 +39,13 @@ GEO_PATH = REPO / "assets/typhoon-tracker/model/static/tf12_route_geography.npz"
 OUT_PATH = REPO / "assets/typhoon-tracker/model/trackformer12-live-forecast.json"
 MODEL_ROOT = os.environ.get("TF12_MODELS_DIR", "")
 
+# What this script claims in every payload it writes. The module and the
+# checkpoints ship in the same release archive, so a mismatch means the job
+# assembled them from two different places -- which has happened: the workflow
+# used to take the module from the branch tip and the weights from a release.
+# The payload is published as provenance, so refuse rather than mislabel.
+EXPECT_VERSION = os.environ.get("TF12_EXPECT_VERSION", "1.2.28")
+
 
 def log(m):
     print(m, flush=True)
@@ -47,6 +54,14 @@ def log(m):
 def load_tf12():
     sys.path.insert(0, TF12_SRC)
     import trackformer_1_2 as tf12
+    got = getattr(tf12, "MODEL_VERSION", None)
+    if EXPECT_VERSION and got != EXPECT_VERSION:
+        raise SystemExit(
+            "refusing to publish: loaded trackformer_1_2 reports MODEL_VERSION "
+            "%r but this job labels its output %r. Point TF12_SRC_DIR at the "
+            "matching release, or set TF12_EXPECT_VERSION deliberately."
+            % (got, EXPECT_VERSION))
+    log(f"  trackformer_1_2 module version {got}")
     return tf12
 
 
@@ -207,7 +222,7 @@ def main():
                 "lats": [round(float(x), 3) for x in lats[0]],
                 "lons": [round(float(x), 3) for x in lons[0]],
                 "land_probability": [round(float(x), 3) for x in route["land_probability"][0]],
-                "model": "Trackformer 1.2 route head",
+                "model": "Trackformer 1.2.28 route head",
                 "base_route": "kinematic persistence fallback",
                 "base_route_note": ("The incumbent base route this checkpoint was trained "
                                     "around is not published. This uses the release's "
@@ -232,7 +247,7 @@ def main():
         return 1
     OUT_PATH.write_text(json.dumps({
         "generated_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "model": "Trackformer 1.2",
+        "model": "Trackformer 1.2.28",
         "note": ("Route head only. The base route is the release's documented kinematic "
                  "persistence fallback, not the private incumbent route, so this is not the "
                  "configuration behind the published matched-storm benchmark."),
