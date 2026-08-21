@@ -17,4 +17,10 @@ matplotlib
 # Trackformer 1.2's constructor loads its ocean-structure calibration through
 # joblib and raises ImportError without it -- even though this job never calls
 # predict_ocean_structure, the model cannot be constructed at all.
+#
+# scikit-learn comes with it: the joblib artifact is a pickled sklearn estimator,
+# so unpickling imports sklearn. The module catches ImportError broadly and
+# reports "joblib is required", which sent me after the wrong package once --
+# the real error underneath was ModuleNotFoundError: No module named 'sklearn'.
 joblib
+scikit-learn
