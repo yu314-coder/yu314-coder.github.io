@@ -39,12 +39,18 @@ GEO_PATH = REPO / "assets/typhoon-tracker/model/static/tf12_route_geography.npz"
 OUT_PATH = REPO / "assets/typhoon-tracker/model/trackformer12-live-forecast.json"
 MODEL_ROOT = os.environ.get("TF12_MODELS_DIR", "")
 
-# What this script claims in every payload it writes. The module and the
-# checkpoints ship in the same release archive, so a mismatch means the job
-# assembled them from two different places -- which has happened: the workflow
-# used to take the module from the branch tip and the weights from a release.
-# The payload is published as provenance, so refuse rather than mislabel.
-EXPECT_VERSION = os.environ.get("TF12_EXPECT_VERSION", "1.2.28")
+# The model is called Trackformer 1.2. "1.2.28" is the build identifier the
+# release carries internally -- a dev-side number, not the public name -- and
+# it is what the module's MODEL_VERSION reports, so it is what gets pinned.
+#
+# The module and the checkpoints ship in one release archive, so a mismatch
+# means the job assembled them from two different places. That has happened:
+# the workflow used to take the module from the branch tip and the weights
+# from a release. The payload is served as provenance, so refuse rather than
+# publish a route built from a pairing nobody checked.
+MODEL_NAME = "Trackformer 1.2"
+RELEASE_TAG = os.environ.get("TF12_RELEASE_TAG", "trackformer-1.2.28")
+EXPECT_BUILD = os.environ.get("TF12_EXPECT_VERSION", "1.2.28")
 
 
 def log(m):
@@ -55,13 +61,13 @@ def load_tf12():
     sys.path.insert(0, TF12_SRC)
     import trackformer_1_2 as tf12
     got = getattr(tf12, "MODEL_VERSION", None)
-    if EXPECT_VERSION and got != EXPECT_VERSION:
+    if EXPECT_BUILD and got != EXPECT_BUILD:
         raise SystemExit(
             "refusing to publish: loaded trackformer_1_2 reports MODEL_VERSION "
-            "%r but this job labels its output %r. Point TF12_SRC_DIR at the "
-            "matching release, or set TF12_EXPECT_VERSION deliberately."
-            % (got, EXPECT_VERSION))
-    log(f"  trackformer_1_2 module version {got}")
+            "%r, but this job is pinned to build %r from %s. Point TF12_SRC_DIR "
+            "at the matching release, or set TF12_EXPECT_VERSION deliberately."
+            % (got, EXPECT_BUILD, RELEASE_TAG))
+    log(f"  {MODEL_NAME} (build {got}) from {RELEASE_TAG}")
     return tf12
 
 
@@ -222,7 +228,7 @@ def main():
                 "lats": [round(float(x), 3) for x in lats[0]],
                 "lons": [round(float(x), 3) for x in lons[0]],
                 "land_probability": [round(float(x), 3) for x in route["land_probability"][0]],
-                "model": "Trackformer 1.2.28 route head",
+                "model": MODEL_NAME + " route head",
                 "base_route": "kinematic persistence fallback",
                 "base_route_note": ("The incumbent base route this checkpoint was trained "
                                     "around is not published. This uses the release's "
@@ -247,7 +253,11 @@ def main():
         return 1
     OUT_PATH.write_text(json.dumps({
         "generated_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "model": "Trackformer 1.2.28",
+        "model": MODEL_NAME,
+        # The public name does not identify a build. Record the one this route
+        # actually came from, so a published forecast can be reproduced.
+        "model_build": EXPECT_BUILD,
+        "release_tag": RELEASE_TAG,
         "note": ("Route head only. The base route is the release's documented kinematic "
                  "persistence fallback, not the private incumbent route, so this is not the "
                  "configuration behind the published matched-storm benchmark."),

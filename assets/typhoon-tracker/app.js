@@ -2178,10 +2178,10 @@
   // hindcast animates), so traces are located by tag, never by position in els.map.data.
   var TF_HIND = "tf-hind", TF_CONS = "tf-cons", TF_CONS_ACT = "tf-cons-act";
   var TF_TF12 = "tf-tf12";
-  var TF_TF12_URL = "model/trackformer12-live-forecast.json?v=20260822-tf1228";
+  var TF_TF12_URL = "model/trackformer12-live-forecast.json?v=20260822-tf12b";
   var tf12Live = null, tf12On = false;
 
-  // Trackformer 1.2.28's route head corrects a base route, and the one it was
+  // Trackformer 1.2's route head corrects a base route, and the one it was
   // trained against is a private upstream member. This runs on the release's
   // documented persistence fallback instead, which at long leads carries most
   // of the displacement -- so the overlay states the share rather than letting
@@ -2193,15 +2193,15 @@
       lat: lat, lon: lon,
       line: { color: "#a78bfa", width: 3, dash: "dot" },
       marker: { size: 5, color: "#c4b5fd" },
-      name: "Trackformer 1.2.28",
-      hovertemplate: "Trackformer 1.2.28<br>+%{customdata}h<br>%{lat:.1f}N %{lon:.1f}E<extra></extra>",
+      name: "Trackformer 1.2",
+      hovertemplate: "Trackformer 1.2<br>+%{customdata}h<br>%{lat:.1f}N %{lon:.1f}E<extra></extra>",
       customdata: entry.lead_hours
     }]);
     var share = entry.model_share_max != null
       ? Math.round(entry.model_share_max * 100) : null;
     els.tf12Btn.setAttribute("aria-pressed", "true");
     els.tf12Btn.classList.add("is-on");
-    tf12SetStatus("🧪 " + (entry.name || entry.tcId) + " — Trackformer 1.2.28, route only."
+    tf12SetStatus("🧪 " + (entry.name || entry.tcId) + " — Trackformer 1.2, route only."
       + " The base route it was trained around is not published, so this uses the release's"
       + " documented persistence fallback."
       + (share != null
@@ -2237,13 +2237,13 @@
         // route". Both used to say the latter, which blamed the storm for a
         // missing file and sent me looking in the wrong place once.
         if (!doc) {
-          tf12SetStatus("🧪 No Trackformer 1.2.28 forecast has been published yet."
+          tf12SetStatus("🧪 No Trackformer 1.2 forecast has been published yet."
             + " The overlay appears once the scheduled run writes one.", "err");
           return;
         }
         var entry = doc.storms && tc && doc.storms[tc];
         if (!entry) {
-          tf12SetStatus("🧪 No Trackformer 1.2.28 route for this storm. It needs three distinct"
+          tf12SetStatus("🧪 No Trackformer 1.2 route for this storm. It needs three distinct"
             + " observed fixes for a causal motion estimate, so a storm JMA has only just named"
             + " has none yet.", "err");
           return;

@@ -248,7 +248,7 @@ jobs:
           MPLBACKEND: Agg
         run: python scripts/run_trackformer11_forecast.py
 
-      # ---- Trackformer 1.2.28 route overlay -------------------------------
+      # ---- Trackformer 1.2 route overlay ----------------------------------
       #
       # Every step here is continue-on-error. This overlay is ADDITIONAL: the
       # site reads the 1.1 forecast, and an optional extra must never be able
@@ -260,7 +260,7 @@ jobs:
       # weights from a release), which is exactly how code and checkpoints
       # drift apart; run_trackformer12_live.py now refuses to publish if the
       # module's MODEL_VERSION is not what it labels its output.
-      - name: Fetch Trackformer1.2.28
+      - name: Fetch Trackformer1.2
         id: tf12
         continue-on-error: true
         run: |
@@ -294,12 +294,15 @@ jobs:
           cp "$SRC" typhoon-predict-tf12-src/trackformer_1_2.py
           python3 -c "import json;m=json.load(open('typhoon-predict-tf12/trackformer_1_2/manifest.json'));print('  manifest:',m['model_name'],m['release_tag'])"
 
-      - name: Run the Trackformer1.2.28 route overlay
+      - name: Run the Trackformer1.2 route overlay
         continue-on-error: true
         if: steps.tf12.outcome == 'success'
         env:
           TF12_SRC_DIR: ${{ github.workspace }}/typhoon-predict-tf12-src
           TF12_MODELS_DIR: ${{ github.workspace }}/typhoon-predict-tf12/trackformer_1_2
+          # The model is Trackformer 1.2; 1.2.28 is the build the release
+          # carries and what the module reports, so that is what gets pinned.
+          TF12_RELEASE_TAG: trackformer-1.2.28
           TF12_EXPECT_VERSION: "1.2.28"
           TF11_GRIB_DIR: /tmp/trackformer11-grib
           MPLBACKEND: Agg
