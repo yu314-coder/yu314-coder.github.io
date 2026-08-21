@@ -32,6 +32,8 @@ on:
 
 permissions:
   contents: write
+  # For the cache sweep at the end of the job.
+  actions: write
 
 concurrency:
   group: refresh-typhoon-forecast
@@ -196,11 +198,24 @@ jobs:
       # GFS analysis GRIBs, reused across runs so a free public service isn't
       # asked for the same cycle every hour. restore-keys picks up the newest
       # previous cache; old cycles are pruned below.
+      # Keyed by DAY, not by run id. A run-id key writes a brand new ~2.4 GB
+      # entry every single run and never replaces one: this job runs every few
+      # hours, so four near-identical copies were resident at once and the repo
+      # sat 1.2 GB over its 10 GB cache budget. Eviction is least-recently-used
+      # across the whole repo, which puts v62-weights-v3 -- the only surviving
+      # copy of the Trackformer1.0 seeds anywhere -- in the blast radius of a
+      # cache this job rebuilds from NOAA for free. A daily key caps it at one
+      # new entry per day, restore-keys carries yesterday's cycles forward, and
+      # the sweep below keeps the tail from accumulating.
+      - name: Pick the GFS cache key
+        id: gribkey
+        run: echo "key=trackformer11-grib-$(date -u +%Y%m%d)" >> "$GITHUB_OUTPUT"
+
       - name: Cache GFS analysis files
         uses: actions/cache@v4
         with:
           path: /tmp/trackformer11-grib
-          key: trackformer11-grib-${{ github.run_id }}
+          key: ${{ steps.gribkey.outputs.key }}
           restore-keys: trackformer11-grib-
 
       - name: Prune GFS cache older than 3 days
@@ -276,3 +291,36 @@ jobs:
             git commit -m "Refresh live typhoon AI forecast"
           done
           echo "::warning title=Could not push::main kept moving; the next run refreshes it anyway"
+
+      # The repo's Actions cache budget is 10 GB and eviction is least-recently
+      # -used across every key in it. The GRIB caches are the only large,
+      # frequently rewritten entries here, so left alone they are what pushes
+      # the repo over and starts evicting -- and v62-weights-v3 cannot be
+      # rebuilt if it goes, because upstream deleted models/v23. Keep the two
+      # newest GRIB caches, drop the rest. They re-fetch from NOAA for free.
+      #
+      # Never deletes anything that is not a trackformer11-grib- key.
+      - name: Sweep stale GFS caches
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "repos/${{ github.repository }}/actions/caches?per_page=100" \
+            --jq '.actions_caches[] | select(.key | startswith("trackformer11-grib-")) | "\(.last_accessed_at)\t\(.id)\t\(.key)"' \
+            | sort -r | tail -n +3 > /tmp/stale-caches || true
+          if [ ! -s /tmp/stale-caches ]; then
+            echo "nothing to sweep"
+            exit 0
+          fi
+          while IFS=$'\t' read -r ts id key; do
+            case "$key" in
+              trackformer11-grib-*)
+                echo "deleting $key ($ts)"
+                gh api -X DELETE "repos/${{ github.repository }}/actions/caches/$id" || true
+                ;;
+              *) echo "refusing to delete $key" ;;
+            esac
+          done < /tmp/stale-caches
+          gh api "repos/${{ github.repository }}/actions/cache/usage" \
+            --jq '"cache now: \(.active_caches_size_in_bytes/1073741824|.*100|round/100) GB in \(.active_caches_count) entries"'

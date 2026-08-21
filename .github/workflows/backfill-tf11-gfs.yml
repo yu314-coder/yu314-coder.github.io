@@ -1,13 +1,19 @@
-name: Backfill Trackformer1.1 from the GFS archive
+name: Backfill Trackformer from the GFS archive
 
 # The reanalysis this project normally hindcasts from is not published for 2025
 # or 2026, so those storms had nothing. The model does not need reanalysis --
 # the live job runs it on GFS f000 analysis, and NOAA keeps a GFS archive going
 # back years. This replays the live path over past initialisations.
 #
-# Manual only. It downloads an analysis per initialisation and runs the model,
-# so it is deliberately not on a schedule: pick a storm, or a small batch, and
-# watch it.
+# It used to build ONE storm per dispatch on ONE runner, and every dispatch
+# queued behind the last because the whole workflow shared a concurrency group.
+# Twenty remaining storms therefore meant twenty manual clicks, each up to four
+# hours, strictly one after another -- which is why 2025 never finished.
+#
+# The storms are independent, so they fan out now: `plan` lists them, `build`
+# runs them on a runner each, `collect` merges the results and commits once.
+# The only thing that was ever shared is trackformer11-hindcasts.json, and that
+# write now happens in the single collect job rather than in every leg.
 on:
   workflow_dispatch:
     inputs:
@@ -20,30 +26,90 @@ on:
       limit:
         description: "How many storms at most"
         required: false
-        default: "1"
+        default: "6"
+      parallel:
+        description: "How many runners at once. NOAA's archive is an AWS Open Data bucket built for bulk reads, but keep this modest anyway."
+        required: false
+        default: "4"
+      model:
+        description: "Key from .github/trackformer-models.json"
+        required: false
+        default: "trackformer_1_1"
 
 permissions:
   contents: write
+  actions: write
 
+# Serialises whole dispatches, not the storms inside one. A second dispatch
+# waits for the first rather than racing it onto the same storms; the matrix
+# below is unaffected, since it lives inside a single run.
 concurrency:
   group: tf11-gfs-backfill
   cancel-in-progress: false
 
 jobs:
-  refresh:
+  plan:
     runs-on: ubuntu-latest
+    outputs:
+      storms: ${{ steps.pick.outputs.storms }}
+      count: ${{ steps.pick.outputs.count }}
+      cfg: ${{ steps.model.outputs.cfg }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve the model
+        id: model
+        run: |
+          set -euo pipefail
+          KEY="${{ inputs.model || 'trackformer_1_1' }}"
+          CFG=$(python3 -c "
+          import json,sys
+          reg=json.load(open('.github/trackformer-models.json'))
+          key=sys.argv[1]
+          if key not in reg or key.startswith('_'):
+              sys.exit('unknown model %r; known: %s' % (key, [k for k in reg if not k.startswith('_')]))
+          print(json.dumps(reg[key]))
+          " "$KEY")
+          echo "cfg=$CFG" >> "$GITHUB_OUTPUT"
+          echo "model: $KEY"
+
+      # Selection lives in the build script so the matrix cannot drift from what
+      # a plain local run would pick. --list reads JSON only: no weights, no
+      # network, no model.
+      - name: Pick the storms
+        id: pick
+        run: |
+          set -euo pipefail
+          ARGS=""
+          if [ -n "${{ inputs.sid }}" ]; then
+            ARGS="--sid ${{ inputs.sid }}"
+          elif [ -n "${{ inputs.season }}" ]; then
+            ARGS="--season ${{ inputs.season }}"
+          else
+            ARGS="--missing"
+          fi
+          STORMS=$(python3 scripts/hindcast_from_gfs_archive.py $ARGS \
+                     --limit "${{ inputs.limit || 6 }}" --list)
+          COUNT=$(printf '%s' "$STORMS" | python3 -c "import json,sys;print(len(json.load(sys.stdin)))")
+          echo "storms=$STORMS" >> "$GITHUB_OUTPUT"
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+          echo "$COUNT storm(s): $STORMS" >> "$GITHUB_STEP_SUMMARY"
+
+  build:
+    needs: plan
+    if: needs.plan.outputs.count != '0'
+    runs-on: ubuntu-latest
+    strategy:
+      # One bad storm must not cancel the other runners: the whole point of
+      # fanning out is that each storm stands or falls alone.
+      fail-fast: false
+      max-parallel: ${{ fromJSON(inputs.parallel || '4') }}
+      matrix:
+        sid: ${{ fromJSON(needs.plan.outputs.storms) }}
     steps:
       - uses: actions/checkout@v4
 
       # The Trackformer1.0 seeds (~500 MB, git-lfs) that the fallback path still loads.
-      #
-      # DO NOT BUMP THIS KEY. typhoon-predict deleted models/v23 from its default
-      # branch when it published Trackformer1.1, so the "Checkout weights" step
-      # below can no longer fetch them -- this cache is the only surviving copy
-      # the job can reach. A bump would evict it with nothing to restore from.
-      # If these are ever needed again from scratch they must be re-published
-      # upstream first.
-      # The Trackformer1.0 seeds (~500 MB, git-lfs) the fallback path still loads.
       #
       # THE KEY BELOW IS A LITERAL AND MUST NOT CHANGE -- not to bump it, not to
       # tidy the name. Upstream deleted models/v23 when it published
@@ -94,57 +160,57 @@ jobs:
           fi
           ls typhoon-predict-models || true
 
-      # Trackformer1.1's checkpoint bundle, cached separately so it can be
-      # re-fetched without touching the Trackformer1.0 cache above.
-      #
-      # This key IS safe to bump, and that is the difference between it and the
-      # v62 one. These weights are published in the trackformer-1.1 release and
-      # on Hugging Face, so an eviction costs a 75 MB download and nothing else.
-      # Bumped to v2 to force the fetch below to run at least once, since a
-      # warm cache would otherwise hide whether it works.
-      - name: Cache Trackformer1.1 weights
-        id: cache-tf11
+      # The selected model's checkpoint bundle, cached separately so it can be
+      # re-fetched without touching the Trackformer1.0 cache above. This key IS
+      # safe to bump, and that is the difference between it and the v62 one:
+      # these weights are published, so an eviction costs a download.
+      - name: Cache model weights
+        id: cache-model
         uses: actions/cache@v4
         with:
           path: typhoon-predict-tf11
-          key: trackformer11-weights-v2
+          key: ${{ fromJSON(needs.plan.outputs.cfg).weights_cache_key }}
 
       # models/ no longer exists on the default branch: typhoon-predict moved its
       # weights out of git and into release archives when it published 1.2. A
-      # sparse checkout of models/trackformer_1_1 therefore silently produced an
-      # empty directory, and the only reason this job kept working was the cache
-      # above -- one eviction from a dead job, which is exactly how models/v23
-      # was lost. Unlike v23 these weights are still published, so fetch them
-      # from a real source instead of depending on a cache that cannot be
-      # rebuilt: the 1.1 release asset first, Hugging Face if that is down.
-      - name: Fetch Trackformer1.1 weights
-        if: steps.cache-tf11.outputs.cache-hit != 'true'
+      # sparse checkout of models/<model> therefore silently produced an empty
+      # directory, and the only reason this job kept working was the cache above
+      # -- one eviction from a dead job, which is exactly how models/v23 was
+      # lost. Fetch from a real source instead: the release asset first, Hugging
+      # Face if that is down. The layout inside the tarball is discovered rather
+      # than assumed, because upstream has repacked it once already.
+      - name: Fetch model weights
+        if: steps.cache-model.outputs.cache-hit != 'true'
+        env:
+          CFG: ${{ needs.plan.outputs.cfg }}
         run: |
           set -euo pipefail
-          mkdir -p typhoon-predict-tf11
-          ASSET="https://github.com/yu314-coder/typhoon-predict/releases/download/trackformer-1.1/trackformer_1_1.tar.gz"
-          if curl -fsSL --retry 3 --retry-delay 5 "$ASSET" -o /tmp/tf11.tar.gz; then
-            tar xzf /tmp/tf11.tar.gz -C /tmp
-            mv /tmp/models/trackformer_1_1 typhoon-predict-tf11/
-            rm -rf /tmp/tf11.tar.gz /tmp/models
-            echo "weights from the trackformer-1.1 release asset"
+          ASSET=$(printf '%s' "$CFG" | python3 -c "import json,sys;print(json.load(sys.stdin)['release_asset'])")
+          SUBDIR=$(printf '%s' "$CFG" | python3 -c "import json,sys;print(json.load(sys.stdin)['weights_subdir'])")
+          CALNAME=$(printf '%s' "$CFG" | python3 -c "import json,sys;print(json.load(sys.stdin)['calibration'])")
+          rm -rf typhoon-predict-tf11 /tmp/mx && mkdir -p typhoon-predict-tf11 /tmp/mx
+          if curl -fsSL --retry 3 --retry-delay 5 "$ASSET" -o /tmp/m.tar.gz; then
+            tar xzf /tmp/m.tar.gz -C /tmp/mx
+            CAL=$(find /tmp/mx -name "$CALNAME" | head -1)
+            if [ -z "$CAL" ]; then
+              echo "::error::$CALNAME not found in the release asset"; exit 1
+            fi
+            mv "$(dirname "$CAL")" "typhoon-predict-tf11/$SUBDIR"
+            rm -rf /tmp/m.tar.gz /tmp/mx
+            echo "weights from the release asset"
           else
             echo "::warning::release asset unavailable; falling back to Hugging Face"
-            mkdir -p typhoon-predict-tf11/trackformer_1_1
-            BASE="https://huggingface.co/euler314/typhoon-predict/resolve/main/models/trackformer_1_1"
-            for f in trackformer_1_1_calibration.json trackformer_1_1_norm_stats.npz manifest.json \
-                     trackformer_1_1_intensity_seed0.pt trackformer_1_1_intensity_seed1.pt \
-                     trackformer_1_1_intensity_seed2.pt trackformer_1_1_structure_seed0.pt \
-                     trackformer_1_1_structure_seed1.pt trackformer_1_1_structure_seed2.pt \
-                     trackformer_1_1_temporal_seed0.pt trackformer_1_1_temporal_seed1.pt \
-                     trackformer_1_1_temporal_seed2.pt; do
-              curl -fsSL --retry 3 --retry-delay 5 "$BASE/$f" -o "typhoon-predict-tf11/trackformer_1_1/$f"
-            done
+            mkdir -p "typhoon-predict-tf11/$SUBDIR"
+            BASE=$(printf '%s' "$CFG" | python3 -c "import json,sys;print(json.load(sys.stdin)['hf_base'])")
+            printf '%s' "$CFG" | python3 -c "import json,sys;print('\n'.join(json.load(sys.stdin)['hf_files']))" \
+              | while read -r f; do
+                  curl -fsSL --retry 3 --retry-delay 5 "$BASE/$f" -o "typhoon-predict-tf11/$SUBDIR/$f"
+                done
             echo "weights from Hugging Face"
           fi
           # A pointer is ~130 bytes, a checkpoint ~8.5 MB. Fail here with a clear
           # reason rather than inside torch.load.
-          for f in typhoon-predict-tf11/trackformer_1_1/*.pt; do
+          for f in typhoon-predict-tf11/"$SUBDIR"/*.pt; do
             sz=$(wc -c < "$f")
             if [ "$sz" -lt 1000000 ]; then
               echo "::error::$f is $sz bytes — LFS content did not download"
@@ -152,54 +218,63 @@ jobs:
             fi
           done
 
+      # actions/checkout wants the sparse list as one newline-separated string.
+      # It cannot be built inline: a literal newline inside a ${{ }} expression
+      # is a YAML syntax error. A multiline step output is substituted after the
+      # YAML is parsed, so the newlines only exist at runtime.
+      - name: Write the source sparse-checkout list
+        id: srcpaths
+        env:
+          CFG: ${{ needs.plan.outputs.cfg }}
+        run: |
+          printf '%s' "$CFG" \
+            | python3 -c "import json,sys;print('\n'.join(json.load(sys.stdin)['src_paths']))" \
+            > /tmp/src-paths.txt
+          cat /tmp/src-paths.txt
+          {
+            echo 'list<<SRCPATHS_EOF'
+            cat /tmp/src-paths.txt
+            echo 'SRCPATHS_EOF'
+          } >> "$GITHUB_OUTPUT"
+
       # The source modules are small, so they are checked out per run rather
-      # than cached -- but at a pinned commit, not the tip. See below.
-      - name: Checkout Trackformer1.1 source modules
+      # than cached -- but at a PINNED commit, not the tip, recorded per model
+      # in .github/trackformer-models.json. The default branch dropped
+      # scripts/predict_ibtracs_jma_only.py in 4ddaca1c on 2026-08-20 and
+      # tf11_intensity imports build_track_window from it; an unpinned checkout
+      # silently loses the intensity head, because that failure is caught and
+      # logged rather than raised. Losing v61_big_system_route broke this job
+      # the same way once already.
+      - name: Checkout model source modules
         uses: actions/checkout@v4
         with:
           repository: yu314-coder/typhoon-predict
-          # PINNED. The default branch dropped scripts/predict_ibtracs_jma_only.py
-          # in 4ddaca1c "Remove legacy scripts and track build artifacts" on
-          # 2026-08-20, and tf11_intensity imports build_track_window from it. An
-          # unpinned checkout silently loses the intensity head: the forecast
-          # still publishes, with intensity_source null and no wind or pressure,
-          # because that failure is caught and logged rather than raised. Losing
-          # v61_big_system_route broke this job the same way once already.
-          # 24369ea is the commit before the removal, and is what these runs were
-          # validated against. Unpin when the import has a home again.
-          ref: 24369eadefee1b7b28d50b700a0b834ff1c452f6
+          ref: ${{ fromJSON(needs.plan.outputs.cfg).src_ref }}
           sparse-checkout-cone-mode: false
-          sparse-checkout: |
-            trackformer_1_1_route.py
-            trackformer_1_1_base_route.py
-            trackformer_1_1_intensity.py
-            trackformer_1_1_temporal.py
-            analysis_level_mean_route.py
-            scripts/predict_ibtracs_jma_only.py
+          sparse-checkout: ${{ steps.srcpaths.outputs.list }}
           path: typhoon-predict-src
 
       # The calibration names its structure/temporal roots relative to the MODULE
-      # that loads them, so models/ has to sit beside trackformer_1_1_intensity.py.
+      # that loads them, so models/ has to sit beside the intensity module.
       - name: Link cached weights into the source tree
         run: |
           ln -sfn "$GITHUB_WORKSPACE/typhoon-predict-tf11" typhoon-predict-src/models
-          test -f typhoon-predict-src/models/trackformer_1_1/trackformer_1_1_calibration.json
+          test -f "typhoon-predict-src/models/${{ fromJSON(needs.plan.outputs.cfg).weights_subdir }}/${{ fromJSON(needs.plan.outputs.cfg).calibration }}"
 
-      # GFS analysis GRIBs, reused across runs so a free public service isn't
-      # asked for the same cycle every hour. restore-keys picks up the newest
-      # previous cache; old cycles are pruned below.
+      # GFS analysis GRIBs, reused within a storm so a free public service is
+      # not asked for the same cycle twice.
+      #
+      # Keyed per storm, NOT per run id. A run-id key writes a brand new ~2.4 GB
+      # entry every single run and never replaces one, which had four near
+      # identical copies resident and the repo 1.2 GB over its 10 GB cache
+      # budget -- and eviction is least-recently-used across the whole repo,
+      # which puts v62-weights-v3 in the blast radius. That one cannot be
+      # rebuilt. Per-storm keys are bounded by the storm list instead.
       - name: Cache GFS analysis files
         uses: actions/cache@v4
         with:
           path: /tmp/trackformer11-grib
-          key: trackformer11-grib-${{ github.run_id }}
-          restore-keys: trackformer11-grib-
-
-      - name: Prune GFS cache older than 3 days
-        run: |
-          mkdir -p /tmp/trackformer11-grib
-          find /tmp/trackformer11-grib -name '*.grib2' -mtime +3 -delete || true
-          echo "cached cycles: $(ls -1 /tmp/trackformer11-grib 2>/dev/null | wc -l)"
+          key: tf-grib-${{ matrix.sid }}
 
       - uses: actions/setup-python@v5
         with:
@@ -217,23 +292,48 @@ jobs:
       - name: Check the JMA bulletin parser
         run: python tests/jma_parse_test.py
 
-      - name: Build hindcasts from the GFS archive
+      - name: Build ${{ matrix.sid }}
         env:
           TF10_MODELS_DIR: ${{ github.workspace }}/typhoon-predict-models/trackformer10
           TF11_SRC_DIR: ${{ github.workspace }}/typhoon-predict-src
           TF11_GRIB_DIR: /tmp/trackformer11-grib
-          TF11_BUDGET_MIN: "280"
+          # One storm per runner now, so the budget is per storm rather than a
+          # slice of a shared four-hour window. Under the 360 min job cap.
+          TF11_BUDGET_MIN: "300"
           MPLBACKEND: Agg
+        run: python scripts/hindcast_from_gfs_archive.py --sid "${{ matrix.sid }}" --limit 1
+
+      # Only the per-storm payload travels. The index this leg also wrote is
+      # deliberately NOT uploaded: it reflects one runner's view of a file every
+      # other runner is editing too, and collect rebuilds the rows from the
+      # payloads anyway.
+      - name: Upload the storm payload
+        uses: actions/upload-artifact@v4
+        with:
+          name: hindcast-${{ matrix.sid }}
+          path: assets/typhoon-tracker/model/trackformer11/${{ matrix.sid }}.json
+          if-no-files-found: ignore
+          retention-days: 3
+
+  collect:
+    needs: [plan, build]
+    # always(), so a batch where some storms failed still commits the ones that
+    # worked. Without it one bad storm would throw away a whole afternoon.
+    if: always() && needs.plan.outputs.count != '0'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: /tmp/fragments
+          pattern: hindcast-*
+          merge-multiple: true
+
+      - name: Merge into the index
         run: |
-          ARGS=""
-          if [ -n "${{ inputs.sid }}" ]; then
-            ARGS="--sid ${{ inputs.sid }}"
-          elif [ -n "${{ inputs.season }}" ]; then
-            ARGS="--season ${{ inputs.season }}"
-          else
-            ARGS="--missing"
-          fi
-          python scripts/hindcast_from_gfs_archive.py $ARGS --limit "${{ inputs.limit || 1 }}"
+          ls -la /tmp/fragments || { echo "no fragments"; exit 0; }
+          python3 scripts/merge_hindcast_fragments.py /tmp/fragments | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Commit if changed
         run: |
@@ -244,37 +344,34 @@ jobs:
             echo "no change — nothing to commit"
             exit 0
           fi
-          git commit -m "Refresh live typhoon AI forecast"
+          git commit -m "Add Trackformer hindcasts from the GFS archive"
 
-          # Do not rebase this file. It is regenerated whole from JMA and the
-          # GFS analysis on every run, so two runs that overlap conflict on it
-          # every time -- and with several scheduled jobs committing to main
-          # that is routine rather than rare.
-          #
-          # There is also nothing to reconcile: our copy was computed from a
-          # later analysis than whatever landed while we were working, so it is
-          # strictly the better one. Replay it on top of main instead of trying
-          # to merge two full regenerations line by line.
+          # Do not rebase this file. It is regenerated whole on every run, so two
+          # runs that overlap conflict on it every time -- and with several
+          # scheduled jobs committing to main that is routine rather than rare.
           for attempt in 1 2 3; do
             if git push; then
               exit 0
             fi
-            echo "main moved; replaying this forecast on top of it (attempt $attempt)"
+            echo "main moved; replaying these hindcasts on top of it (attempt $attempt)"
             git fetch origin main
             # --mixed, NOT --soft. --soft moves HEAD but leaves the index as
             # this runner built it, so committing records that stale tree as
             # the new state and silently DELETES everything added to main since
             # this job checked out. It did exactly that once: a backfill run
             # removed the autopilot benchmark, its workflow, five storm files
-            # and reverted a trainer change, all in a commit titled "Add Trackformer1.1
-            # history hindcasts". --mixed resets the index to main and leaves
-            # our files in the working tree, so the next add stages only ours.
+            # and reverted a trainer change, all in a commit titled "Add
+            # Trackformer1.1 history hindcasts". --mixed resets the index to
+            # main and leaves our files in the working tree, so the next add
+            # stages only ours.
             git reset --mixed origin/main
+            # Re-merge: the fragments still describe storms main may not have.
+            python3 scripts/merge_hindcast_fragments.py /tmp/fragments >/dev/null
             git add assets/typhoon-tracker/model/trackformer11 assets/typhoon-tracker/model/trackformer11-hindcasts.json
             if git diff --staged --quiet; then
-              echo "main already has an equivalent forecast"
+              echo "main already has these hindcasts"
               exit 0
             fi
-            git commit -m "Refresh live typhoon AI forecast"
+            git commit -m "Add Trackformer hindcasts from the GFS archive"
           done
-          echo "::warning title=Could not push::main kept moving; the next run refreshes it anyway"
+          echo "::warning title=Could not push::main kept moving; re-run collect to land these"

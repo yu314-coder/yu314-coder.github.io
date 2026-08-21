@@ -1,0 +1,45 @@
+{
+  "_comment": [
+    "Which model the typhoon workflows run, in one place. Switching model used",
+    "to mean editing a release URL, a cache key, a weights directory name, a",
+    "calibration filename and a sparse-checkout list across three workflow",
+    "files -- 25 lines that all had to agree, and a job that failed obscurely",
+    "when one of them did not. Add an entry here instead and pass its key as",
+    "the workflow's `model` input.",
+    "",
+    "src_ref is pinned per model on purpose: typhoon-predict's default branch",
+    "has twice dropped a module an older model still imports, which breaks the",
+    "run quietly rather than loudly. Pin what the model was validated against."
+  ],
+  "trackformer_1_1": {
+    "label": "Trackformer 1.1",
+    "weights_cache_key": "trackformer11-weights-v2",
+    "release_asset": "https://github.com/yu314-coder/typhoon-predict/releases/download/trackformer-1.1/trackformer_1_1.tar.gz",
+    "hf_base": "https://huggingface.co/euler314/typhoon-predict/resolve/main/models/trackformer_1_1",
+    "weights_subdir": "trackformer_1_1",
+    "calibration": "trackformer_1_1_calibration.json",
+    "src_ref": "24369eadefee1b7b28d50b700a0b834ff1c452f6",
+    "src_paths": [
+      "trackformer_1_1_route.py",
+      "trackformer_1_1_base_route.py",
+      "trackformer_1_1_intensity.py",
+      "trackformer_1_1_temporal.py",
+      "analysis_level_mean_route.py",
+      "scripts/predict_ibtracs_jma_only.py"
+    ],
+    "hf_files": [
+      "trackformer_1_1_calibration.json",
+      "trackformer_1_1_norm_stats.npz",
+      "manifest.json",
+      "trackformer_1_1_intensity_seed0.pt",
+      "trackformer_1_1_intensity_seed1.pt",
+      "trackformer_1_1_intensity_seed2.pt",
+      "trackformer_1_1_structure_seed0.pt",
+      "trackformer_1_1_structure_seed1.pt",
+      "trackformer_1_1_structure_seed2.pt",
+      "trackformer_1_1_temporal_seed0.pt",
+      "trackformer_1_1_temporal_seed1.pt",
+      "trackformer_1_1_temporal_seed2.pt"
+    ]
+  }
+}

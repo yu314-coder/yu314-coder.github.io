@@ -174,6 +174,10 @@ def main():
                     help="every catalogued storm with no hindcast yet")
     ap.add_argument("--limit", type=int, default=1)
     ap.add_argument("--no-intensity", action="store_true")
+    ap.add_argument("--list", action="store_true",
+                    help="print the selected storm ids as JSON and exit, so a "
+                         "workflow can fan them out across runners instead of "
+                         "grinding through them on one")
     args = ap.parse_args()
 
     index = json.loads(INDEX.read_text())
@@ -194,6 +198,10 @@ def main():
         targets.append(c)
     targets.sort(key=lambda c: c["start"], reverse=True)
     targets = targets[: args.limit]
+    if args.list:
+        print(json.dumps([c["sid"] for c in targets]))
+        return 0
+
     if not targets:
         log("  nothing to do")
         return 0
