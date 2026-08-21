@@ -440,11 +440,3 @@ body {
   vertical-align: 1px;
 }
 
-/* Trackformer 1.2 overlay: violet-leaning so it never reads as the emerald 1.1
-   route, because the two are not the same claim -- 1.2 runs on a documented
-   persistence base route here, not the private incumbent one. */
-.tt-tf12-btn {
-  border-color: rgba(167,139,250,0.55); background: rgba(167,139,250,0.10); color: #c4b5fd;
-}
-.tt-tf12-btn:hover { background: rgba(167,139,250,0.20); }
-.tt-tf12-btn.is-on { background: rgba(167,139,250,0.26); border-color: #a78bfa; }

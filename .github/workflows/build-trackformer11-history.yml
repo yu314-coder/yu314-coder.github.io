@@ -90,26 +90,34 @@ jobs:
           path: typhoon-predict-models
           key: trackformer11-weights-v4
 
-      - name: Checkout weights
-        if: steps.cache-weights.outputs.cache-hit != 'true'
-        uses: actions/checkout@v4
-        with:
-          repository: yu314-coder/typhoon-predict
-          lfs: true
-          sparse-checkout-cone-mode: false
-          sparse-checkout: |
-            models/trackformer_1_1
-          path: typhoon-predict-weights
-
-      - name: Move weights into cache path
+      # models/ is gone from the default branch -- typhoon-predict moved its
+      # weights into release archives when it published 1.2 -- so the sparse
+      # checkout this used to do resolves to nothing and the mv failed with
+      # "cannot stat typhoon-predict-weights/models/trackformer_1_1". The
+      # forecast job hit the same thing; this is the same fix.
+      #
+      # The path inside the archive is not hardcoded: the 1.2 asset was
+      # repackaged mid-day and broke a hardcoded mv, so find the calibration
+      # file wherever it lands and take the directory holding it.
+      - name: Fetch weights
         if: steps.cache-weights.outputs.cache-hit != 'true'
         run: |
-          mkdir -p typhoon-predict-models
-          mv typhoon-predict-weights/models/trackformer_1_1 typhoon-predict-models/
-          rm -rf typhoon-predict-weights
-          # An LFS pointer is ~130 bytes and a real checkpoint ~8.5 MB. If lfs
-          # smudging silently no-ops, fail HERE with a clear reason rather than
-          # 40 minutes later inside torch.load.
+          set -euo pipefail
+          ASSET="https://github.com/yu314-coder/typhoon-predict/releases/download/trackformer-1.1/trackformer_1_1.tar.gz"
+          curl -fsSL --retry 3 --retry-delay 5 "$ASSET" -o /tmp/tf11.tar.gz
+          rm -rf /tmp/tf11x && mkdir -p /tmp/tf11x typhoon-predict-models
+          tar xzf /tmp/tf11.tar.gz -C /tmp/tf11x
+          CAL=$(find /tmp/tf11x -name trackformer_1_1_calibration.json | head -1)
+          if [ -z "$CAL" ]; then
+            echo "::error::trackformer-1.1 release archive has no calibration file"
+            find /tmp/tf11x -maxdepth 3 -type d | head -20
+            exit 1
+          fi
+          mv "$(dirname "$CAL")" typhoon-predict-models/trackformer_1_1
+          rm -rf /tmp/tf11.tar.gz /tmp/tf11x
+          # A release archive carries real files rather than LFS pointers, but
+          # keep the guard: it is cheap and it fails here with a clear reason
+          # rather than 40 minutes later inside torch.load.
           for f in typhoon-predict-models/trackformer_1_1/*.pt; do
             sz=$(wc -c < "$f")
             if [ "$sz" -lt 1000000 ]; then

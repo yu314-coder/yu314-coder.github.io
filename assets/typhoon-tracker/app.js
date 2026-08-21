@@ -43,8 +43,6 @@
     fcSpeed: document.getElementById("tt-fc-speed"),
     aiBtn: document.getElementById("tt-ai-btn"),
     aiStatus: document.getElementById("tt-ai-status"),
-    tf12Btn: document.getElementById("tt-tf12-btn"),
-    tf12Status: document.getElementById("tt-tf12-status"),
     hindcastBtn: document.getElementById("tt-hindcast-btn"),
     hindcastStatus: document.getElementById("tt-hindcast-status"),
     fcSlider: document.getElementById("tt-fc-slider"),
@@ -2177,73 +2175,6 @@
   // Overlay tags. Both overlays can be on at once (the consensus stays visible while the
   // hindcast animates), so traces are located by tag, never by position in els.map.data.
   var TF_HIND = "tf-hind", TF_CONS = "tf-cons", TF_CONS_ACT = "tf-cons-act";
-  var TF_TF12 = "tf-tf12";
-  var TF_TF12_URL = "model/trackformer12-live-forecast.json?v=20260821-tf12a";
-  var tf12Live = null, tf12On = false;
-
-  // Trackformer 1.2's route head corrects a base route, and the one it was
-  // trained against is a private upstream member. This runs on the release's
-  // documented persistence fallback instead, which at long leads carries most
-  // of the displacement -- so the overlay states the share rather than letting
-  // the violet line pass for the published benchmark configuration.
-  function tf12Draw(entry) {
-    var lat = entry.lats, lon = entry.lons;
-    Plotly.addTraces(els.map, [{
-      type: "scattergeo", mode: "lines+markers", meta: TF_TF12,
-      lat: lat, lon: lon,
-      line: { color: "#a78bfa", width: 3, dash: "dot" },
-      marker: { size: 5, color: "#c4b5fd" },
-      name: "Trackformer 1.2",
-      hovertemplate: "Trackformer 1.2<br>+%{customdata}h<br>%{lat:.1f}N %{lon:.1f}E<extra></extra>",
-      customdata: entry.lead_hours
-    }]);
-    var share = entry.model_share_max != null
-      ? Math.round(entry.model_share_max * 100) : null;
-    els.tf12Btn.setAttribute("aria-pressed", "true");
-    els.tf12Btn.classList.add("is-on");
-    tf12SetStatus("🧪 " + (entry.name || entry.tcId) + " — Trackformer 1.2, route only."
-      + " The base route it was trained around is not published, so this uses the release's"
-      + " documented persistence fallback."
-      + (share != null
-          ? " Over " + Math.round(entry.track_length_km) + " km of track the model can move it by"
-            + " at most 300 km, so at long leads no more than about " + share + "% of this line is"
-            + " the model and the rest is persistence."
-          : "")
-      + " Not the configuration behind the published benchmark. Experimental.", "on");
-  }
-  function tf12SetStatus(msg, cls) {
-    if (!els.tf12Status) return;
-    els.tf12Status.textContent = msg || "";
-    els.tf12Status.className = "tt-ai-status" + (cls ? " tt-ai-status--" + cls : "");
-  }
-  function tf12Clear() {
-    var idx = tfTraceIdx(TF_TF12);
-    if (idx.length) Plotly.deleteTraces(els.map, idx);
-    tf12On = false;
-    if (els.tf12Btn) { els.tf12Btn.setAttribute("aria-pressed", "false"); els.tf12Btn.classList.remove("is-on"); }
-    tf12SetStatus("");
-  }
-  function tf12Toggle() {
-    if (tf12On) { tf12Clear(); return; }
-    // In Forecast mode the live storm is whatever the JMA selector holds.
-    var tc = els.typhoonSelect && els.typhoonSelect.value;
-    tf12SetStatus("Loading…", "loading");
-    (tf12Live ? Promise.resolve(tf12Live)
-              : fetch(TF_TF12_URL).then(function (r) { return r.ok ? r.json() : null; })
-                  .catch(function () { return null; }))
-      .then(function (doc) {
-        tf12Live = doc;
-        var entry = doc && doc.storms && tc && doc.storms[tc];
-        if (!entry) {
-          tf12SetStatus("🧪 No Trackformer 1.2 route for this storm. It needs three distinct"
-            + " observed fixes for a causal motion estimate, so a storm JMA has only just named"
-            + " has none yet.", "err");
-          return;
-        }
-        tf12On = true;
-        tf12Draw(entry);
-      });
-  }
   function tfTraceIdx(tag) {
     var out = [], data = (els.map && els.map.data) || [];
     for (var i = 0; i < data.length; i++) if (data[i].meta === tag) out.push(i);
@@ -3694,7 +3625,6 @@
   if (els.fcSpeed) els.fcSpeed.addEventListener("click", cycleForecastSpeed);
   if (els.aiBtn) els.aiBtn.addEventListener("click", aiToggle);
   if (els.hindcastBtn) els.hindcastBtn.addEventListener("click", aiHindcastToggle);
-  if (els.tf12Btn) els.tf12Btn.addEventListener("click", tf12Toggle);
 
   // Rest the forecast sweep when its map isn't on screen: no point spending
   // frames (and Plotly redraws) animating a map the user has scrolled past.
