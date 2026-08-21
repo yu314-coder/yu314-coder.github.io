@@ -213,18 +213,40 @@ def main():
                 feature_mean=stats["system_mean"], feature_std=stats["system_std"],
                 channel_names=("hgt500", "uwnd850", "vwnd850", "uwnd500",
                                "vwnd500", "uwnd200", "vwnd200"))
-            near = [(float(o["lat"]), float(o["lon"]), float(o.get("windKt") or 0.0))
-                    for o in (tf10.parse_jma(x.get("tropicalCyclone"),
-                              tf10.get_json(f"{tf10.JMA_BASE}{x.get('tropicalCyclone')}"
-                                            "/specifications.json")) or {}
-                              for x in active if x.get("tropicalCyclone") != tc_id) if o]
+            # Age matters: the constructor counts a neighbour only when
+            # 0 <= age_hours <= 6, so claiming age 0 for every storm silently
+            # promotes a stale fix into the interaction block. Compute it.
+            near = []
+            for x in active:
+                other = x.get("tropicalCyclone")
+                if other == tc_id:
+                    continue
+                o = tf10.parse_jma(other, tf10.get_json(
+                    f"{tf10.JMA_BASE}{other}/specifications.json")) or {}
+                if not o:
+                    continue
+                stamp = o.get("validUTC")
+                if not stamp:
+                    continue
+                when = dt.datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+                guard.use("jma_analysis", f"{other}/specifications.json", when)
+                age = (issue - when).total_seconds() / 3600.0
+                near.append((float(o["lat"]), float(o["lon"]),
+                             float(o.get("windKt") or 0.0), age))
             if near:
                 nl = np.array([[o[0] for o in near]], dtype="float32")
                 no = np.array([[o[1] for o in near]], dtype="float32")
                 nv = np.array([[o[2] for o in near]], dtype="float32")
-                na = np.zeros_like(nl)
+                na = np.array([[o[3] for o in near]], dtype="float32")
             else:
-                nl = no = nv = na = np.zeros((1, 1), dtype="float32")
+                # NOT zeros. build_nearby_interaction_features counts an entry
+                # as a real neighbour when age is finite and within [0, 6], so
+                # a zero-filled row is a phantom storm at 0N 0E -- roughly
+                # 16,000 km away, and it pushed the block to about 2.6 sigma
+                # from the training mean on every storm that had no neighbour.
+                # NaN fails the isfinite test, which is how the constructor is
+                # told there is nobody there.
+                nl = no = nv = na = np.full((1, 1), np.nan, dtype="float32")
             interaction = tf12.build_nearby_interaction_features(
                 nl, no, nv, na, lat0, lon0,
                 feature_mean=stats["interaction_mean"], feature_std=stats["interaction_std"])
@@ -280,9 +302,28 @@ def main():
         # for -- so a published forecast can be reproduced from what ran.
         "model_build": getattr(tf12, "MODEL_VERSION", None),
         "release_tag": RELEASE_TAG,
-        "note": ("Route head only. The base route is the release's documented kinematic "
-                 "persistence fallback, not the private incumbent route, so this is not the "
-                 "configuration behind the published matched-storm benchmark."),
+        "note": ("Route head only, and NOT the configuration behind the published "
+                 "matched-storm benchmark. Two of its inputs are not reproducible from "
+                 "published data; see known_substitutions."),
+        # Stated rather than implied. A published forecast that quietly differs
+        # from the benchmark configuration invites the benchmark's numbers to be
+        # read onto it.
+        "known_substitutions": [
+            {"input": "base_route / base_position",
+             "using": "the release's documented kinematic persistence fallback",
+             "should_be": "the frozen incumbent route the checkpoint was trained around",
+             "why": ("the incumbent base_position arrays are row-aligned to a private "
+                     "issue-window archive and are not published"),
+             "effect": ("the route head only corrects a base route, by at most 300 km over "
+                        "five days, so most of the drawn track is persistence")},
+            {"input": "static route geography (224 of the 647 context features)",
+             "using": "eight channels derived from NOAA's 0.25 degree land-sea mask",
+             "should_be": ("the packaged static map from Natural Earth 50m land plus ESA "
+                           "WorldCover 10m 2021 v200 on a 521x1441 global 0.25 degree grid"),
+             "why": "that packaged map does not ship in the release archive",
+             "effect": ("channel names and order match the trained subset, but the values "
+                        "come from a different land dataset over a smaller extent")},
+        ],
         "storms": storms,
     }, separators=(",", ":")))
     log(f"  wrote {len(storms)} storm(s)")

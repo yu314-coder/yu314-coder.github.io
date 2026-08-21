@@ -2178,7 +2178,7 @@
   // hindcast animates), so traces are located by tag, never by position in els.map.data.
   var TF_HIND = "tf-hind", TF_CONS = "tf-cons", TF_CONS_ACT = "tf-cons-act";
   var TF_TF12 = "tf-tf12";
-  var TF_TF12_URL = "model/trackformer12-live-forecast.json?v=20260822-tf12b";
+  var TF_TF12_URL = "model/trackformer12-live-forecast.json?v=20260822-tf12c";
   var tf12Live = null, tf12On = false;
 
   // Trackformer 1.2's route head corrects a base route, and the one it was
@@ -2209,7 +2209,9 @@
             + " at most 300 km, so at long leads no more than about " + share + "% of this line is"
             + " the model and the rest is persistence."
           : "")
-      + " Not the configuration behind the published benchmark. Experimental.", "on");
+      + " Its static geography is also rebuilt from a different land dataset, because the"
+      + " packaged map is not published. Not the configuration behind the published"
+      + " benchmark, and not comparable to its numbers. Experimental.", "on");
   }
   function tf12SetStatus(msg, cls) {
     if (!els.tf12Status) return;
