@@ -103,6 +103,9 @@ jobs:
             fi
           fi
           echo "selection: $ARGS"
+          export TF_OUTDIR TF_INDEX
+          TF_OUTDIR=$(printf '%s' '${{ steps.model.outputs.cfg }}' | python3 -c "import json,sys;print(json.load(sys.stdin)['outdir'])")
+          TF_INDEX=$(printf '%s' '${{ steps.model.outputs.cfg }}' | python3 -c "import json,sys;print(json.load(sys.stdin)['index'])")
           STORMS=$(python3 scripts/hindcast_from_gfs_archive.py $ARGS \
                      --limit "${{ inputs.limit || 6 }}" --list)
           COUNT=$(printf '%s' "$STORMS" | python3 -c "import json,sys;print(len(json.load(sys.stdin)))")
@@ -315,6 +318,11 @@ jobs:
           # One storm per runner now, so the budget is per storm rather than a
           # slice of a shared four-hour window. Under the 360 min job cap.
           TF11_BUDGET_MIN: "300"
+          # Each model writes its own directory, index and driver, so a 1.2
+          # batch cannot land on top of the 1.1 hindcasts it is compared with.
+          TF_OUTDIR: ${{ fromJSON(needs.plan.outputs.cfg).outdir }}
+          TF_INDEX: ${{ fromJSON(needs.plan.outputs.cfg).index }}
+          TF_DRIVER: ${{ fromJSON(needs.plan.outputs.cfg).driver }}
           MPLBACKEND: Agg
         run: python scripts/hindcast_from_gfs_archive.py --sid "${{ matrix.sid }}" --limit 1
 
@@ -326,7 +334,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: hindcast-${{ matrix.sid }}
-          path: assets/typhoon-tracker/model/trackformer11/${{ matrix.sid }}.json
+          path: assets/typhoon-tracker/model/${{ fromJSON(needs.plan.outputs.cfg).outdir }}/${{ matrix.sid }}.json
           if-no-files-found: ignore
           retention-days: 3
 
@@ -346,15 +354,23 @@ jobs:
           merge-multiple: true
 
       - name: Merge into the index
+        env:
+          TF_OUTDIR: ${{ fromJSON(needs.plan.outputs.cfg).outdir }}
+          TF_INDEX: ${{ fromJSON(needs.plan.outputs.cfg).index }}
         run: |
           ls -la /tmp/fragments || { echo "no fragments"; exit 0; }
           python3 scripts/merge_hindcast_fragments.py /tmp/fragments | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Commit if changed
+        env:
+          TF_OUTDIR: ${{ fromJSON(needs.plan.outputs.cfg).outdir }}
+          TF_INDEX: ${{ fromJSON(needs.plan.outputs.cfg).index }}
         run: |
+          M=assets/typhoon-tracker/model
+          PATHS="$M/$TF_OUTDIR $M/$TF_INDEX"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/typhoon-tracker/model/trackformer11 assets/typhoon-tracker/model/trackformer11-hindcasts.json
+          git add $PATHS
           if git diff --staged --quiet; then
             echo "no change — nothing to commit"
             exit 0
@@ -390,11 +406,9 @@ jobs:
             # otherwise only added storms. Take main's version of both paths
             # first, then replay our fragments on top, so the commit contains
             # only what we actually built.
-            git checkout origin/main -- \
-              assets/typhoon-tracker/model/trackformer11 \
-              assets/typhoon-tracker/model/trackformer11-hindcasts.json
+            git checkout origin/main -- $PATHS
             python3 scripts/merge_hindcast_fragments.py /tmp/fragments >/dev/null
-            git add assets/typhoon-tracker/model/trackformer11 assets/typhoon-tracker/model/trackformer11-hindcasts.json
+            git add $PATHS
             if git diff --staged --quiet; then
               echo "main already has these hindcasts"
               exit 0

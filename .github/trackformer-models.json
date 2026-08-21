@@ -9,7 +9,12 @@
     "",
     "src_ref is pinned per model on purpose: typhoon-predict's default branch",
     "has twice dropped a module an older model still imports, which breaks the",
-    "run quietly rather than loudly. Pin what the model was validated against."
+    "run quietly rather than loudly. Pin what the model was validated against.",
+    "",
+    "outdir/index/driver decide WHERE a model's hindcasts land and WHICH live",
+    "driver builds its inputs. They are not cosmetic: the model input used to",
+    "switch only the weights, so a 1.2 run would have written its output over",
+    "the 1.1 hindcasts it exists to be compared against."
   ],
   "trackformer_1_1": {
     "label": "Trackformer 1.1",
@@ -40,6 +45,9 @@
       "trackformer_1_1_temporal_seed0.pt",
       "trackformer_1_1_temporal_seed1.pt",
       "trackformer_1_1_temporal_seed2.pt"
-    ]
+    ],
+    "outdir": "trackformer11",
+    "index": "trackformer11-hindcasts.json",
+    "driver": "run_trackformer11_forecast.py"
   }
 }

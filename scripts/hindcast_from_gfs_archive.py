@@ -35,8 +35,20 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent.parent
 MODEL = HERE / "assets/typhoon-tracker/model"
-OUTDIR = MODEL / "trackformer11"
-INDEX = MODEL / "trackformer11-hindcasts.json"
+
+# Where this model's hindcasts land. Defaulted to 1.1's paths so nothing about
+# an existing run changes, but overridable, because the `model` input on the
+# workflow used to switch the WEIGHTS while leaving these hardcoded: a 1.2 run
+# would have fetched 1.2's checkpoints and then written its output over the 1.1
+# hindcasts, destroying the baseline it exists to be compared against. Each
+# model gets its own directory and its own index.
+OUTDIR = MODEL / os.environ.get("TF_OUTDIR", "trackformer11")
+INDEX = MODEL / os.environ.get("TF_INDEX", "trackformer11-hindcasts.json")
+
+# The live driver whose field construction and heads this replays. 1.2 builds a
+# different packet entirely (residual route head, 647-wide context), so it has
+# its own driver and cannot be run through 1.1's.
+DRIVER = os.environ.get("TF_DRIVER", "run_trackformer11_forecast.py")
 SEASONS = HERE / "assets/data/typhoons/seasons"
 CATALOGUE = HERE / "assets/data/typhoons/index.json"
 
@@ -55,7 +67,7 @@ def out_of_time(extra=0.0):
 def load_live():
     """Import the live forecast script as a module and use its GFS path."""
     spec = importlib.util.spec_from_file_location(
-        "tf11live", str(HERE / "scripts" / "run_trackformer11_forecast.py"))
+        "tf11live", str(HERE / "scripts" / DRIVER))
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
@@ -180,7 +192,10 @@ def main():
                          "grinding through them on one")
     args = ap.parse_args()
 
-    index = json.loads(INDEX.read_text())
+    # A model's first batch has no index yet. Start one instead of dying.
+    index = json.loads(INDEX.read_text()) if INDEX.exists() else {
+        "note": "Per-storm Trackformer hindcasts, loaded lazily.",
+        "hindcasts": {}, "unavailable": {}}
     index.setdefault("hindcasts", {})
     catalogue = json.loads(CATALOGUE.read_text())
 

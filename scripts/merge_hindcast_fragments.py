@@ -13,12 +13,18 @@ first. A fragment that disagrees with its own payload cannot exist.
     python3 scripts/merge_hindcast_fragments.py fragments/
 """
 import json
+import os
 import pathlib
 import sys
 
 MODEL = pathlib.Path(__file__).resolve().parents[1] / "assets/typhoon-tracker/model"
-OUTDIR = MODEL / "trackformer11"
-INDEX = MODEL / "trackformer11-hindcasts.json"
+
+# Same env contract as hindcast_from_gfs_archive.py, and for the same reason:
+# each model writes its own directory and index, so merging a 1.2 batch can
+# never land on top of the 1.1 hindcasts it is meant to be compared with.
+# Defaults are 1.1's paths, so an existing run is unaffected.
+OUTDIR = MODEL / os.environ.get("TF_OUTDIR", "trackformer11")
+INDEX = MODEL / os.environ.get("TF_INDEX", "trackformer11-hindcasts.json")
 
 
 def entry_from(payload):
@@ -44,8 +50,28 @@ def entry_from(payload):
     # would relabel them as archive builds they never were.
     if payload.get("origin"):
         entry["origin"] = payload["origin"]
-    entry["file"] = "trackformer11/%s.json" % payload["sid"]
+    entry["file"] = "%s/%s.json" % (OUTDIR.name, payload["sid"])
     return entry
+
+
+def payload_time(payloads):
+    """Latest issue time across the batch: a real timestamp, not a clock read.
+
+    Workflow scripts must not invent a "now" -- the index is data, and a
+    generated_at that does not correspond to any input is a small lie that
+    later reads as provenance.
+    """
+    latest = ""
+    for f in payloads:
+        try:
+            runs = json.loads(f.read_text()).get("runs") or []
+        except Exception:
+            continue
+        for r in runs:
+            t = r.get("issue_time_utc") or ""
+            if t > latest:
+                latest = t
+    return latest or "unknown"
 
 
 def main():
@@ -58,7 +84,15 @@ def main():
         print("no fragments to merge")
         return 0
 
-    index = json.loads(INDEX.read_text())
+    # A model's first batch has no index yet, which is precisely the run that
+    # introduces a new model. Start one rather than dying on a missing file.
+    if INDEX.exists():
+        index = json.loads(INDEX.read_text())
+    else:
+        print("no %s yet; starting one" % INDEX.name)
+        index = {"generated_at": payload_time(payloads),
+                 "note": "Per-storm Trackformer hindcasts, loaded lazily.",
+                 "hindcasts": {}, "unavailable": {}}
     index.setdefault("hindcasts", {})
     OUTDIR.mkdir(parents=True, exist_ok=True)
 
