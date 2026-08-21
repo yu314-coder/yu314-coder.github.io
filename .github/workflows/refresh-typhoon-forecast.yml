@@ -230,6 +230,7 @@ jobs:
       # The pin above stays where it is: it exists because the 1.1 intensity head
       # imports a module the tip deleted, which has nothing to do with 1.2.
       - name: Checkout Trackformer1.2 source
+        continue-on-error: true
         uses: actions/checkout@v4
         with:
           repository: yu314-coder/typhoon-predict
@@ -239,15 +240,39 @@ jobs:
           path: typhoon-predict-tf12-src
 
       # 1.2's weights are a release archive, never committed to the branch.
+      #
+      # Do not hardcode a path inside the tarball. It was repackaged from
+      # ./models/trackformer_1_2/ to trackformer_1_2/models/trackformer_1_2/
+      # between two runs, and the hardcoded mv took the whole forecast job down
+      # with it. Find the manifest wherever it landed instead.
+      #
+      # continue-on-error, like every 1.2 step here: this overlay is additional,
+      # and it must never cost the site the 1.1 forecast it actually reads.
       - name: Fetch Trackformer1.2 weights
+        id: tf12-weights
+        continue-on-error: true
         run: |
           set -euo pipefail
           ASSET="https://github.com/yu314-coder/typhoon-predict/releases/download/trackformer-1.2/trackformer_1_2.tar.gz"
           curl -fsSL --retry 3 --retry-delay 5 "$ASSET" -o /tmp/tf12.tar.gz
-          mkdir -p typhoon-predict-tf12
-          tar xzf /tmp/tf12.tar.gz -C /tmp
-          mv /tmp/models/trackformer_1_2 typhoon-predict-tf12/
-          rm -rf /tmp/tf12.tar.gz /tmp/models
+          rm -rf /tmp/tf12x && mkdir -p /tmp/tf12x typhoon-predict-tf12
+          tar xzf /tmp/tf12.tar.gz -C /tmp/tf12x
+          MAN=$(find /tmp/tf12x -name manifest.json -path '*trackformer_1_2*' | head -1)
+          if [ -z "$MAN" ]; then
+            echo "::warning::no trackformer_1_2 manifest in the release archive"
+            find /tmp/tf12x -maxdepth 3 -type d | head -20
+            exit 1
+          fi
+          mv "$(dirname "$MAN")" typhoon-predict-tf12/trackformer_1_2
+          # The archive also ships the matching module; prefer it over the branch
+          # tip so the code and the weights are the same release.
+          SRC=$(find /tmp/tf12x -name trackformer_1_2.py | head -1)
+          if [ -n "$SRC" ]; then
+            mkdir -p typhoon-predict-tf12-src
+            cp "$SRC" typhoon-predict-tf12-src/trackformer_1_2.py
+            echo "module taken from the release archive"
+          fi
+          rm -rf /tmp/tf12.tar.gz /tmp/tf12x
           test -f typhoon-predict-tf12/trackformer_1_2/manifest.json
 
       - name: Run Trackformer1.1 + Trackformer1.0 forecast
@@ -262,6 +287,7 @@ jobs:
       # overlay, and losing it must not cost the forecast the site actually reads.
       - name: Run Trackformer1.2 live route
         continue-on-error: true
+        if: steps.tf12-weights.outcome == 'success' 
         env:
           TF11_SRC_DIR: ${{ github.workspace }}/typhoon-predict-src
           TF12_SRC_DIR: ${{ github.workspace }}/typhoon-predict-tf12-src
