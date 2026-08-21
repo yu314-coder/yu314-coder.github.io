@@ -39,18 +39,25 @@ GEO_PATH = REPO / "assets/typhoon-tracker/model/static/tf12_route_geography.npz"
 OUT_PATH = REPO / "assets/typhoon-tracker/model/trackformer12-live-forecast.json"
 MODEL_ROOT = os.environ.get("TF12_MODELS_DIR", "")
 
-# The model is called Trackformer 1.2. "1.2.28" is the build identifier the
-# release carries internally -- a dev-side number, not the public name -- and
-# it is what the module's MODEL_VERSION reports, so it is what gets pinned.
+# The model is called Trackformer 1.2. "1.2.28" is a build identifier the
+# release carries internally -- a dev-side number, not the public name.
 #
-# The module and the checkpoints ship in one release archive, so a mismatch
-# means the job assembled them from two different places. That has happened:
-# the workflow used to take the module from the branch tip and the weights
-# from a release. The payload is served as provenance, so refuse rather than
-# publish a route built from a pairing nobody checked.
+# The point of the check below is NOT the string. It is that the module and
+# the checkpoints came from the SAME archive: they used to be assembled from
+# two places (module from the branch tip, weights from a release), which is
+# how code and checkpoints drift apart without anyone noticing. The payload is
+# served as provenance, so refuse rather than publish an unchecked pairing.
+#
+# The strong check is the manifest's release_tag, which survives renames.
+# MODEL_VERSION is an allowlist because upstream renamed it "1.2.28" -> "1.2"
+# on the branch tip (c02c9d2) while the shipped archive still says "1.2.28";
+# pinning one literal would refuse to publish the moment a release is cut from
+# that tip, silently taking the overlay off the site.
 MODEL_NAME = "Trackformer 1.2"
 RELEASE_TAG = os.environ.get("TF12_RELEASE_TAG", "trackformer-1.2.28")
-EXPECT_BUILD = os.environ.get("TF12_EXPECT_VERSION", "1.2.28")
+ALLOWED_BUILDS = [v.strip() for v in
+                  os.environ.get("TF12_EXPECT_VERSION", "1.2.28,1.2").split(",")
+                  if v.strip()]
 
 
 def log(m):
@@ -61,13 +68,27 @@ def load_tf12():
     sys.path.insert(0, TF12_SRC)
     import trackformer_1_2 as tf12
     got = getattr(tf12, "MODEL_VERSION", None)
-    if EXPECT_BUILD and got != EXPECT_BUILD:
+    if ALLOWED_BUILDS and got not in ALLOWED_BUILDS:
         raise SystemExit(
             "refusing to publish: loaded trackformer_1_2 reports MODEL_VERSION "
-            "%r, but this job is pinned to build %r from %s. Point TF12_SRC_DIR "
-            "at the matching release, or set TF12_EXPECT_VERSION deliberately."
-            % (got, EXPECT_BUILD, RELEASE_TAG))
-    log(f"  {MODEL_NAME} (build {got}) from {RELEASE_TAG}")
+            "%r, which is not among the builds this job accepts (%s). If a new "
+            "release renamed it, add it to TF12_EXPECT_VERSION deliberately."
+            % (got, ", ".join(ALLOWED_BUILDS)))
+
+    # Weights and module must be the same release. The manifest ships beside
+    # the checkpoints, so its release_tag is what actually proves it.
+    manifest = Path(MODEL_ROOT) / "manifest.json" if MODEL_ROOT else None
+    tag = None
+    if manifest and manifest.exists():
+        tag = (json.loads(manifest.read_text()) or {}).get("release_tag")
+        if RELEASE_TAG and tag and tag != RELEASE_TAG:
+            raise SystemExit(
+                "refusing to publish: the checkpoints beside this module are "
+                "from release %r but the job fetched %r. The module and the "
+                "weights are not the same release." % (tag, RELEASE_TAG))
+    else:
+        log("  note: no manifest beside the checkpoints; release_tag unverified")
+    log(f"  {MODEL_NAME} (build {got}) from {tag or RELEASE_TAG}")
     return tf12
 
 
@@ -254,9 +275,10 @@ def main():
     OUT_PATH.write_text(json.dumps({
         "generated_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "model": MODEL_NAME,
-        # The public name does not identify a build. Record the one this route
-        # actually came from, so a published forecast can be reproduced.
-        "model_build": EXPECT_BUILD,
+        # The public name does not identify a build. Record the build that was
+        # ACTUALLY loaded -- read off the module, not the value this job hoped
+        # for -- so a published forecast can be reproduced from what ran.
+        "model_build": getattr(tf12, "MODEL_VERSION", None),
         "release_tag": RELEASE_TAG,
         "note": ("Route head only. The base route is the release's documented kinematic "
                  "persistence fallback, not the private incumbent route, so this is not the "

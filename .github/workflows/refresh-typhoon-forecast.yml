@@ -300,10 +300,15 @@ jobs:
         env:
           TF12_SRC_DIR: ${{ github.workspace }}/typhoon-predict-tf12-src
           TF12_MODELS_DIR: ${{ github.workspace }}/typhoon-predict-tf12/trackformer_1_2
-          # The model is Trackformer 1.2; 1.2.28 is the build the release
-          # carries and what the module reports, so that is what gets pinned.
+          # The model is Trackformer 1.2. The tag is the real pin -- the
+          # script checks it against the manifest shipped beside the
+          # checkpoints, which is what proves module and weights are one
+          # release. MODEL_VERSION is an allowlist because upstream renamed it
+          # "1.2.28" -> "1.2" on the branch tip while the shipped archive still
+          # says "1.2.28"; a single literal would take the overlay off the site
+          # the moment a release is cut from that tip.
           TF12_RELEASE_TAG: trackformer-1.2.28
-          TF12_EXPECT_VERSION: "1.2.28"
+          TF12_EXPECT_VERSION: "1.2.28,1.2"
           TF11_GRIB_DIR: /tmp/trackformer11-grib
           MPLBACKEND: Agg
         run: python scripts/run_trackformer12_live.py
