@@ -14,3 +14,7 @@ scipy
 # predict_ibtracs_jma_only (the window builder the v37G head was validated with)
 # imports pyplot at module level; MPLBACKEND=Agg keeps it headless.
 matplotlib
+# Trackformer 1.2's constructor loads its ocean-structure calibration through
+# joblib and raises ImportError without it -- even though this job never calls
+# predict_ocean_structure, the model cannot be constructed at all.
+joblib

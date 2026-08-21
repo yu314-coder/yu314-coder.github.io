@@ -162,9 +162,15 @@ def main():
             base_position = tf12.build_kinematic_base_position(current[None], previous[None])
             base_route = np.repeat(current[None][:, None, :], tf12.LEADS, axis=1).astype("float32")
             synoptic = tf12.build_synoptic_features(slp3, h5003, lat, lon, lat0, lon0)
+            # channel_names is optional, but it is checked against
+            # ROUTE_SYSTEM_CHANNELS -- so passing it turns a silently permuted
+            # analysis stack into an exception instead of a plausible wrong
+            # forecast. The order below is the one regrid() stacks.
             system = tf12.build_route_system_features(
                 cycles[0][2][None], cycles[1][2][None], lat, lon, lat0, lon0, 0.0, 1.0,
-                feature_mean=stats["system_mean"], feature_std=stats["system_std"])
+                feature_mean=stats["system_mean"], feature_std=stats["system_std"],
+                channel_names=("hgt500", "uwnd850", "vwnd850", "uwnd500",
+                               "vwnd500", "uwnd200", "vwnd200"))
             near = [(float(o["lat"]), float(o["lon"]), float(o.get("windKt") or 0.0))
                     for o in (tf10.parse_jma(x.get("tropicalCyclone"),
                               tf10.get_json(f"{tf10.JMA_BASE}{x.get('tropicalCyclone')}"
