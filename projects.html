@@ -1394,7 +1394,7 @@
     <!-- Tab: Typhoon AI -->
     <div class="tab-pane fade" id="tab-typhoon" role="tabpanel" aria-labelledby="tab-typhoon-btn">
 
-    <!-- Featured Project: Typhoon Forecasting AI (1.1 serves the site; 1.2 route overlay on live storms) -->
+    <!-- Featured Project: Typhoon Forecasting AI (Trackformer 1.2 released; 1.1 deployed) -->
     <div class="card card--hue hue-typhoon reveal">
       <div class="card-body p-4 p-md-5">
         <div class="row g-0 align-items-center justify-content-center">
@@ -1403,11 +1403,11 @@
               <h3 class="h2 mb-2 fw-bold">Typhoon Forecasting AI</h3>
               <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
                 <span class="badge-accent mono">Trackformer 1.2 &mdash; current release</span>
-                <span class="badge-neutral mono ms-1">1.1 serves this site</span>
+                <span class="badge-neutral mono ms-1">1.1 deployed here</span>
                 <span class="badge-neutral mono">causal: analysis-only inputs</span>
                 <span class="badge-neutral mono">20 leads to +120 h</span>
               </div>
-              <p class="lead mb-0">My own tropical-cyclone model that forecasts a storm's next five days over the western Pacific &mdash; track, central pressure, intensity and the wind-field radii. The current release is <strong>Trackformer&nbsp;1.2</strong>, which roughly halves track error against 1.1 on a matched benchmark. <strong>What this site serves is still Trackformer&nbsp;1.1</strong> &mdash; every hindcast and every past-storm run here is a 1.1 run and is labelled as one. On <em>live</em> storms you can additionally switch on a <strong>1.2 route-only overlay</strong>. It is deliberately marked experimental: 1.2's route head <em>corrects</em> a base route rather than drawing one, and the base route it was trained around is a private upstream input, so the overlay runs the release's documented persistence fallback instead. Over a five-day track the model can shift that line by at most 300&nbsp;km, so most of what you see is persistence &mdash; the overlay states the share on screen rather than letting it pass for the benchmark configuration. The historical <strong>Trackformer1.0</strong> ensemble still runs in your browser wherever no 1.1 run covers the initialisation. Live on the <a href="typhoon-tracks.html">Typhoon Tracks</a> explorer, over real JMA forecasts and past storms.</p>
+              <p class="lead mb-0">My own tropical-cyclone model that forecasts a storm's next five days over the western Pacific &mdash; track, central pressure, intensity and the wind-field radii. The current release is <strong>Trackformer&nbsp;1.2</strong>, which roughly halves track error against 1.1 on a matched benchmark. <strong>What this site serves is still Trackformer&nbsp;1.1</strong>: 1.2 takes sea-surface temperature, nearby-storm context and static geography that the live pipeline does not fetch yet, so every forecast and hindcast you see here is a 1.1 run and is labelled as one. The historical <strong>Trackformer1.0</strong> ensemble still runs in your browser wherever no 1.1 run covers the initialisation. Live on the <a href="typhoon-tracks.html">Typhoon Tracks</a> explorer, over real JMA forecasts and past storms.</p>
             </header>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
