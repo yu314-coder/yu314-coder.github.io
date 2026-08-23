@@ -575,6 +575,13 @@ body {
 .tt-app.is-season .tt-float--timeline { display: none; }
 .tt-app.is-season .tt-float--legend { display: none; }
 
+/* The model FAB exists only on touch, where the labelled overlay buttons under
+   the map are hidden. Parked under the zoom stack rather than bottom-right,
+   where the site's fixed device chip (z-index 8000) sits on top of it and
+   swallows the tap. */
+.tt-model-fab { display: none; left: auto; right: 10px; bottom: auto; }
+.tt-model-fab.is-on { border-color: #6ee7a8; background: rgba(110, 231, 168, 0.2); color: #d6ffe9; }
+
 /* --- Tablet and phone -----------------------------------------
    The whole frame is the map. The host page hides its header and
    intro below 992px and pins this iframe to the viewport, so what
@@ -621,10 +628,13 @@ body {
   .tt-fab svg { width: 23px; height: 23px; }
 
   /* Timeline floats just above the storm card, over the map. */
+  /* top:100% puts it directly BELOW the shell rather than over the map's bottom
+     edge, where it covered the storm marker -- and the shell is shrink-wrapped
+     to the map, so that space was empty anyway. */
   .tt-float--timeline,
   .tt-app.controls-hidden .tt-float--timeline {
-    position: absolute; left: 8px; right: 8px; bottom: 8px;
-    width: auto; transform: none; margin: 0; padding: 8px 12px 10px;
+    position: absolute; left: 8px; right: 8px; top: 100%; bottom: auto;
+    width: auto; transform: none; margin: 8px 0 0; padding: 8px 12px 10px;
   }
   .tt-app:not(.controls-hidden) .tt-float--timeline { display: none; }
   .tt-float--timeline .tt-play-btn,
@@ -638,24 +648,46 @@ body {
   .tt-zoom-controls { top: 10px; right: 10px; }
   .tt-zoom-controls button { width: 40px; height: 40px; }
 
-  /* Storm card: a sheet over the map, not a block under it. */
+  /* Storm info as a strip across the top of the map, not a card beside it or a
+     sheet over it. One line of the things you actually read while scrubbing --
+     name, category, wind, pressure -- so the map keeps the rest of the screen.
+     The wind-radius rows and the position stay on wider screens; they are
+     reference, not glanceable. */
   .tt-details, .tt-predict-panel {
-    position: absolute; left: 0; right: 0; bottom: 0; z-index: 7;
-    width: auto; flex: none; max-height: 46%; overflow-y: auto;
-    border-radius: 16px 16px 0 0; border-left: 0; border-right: 0; border-bottom: 0;
-    background: rgba(19, 26, 46, 0.94); backdrop-filter: blur(10px);
+    position: absolute; top: 0; left: 0; right: 0; bottom: auto; z-index: 7;
+    width: auto; flex: none; max-height: none; overflow: hidden;
+    flex-direction: row; align-items: center; flex-wrap: nowrap;
+    gap: 10px; padding: 7px 12px;
+    border-radius: 0; border-left: 0; border-right: 0; border-top: 0;
+    background: rgba(19, 26, 46, 0.92); backdrop-filter: blur(10px);
   }
-  .tt-app.info-collapsed .tt-details,
-  .tt-app.info-collapsed .tt-predict-panel { display: none; }
-  .tt-app:not(.info-collapsed) .tt-float--timeline { bottom: calc(46% + 8px); }
-  .tt-info-fab { display: flex; }
+  .tt-details .tt-details-top {
+    flex: 1 1 auto; min-width: 0; flex-direction: row; align-items: baseline; gap: 8px;
+  }
+  .tt-details .tt-details-name {
+    font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .tt-details .tt-details-time,
+  .tt-details .tt-details-dvorak,
+  .tt-details .tt-details-subhead,
+  .tt-details .tt-radius-row,
+  .tt-details .tt-details-item--wide { display: none; }
+  .tt-details .tt-details-cat { font-size: 10.5px; padding: 2px 8px; white-space: nowrap; }
+  .tt-details .tt-details-grid {
+    display: flex; flex: none; gap: 12px; margin: 0;
+  }
+  .tt-details .tt-details-item { gap: 0; }
+  .tt-details .tt-details-label { font-size: 9px; }
+  .tt-details .tt-details-value { font-size: 15px; }
+
+  /* The strip owns the top edge, so the controls clear it. */
+  .tt-fab { top: 54px; }
+  .tt-zoom-controls { top: 54px; }
+  .tt-float--legend { top: 54px; }
+  .tt-model-fab { display: flex; top: 202px; }
+  .tt-float--controls { max-height: min(76%, 470px); }
 }
 
-/* The storm-card toggle only exists where the card is a sheet.
-   Parked under the zoom stack rather than bottom-right, where the site's fixed
-   device chip (z-index 8000) sits on top of it and swallows the tap. */
-.tt-info-fab { display: none; left: auto; right: 10px; top: 148px; bottom: auto; }
-.tt-app:not(.info-collapsed) .tt-info-fab { display: none; }
 
 /* ---------------------------------------------------------------------------
    Full-height only when the host has pinned the frame to the viewport
@@ -669,5 +701,13 @@ body {
 html.tt-pinned, html.tt-pinned body { height: 100%; overflow: hidden; }
 html.tt-pinned .tt-app { height: 100%; min-height: 100%; overflow: hidden; }
 html.tt-pinned .tt-mapwrap { height: 100%; }
-html.tt-pinned .tt-map-shell { height: 100%; }
-html.tt-pinned .tt-map { height: 100% !important; min-height: 0; }
+/* flex: 0 0 auto, not the inherited 1 1 auto. As a growing flex item the shell
+   filled the frame whatever height it was given, so the floating timeline --
+   positioned against the shell -- sat 72px below the map in a band of empty
+   panel instead of on it. */
+html.tt-pinned .tt-map-shell { height: 100%; flex: 0 0 auto; }
+/* height, not height:!important -- the box-fit sets an inline height when the
+   capped window still leaves slack, and an !important rule would lock that out
+   and hand the difference back as dead panel. max-height keeps it inside the
+   frame either way. */
+html.tt-pinned .tt-map { height: 100%; max-height: 100%; min-height: 0; }

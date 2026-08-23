@@ -26,6 +26,9 @@
   // box-fit below corrects whatever this misses.
   var GEO_PIXEL_K = 0.87;
 
+  // How far the window may be stretched past the region it is framing.
+  var MAX_LAT_SPAN = 88, MAX_LON_SPAN = 150;
+
   // The window is always built to the SHAPE of the box it will be drawn in.
   //
   // A geo subplot preserves its own aspect, so any mismatch becomes dead panel
@@ -73,10 +76,17 @@
     var lonSpan = loMax - loMin, latSpan = laMax - laMin, grow;
     var wantLon = (boxAspect / GEO_PIXEL_K) * latSpan;
     if (wantLon > lonSpan) {
-      grow = (wantLon - lonSpan) / 2; loMin -= grow; loMax += grow;
+      grow = Math.min((wantLon - lonSpan) / 2, (MAX_LON_SPAN - lonSpan) / 2);
+      if (grow > 0) { loMin -= grow; loMax += grow; }
     } else {
       grow = ((lonSpan * GEO_PIXEL_K / boxAspect) - latSpan) / 2;
-      laMin -= grow; laMax += grow;
+      // Capped. Matching a 0.5-aspect phone box to a track 3x wider than it is
+      // tall wants ~120 degrees of latitude, which zooms out until Australia is
+      // on screen and the storm is a smudge. Better to stop, show the region at
+      // a useful scale, and let the box shrink to the map (below) than to fill
+      // the screen with ocean nobody asked for.
+      grow = Math.min(grow, (MAX_LAT_SPAN - latSpan) / 2);
+      if (grow > 0) { laMin -= grow; laMax += grow; }
     }
     laMin = Math.max(laMin, -80); laMax = Math.min(laMax, 84);
     return {
@@ -142,7 +152,7 @@
     legend: document.getElementById("tt-legend"),
     controlsPanel: document.getElementById("tt-controls-panel"),
     controlsFab: document.getElementById("tt-controls-fab"),
-    infoFab: document.getElementById("tt-info-fab"),
+    modelFab: document.getElementById("tt-model-fab"),
     controlsClose: document.getElementById("tt-controls-close"),
     legendToggle: document.getElementById("tt-legend-toggle"),
     mapLegendBody: document.getElementById("tt-map-legend-body"),
@@ -806,6 +816,11 @@
       // lets the geo grow into it, while on a phone the floor is low enough
       // that the measured height actually applies and the box shrinks.
       els.map.style.height = drawn + "px";
+      // The floating timeline and legend are positioned against the SHELL, so
+      // if the shell keeps filling the frame after the map has shrunk, they
+      // hang in a band of empty panel below the map instead of sitting on it.
+      var shell = els.map.parentElement;
+      if (shell && shell.classList.contains("tt-map-shell")) shell.style.height = drawn + "px";
       try { Plotly.Plots.resize(els.map); } catch (e) { /* not built yet */ }
     });
   }
@@ -1036,9 +1051,16 @@
         bgcolor: "rgba(0,0,0,0)"
       },
       margin: { l: 0, r: 0, t: 6, b: 0 },
+      // No explicit height. It used to be a hardcoded 460, which meant the plot
+      // stayed 460px tall inside whatever box it was given -- responsive:true
+      // only ever fixed the width. That single number is where every "dead
+      // band under the map" came from, at every screen size; the box-fitting
+      // and window-shaping around it were all treating the symptom.
+      // Omitted, Plotly sizes to the container, and .tt-map always has a
+      // height (min-height on desktop, 100% when the host pins the frame).
       paper_bgcolor: "rgba(0,0,0,0)",
       showlegend: false,
-      height: 460
+      autosize: true
     };
   }
 
@@ -3815,31 +3837,43 @@
   if (els.controlsClose) els.controlsClose.addEventListener("click", function () { setControlsHidden(true); });
   if (els.controlsFab) els.controlsFab.addEventListener("click", function () { setControlsHidden(false); });
 
-  // The storm card is a sheet on a phone, so it can be dismissed to get the
-  // whole screen back; the FAB brings it in again. On desktop it is a column
-  // and neither the class nor the button does anything.
-  function setInfoCollapsed(collapsed) {
-    if (!els.app) return;
-    els.app.classList.toggle("info-collapsed", collapsed);
-    if (els.infoFab) els.infoFab.setAttribute("aria-expanded", collapsed ? "false" : "true");
-    afterPanelChange();
+  // The model FAB is a proxy for whichever real overlay button the current mode
+  // shows -- "Run my AI model" in Track, "Overlay my AI model" in Forecast --
+  // so the model is still one implementation with one status line, and the FAB
+  // just mirrors it. Its label and pressed state follow the button it stands
+  // for, so a screen reader gets the same thing a wide screen shows.
+  function activeModelBtn() {
+    var predict = els.app && els.app.classList.contains("mode-predict");
+    return predict ? els.aiBtn : els.hindcastBtn;
   }
-  if (els.infoFab) els.infoFab.addEventListener("click", function () { setInfoCollapsed(false); });
-  [els.details, els.predictPanel].forEach(function (panel) {
-    if (!panel) return;
-    panel.addEventListener("click", function (e) {
-      // Tapping the card's own header dismisses it, so there is a way out that
-      // does not require finding a control.
-      if (e.target.closest(".tt-details-top, .tt-predict-head")) setInfoCollapsed(true);
+  function syncModelFab() {
+    if (!els.modelFab) return;
+    var btn = activeModelBtn();
+    if (!btn) return;
+    var on = btn.getAttribute("aria-pressed") === "true";
+    els.modelFab.setAttribute("aria-pressed", on ? "true" : "false");
+    els.modelFab.classList.toggle("is-on", on);
+    els.modelFab.setAttribute("aria-label", (btn.textContent || "Run my AI model").trim());
+  }
+  if (els.modelFab) {
+    els.modelFab.addEventListener("click", function () {
+      var btn = activeModelBtn();
+      if (btn) btn.click();
+      // The real button flips aria-pressed synchronously for a toggle-off and
+      // asynchronously once a run finishes, so mirror on both edges.
+      syncModelFab();
+      setTimeout(syncModelFab, 60);
     });
-  });
+    [els.hindcastBtn, els.aiBtn].forEach(function (b) {
+      if (b) b.addEventListener("click", function () { setTimeout(syncModelFab, 60); });
+    });
+  }
 
-  // On a phone or tablet the controls are a bottom sheet, and a sheet that
-  // opens over the map on load hides the thing you came to see. Start closed
-  // there and open on desktop, where the panel costs the map nothing it needs.
-  // Re-evaluated on rotation: a tablet turned landscape crosses the breakpoint.
-  // Same test as the stylesheet: width OR a touch pointer, so an iPad in
-  // landscape gets the sheet defaults rather than the desktop ones.
+  // On touch the controls are a sheet and the legend a card over the map, so
+  // both start closed: opening over the map on load hides the thing you came
+  // for. Desktop starts with them out, where they cost the map nothing.
+  // Re-evaluated on rotation, since a tablet turned landscape can cross the
+  // width test even though the pointer test does not change.
   var TOUCH_LAYOUT = "(max-width: 999px), (hover: none) and (pointer: coarse)";
   var narrow = window.matchMedia(TOUCH_LAYOUT);
   var narrowApplied = null;
@@ -3847,7 +3881,7 @@
     if (narrowApplied === isNarrow) return;
     narrowApplied = isNarrow;
     setControlsHidden(isNarrow);
-    setInfoCollapsed(isNarrow);
+    syncModelFab();
     if (els.app) els.app.classList.toggle("legend-collapsed", isNarrow);
     if (els.legendToggle) els.legendToggle.setAttribute("aria-expanded", isNarrow ? "false" : "true");
   }
@@ -3855,13 +3889,30 @@
   if (narrow.addEventListener) narrow.addEventListener("change", function (e) { applyNarrowDefaults(e.matches); });
   else if (narrow.addListener) narrow.addListener(function (e) { applyNarrowDefaults(e.matches); });
 
-  // The map is sized in svh units on small screens, so a rotation or a
-  // collapsing iOS toolbar changes its box without Plotly hearing about it.
-  var resizeTimer = null;
-  window.addEventListener("resize", function () {
-    if (resizeTimer) clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(afterPanelChange, 180);
-  });
+  // Plotly measures its container once and keeps that size. Anything that
+  // changes the box afterwards -- a rotation, iOS collapsing its toolbar, the
+  // host marking us pinned after we have already drawn -- leaves the canvas at
+  // the old size inside a larger div. That is how a 741px box ended up holding
+  // a 460px plot with 280px of dead panel under it.
+  //
+  // So watch the element itself rather than guessing at the moments it might
+  // change. The guard compares Plotly's own canvas size with the container and
+  // does nothing when they already agree, which is what stops the box-fit below
+  // (which sets a height) from bouncing off this and looping.
+  var roTimer = null;
+  function mapBoxChanged() {
+    if (roTimer) clearTimeout(roTimer);
+    roTimer = setTimeout(function () {
+      if (!(window.Plotly && els.map && els.map._fullLayout)) return;
+      var r = els.map.getBoundingClientRect();
+      var fl = els.map._fullLayout;
+      if (Math.abs(fl.width - r.width) < 2 && Math.abs(fl.height - r.height) < 2) return;
+      afterPanelChange();
+    }, 120);
+  }
+  if (window.ResizeObserver && els.map) new ResizeObserver(mapBoxChanged).observe(els.map);
+  window.addEventListener("resize", mapBoxChanged);
+
   if (els.legendToggle) {
     els.legendToggle.addEventListener("click", function () {
       var collapsed = els.app.classList.toggle("legend-collapsed");
