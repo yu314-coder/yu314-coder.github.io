@@ -13,7 +13,7 @@
     "",
     "outdir/index/driver decide WHERE a model's hindcasts land and WHICH live",
     "driver builds its inputs. They are not cosmetic: the model input used to",
-    "switch only the weights, so a 1.2 run would have written its output over",
+    "switch only the weights, so an experimental run would have written its output over",
     "the 1.1 hindcasts it exists to be compared against."
   ],
   "trackformer_1_1": {
