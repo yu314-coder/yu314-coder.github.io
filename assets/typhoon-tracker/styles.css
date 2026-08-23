@@ -668,7 +668,7 @@ body {
      name, category, wind, pressure -- so the map keeps the rest of the screen.
      The wind-radius rows and the position stay on wider screens; they are
      reference, not glanceable. */
-  .tt-details, .tt-predict-panel {
+  .tt-details {
     position: absolute; top: 0; left: 0; right: 0; bottom: auto; z-index: 7;
     width: auto; flex: none; max-height: none; overflow: hidden;
     flex-direction: row; align-items: center; flex-wrap: nowrap;
@@ -676,6 +676,23 @@ body {
     border-radius: 0; border-left: 0; border-right: 0; border-top: 0;
     background: rgba(19, 26, 46, 0.92); backdrop-filter: blur(10px);
   }
+
+  /* The live forecast panel is NOT the track card: it carries a five-day
+     forecast table, a position line and a provenance paragraph on top of the
+     same header. Styled as a strip it simply stacked all of that over the map
+     and buried it. It belongs below the map, in flow, with the chart and the
+     climatology -- the map still opens the page, and the forecast is a scroll
+     away rather than on top of it. */
+  .tt-predict-panel {
+    position: static; width: auto; flex: none; max-height: none;
+    margin: 8px 0 0; padding: 12px 14px;
+    border-radius: 0; border-left: 0; border-right: 0;
+  }
+  .tt-predict-panel .tt-details-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 14px;
+  }
+  .tt-predict-panel .tt-fc-rows { max-height: 260px; overflow-y: auto; }
+  .tt-predict-panel .tt-pred-foot { font-size: 10.5px; line-height: 1.45; }
   .tt-details .tt-details-top {
     flex: 1 1 auto; min-width: 0; flex-direction: row; align-items: baseline; gap: 8px;
   }
