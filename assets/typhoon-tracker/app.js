@@ -10,7 +10,32 @@
   var DATA_V = "?v=d9e97e05f";   // bump when the season/index JSON is regenerated (e.g. RMW added)
   var DEFAULT_STORM = { name: "Haiyan", season: 2013 };
   var DEFAULT_GEO = { lon: 150, lat: 20, lonRange: [95, 205], latRange: [-2, 55], scale: 1 };
+
+  // A "natural earth" geo keeps its own aspect: the 110 deg x 57 deg window
+  // above is about 1.9:1, so in a tall narrow box Plotly draws a short wide
+  // strip and leaves the rest blank. On a 390x726 phone that measured 390x236
+  // drawn -- 490px, two thirds of the "map", empty.
+  //
+  // Cropping that landscape window with zoom was worse: it filled the box but
+  // threw away the basin and pushed the storm off to a corner. A portrait
+  // screen wants a PORTRAIT window, so pick the window by shape, then let the
+  // zoom take up whatever slack is left.
+  var PORTRAIT_GEO = { lon: 145, lat: 22, lonRange: [104, 186], latRange: [-10, 58] };
+  function geoWindow() {
+    var el = document.getElementById("tt-map");
+    var r = el && el.getBoundingClientRect();
+    var portrait = r && r.width && r.height && (r.width / r.height) < 1.35;
+    return portrait ? PORTRAIT_GEO : DEFAULT_GEO;
+  }
+  // Deliberately NOT adaptive. An earlier version scaled the projection to fill
+  // the box, but shrink-wrapping the box (below) then changed the aspect, which
+  // changed the scale, which changed the drawn size -- the two fought and left
+  // the storm cropped off-screen. Picking the right WINDOW for the shape and
+  // letting the box shrink to what is drawn does the same job with one lever.
+  function baseGeoScale() { return DEFAULT_GEO.scale; }
+
   var currentGeoScale = DEFAULT_GEO.scale;
+  var userZoomed = false;   // set once the reader zooms, so auto-fit stops overriding them
 
   var indexData = [];
   var seasonCache = {};
@@ -691,6 +716,46 @@
 
   // Track-mode map: one storm's path, or the whole-season overview. (Forecast
   // mode renders separately, straight from live JMA data.)
+
+  // The map box is sized in vh/svh, but the geo only ever draws at its own
+  // aspect inside it, so a box taller than that aspect leaves a dead band --
+  // 490px of 726 on a 390px phone, 194px of 648 on a 1440px desktop. Measure
+  // what Plotly actually drew and shrink the box to it, so the map ends where
+  // the map ends and nothing floats over empty panel.
+  var fitPending = false, fitBound = false;
+  function fitMapBoxToDrawing() {
+    if (!els.map) return;
+    // Applied at every width, not just on phones. A 1440px desktop box was
+    // 648px tall with 454px drawn -- the same 30% dead band, just less obvious
+    // because the floating timeline sat in it.
+    // Plotly draws asynchronously, so a measurement taken right after react()
+    // finds nothing on a cold load. Bind to its own after-plot event once and
+    // let that drive the fit; the rAF below only covers the already-drawn case.
+    if (!fitBound && els.map.on) {
+      fitBound = true;
+      try { els.map.on("plotly_afterplot", fitMapBoxToDrawing); } catch (e) { /* not a gd yet */ }
+    }
+    if (fitPending) return;
+    fitPending = true;
+    requestAnimationFrame(function () {
+      fitPending = false;
+      var bg = els.map.querySelector(".geo .bg");
+      if (!bg) return;
+      var drawn = Math.round(bg.getBoundingClientRect().height);
+      if (!drawn) return;
+      var current = Math.round(els.map.getBoundingClientRect().height);
+      // Only act on a real gap, or setting the height re-triggers the resize
+      // that called us and the two ping-pong.
+      if (Math.abs(current - drawn) < 10) return;
+      // CSS min-height still wins over this inline height, which is what we
+      // want: on desktop the box stays at its 72vh floor and the resize below
+      // lets the geo grow into it, while on a phone the floor is low enough
+      // that the measured height actually applies and the box shrinks.
+      els.map.style.height = drawn + "px";
+      try { Plotly.Plots.resize(els.map); } catch (e) { /* not built yet */ }
+    });
+  }
+
   function renderMap() {
     if (viewMode === "season") buildSeasonOverview();
     else buildMap();
@@ -894,6 +959,7 @@
 
     lastMarkerColor = null; // force the next scrub frame to sync the marker color
     Plotly.react(els.map, traces, geoLayout(), { displayModeBar: false, responsive: true, scrollZoom: true });
+    fitMapBoxToDrawing();
     bindMapClick();
   }
 
@@ -901,10 +967,12 @@
     return {
       geo: {
         resolution: 50,   // higher-detail coastlines (NCDR-like), vs default 110
-        projection: { type: "natural earth", scale: DEFAULT_GEO.scale },
-        center: { lon: DEFAULT_GEO.lon, lat: DEFAULT_GEO.lat },
-        lonaxis: { range: DEFAULT_GEO.lonRange.slice() },
-        lataxis: { range: DEFAULT_GEO.latRange.slice() },
+        // Keep the tracked scale in step with what is actually drawn, or the
+        // first zoom click jumps from the fitted value back to 1.
+        projection: { type: "natural earth", scale: (currentGeoScale = baseGeoScale()) },
+        center: { lon: geoWindow().lon, lat: geoWindow().lat },
+        lonaxis: { range: geoWindow().lonRange.slice() },
+        lataxis: { range: geoWindow().latRange.slice() },
         showland: true, landcolor: "rgb(44,52,70)",
         showocean: true, oceancolor: "rgb(9,12,19)",
         showcountries: true, countrycolor: "rgba(255,255,255,0.13)",
@@ -949,6 +1017,7 @@
       traces.push({ type: "scattergeo", mode: "lines", lat: [], lon: [], hoverinfo: "skip" });
     }
     Plotly.react(els.map, traces, geoLayout(), { displayModeBar: false, responsive: true, scrollZoom: true });
+    fitMapBoxToDrawing();
     bindMapClick();
   }
 
@@ -1594,6 +1663,7 @@
         setForecastMessage("Couldn’t reach JMA’s forecast service. It may be briefly unavailable — switch back to Track, or try Forecast again shortly.");
         if (els.typhoonSelect) els.typhoonSelect.innerHTML = "<option>—</option>";
         Plotly.react(els.map, [], geoLayout(), { displayModeBar: false, responsive: true, scrollZoom: true });
+    fitMapBoxToDrawing();
       });
   }
 
@@ -1698,6 +1768,7 @@
     fcSweepCircleIdx = -1;
     if (els.typhoonSelect) els.typhoonSelect.innerHTML = "<option>None active</option>";
     Plotly.react(els.map, [], geoLayout(), { displayModeBar: false, responsive: true, scrollZoom: true });
+    fitMapBoxToDrawing();
     setForecastMessage("No active tropical cyclones. JMA isn’t tracking any storms in the Western Pacific right now — check back during a storm.");
   }
 
@@ -1772,6 +1843,7 @@
       hoverinfo: "skip", showlegend: false });
 
     Plotly.react(els.map, traces, geoLayout(), { displayModeBar: false, responsive: true, scrollZoom: true });
+    fitMapBoxToDrawing();
     aiRestoreOrClear(d);   // re-draw the AI overlay if it was on for this same storm
     startForecastAnim(d);
   }
@@ -3661,9 +3733,24 @@
   // show/hide has to be followed by a resize or the map keeps the old width
   // and leaves a blank strip.
   function afterPanelChange() {
-    if (window.Plotly && els.map && els.map.data) {
-      try { Plotly.Plots.resize(els.map); } catch (e) { /* map not built yet */ }
-    }
+    if (!(window.Plotly && els.map && els.map.data)) return;
+    try {
+      Plotly.Plots.resize(els.map);
+      // Only re-fit while the user is still at the default zoom. Once they
+      // have zoomed or panned deliberately, a rotation must not throw that
+      // away and snap them back.
+      fitMapBoxToDrawing();
+      if (!userZoomed) {
+        var w = geoWindow(), fit = baseGeoScale();
+        currentGeoScale = fit;
+        Plotly.relayout(els.map, {
+          "geo.projection.scale": fit,
+          "geo.center": { lon: w.lon, lat: w.lat },
+          "geo.lonaxis.range": w.lonRange.slice(),
+          "geo.lataxis.range": w.latRange.slice()
+        });
+      }
+    } catch (e) { /* map not built yet */ }
   }
   function setControlsHidden(hidden) {
     if (!els.app) return;
@@ -3673,6 +3760,31 @@
   }
   if (els.controlsClose) els.controlsClose.addEventListener("click", function () { setControlsHidden(true); });
   if (els.controlsFab) els.controlsFab.addEventListener("click", function () { setControlsHidden(false); });
+
+  // On a phone or tablet the controls are a bottom sheet, and a sheet that
+  // opens over the map on load hides the thing you came to see. Start closed
+  // there and open on desktop, where the panel costs the map nothing it needs.
+  // Re-evaluated on rotation: a tablet turned landscape crosses the breakpoint.
+  var narrow = window.matchMedia("(max-width: 999px)");
+  var narrowApplied = null;
+  function applyNarrowDefaults(isNarrow) {
+    if (narrowApplied === isNarrow) return;
+    narrowApplied = isNarrow;
+    setControlsHidden(isNarrow);
+    if (els.app) els.app.classList.toggle("legend-collapsed", isNarrow);
+    if (els.legendToggle) els.legendToggle.setAttribute("aria-expanded", isNarrow ? "false" : "true");
+  }
+  applyNarrowDefaults(narrow.matches);
+  if (narrow.addEventListener) narrow.addEventListener("change", function (e) { applyNarrowDefaults(e.matches); });
+  else if (narrow.addListener) narrow.addListener(function (e) { applyNarrowDefaults(e.matches); });
+
+  // The map is sized in svh units on small screens, so a rotation or a
+  // collapsing iOS toolbar changes its box without Plotly hearing about it.
+  var resizeTimer = null;
+  window.addEventListener("resize", function () {
+    if (resizeTimer) clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(afterPanelChange, 180);
+  });
   if (els.legendToggle) {
     els.legendToggle.addEventListener("click", function () {
       var collapsed = els.app.classList.toggle("legend-collapsed");
@@ -3751,18 +3863,20 @@
      make it discoverable and give touch/trackpad users an explicit control.
      ------------------------------------------------------------------------- */
   function zoomBy(factor) {
+    userZoomed = true;
     currentGeoScale = Math.max(0.5, Math.min(currentGeoScale * factor, 20));
     Plotly.relayout(els.map, { "geo.projection.scale": currentGeoScale });
   }
   els.zoomIn.addEventListener("click", function () { zoomBy(1.5); });
   els.zoomOut.addEventListener("click", function () { zoomBy(1 / 1.5); });
   els.zoomReset.addEventListener("click", function () {
-    currentGeoScale = DEFAULT_GEO.scale;
+    userZoomed = false;
+    currentGeoScale = baseGeoScale();
     Plotly.relayout(els.map, {
-      "geo.projection.scale": DEFAULT_GEO.scale,
-      "geo.center": { lon: DEFAULT_GEO.lon, lat: DEFAULT_GEO.lat },
-      "geo.lonaxis.range": DEFAULT_GEO.lonRange.slice(),
-      "geo.lataxis.range": DEFAULT_GEO.latRange.slice()
+      "geo.projection.scale": currentGeoScale,
+      "geo.center": { lon: geoWindow().lon, lat: geoWindow().lat },
+      "geo.lonaxis.range": geoWindow().lonRange.slice(),
+      "geo.lataxis.range": geoWindow().latRange.slice()
     });
   });
 
