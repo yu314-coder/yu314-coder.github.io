@@ -1481,7 +1481,11 @@ body.theme-dark .chip-no { background: rgba(255,255,255,0.05); }
    map. The prose is not deleted -- it is still on the page below the map, so
    nothing is lost, it just stops standing in front of the map.
    ------------------------------------------------------------------------- */
-@media (max-width: 991.98px) {
+/* Width alone missed the iPad: at 1024px landscape it took the desktop layout,
+   kept the prose, and letterboxed the map. A tablet is a touch device whatever
+   its width, so match on that too -- (hover: none) and (pointer: coarse) is
+   true on phones and tablets and false on a trackpad or mouse. */
+@media (max-width: 991.98px), (hover: none) and (pointer: coarse) {
   body.tracker-page .page-header,
   body.tracker-page .section-sm,
   body.tracker-page .tracker-intro { display: none; }

@@ -20,28 +20,32 @@
   // threw away the basin and pushed the storm off to a corner. A portrait
   // screen wants a PORTRAIT window, so pick the window by shape, then let the
   // zoom take up whatever slack is left.
-  var PORTRAIT_GEO = { lon: 145, lat: 22, lonRange: [104, 186], latRange: [-10, 58] };
-
   // Natural earth is not equirectangular: a window of lonSpan x latSpan draws
   // with a pixel aspect of roughly (lonSpan / latSpan) * K. Measured off the
   // real plot -- an 82 x 68 window drew 390 x 371 -- so K is about 0.87. The
   // box-fit below corrects whatever this misses.
   var GEO_PIXEL_K = 0.87;
 
-  // On a phone the map is the whole screen, so the window has to match the
-  // screen's shape or the projection letterboxes and most of it is dead panel.
-  // Rather than crop a landscape window (which fills the box but throws the
-  // storm into a corner), frame THIS storm and then grow the short axis until
-  // the window is the same shape as the box: the track stays fully visible and
-  // the map still fills the screen.
+  // The window is always built to the SHAPE of the box it will be drawn in.
+  //
+  // A geo subplot preserves its own aspect, so any mismatch becomes dead panel
+  // -- and it can be dead panel on either axis. A tall phone box letterboxed
+  // vertically; an iPad in landscape, whose box was wider than the portrait
+  // window it had been given, letterboxed horizontally and drew the map as a
+  // narrow strip with empty panel down both sides.
+  //
+  // So: take the region of interest (this storm's track, or the basin when
+  // there is no single storm), pad it, then grow whichever axis is short until
+  // the window matches the box. The region always stays fully visible and the
+  // map always fills the box.
   function geoWindow() {
     var el = document.getElementById("tt-map");
     var r = el && el.getBoundingClientRect();
     if (!r || !r.width || !r.height) return DEFAULT_GEO;
     var boxAspect = r.width / r.height;
-    if (boxAspect >= 1.35) return DEFAULT_GEO;   // landscape/desktop: the basin window already fits
 
-    var pts = currentStorm && currentStorm.pts, n = 0, loMin, loMax, laMin, laMax, i, pt;
+    var loMin, loMax, laMin, laMax, n = 0, i, pt;
+    var pts = viewMode === "season" ? null : (currentStorm && currentStorm.pts);
     if (pts) {
       for (i = 0; i < pts.length; i++) {
         pt = pts[i];
@@ -56,12 +60,15 @@
         n++;
       }
     }
-    // Season view and the moment before a storm loads have no track to frame.
-    if (n < 2) return PORTRAIT_GEO;
-
-    var padLon = Math.max((loMax - loMin) * 0.16, 2.5);
-    var padLat = Math.max((laMax - laMin) * 0.16, 2.5);
-    loMin -= padLon; loMax += padLon; laMin -= padLat; laMax += padLat;
+    if (n >= 2) {
+      var padLon = Math.max((loMax - loMin) * 0.16, 2.5);
+      var padLat = Math.max((laMax - laMin) * 0.16, 2.5);
+      loMin -= padLon; loMax += padLon; laMin -= padLat; laMax += padLat;
+    } else {
+      // Season view, or before a storm has loaded: frame the basin instead.
+      loMin = DEFAULT_GEO.lonRange[0]; loMax = DEFAULT_GEO.lonRange[1];
+      laMin = DEFAULT_GEO.latRange[0]; laMax = DEFAULT_GEO.latRange[1];
+    }
 
     var lonSpan = loMax - loMin, latSpan = laMax - laMin, grow;
     var wantLon = (boxAspect / GEO_PIXEL_K) * latSpan;
@@ -71,7 +78,6 @@
       grow = ((lonSpan * GEO_PIXEL_K / boxAspect) - latSpan) / 2;
       laMin -= grow; laMax += grow;
     }
-    // Keep it on the planet.
     laMin = Math.max(laMin, -80); laMax = Math.min(laMax, 84);
     return {
       lon: (loMin + loMax) / 2, lat: (laMin + laMax) / 2,
@@ -3832,7 +3838,10 @@
   // opens over the map on load hides the thing you came to see. Start closed
   // there and open on desktop, where the panel costs the map nothing it needs.
   // Re-evaluated on rotation: a tablet turned landscape crosses the breakpoint.
-  var narrow = window.matchMedia("(max-width: 999px)");
+  // Same test as the stylesheet: width OR a touch pointer, so an iPad in
+  // landscape gets the sheet defaults rather than the desktop ones.
+  var TOUCH_LAYOUT = "(max-width: 999px), (hover: none) and (pointer: coarse)";
+  var narrow = window.matchMedia(TOUCH_LAYOUT);
   var narrowApplied = null;
   function applyNarrowDefaults(isNarrow) {
     if (narrowApplied === isNarrow) return;

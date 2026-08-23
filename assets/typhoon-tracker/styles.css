@@ -586,19 +586,13 @@ body {
    frame that no longer scrolls. It is all still there on a wider
    screen; none of it is the reason someone opens this on a phone.
    -------------------------------------------------------------- */
-@media (max-width: 999px) {
-  .tt-app {
-    padding: 0; height: 100%; min-height: 100%;
-    overflow: hidden; position: relative;
-  }
-  html, body { height: 100%; overflow: hidden; }
-
-  .tt-mapwrap { flex-direction: column; gap: 0; margin: 0; height: 100%; }
-  .tt-map-shell { width: 100%; height: 100%; }
-  .tt-map {
-    height: 100% !important; min-height: 0;
-    border-radius: 0; border: 0;
-  }
+/* Matches the host page's rule: width OR a touch pointer, so an iPad in
+   landscape gets the full-screen map instead of the desktop column layout. */
+@media (max-width: 999px), (hover: none) and (pointer: coarse) {
+  .tt-app { padding: 0; position: relative; }
+  .tt-mapwrap { flex-direction: column; gap: 0; margin: 0; }
+  .tt-map-shell { width: 100%; }
+  .tt-map { border-radius: 0; border: 0; }
 
   /* Reference content: real, but not what a phone is for. */
   .tt-stats, .tt-chart, .tt-legend, .tt-clim, .tt-source-note,
@@ -662,3 +656,18 @@ body {
    device chip (z-index 8000) sits on top of it and swallows the tap. */
 .tt-info-fab { display: none; left: auto; right: 10px; top: 148px; bottom: auto; }
 .tt-app:not(.info-collapsed) .tt-info-fab { display: none; }
+
+/* ---------------------------------------------------------------------------
+   Full-height only when the host has pinned the frame to the viewport
+   ---------------------------------------------------------------------------
+   Keyed off a class the host sets, NOT off our own width. The iframe is
+   narrower than the page around it, so width alone had the tracker going
+   height:100% inside a frame the host was still sizing to content -- each fed
+   the other and the map grew past 13,000px. The host owns the decision, so the
+   host states it.
+   ------------------------------------------------------------------------- */
+html.tt-pinned, html.tt-pinned body { height: 100%; overflow: hidden; }
+html.tt-pinned .tt-app { height: 100%; min-height: 100%; overflow: hidden; }
+html.tt-pinned .tt-mapwrap { height: 100%; }
+html.tt-pinned .tt-map-shell { height: 100%; }
+html.tt-pinned .tt-map { height: 100% !important; min-height: 0; }

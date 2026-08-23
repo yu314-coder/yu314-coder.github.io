@@ -43,7 +43,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 
   <!-- Site stylesheet (single source of truth) -->
-  <link rel="stylesheet" href="assets/css/style.css?v=20260822-ui4">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260822-ui5">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
 <body class="theme-dark tracker-page">
@@ -113,7 +113,7 @@
     </div>
 
     <div class="tracker-shell reveal">
-      <iframe id="typhoon-frame" src="assets/typhoon-tracker/index.html?v=20260822-ui4" title="Typhoon Track and Wind Radius Explorer" loading="lazy"></iframe>
+      <iframe id="typhoon-frame" src="assets/typhoon-tracker/index.html?v=20260822-ui5" title="Typhoon Track and Wind Radius Explorer" loading="lazy"></iframe>
     </div>
   </section>
 
@@ -167,8 +167,21 @@
       // Below 992px the frame is pinned to the viewport by CSS so the map fills
       // the screen. Measuring content there would stretch it back to the full
       // scroll height of the tracker and undo that, so the sizer stands down.
-      var pinned = window.matchMedia('(max-width: 991.98px)');
+      var pinned = window.matchMedia('(max-width: 991.98px), (hover: none) and (pointer: coarse)');
+      // The tracker must only go full-height when the frame is ACTUALLY pinned
+      // to the viewport. It cannot work that out itself: the iframe is narrower
+      // than the host, so at 1024px the host stayed desktop while the tracker's
+      // own width matched its touch breakpoint, went height:100%, and grew to
+      // fill a frame that was being sized to its content -- 13,484px of map
+      // before the loop settled. So the host, which owns the decision, states it.
+      function markPinned() {
+        try {
+          var doc = frame.contentDocument || frame.contentWindow.document;
+          if (doc) doc.documentElement.classList.toggle('tt-pinned', pinned.matches);
+        } catch (e) { /* cross-origin: the tracker keeps its scrolling layout */ }
+      }
       function sizeFrame() {
+        markPinned();
         if (pinned.matches) { frame.style.height = ''; lastH = 0; return; }
         try {
           var doc = frame.contentDocument || frame.contentWindow.document;
@@ -178,6 +191,7 @@
         } catch (e) { /* cross-origin fallback: keep min-height */ }
       }
       frame.addEventListener('load', function () {
+        markPinned();
         sizeFrame();
         // A ResizeObserver on the tracker's content is the ideal (event-driven)
         // signal; keep a slow poll as a reliable fallback. Both only WRITE the
