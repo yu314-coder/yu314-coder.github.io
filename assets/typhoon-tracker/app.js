@@ -21,17 +21,64 @@
   // screen wants a PORTRAIT window, so pick the window by shape, then let the
   // zoom take up whatever slack is left.
   var PORTRAIT_GEO = { lon: 145, lat: 22, lonRange: [104, 186], latRange: [-10, 58] };
+
+  // Natural earth is not equirectangular: a window of lonSpan x latSpan draws
+  // with a pixel aspect of roughly (lonSpan / latSpan) * K. Measured off the
+  // real plot -- an 82 x 68 window drew 390 x 371 -- so K is about 0.87. The
+  // box-fit below corrects whatever this misses.
+  var GEO_PIXEL_K = 0.87;
+
+  // On a phone the map is the whole screen, so the window has to match the
+  // screen's shape or the projection letterboxes and most of it is dead panel.
+  // Rather than crop a landscape window (which fills the box but throws the
+  // storm into a corner), frame THIS storm and then grow the short axis until
+  // the window is the same shape as the box: the track stays fully visible and
+  // the map still fills the screen.
   function geoWindow() {
     var el = document.getElementById("tt-map");
     var r = el && el.getBoundingClientRect();
-    var portrait = r && r.width && r.height && (r.width / r.height) < 1.35;
-    return portrait ? PORTRAIT_GEO : DEFAULT_GEO;
+    if (!r || !r.width || !r.height) return DEFAULT_GEO;
+    var boxAspect = r.width / r.height;
+    if (boxAspect >= 1.35) return DEFAULT_GEO;   // landscape/desktop: the basin window already fits
+
+    var pts = currentStorm && currentStorm.pts, n = 0, loMin, loMax, laMin, laMax, i, pt;
+    if (pts) {
+      for (i = 0; i < pts.length; i++) {
+        pt = pts[i];
+        if (pt.la == null || pt.lo == null) continue;
+        if (!n) { loMin = loMax = pt.lo; laMin = laMax = pt.la; }
+        else {
+          if (pt.lo < loMin) loMin = pt.lo;
+          if (pt.lo > loMax) loMax = pt.lo;
+          if (pt.la < laMin) laMin = pt.la;
+          if (pt.la > laMax) laMax = pt.la;
+        }
+        n++;
+      }
+    }
+    // Season view and the moment before a storm loads have no track to frame.
+    if (n < 2) return PORTRAIT_GEO;
+
+    var padLon = Math.max((loMax - loMin) * 0.16, 2.5);
+    var padLat = Math.max((laMax - laMin) * 0.16, 2.5);
+    loMin -= padLon; loMax += padLon; laMin -= padLat; laMax += padLat;
+
+    var lonSpan = loMax - loMin, latSpan = laMax - laMin, grow;
+    var wantLon = (boxAspect / GEO_PIXEL_K) * latSpan;
+    if (wantLon > lonSpan) {
+      grow = (wantLon - lonSpan) / 2; loMin -= grow; loMax += grow;
+    } else {
+      grow = ((lonSpan * GEO_PIXEL_K / boxAspect) - latSpan) / 2;
+      laMin -= grow; laMax += grow;
+    }
+    // Keep it on the planet.
+    laMin = Math.max(laMin, -80); laMax = Math.min(laMax, 84);
+    return {
+      lon: (loMin + loMax) / 2, lat: (laMin + laMax) / 2,
+      lonRange: [loMin, loMax], latRange: [laMin, laMax]
+    };
   }
-  // Deliberately NOT adaptive. An earlier version scaled the projection to fill
-  // the box, but shrink-wrapping the box (below) then changed the aspect, which
-  // changed the scale, which changed the drawn size -- the two fought and left
-  // the storm cropped off-screen. Picking the right WINDOW for the shape and
-  // letting the box shrink to what is drawn does the same job with one lever.
+
   function baseGeoScale() { return DEFAULT_GEO.scale; }
 
   var currentGeoScale = DEFAULT_GEO.scale;
@@ -89,6 +136,7 @@
     legend: document.getElementById("tt-legend"),
     controlsPanel: document.getElementById("tt-controls-panel"),
     controlsFab: document.getElementById("tt-controls-fab"),
+    infoFab: document.getElementById("tt-info-fab"),
     controlsClose: document.getElementById("tt-controls-close"),
     legendToggle: document.getElementById("tt-legend-toggle"),
     mapLegendBody: document.getElementById("tt-map-legend-body"),
@@ -3761,6 +3809,25 @@
   if (els.controlsClose) els.controlsClose.addEventListener("click", function () { setControlsHidden(true); });
   if (els.controlsFab) els.controlsFab.addEventListener("click", function () { setControlsHidden(false); });
 
+  // The storm card is a sheet on a phone, so it can be dismissed to get the
+  // whole screen back; the FAB brings it in again. On desktop it is a column
+  // and neither the class nor the button does anything.
+  function setInfoCollapsed(collapsed) {
+    if (!els.app) return;
+    els.app.classList.toggle("info-collapsed", collapsed);
+    if (els.infoFab) els.infoFab.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    afterPanelChange();
+  }
+  if (els.infoFab) els.infoFab.addEventListener("click", function () { setInfoCollapsed(false); });
+  [els.details, els.predictPanel].forEach(function (panel) {
+    if (!panel) return;
+    panel.addEventListener("click", function (e) {
+      // Tapping the card's own header dismisses it, so there is a way out that
+      // does not require finding a control.
+      if (e.target.closest(".tt-details-top, .tt-predict-head")) setInfoCollapsed(true);
+    });
+  });
+
   // On a phone or tablet the controls are a bottom sheet, and a sheet that
   // opens over the map on load hides the thing you came to see. Start closed
   // there and open on desktop, where the panel costs the map nothing it needs.
@@ -3771,6 +3838,7 @@
     if (narrowApplied === isNarrow) return;
     narrowApplied = isNarrow;
     setControlsHidden(isNarrow);
+    setInfoCollapsed(isNarrow);
     if (els.app) els.app.classList.toggle("legend-collapsed", isNarrow);
     if (els.legendToggle) els.legendToggle.setAttribute("aria-expanded", isNarrow ? "false" : "true");
   }

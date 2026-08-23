@@ -1468,3 +1468,42 @@ body.theme-dark .chip-no { background: rgba(255,255,255,0.05); }
     display: inline-flex; align-items: center;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Typhoon Tracks on a phone or tablet: the map IS the page
+   ---------------------------------------------------------------------------
+   On a small screen this page opened with a header, an intro, a data-and-scope
+   card and a long lead paragraph above the map, so the map itself arrived
+   several screens down and got whatever height was left. On a phone that is
+   backwards: the map is the thing, and the prose is reference you read once.
+
+   Below 992px the page therefore collapses to the nav bar plus a full-height
+   map. The prose is not deleted -- it is still on the page below the map, so
+   nothing is lost, it just stops standing in front of the map.
+   ------------------------------------------------------------------------- */
+@media (max-width: 991.98px) {
+  body.tracker-page .page-header,
+  body.tracker-page .section-sm,
+  body.tracker-page .tracker-intro { display: none; }
+
+  /* Full bleed: the container's gutters and the shell's padding, border and
+     radius all shrink the map for no benefit at this width. */
+  body.tracker-page .tracker-section {
+    padding: 0; max-width: none; width: 100%; margin: 0;
+  }
+  body.tracker-page .tracker-shell {
+    padding: 0; border: 0; border-radius: 0; box-shadow: none; background: transparent;
+  }
+  /* Sits directly under the fixed navbar and takes the rest of the screen.
+     100dvh, not 100vh: on iOS 100vh is measured without the browser chrome, so
+     a 100vh frame runs under the toolbar and its bottom controls are unreachable. */
+  /* The navbar is fixed, so the frame has to be pushed clear of it or it
+     covers the map's top-left control. Its height is measured and published as
+     --tracker-nav-h rather than hardcoded, because it changes with the font
+     and the brand text length. */
+  body.tracker-page .tracker-section { padding-top: var(--tracker-nav-h, 71px); }
+  body.tracker-page #typhoon-frame {
+    height: calc(100dvh - var(--tracker-nav-h, 71px));
+    min-height: 0; display: block; width: 100%; border: 0;
+  }
+}
