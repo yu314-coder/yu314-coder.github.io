@@ -14,65 +14,105 @@
 <!-- defer both scripts (Plotly first in DOM order) so the controls/stats shell
      paints without waiting on the large Plotly bundle to download and parse. -->
 <script src="https://cdn.plot.ly/plotly-geo-2.35.2.min.js" charset="utf-8" defer></script>
-<link rel="stylesheet" href="styles.css?v=20260822-tf11r">
+<link rel="stylesheet" href="styles.css?v=20260822-ui1">
 </head>
 <body>
 <div class="tt-app mode-track">
 
-  <div class="tt-controls">
-    <div class="tt-field">
-      <label for="mode-select">Mode</label>
-      <select id="mode-select">
-        <option value="track">Track &mdash; history</option>
-        <option value="predict">Forecast &mdash; live (JMA)</option>
-      </select>
-    </div>
-
-    <div class="tt-field tt-track-only">
-      <label for="season-select">Season</label>
-      <select id="season-select"></select>
-    </div>
-    <div class="tt-field tt-field--grow tt-track-only">
-      <label for="storm-select">Typhoon</label>
-      <select id="storm-select"></select>
-    </div>
-    <div class="tt-field tt-track-only">
-      <label for="standard-select">Classification</label>
-      <select id="standard-select">
-        <option value="atlantic">Saffir&#8211;Simpson&#8211;style</option>
-        <option value="taiwan">Taiwan (CWA)</option>
-      </select>
-    </div>
-    <div class="tt-field tt-track-only">
-      <label>View</label>
-      <div class="tt-segmented" role="group" aria-label="Map view mode">
-        <button type="button" id="tt-view-storm" class="tt-seg is-active" aria-pressed="true">Storm</button>
-        <button type="button" id="tt-view-season" class="tt-seg" aria-pressed="false">Season</button>
-      </div>
-    </div>
-    <div class="tt-field tt-track-only">
-      <label>ENSO (autumn)</label>
-      <span class="tt-enso-badge" id="tt-enso">&mdash;</span>
-    </div>
-
-    <div class="tt-field tt-field--grow tt-predict-only">
-      <label for="jma-typhoon">Active typhoon (JMA)</label>
-      <select id="jma-typhoon"></select>
-    </div>
-  </div>
-
-  <div class="tt-radius-controls tt-track-only">
-    <span class="tt-radius-label">Wind radius</span>
-    <label class="tt-check" title="Radius of level 7 winds — gale, ≥34 kt (JTWC's 34kt quadrant report)"><input type="checkbox" id="show-r34" checked><span class="tt-swatch tt-swatch--r34"></span>Level 7 &middot; 34kt</label>
-    <label class="tt-check" title="Radius of level 10 winds — storm, ≥50 kt (JTWC's 50kt quadrant report)"><input type="checkbox" id="show-r50" checked><span class="tt-swatch tt-swatch--r50"></span>Level 10 &middot; 50kt</label>
-    <label class="tt-check" title="Radius of level 12 winds — hurricane force, ≥64 kt (JTWC's 64kt quadrant report)"><input type="checkbox" id="show-r64" checked><span class="tt-swatch tt-swatch--r64"></span>Level 12 &middot; 64kt</label>
-  </div>
-
-  <div class="tt-stats" id="tt-stats"></div>
-
   <div class="tt-mapwrap">
     <div class="tt-map-shell">
       <div id="tt-map" class="tt-map"></div>
+
+      <!-- Floating panels over the map. The map is the subject of this page, so
+           the chrome sits on top of it rather than pushing it down the screen.
+           Below 1000px these all fall back to the static stack (see styles.css),
+           because overlaying panels on a phone-width map hides the map. -->
+      <button type="button" class="tt-fab" id="tt-controls-fab" aria-label="Show controls" aria-expanded="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+      </button>
+
+      <div class="tt-float tt-float--controls" id="tt-controls-panel">
+        <div class="tt-float-head">
+          <span class="tt-float-title">Controls</span>
+          <button type="button" class="tt-float-x" id="tt-controls-close" aria-label="Hide controls">&times;</button>
+        </div>
+        <div class="tt-float-body">
+    <div class="tt-controls">
+      <div class="tt-field">
+        <label for="mode-select">Mode</label>
+        <select id="mode-select">
+          <option value="track">Track &mdash; history</option>
+          <option value="predict">Forecast &mdash; live (JMA)</option>
+        </select>
+      </div>
+
+      <div class="tt-field tt-track-only">
+        <label for="season-select">Season</label>
+        <select id="season-select"></select>
+      </div>
+      <div class="tt-field tt-field--grow tt-track-only">
+        <label for="storm-select">Typhoon</label>
+        <select id="storm-select"></select>
+      </div>
+      <div class="tt-field tt-track-only">
+        <label for="standard-select">Classification</label>
+        <select id="standard-select">
+          <option value="atlantic">Saffir&#8211;Simpson&#8211;style</option>
+          <option value="taiwan">Taiwan (CWA)</option>
+        </select>
+      </div>
+      <div class="tt-field tt-track-only">
+        <label>View</label>
+        <div class="tt-segmented" role="group" aria-label="Map view mode">
+          <button type="button" id="tt-view-storm" class="tt-seg is-active" aria-pressed="true">Storm</button>
+          <button type="button" id="tt-view-season" class="tt-seg" aria-pressed="false">Season</button>
+        </div>
+      </div>
+      <div class="tt-field tt-track-only">
+        <label>ENSO (autumn)</label>
+        <span class="tt-enso-badge" id="tt-enso">&mdash;</span>
+      </div>
+
+      <div class="tt-field tt-field--grow tt-predict-only">
+        <label for="jma-typhoon">Active typhoon (JMA)</label>
+        <select id="jma-typhoon"></select>
+      </div>
+    </div>
+
+    <div class="tt-radius-controls tt-track-only">
+      <span class="tt-radius-label">Wind radius</span>
+      <label class="tt-check" title="Radius of level 7 winds — gale, ≥34 kt (JTWC's 34kt quadrant report)"><input type="checkbox" id="show-r34" checked><span class="tt-swatch tt-swatch--r34"></span>Level 7 &middot; 34kt</label>
+      <label class="tt-check" title="Radius of level 10 winds — storm, ≥50 kt (JTWC's 50kt quadrant report)"><input type="checkbox" id="show-r50" checked><span class="tt-swatch tt-swatch--r50"></span>Level 10 &middot; 50kt</label>
+      <label class="tt-check" title="Radius of level 12 winds — hurricane force, ≥64 kt (JTWC's 64kt quadrant report)"><input type="checkbox" id="show-r64" checked><span class="tt-swatch tt-swatch--r64"></span>Level 12 &middot; 64kt</label>
+    </div>
+
+        </div>
+      </div>
+
+      <div class="tt-float tt-float--timeline" id="tt-timeline-card">
+    <div class="tt-fc-controls" role="group" aria-label="Forecast animation controls">
+      <button type="button" id="tt-fc-play" aria-label="Pause forecast animation">&#9208;</button>
+      <button type="button" id="tt-fc-replay" aria-label="Replay from start">&#8634;</button>
+      <button type="button" id="tt-fc-speed" aria-label="Playback speed">1&times;</button>
+      <input type="range" id="tt-fc-slider" class="tt-fc-slider" min="0" max="1" value="0" step="any" aria-label="Scrub forecast timeline">
+      <span class="tt-fc-time" id="tt-fc-time"></span>
+    </div>
+    <div class="tt-scrubber">
+      <button id="tt-play" class="tt-play-btn" type="button" aria-label="Play track animation">&#9654;</button>
+      <input type="range" id="tt-slider" min="0" max="0" value="0" step="1" aria-label="Track position">
+      <span id="tt-time-readout" class="tt-time-readout"></span>
+    </div>
+
+      </div>
+
+      <div class="tt-float tt-float--legend" id="tt-map-legend">
+        <div class="tt-float-head">
+          <span class="tt-float-title">Legend</span>
+          <button type="button" class="tt-float-x" id="tt-legend-toggle" aria-label="Collapse legend" aria-expanded="true">&#9662;</button>
+        </div>
+        <div class="tt-float-body" id="tt-map-legend-body"></div>
+      </div>
+
       <div class="tt-zoom-controls" role="group" aria-label="Map zoom">
         <button type="button" id="tt-zoom-in" aria-label="Zoom in">+</button>
         <button type="button" id="tt-zoom-out" aria-label="Zoom out">&minus;</button>
@@ -113,14 +153,9 @@
     <aside class="tt-predict-panel" id="tt-predict-panel" aria-label="Forecast details"></aside>
   </div>
 
+  <div class="tt-stats" id="tt-stats"></div>
+
   <p class="tt-season-hint">Whole-season view — every storm's track at once, colored by peak intensity. Click any track to open that storm.</p>
-  <div class="tt-fc-controls" role="group" aria-label="Forecast animation controls">
-    <button type="button" id="tt-fc-play" aria-label="Pause forecast animation">&#9208;</button>
-    <button type="button" id="tt-fc-replay" aria-label="Replay from start">&#8634;</button>
-    <button type="button" id="tt-fc-speed" aria-label="Playback speed">1&times;</button>
-    <input type="range" id="tt-fc-slider" class="tt-fc-slider" min="0" max="1" value="0" step="any" aria-label="Scrub forecast timeline">
-    <span class="tt-fc-time" id="tt-fc-time"></span>
-  </div>
 
   <div class="tt-ai-forecast tt-predict-only" id="tt-ai-forecast">
     <button type="button" id="tt-ai-btn" class="tt-ai-btn" aria-pressed="false">&#129514; Overlay my AI model (Trackformer1.1)</button>
@@ -128,12 +163,6 @@
   </div>
 
   <p class="tt-predict-hint" id="tt-predict-hint">Live forecast mode. The gold marker replays the storm's whole life on one timeline — drag the slider or hit play. The <b>past</b> leg is JMA best-track (position, wind &amp; the real <b>storm-force wind radius</b> per observation, via <a href="https://agora.ex.nii.ac.jp/digital-typhoon/" target="_blank" rel="noopener">Digital Typhoon</a>); from now on it's the <a href="https://www.jma.go.jp/bosai/map.html#contents=typhoon&amp;lang=en" target="_blank" rel="noopener">JMA</a> <b>forecast</b> — growing wind-radius circle, expected wind &amp; Dvorak number, with violet <b>probability circles</b> (position uncertainty). Nothing here is simulated.</p>
-
-  <div class="tt-scrubber">
-    <button id="tt-play" class="tt-play-btn" type="button" aria-label="Play track animation">&#9654;</button>
-    <input type="range" id="tt-slider" min="0" max="0" value="0" step="1" aria-label="Track position">
-    <span id="tt-time-readout" class="tt-time-readout"></span>
-  </div>
 
   <div class="tt-hindcast tt-track-only" id="tt-hindcast">
     <button type="button" id="tt-hindcast-btn" class="tt-ai-btn" aria-pressed="false">&#129514; Run my AI model (Trackformer1.1)</button>
@@ -153,6 +182,6 @@
   <p class="tt-source-note">Track, intensity, and wind-radius data: <a href="https://www.ncei.noaa.gov/products/international-best-track-archive" target="_blank" rel="noopener noreferrer">IBTrACS v04r01</a> (NOAA NCEI), Western Pacific basin. Storms marked <strong>LIVE</strong> are fetched straight from NOAA NCEI's IBTrACS <em>active-storms</em> feed in your browser, then topped up from the JTWC working best track itself (the ATCF b-deck, openly mirrored by <a href="https://hurricanes.ral.ucar.edu/" target="_blank" rel="noopener noreferrer">UCAR/RAL</a>, updated several times a day) — so an active typhoon's history runs to the latest fix, and its 50/64&nbsp;kt radii appear the moment JTWC publishes them (the working best track reports the 34&nbsp;kt radii first; 50/64&nbsp;kt usually arrive in post-analysis, which is also why 2025-onward storms show only Level&nbsp;7 (34&nbsp;kt) circles for now). Taiwan (CWA) classes use CWA's official <em>10-minute</em> thresholds (17.2 / 32.7 / 51.0&nbsp;m/s) applied to <strong>JMA's real 10-minute wind analysis</strong> for each point (carried in IBTrACS as TOKYO_WIND — the same averaging convention CWA uses, so storms class the way CWA's own record does, e.g. Doksuri&nbsp;2023 as mostly 中度 rather than the inflated 強烈 a converted 1-minute wind gives); points between JMA's 6-hourly analyses interpolate, and only storms with no 10-minute record at all fall back to 0.88-converted 1-minute winds. CWA's and JMA's own analyses can still differ slightly — both are real agency data. Wind circle radii (level 7/10/12 &mdash; gale/storm/hurricane-force, JTWC's 34/50/64kt radii, per quadrant) are JTWC (USA agency) reports, which is why coverage starts in 2001 &mdash; systematic quadrant reporting didn't exist before then, for any storm in this archive, so it can't be extended back to 1985. Radius shapes interpolate between the four reported quadrant extents; treat them as an approximation, not a precise wind-field boundary. The Dvorak T-number is estimated from each point's wind speed via the standard Dvorak CI-number/wind-speed table — a standard approximation, not an independent satellite reading. ACE, rapid intensification (&ge;30&nbsp;kt/24&nbsp;h), and the season climatology are all computed from this same best-track wind record. The <strong>forecast cone</strong> is a persistence baseline — it simply projects the storm's current heading and speed forward, with a cone sized to typical average track error; it is the naive benchmark real forecasts are measured against, shown to contrast with the actual track, not a skilful prediction. ENSO tags use real NOAA CPC ASO ONI values.</p>
 
 </div>
-<script src="app.js?v=20260822-tf11r" defer></script>
+<script src="app.js?v=20260822-ui1" defer></script>
 </body>
 </html>

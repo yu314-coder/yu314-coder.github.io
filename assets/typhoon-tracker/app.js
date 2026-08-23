@@ -62,6 +62,11 @@
     slider: document.getElementById("tt-slider"),
     readout: document.getElementById("tt-time-readout"),
     legend: document.getElementById("tt-legend"),
+    controlsPanel: document.getElementById("tt-controls-panel"),
+    controlsFab: document.getElementById("tt-controls-fab"),
+    controlsClose: document.getElementById("tt-controls-close"),
+    legendToggle: document.getElementById("tt-legend-toggle"),
+    mapLegendBody: document.getElementById("tt-map-legend-body"),
     dName: document.getElementById("td-name"),
     dTime: document.getElementById("td-time"),
     dCat: document.getElementById("td-cat"),
@@ -1130,6 +1135,32 @@
       return '<span class="tt-legend-item"><span class="tt-legend-swatch" style="background:' +
         item[1] + '"></span>' + item[0] + "</span>";
     }).join("");
+    buildMapLegend(list);
+  }
+
+  // The legend under the chart explains the CHART. The map needed its own,
+  // because the map also draws wind-radius rings and a track line that the
+  // chart legend never mentioned -- a reader had no key for the circles.
+  // Reuses the same category list so the two can never disagree.
+  function buildMapLegend(list) {
+    if (!els.mapLegendBody) return;
+    var ramp = '<div class="tt-legend-ramp">' + list.map(function (item) {
+      return '<span style="background:' + item[1] + '" title="' + item[0] + '"></span>';
+    }).join("") + "</div>";
+    var rings = [
+      ["r34", "#2dd4bf", "Level 7 &middot; 34kt", "gale"],
+      ["r50", "#eab308", "Level 10 &middot; 50kt", "storm"],
+      ["r64", "#f87171", "Level 12 &middot; 64kt", "hurricane-force"]
+    ].map(function (r) {
+      return '<div class="tt-legend-row"><span class="tt-legend-ring" style="border-color:' +
+        r[1] + '"></span><span><b>' + r[2] + "</b> &mdash; " + r[3] + "</span></div>";
+    }).join("");
+    els.mapLegendBody.innerHTML =
+      '<div class="tt-legend-sub">Intensity</div>' + ramp +
+      '<div class="tt-legend-row" style="margin-top:2px"><span>' +
+        (list.length ? list[list.length - 1][0] : "") + " &rarr; " +
+        (list.length ? list[0][0] : "") + "</span></div>" +
+      '<div class="tt-legend-sub">Wind radius</div>' + rings;
   }
 
   // animate=true only for a genuine jump (loading a different storm) — see
@@ -3625,6 +3656,30 @@
   if (els.fcSpeed) els.fcSpeed.addEventListener("click", cycleForecastSpeed);
   if (els.aiBtn) els.aiBtn.addEventListener("click", aiToggle);
   if (els.hindcastBtn) els.hindcastBtn.addEventListener("click", aiHindcastToggle);
+
+  // Floating-panel collapse. Plotly sizes itself to its container, so every
+  // show/hide has to be followed by a resize or the map keeps the old width
+  // and leaves a blank strip.
+  function afterPanelChange() {
+    if (window.Plotly && els.map && els.map.data) {
+      try { Plotly.Plots.resize(els.map); } catch (e) { /* map not built yet */ }
+    }
+  }
+  function setControlsHidden(hidden) {
+    if (!els.app) return;
+    els.app.classList.toggle("controls-hidden", hidden);
+    if (els.controlsFab) els.controlsFab.setAttribute("aria-expanded", hidden ? "false" : "true");
+    afterPanelChange();
+  }
+  if (els.controlsClose) els.controlsClose.addEventListener("click", function () { setControlsHidden(true); });
+  if (els.controlsFab) els.controlsFab.addEventListener("click", function () { setControlsHidden(false); });
+  if (els.legendToggle) {
+    els.legendToggle.addEventListener("click", function () {
+      var collapsed = els.app.classList.toggle("legend-collapsed");
+      els.legendToggle.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      els.legendToggle.setAttribute("aria-label", collapsed ? "Expand legend" : "Collapse legend");
+    });
+  }
 
   // Rest the forecast sweep when its map isn't on screen: no point spending
   // frames (and Plotly redraws) animating a map the user has scrolled past.
