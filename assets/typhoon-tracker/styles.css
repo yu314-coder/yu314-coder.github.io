@@ -601,9 +601,12 @@ body {
   .tt-map-shell { width: 100%; }
   .tt-map { border-radius: 0; border: 0; }
 
-  /* Reference content: real, but not what a phone is for. */
-  .tt-stats, .tt-chart, .tt-legend, .tt-clim, .tt-source-note,
-  .tt-predict-hint, .tt-season-hint, .tt-hindcast, .tt-ai-forecast { display: none !important; }
+  /* The map is the first screenful; the chart, the season climatology and the
+     notes live below it and are reached by scrolling. Only the two overlay
+     buttons stay hidden, because the model FAB already stands for them. */
+  .tt-hindcast, .tt-ai-forecast { display: none !important; }
+  .tt-stats { margin-top: 12px; }
+  .tt-stats, .tt-chart, .tt-legend, .tt-clim, .tt-source-note { padding-left: 10px; padding-right: 10px; }
 
   /* Controls: bottom sheet, closed by default, opened from the FAB. */
   .tt-float--controls {
@@ -616,27 +619,39 @@ body {
     content: ""; position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
     width: 36px; height: 4px; border-radius: 2px; background: var(--line);
   }
-  .tt-float--controls .tt-float-body { padding: 4px 16px 20px; }
-  .tt-float--controls .tt-controls { gap: 12px; }
-  .tt-float--controls select { height: 44px; font-size: 15px; }
-  .tt-float--controls .tt-seg { min-height: 44px; font-size: 14px; }
-  .tt-float--controls .tt-check { font-size: 14px; padding: 7px 0; }
-  .tt-float--controls .tt-field label { font-size: 11px; }
+  .tt-float--controls .tt-float-body { padding: 4px 14px 16px; }
+  /* Two columns. Stacked one per row these six fields ran to 406px -- 76% of
+     the map -- which is not a control panel, it is a takeover. Paired up, the
+     ones that need the width (the storm list, the radius toggles) still get a
+     full row. */
+  .tt-float--controls .tt-controls {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px;
+  }
+  .tt-float--controls .tt-field--grow,
+  .tt-float--controls .tt-radius-controls { grid-column: 1 / -1; }
+  .tt-float--controls select { height: 40px; font-size: 14px; }
+  .tt-float--controls .tt-seg { min-height: 40px; font-size: 13px; }
+  .tt-float--controls .tt-check { font-size: 13px; padding: 4px 0; }
+  .tt-float--controls .tt-field label { font-size: 10px; }
+  .tt-float--controls .tt-radius-controls {
+    flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 12px;
+    margin: 4px 0 0; padding: 8px 0 0;
+  }
+  .tt-float--controls { max-height: min(64%, 340px); }
   .tt-float-x { width: 38px; height: 38px; font-size: 20px; }
 
   .tt-fab { width: 48px; height: 48px; border-radius: 14px; top: 10px; left: 10px; }
   .tt-fab svg { width: 23px; height: 23px; }
 
   /* Timeline floats just above the storm card, over the map. */
-  /* top:100% puts it directly BELOW the shell rather than over the map's bottom
-     edge, where it covered the storm marker -- and the shell is shrink-wrapped
-     to the map, so that space was empty anyway. */
+  /* In flow, directly under the map. Absolute-over-the-map covered the storm
+     marker, and now that the page scrolls again there is somewhere real for it
+     to sit -- so it can never be pushed off a frame that no longer scrolls. */
   .tt-float--timeline,
   .tt-app.controls-hidden .tt-float--timeline {
-    position: absolute; left: 8px; right: 8px; top: 100%; bottom: auto;
-    width: auto; transform: none; margin: 8px 0 0; padding: 8px 12px 10px;
+    position: static; width: auto; transform: none;
+    margin: 8px 8px 0; padding: 8px 12px 10px;
   }
-  .tt-app:not(.controls-hidden) .tt-float--timeline { display: none; }
   .tt-float--timeline .tt-play-btn,
   .tt-float--timeline .tt-fc-controls button { min-width: 44px; min-height: 44px; }
   .tt-float--timeline .tt-time-readout,
@@ -685,7 +700,6 @@ body {
   .tt-zoom-controls { top: 54px; }
   .tt-float--legend { top: 54px; }
   .tt-model-fab { display: flex; top: 202px; }
-  .tt-float--controls { max-height: min(76%, 470px); }
 }
 
 
@@ -698,16 +712,18 @@ body {
    the other and the map grew past 13,000px. The host owns the decision, so the
    host states it.
    ------------------------------------------------------------------------- */
-html.tt-pinned, html.tt-pinned body { height: 100%; overflow: hidden; }
-html.tt-pinned .tt-app { height: 100%; min-height: 100%; overflow: hidden; }
-html.tt-pinned .tt-mapwrap { height: 100%; }
+/* No overflow:hidden and no 100% chain: the page below the map has to be
+   scrollable again. Only the MAP is a screenful, and its height is the pixel
+   value the host measured off the real viewport -- vh here would resolve
+   against a frame that is itself sized to this content. */
+html.tt-pinned .tt-mapwrap { height: auto; }
 /* flex: 0 0 auto, not the inherited 1 1 auto. As a growing flex item the shell
    filled the frame whatever height it was given, so the floating timeline --
    positioned against the shell -- sat 72px below the map in a band of empty
    panel instead of on it. */
-html.tt-pinned .tt-map-shell { height: 100%; flex: 0 0 auto; }
+html.tt-pinned .tt-map-shell { flex: 0 0 auto; }
 /* height, not height:!important -- the box-fit sets an inline height when the
    capped window still leaves slack, and an !important rule would lock that out
    and hand the difference back as dead panel. max-height keeps it inside the
    frame either way. */
-html.tt-pinned .tt-map { height: 100%; max-height: 100%; min-height: 0; }
+html.tt-pinned .tt-map { height: var(--tt-map-h, 68vh); min-height: 320px; }

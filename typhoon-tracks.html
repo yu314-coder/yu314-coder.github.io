@@ -43,7 +43,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 
   <!-- Site stylesheet (single source of truth) -->
-  <link rel="stylesheet" href="assets/css/style.css?v=20260822-ui6">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260822-ui7">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
 <body class="theme-dark tracker-page">
@@ -113,7 +113,7 @@
     </div>
 
     <div class="tracker-shell reveal">
-      <iframe id="typhoon-frame" src="assets/typhoon-tracker/index.html?v=20260822-ui6" title="Typhoon Track and Wind Radius Explorer" loading="lazy"></iframe>
+      <iframe id="typhoon-frame" src="assets/typhoon-tracker/index.html?v=20260822-ui7" title="Typhoon Track and Wind Radius Explorer" loading="lazy"></iframe>
     </div>
   </section>
 
@@ -174,15 +174,24 @@
       // own width matched its touch breakpoint, went height:100%, and grew to
       // fill a frame that was being sized to its content -- 13,484px of map
       // before the loop settled. So the host, which owns the decision, states it.
+      // The tracker's map wants to be one screenful tall, but it cannot work
+      // that out for itself: inside an iframe, vh and % resolve against the
+      // FRAME, and the frame is sized to the tracker's content -- each would
+      // chase the other. So the host, which can see the real viewport, measures
+      // it once and hands the tracker a plain pixel value.
       function markPinned() {
         try {
           var doc = frame.contentDocument || frame.contentWindow.document;
-          if (doc) doc.documentElement.classList.toggle('tt-pinned', pinned.matches);
+          if (!doc) return;
+          doc.documentElement.classList.toggle('tt-pinned', pinned.matches);
+          var navEl = document.querySelector('.navbar');
+          var navH = navEl ? Math.round(navEl.getBoundingClientRect().height) : 71;
+          doc.documentElement.style.setProperty('--tt-map-h',
+            Math.max(320, Math.round(window.innerHeight - navH)) + 'px');
         } catch (e) { /* cross-origin: the tracker keeps its scrolling layout */ }
       }
       function sizeFrame() {
         markPinned();
-        if (pinned.matches) { frame.style.height = ''; lastH = 0; return; }
         try {
           var doc = frame.contentDocument || frame.contentWindow.document;
           var el = contentEl(doc);

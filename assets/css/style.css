@@ -1506,8 +1506,10 @@ body.theme-dark .chip-no { background: rgba(255,255,255,0.05); }
      --tracker-nav-h rather than hardcoded, because it changes with the font
      and the brand text length. */
   body.tracker-page .tracker-section { padding-top: var(--tracker-nav-h, 71px); }
+  /* Content-sized, not viewport-pinned: the map inside is one screenful, and
+     the charts and notes below it are reached by scrolling the PAGE rather
+     than a nested scroller inside the frame. */
   body.tracker-page #typhoon-frame {
-    height: calc(100dvh - var(--tracker-nav-h, 71px));
     min-height: 0; display: block; width: 100%; border: 0;
   }
 }

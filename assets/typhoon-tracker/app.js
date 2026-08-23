@@ -816,11 +816,15 @@
       // lets the geo grow into it, while on a phone the floor is low enough
       // that the measured height actually applies and the box shrinks.
       els.map.style.height = drawn + "px";
-      // The floating timeline and legend are positioned against the SHELL, so
-      // if the shell keeps filling the frame after the map has shrunk, they
-      // hang in a band of empty panel below the map instead of sitting on it.
+      // Only where the timeline floats OVER the map (desktop) does the shell
+      // need to match it, so the card does not hang in empty panel below. When
+      // the host has pinned us the timeline is in flow and the shell must wrap
+      // its content, so leave it alone.
       var shell = els.map.parentElement;
-      if (shell && shell.classList.contains("tt-map-shell")) shell.style.height = drawn + "px";
+      if (shell && shell.classList.contains("tt-map-shell")) {
+        shell.style.height = document.documentElement.classList.contains("tt-pinned")
+          ? "" : drawn + "px";
+      }
       try { Plotly.Plots.resize(els.map); } catch (e) { /* not built yet */ }
     });
   }
