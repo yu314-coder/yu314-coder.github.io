@@ -1,6 +1,1476 @@
 {
-  "generated_at": "2026-08-25T22:38:21Z",
+  "generated_at": "2026-08-25T23:06:04Z",
   "storms": {
+    "TC2621": {
+      "issue_time": "2026-08-25T22:00",
+      "base_lat": 27.8,
+      "base_lon": 127.5,
+      "lead_hours": [
+        6,
+        12,
+        18,
+        24,
+        30,
+        36,
+        42,
+        48,
+        54,
+        60,
+        66,
+        72,
+        78,
+        84,
+        90,
+        96,
+        102,
+        108,
+        114,
+        120
+      ],
+      "lats": [
+        28.271,
+        28.74,
+        29.188,
+        29.605,
+        29.996,
+        30.373,
+        30.754,
+        31.148,
+        31.556,
+        31.972,
+        32.388,
+        32.799,
+        33.202,
+        33.598,
+        33.987,
+        34.366,
+        34.737,
+        35.106,
+        35.476,
+        35.849
+      ],
+      "lons": [
+        126.711,
+        125.93,
+        125.15,
+        124.359,
+        123.55,
+        122.727,
+        121.904,
+        121.088,
+        120.287,
+        119.502,
+        118.727,
+        117.959,
+        117.193,
+        116.432,
+        115.675,
+        114.918,
+        114.157,
+        113.389,
+        112.611,
+        111.824
+      ],
+      "vmax_kt": [
+        74.5,
+        73.9,
+        72.1,
+        71.5,
+        69.6,
+        67.0,
+        64.6,
+        62.5,
+        60.4,
+        58.7,
+        57.1,
+        55.5,
+        54.4,
+        53.9,
+        53.5,
+        53.3,
+        52.7,
+        52.0,
+        51.1,
+        50.7
+      ],
+      "pres_hpa": [
+        962.1,
+        963.5,
+        966.2,
+        967.1,
+        969.1,
+        971.7,
+        973.8,
+        975.6,
+        977.2,
+        978.6,
+        980.0,
+        981.2,
+        982.2,
+        982.9,
+        983.7,
+        984.8,
+        985.9,
+        986.9,
+        987.5,
+        988.4
+      ],
+      "n_padded_history": 0,
+      "seeds": 10,
+      "precision": "fp32",
+      "tcId": "TC2621",
+      "name": "Saudel",
+      "track_source": "trackformer11",
+      "radii_km": [
+        [
+          337.0,
+          336.6,
+          247.2,
+          333.7,
+          154.5,
+          152.2,
+          124.0,
+          155.2,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          333.7,
+          326.4,
+          250.5,
+          321.3,
+          142.4,
+          138.5,
+          115.8,
+          144.2,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          315.2,
+          314.3,
+          248.7,
+          318.7,
+          135.9,
+          130.0,
+          106.6,
+          134.1,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          301.9,
+          305.7,
+          244.4,
+          305.6,
+          128.2,
+          123.6,
+          97.9,
+          125.6,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          290.2,
+          298.7,
+          238.4,
+          293.7,
+          124.0,
+          119.5,
+          92.7,
+          121.4,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          281.5,
+          290.0,
+          231.2,
+          283.8,
+          122.9,
+          117.7,
+          89.8,
+          119.4,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          275.4,
+          280.3,
+          225.4,
+          276.4,
+          121.7,
+          115.9,
+          87.6,
+          118.0,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          269.8,
+          270.6,
+          218.6,
+          268.7,
+          120.2,
+          113.7,
+          84.8,
+          116.3,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          262.3,
+          261.8,
+          210.6,
+          262.1,
+          116.7,
+          111.3,
+          81.7,
+          114.0,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          252.6,
+          254.1,
+          202.7,
+          253.4,
+          112.9,
+          107.8,
+          77.5,
+          110.9,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          247.4,
+          246.1,
+          196.7,
+          246.7,
+          110.0,
+          103.3,
+          73.5,
+          108.7,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          244.1,
+          238.5,
+          190.0,
+          241.7,
+          107.9,
+          96.9,
+          67.7,
+          107.0,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          243.2,
+          232.1,
+          185.3,
+          238.5,
+          106.8,
+          91.1,
+          63.2,
+          106.4,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          239.4,
+          227.6,
+          180.6,
+          235.3,
+          105.0,
+          86.7,
+          58.8,
+          105.6,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          233.5,
+          221.6,
+          176.0,
+          230.1,
+          102.8,
+          81.7,
+          55.8,
+          107.2,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          226.1,
+          215.7,
+          171.8,
+          224.7,
+          98.9,
+          77.4,
+          56.0,
+          107.8,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          219.5,
+          210.9,
+          166.4,
+          220.2,
+          96.6,
+          74.2,
+          53.8,
+          106.9,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          216.2,
+          208.2,
+          161.7,
+          217.6,
+          94.9,
+          74.3,
+          53.0,
+          105.0,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          214.7,
+          208.0,
+          161.6,
+          217.8,
+          95.5,
+          73.1,
+          54.4,
+          103.9,
+          null,
+          null,
+          null,
+          null
+        ],
+        [
+          239.9,
+          233.4,
+          187.4,
+          247.8,
+          107.6,
+          82.5,
+          65.5,
+          116.4,
+          null,
+          null,
+          null,
+          null
+        ]
+      ],
+      "structure_anchor": 8,
+      "intensity_source": "trackformer11",
+      "trackformer11": {
+        "lats": [
+          28.271,
+          28.74,
+          29.188,
+          29.605,
+          29.996,
+          30.373,
+          30.754,
+          31.148,
+          31.556,
+          31.972,
+          32.388,
+          32.799,
+          33.202,
+          33.598,
+          33.987,
+          34.366,
+          34.737,
+          35.106,
+          35.476,
+          35.849
+        ],
+        "lons": [
+          126.711,
+          125.93,
+          125.15,
+          124.359,
+          123.55,
+          122.727,
+          121.904,
+          121.088,
+          120.287,
+          119.502,
+          118.727,
+          117.959,
+          117.193,
+          116.432,
+          115.675,
+          114.918,
+          114.157,
+          113.389,
+          112.611,
+          111.824
+        ],
+        "analysis_cycle": "20260825_18",
+        "analysis_lag_hours": 4.0,
+        "cycles_used": [
+          "20260823_18",
+          "20260824_06",
+          "20260824_18",
+          "20260825_06",
+          "20260825_18"
+        ],
+        "local_weight": 0.75,
+        "pacific_weight": 0.25,
+        "domain": "100-190E, 0-60N",
+        "history_available": [
+          1.0,
+          1.0
+        ],
+        "source": "NOAA NOMADS GFS 0.25 degree f000 analysis only",
+        "future_rows_used_for_inference": 0,
+        "official_forecasts_used_for_inference": false,
+        "intensity_model": {
+          "model": "Trackformer1.1 residual-anchor spatial ensemble used as the Trackformer1.1 intensity head",
+          "checkpoint_count": 3,
+          "calibration": "/home/runner/work/yu314-coder.github.io/yu314-coder.github.io/typhoon-predict-src/models/trackformer_1_1/trackformer_1_1_calibration.json",
+          "field_contract": "4x17x17 analysis patch, q/31.75 then clipped to [-4,4]",
+          "outputs": [
+            "vmax_kt",
+            "central_pressure_hpa",
+            "rmw_km",
+            "wind_radii_km"
+          ],
+          "native_structure_unit": "nautical_miles",
+          "output_distance_unit": "kilometres",
+          "ensemble_spread": "standard deviation across the three frozen spatial experts",
+          "structure_calibration": "lead- and component-wise validation blend with observed current RMW/radii when available",
+          "structure_expert_blend": true,
+          "temporal_wind_branch": false,
+          "temporal_wind_branch_policy": "same-storm t-12/t-24 analysis patches; wind only; enabled above the validation-selected current-wind gate; base pressure calibration retained",
+          "pressure_anchor_alpha": [
+            0.5522160094389178,
+            0.6962881299556641,
+            0.7642130854290704,
+            0.8250283768554111,
+            0.8682641709344661,
+            0.8950311405808169,
+            0.912311094958641,
+            0.9251489323454353,
+            0.9362969190603518,
+            0.9450910275730012,
+            0.953263937622913,
+            0.9605904396465027,
+            0.9650098139429872,
+            0.9694222567928482,
+            0.973242185094525,
+            0.9765976015127111,
+            0.9792250259796094,
+            0.9817388698882592,
+            0.9835805375991149,
+            0.9838229441690179
+          ],
+          "pressure_anchor_policy": "validation-fitted blend with valid observed current pressure; no blend when current pressure is missing",
+          "track_input_policy": "per-feature 0.1%-99.9% bounds from train split only",
+          "official_forecasts_used": false,
+          "positive_lead_weather_used": false,
+          "device": "cpu",
+          "pressure_map_coupling": {
+            "enabled": true,
+            "method": "causal forecast pressure-map query plus confidence-weighted local-minimum/anomaly-radius coupling",
+            "map_weight": 0.35,
+            "minimum_confidence": "local minimum contribution decays directly with route-to-minimum confidence; untrusted minima have near-zero central-intensity weight",
+            "pressure_recovery_limit_hpa_per_6h": 6.0,
+            "pressure_recovery_limit_source": "training-split 90th percentile of positive six-hour pressure changes",
+            "pressure_signal_weights": {
+              "tracked_map_minimum": 0.75,
+              "map_anomaly_extent": 0.25
+            },
+            "wind_pressure_anchor": "observed current wind/pressure; map drives only future changes",
+            "radius_method": "learned radius baseline rescaled by trusted local quadrant pressure-anomaly extent; max four-degree footprint",
+            "map_features": [
+              {
+                "map_min_pressure_hpa": 971.84,
+                "map_query_pressure_hpa": 975.69,
+                "map_environment_pressure_hpa": 1005.18,
+                "map_pressure_deficit_hpa": 33.33,
+                "map_center_latitude": 27.75,
+                "map_center_longitude": 128.25,
+                "map_center_offset_km": 73.98,
+                "map_center_trusted": true,
+                "map_center_confidence": 1.0,
+                "map_wind850_kt": 20.22,
+                "map_query_wind850_kt": 40.05,
+                "map_pressure_radii_km": [
+                  157.74,
+                  221.42,
+                  244.25,
+                  223.76,
+                  92.41,
+                  126.12,
+                  134.99,
+                  113.89,
+                  60.8,
+                  98.41,
+                  98.41,
+                  86.95
+                ]
+              },
+              {
+                "map_min_pressure_hpa": 968.02,
+                "map_query_pressure_hpa": 991.17,
+                "map_environment_pressure_hpa": 1005.2,
+                "map_pressure_deficit_hpa": 37.18,
+                "map_center_latitude": 27.75,
+                "map_center_longitude": 128.25,
+                "map_center_offset_km": 161.47,
+                "map_center_trusted": true,
+                "map_center_confidence": 1.0,
+                "map_wind850_kt": 21.26,
+                "map_query_wind850_kt": 69.62,
+                "map_pressure_radii_km": [
+                  166.8,
+                  223.16,
+                  244.25,
+                  222.4,
+                  92.41,
+                  126.12,
+                  134.99,
+                  113.89,
+                  60.8,
+                  98.41,
+                  98.41,
+                  86.95
+                ]
+              },
+              {
+                "map_min_pressure_hpa": 964.19,
+                "map_query_pressure_hpa": 996.31,
+                "map_environment_pressure_hpa": 1005.07,
+                "map_pressure_deficit_hpa": 40.88,
+                "map_center_latitude": 27.75,
+                "map_center_longitude": 128.25,
+                "map_center_offset_km": 251.57,
+                "map_center_trusted": true,
+                "map_center_confidence": 1.0,
+                "map_wind850_kt": 23.08,
+                "map_query_wind850_kt": 60.54,
+                "map_pressure_radii_km": [
+                  168.6,
+                  223.16,
+                  244.25,
+                  200.72,
+                  86.95,
+                  126.12,
+                  134.99,
+                  113.89,
+                  60.8,
+                  98.41,
+                  98.41,
+                  83.4
+                ]
+              },
+              {
+                "map_min_pressure_hpa": 960.37,
+                "map_query_pressure_hpa": 999.61,
+                "map_environment_pressure_hpa": 1004.93,
+                "map_pressure_deficit_hpa": 44.55,
+                "map_center_latitude": 27.75,
+                "map_center_longitude": 128.25,
+                "map_center_offset_km": 340.79,
+                "map_center_trusted": false,
+                "map_center_confidence": 0.75,
+                "map_wind850_kt": 25.53,
+                "map_query_wind850_kt": 46.75,
+                "map_pressure_radii_km": [
+                  168.6,
+                  223.16,
+                  240.96,
+                  196.15,
+                  86.95,
+                  126.12,
+                  134.99,
+                  113.89,
+                  60.8,
+                  98.41,
+                  98.41,
+                  83.4
+                ]
+              },
+              {
+                "map_min_pressure_hpa": 956.55,
+                "map_query_pressure_hpa": 1002.27,
+                "map_environment_pressure_hpa": 1004.71,
+                "map_pressure_deficit_hpa": 48.16,
+                "map_center_latitude": 27.75,
+                "map_center_longitude": 128.25,
+                "map_center_offset_km": 429.03,
+                "map_center_trusted": false,
+                "map_center_confidence": 0.75,
+                "map_wind850_kt": 28.43,
+                "map_query_wind850_kt": 28.64,
+                "map_pressure_radii_km": [
+                  168.6,
+                  223.16,
+                  240.96,
+                  196.15,
+                  86.95,
+                  126.12,
+                  134.99,
+                  113.89,
+                  60.8,
+                  98.41,
+                  98.41,
+                  83.4
+                ]
+              },
+              {
+                "map_min_pressure_hpa": 952.72,
+                "map_query_pressure_hpa": 1003.49,
+                "map_environment_pressure_hpa": 1004.5,
+                "map_pressure_deficit_hpa": 51.78,
+                "map_center_latitude": 27.75,
+                "map_center_longitude": 128.25,
+                "map_center_offset_km": 516.97,
+                "map_center_trusted": false,
+                "map_center_confidence": 0.588,
+                "map_wind850_kt": 31.67,
+                "map_query_wind850_kt": 29.3,
+                "map_pressure_radii_km": [
+                  168.6,
+                  228.3,
+                  240.96,
+                  196.15,
+                  86.95,
+                  126.12,
+                  134.99,
+                  113.89,
+                  60.8,
+                  98.41,
+                  98.41,
+                  83.4
+                ]
+              },
+              {
+                "map_min_pressure_hpa": 948.9,
+                "map_query_pressure_hpa": 1004.68,
+                "map_environment_pressure_hpa": 1004.28,
+                "map_pressure_deficit_hpa": 55.38,
+                "map_center_latitude": 27.75,
+                "map_center_longitude": 128.25,
+                "map_center_offset_km": 604.84,
+                "map_center_trusted": false,
+                "map_center_confidence": 0.39,
+                "map_wind850_kt": 35.15,
+                "map_query_wind850_kt": 30.35,
+                "map_pressure_radii_km": [
+                  168.6,
+                  228.3,
+                  240.96,
+                  194.6,
+                  86.95,
+                  126.12,
+                  134.99,
+                  111.2,
+                  60.8,
+                  98.41,
+                  98.41,
+                  83.4
+                ]
+              },
+              {
+                "map_min_pressure_hpa": 947.65,
+                "map_query_pressure_hpa": 1005.18,
+                "map_environment_pressure_hpa": 1004.02,
+                "map_pressure_deficit_hpa": 56.37,
+                "map_center_latitude": 27.75,
+                "map_center_longitude": 127.75,
+                "map_center_offset_km": 650.91,
+                "map_center_trusted": false,
+                "map_center_confidence": 0.287,
+                "map_wind850_kt": 24.39,
+                "map_query_wind850_kt": 20.83,
+                "map_pressure_radii_km": [
+                  191.35,
+                  180.97,
+                  208.13,
+                  200.72,
+                  126.12,
+                  86.95,
+                  113.89,
+                  134.99,
+                  102.26,
+                  60.8,
+                  83.4,
+                  113.03
+                ]
+              },
+              {
+                "map_min_pressure_hpa": 971.28,
+                "map_query_pressure_hpa": 1005.88,
+                "map_environment_pressure_hpa": 1003.85,
+                "map_pressure_deficit_hpa": 32.56,
+                "map_center_latitude": 28.0,
+                "map_center_longitude": 127.0,
+                "map_center_offset_km": 662.65,
+                "map_center_trusted": false,
+                "map_center_confidence": 0.26,
+                "map_wind850_kt": 130.07,
+                "map_query_wind850_kt": 12.97,
+                "map_pressure_radii_km": [
+                  251.68,
+                  111.2,
+                  222.4,
+                  259.6,
+                  196.37,
+                  0.0,
+                  83.4,
+                  213.34,
+                  171.82,
+                  null,
+                  null,
+                  190.99
+                ]
+              },
+              {
+                "map_min_pressure_hpa": 987.27,
+                "map_query_pressure_hpa": 1006.22,
+                "map_environment_pressure_hpa": 1004.15,
+                "map_pressure_deficit_hpa": 16.88,
+                "map_center_latitude": 28.75,
+                "map_center_longitude": 126.5,
+                "map_center_offset_km": 666.3,
+                "map_center_trusted": false,
+                "map_center_confidence": 0.252,
+                "map_wind850_kt": 97.19,
+                "map_query_wind850_kt": 10.35,
+                "map_pressure_radii_km": [
+                  268.1,
+                  0.0,
+                  278.0,
+                  354.12,
+                  null,
+                  null,
+                  null,
+                  295.34,
+                  null,
+                  null,
+                  null,
+                  275.57
+                ]
+              },
+              {
+                "map_min_pressure_hpa": 993.8,
+                "map_query_pressure_hpa": 1005.86,
+                "map_environment_pressure_hpa": 1003.96,
+                "map_pressure_deficit_hpa": 10.15,
+                "map_center_latitude": 28.5,
+                "map_center_longitude": 125.25,
+                "map_center_offset_km": 665.63,
+                "map_center_trusted": false,
+                "map_center_confidence": 0.254,
+                "map_wind850_kt": 87.22,
+                "map_query_wind850_kt": 11.72,
+                "map_pressure_radii_km": [
+                  415.33,
+                  null,
+                  null,
+                  429.96,
+                  317.6,
+                  null,
+                  null,
+                  391.94,
+                  null,
+                  null,
+                  null,
+                  369.2
+                ]
+              },
+              {
+                "map_min_pressure_hpa": 997.5,
+                "map_query_pressure_hpa": 1005.93,
+                "map_environment_pressure_hpa": 1004.43,
+                "map_pressure_deficit_hpa": 6.93,
+                "map_center_latitude": 29.25,
+                "map_center_longitude": 124.75,
+                "map_center_offset_km": 664.56,
+                "map_center_trusted": false,
+                "map_center_confidence": 0.256,
+                "map_wind850_kt": 50.78,
+                "map_query_wind850_kt": 8.24,
+                "map_pressure_radii_km": [
+                  363.83,
+                  null,
+                  null,
+                  444.49,
+                  null,
+                  null,
+                  null,
+                  441.56,
+                  null,
+                  null,
+                  null,
+                  434.14
+                ]
+              },
+              {
+                "map_min_pressure_hpa": 1000.41,
+                "map_query_pressure_hpa": 1005.9,
+                "map_environment_pressure_hpa": 1005.07,
+                "map_pressure_deficit_hpa": 4.66,
+                "map_center_latitude": 30.0,
+                "map_center_longitude": 124.25,
+                "map_center_offset_km": 665.33,
+                "map_center_trusted": false,
+                "map_center_confidence": 0.254,
+                "map_wind850_kt": 38.44,
+                "map_query_wind850_kt": 5.92,
+                "map_pressure_radii_km": [
+                  null,
+                  null,
+                  null,
+                  444.8,
+                  null,
+                  null,
+                  null,
+                  444.8,
+                  null,
+                  null,
+                  null,
+                  444.8
+                ]
+              },
+              {
+                "map_min_pressure_hpa": 1002.72,
+                "map_query_pressure_hpa": 1005.97,
+                "map_environment_pressure_hpa": 1005.34,
+                "map_pressure_deficit_hpa": 2.62,
+                "map_center_latitude": 30.5,
+                "map_center_longitude": 123.5,
+                "map_center_offset_km": 659.29,
+                "map_center_trusted": false,
+                "map_center_confidence": 0.268,
+                "map_wind850_kt": 37.0,
+                "map_query_wind850_kt": 1.69,
+                "map_pressure_radii_km": [
+                  null,
+                  null,
+                  null,
+                  443.11,
+                  null,
+                  null,
+                  null,
+                  443.11,
+                  null,
+                  null,
+                  null,
+                  443.11
+                ]
+              },
+              {
+                "map_min_pressure_hpa": 1003.14,
+                "map_query_pressure_hpa": 1005.58,
+                "map_environment_pressure_hpa": 1007.52,
+                "map_pressure_deficit_hpa": 4.38,
+                "map_center_latitude": 34.75,
+                "map_center_longitude": 109.5,
+                "map_center_offset_km": 654.72,
+                "map_center_trusted": false,
+                "map_center_confidence": 0.278,
+                "map_wind850_kt": 5.55,
+                "map_query_wind850_kt": 5.32,
+                "map_pressure_radii_km": [
+                  443.7,
+                  422.59,
+                  442.47,
+                  443.7,
+                  443.7,
+                  417.0,
+                  440.16,
+                  440.16,
+                  399.78,
+                  389.87,
+                  440.16,
+                  45.68
+                ]
+              },
+              {
+                "map_min_pressure_hpa": 1002.51,
+                "map_query_pressure_hpa": 1005.65,
+                "map_environment_pressure_hpa": 1007.22,
+                "map_pressure_deficit_hpa": 4.71,
+                "map_center_latitude": 34.25,
+                "map_center_longitude": 108.75,
+                "map_center_offset_km": 639.18,
+                "map_center_trusted": false,
+                "map_center_confidence": 0.313,
+                "map_wind850_kt": 14.43,
+                "map_query_wind850_kt": 9.89,
+                "map_pressure_radii_km": [
+                  444.8,
+                  444.8,
+                  443.86,
+                  444.72,
+                  444.5,
+                  417.0,
+                  443.86,
+                  425.18,
+                  427.01,
+                  68.94,
+                  443.86,
+                  22.98
+                ]
+              },
+              {
+                "map_min_pressure_hpa": 1002.51,
+                "map_query_pressure_hpa": 1005.67,
+                "map_environment_pressure_hpa": 1007.22,
+                "map_pressure_deficit_hpa": 4.71,
+                "map_center_latitude": 34.25,
+                "map_center_longitude": 108.75,
+                "map_center_offset_km": 566.31,
+                "map_center_trusted": false,
+                "map_center_confidence": 0.477,
+                "map_wind850_kt": 14.43,
+                "map_query_wind850_kt": 14.37,
+                "map_pressure_radii_km": [
+                  444.8,
+                  444.8,
+                  443.86,
+                  444.72,
+                  444.5,
+                  417.0,
+                  443.86,
+                  425.18,
+                  427.01,
+                  68.94,
+                  443.86,
+                  22.98
+                ]
+              },
+              {
+                "map_min_pressure_hpa": 1002.51,
+                "map_query_pressure_hpa": 1005.32,
+                "map_environment_pressure_hpa": 1007.22,
+                "map_pressure_deficit_hpa": 4.71,
+                "map_center_latitude": 34.25,
+                "map_center_longitude": 108.75,
+                "map_center_offset_km": 497.06,
+                "map_center_trusted": false,
+                "map_center_confidence": 0.633,
+                "map_wind850_kt": 14.43,
+                "map_query_wind850_kt": 18.88,
+                "map_pressure_radii_km": [
+                  444.8,
+                  444.8,
+                  443.86,
+                  444.72,
+                  444.5,
+                  417.0,
+                  443.86,
+                  425.18,
+                  427.01,
+                  68.94,
+                  443.86,
+                  22.98
+                ]
+              },
+              {
+                "map_min_pressure_hpa": 1002.51,
+                "map_query_pressure_hpa": 1004.44,
+                "map_environment_pressure_hpa": 1007.22,
+                "map_pressure_deficit_hpa": 4.71,
+                "map_center_latitude": 34.25,
+                "map_center_longitude": 108.75,
+                "map_center_offset_km": 432.62,
+                "map_center_trusted": false,
+                "map_center_confidence": 0.75,
+                "map_wind850_kt": 14.43,
+                "map_query_wind850_kt": 17.45,
+                "map_pressure_radii_km": [
+                  444.8,
+                  444.8,
+                  443.86,
+                  444.72,
+                  444.5,
+                  417.0,
+                  443.86,
+                  425.18,
+                  427.01,
+                  68.94,
+                  443.86,
+                  22.98
+                ]
+              },
+              {
+                "map_min_pressure_hpa": 1002.51,
+                "map_query_pressure_hpa": 1006.72,
+                "map_environment_pressure_hpa": 1007.22,
+                "map_pressure_deficit_hpa": 4.71,
+                "map_center_latitude": 34.25,
+                "map_center_longitude": 108.75,
+                "map_center_offset_km": 375.28,
+                "map_center_trusted": false,
+                "map_center_confidence": 0.75,
+                "map_wind850_kt": 14.43,
+                "map_query_wind850_kt": 18.66,
+                "map_pressure_radii_km": [
+                  444.8,
+                  444.8,
+                  443.86,
+                  444.72,
+                  444.5,
+                  417.0,
+                  443.86,
+                  425.18,
+                  427.01,
+                  68.94,
+                  443.86,
+                  22.98
+                ]
+              },
+              {
+                "map_min_pressure_hpa": 1002.51,
+                "map_query_pressure_hpa": 1006.59,
+                "map_environment_pressure_hpa": 1007.22,
+                "map_pressure_deficit_hpa": 4.71,
+                "map_center_latitude": 34.25,
+                "map_center_longitude": 108.75,
+                "map_center_offset_km": 329.22,
+                "map_center_trusted": true,
+                "map_center_confidence": 1.0,
+                "map_wind850_kt": 14.43,
+                "map_query_wind850_kt": 6.96,
+                "map_pressure_radii_km": [
+                  444.8,
+                  444.8,
+                  443.86,
+                  444.72,
+                  444.5,
+                  417.0,
+                  443.86,
+                  425.18,
+                  427.01,
+                  68.94,
+                  443.86,
+                  22.98
+                ]
+              }
+            ],
+            "official_forecasts_used": false,
+            "positive_lead_weather_product_used": false
+          }
+        },
+        "cone_km": [
+          19.2,
+          38.9,
+          58.5,
+          77.3,
+          97.3,
+          120.3,
+          141.0,
+          166.1,
+          187.4,
+          198.7,
+          214.3,
+          230.4,
+          246.8,
+          262.7,
+          270.2,
+          276.5,
+          282.4,
+          286.5,
+          289.8,
+          300.3
+        ],
+        "cone_percentile": 90.0,
+        "member_count": 189
+      },
+      "causality": {
+        "issue_time_utc": "2026-08-25T22:00:00Z",
+        "inputs_opened": [
+          {
+            "kind": "jma_analysis",
+            "name": "TC2621/specifications.json[1]",
+            "valid_time_utc": "2026-08-25T22:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-18T12:00Z",
+            "valid_time_utc": "2026-08-18T12:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-18T15:00Z",
+            "valid_time_utc": "2026-08-18T15:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-18T18:00Z",
+            "valid_time_utc": "2026-08-18T18:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-18T21:00Z",
+            "valid_time_utc": "2026-08-18T21:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-19T00:00Z",
+            "valid_time_utc": "2026-08-19T00:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-19T03:00Z",
+            "valid_time_utc": "2026-08-19T03:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-19T06:00Z",
+            "valid_time_utc": "2026-08-19T06:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-19T09:00Z",
+            "valid_time_utc": "2026-08-19T09:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-19T12:00Z",
+            "valid_time_utc": "2026-08-19T12:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-19T15:00Z",
+            "valid_time_utc": "2026-08-19T15:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-19T18:00Z",
+            "valid_time_utc": "2026-08-19T18:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-19T21:00Z",
+            "valid_time_utc": "2026-08-19T21:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-20T00:00Z",
+            "valid_time_utc": "2026-08-20T00:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-20T03:00Z",
+            "valid_time_utc": "2026-08-20T03:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-20T06:00Z",
+            "valid_time_utc": "2026-08-20T06:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-20T09:00Z",
+            "valid_time_utc": "2026-08-20T09:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-20T12:00Z",
+            "valid_time_utc": "2026-08-20T12:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-20T15:00Z",
+            "valid_time_utc": "2026-08-20T15:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-20T18:00Z",
+            "valid_time_utc": "2026-08-20T18:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-20T21:00Z",
+            "valid_time_utc": "2026-08-20T21:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-21T00:00Z",
+            "valid_time_utc": "2026-08-21T00:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-21T03:00Z",
+            "valid_time_utc": "2026-08-21T03:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-21T06:00Z",
+            "valid_time_utc": "2026-08-21T06:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-21T09:00Z",
+            "valid_time_utc": "2026-08-21T09:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-21T12:00Z",
+            "valid_time_utc": "2026-08-21T12:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-21T15:00Z",
+            "valid_time_utc": "2026-08-21T15:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-21T18:00Z",
+            "valid_time_utc": "2026-08-21T18:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-21T21:00Z",
+            "valid_time_utc": "2026-08-21T21:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-22T00:00Z",
+            "valid_time_utc": "2026-08-22T00:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-22T03:00Z",
+            "valid_time_utc": "2026-08-22T03:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-22T06:00Z",
+            "valid_time_utc": "2026-08-22T06:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-22T09:00Z",
+            "valid_time_utc": "2026-08-22T09:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-22T12:00Z",
+            "valid_time_utc": "2026-08-22T12:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-22T15:00Z",
+            "valid_time_utc": "2026-08-22T15:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-22T18:00Z",
+            "valid_time_utc": "2026-08-22T18:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-22T21:00Z",
+            "valid_time_utc": "2026-08-22T21:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-23T00:00Z",
+            "valid_time_utc": "2026-08-23T00:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-23T03:00Z",
+            "valid_time_utc": "2026-08-23T03:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-23T06:00Z",
+            "valid_time_utc": "2026-08-23T06:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-23T09:00Z",
+            "valid_time_utc": "2026-08-23T09:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-23T12:00Z",
+            "valid_time_utc": "2026-08-23T12:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-23T15:00Z",
+            "valid_time_utc": "2026-08-23T15:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-23T18:00Z",
+            "valid_time_utc": "2026-08-23T18:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-23T21:00Z",
+            "valid_time_utc": "2026-08-23T21:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-24T00:00Z",
+            "valid_time_utc": "2026-08-24T00:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-24T03:00Z",
+            "valid_time_utc": "2026-08-24T03:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-24T06:00Z",
+            "valid_time_utc": "2026-08-24T06:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-24T09:00Z",
+            "valid_time_utc": "2026-08-24T09:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-24T12:00Z",
+            "valid_time_utc": "2026-08-24T12:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-24T15:00Z",
+            "valid_time_utc": "2026-08-24T15:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-24T18:00Z",
+            "valid_time_utc": "2026-08-24T18:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-24T21:00Z",
+            "valid_time_utc": "2026-08-24T21:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-25T00:00Z",
+            "valid_time_utc": "2026-08-25T00:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-25T03:00Z",
+            "valid_time_utc": "2026-08-25T03:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-25T06:00Z",
+            "valid_time_utc": "2026-08-25T06:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-25T09:00Z",
+            "valid_time_utc": "2026-08-25T09:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-25T12:00Z",
+            "valid_time_utc": "2026-08-25T12:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-25T15:00Z",
+            "valid_time_utc": "2026-08-25T15:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-25T18:00Z",
+            "valid_time_utc": "2026-08-25T18:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-25T21:00Z",
+            "valid_time_utc": "2026-08-25T21:00:00Z"
+          },
+          {
+            "kind": "observed_fix",
+            "name": "2026-08-25T22:00Z",
+            "valid_time_utc": "2026-08-25T22:00:00Z"
+          },
+          {
+            "kind": "gfs_f000_analysis",
+            "name": "20260825_18",
+            "valid_time_utc": "2026-08-25T18:00:00Z"
+          },
+          {
+            "kind": "gfs_f000_analysis",
+            "name": "20260823_18",
+            "valid_time_utc": "2026-08-23T18:00:00Z"
+          },
+          {
+            "kind": "gfs_f000_analysis",
+            "name": "20260824_06",
+            "valid_time_utc": "2026-08-24T06:00:00Z"
+          },
+          {
+            "kind": "gfs_f000_analysis",
+            "name": "20260824_18",
+            "valid_time_utc": "2026-08-24T18:00:00Z"
+          },
+          {
+            "kind": "gfs_f000_analysis",
+            "name": "20260825_06",
+            "valid_time_utc": "2026-08-25T06:00:00Z"
+          }
+        ],
+        "latest_input_valid_time_utc": "2026-08-25T22:00:00Z",
+        "future_rows_used_for_inference": 0,
+        "official_forecasts_used_for_inference": false,
+        "forecast_products_used": [],
+        "enforcement": "every input above was checked against the issue time before use; a later-valid input raises CausalityError and the storm falls back"
+      }
+    },
     "TC2622": {
       "issue_time": "2026-08-25T21:00",
       "base_lat": 20.7,
@@ -850,1471 +2320,6 @@
             "kind": "jma_analysis",
             "name": "TC2622/specifications.json[1]",
             "valid_time_utc": "2026-08-25T21:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-21T06:00Z",
-            "valid_time_utc": "2026-08-21T06:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-21T09:00Z",
-            "valid_time_utc": "2026-08-21T09:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-21T12:00Z",
-            "valid_time_utc": "2026-08-21T12:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-21T15:00Z",
-            "valid_time_utc": "2026-08-21T15:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-21T18:00Z",
-            "valid_time_utc": "2026-08-21T18:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-21T21:00Z",
-            "valid_time_utc": "2026-08-21T21:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-22T00:00Z",
-            "valid_time_utc": "2026-08-22T00:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-22T03:00Z",
-            "valid_time_utc": "2026-08-22T03:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-22T06:00Z",
-            "valid_time_utc": "2026-08-22T06:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-22T09:00Z",
-            "valid_time_utc": "2026-08-22T09:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-22T12:00Z",
-            "valid_time_utc": "2026-08-22T12:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-22T15:00Z",
-            "valid_time_utc": "2026-08-22T15:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-22T18:00Z",
-            "valid_time_utc": "2026-08-22T18:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-22T21:00Z",
-            "valid_time_utc": "2026-08-22T21:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-23T00:00Z",
-            "valid_time_utc": "2026-08-23T00:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-23T03:00Z",
-            "valid_time_utc": "2026-08-23T03:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-23T06:00Z",
-            "valid_time_utc": "2026-08-23T06:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-23T09:00Z",
-            "valid_time_utc": "2026-08-23T09:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-23T12:00Z",
-            "valid_time_utc": "2026-08-23T12:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-23T15:00Z",
-            "valid_time_utc": "2026-08-23T15:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-23T18:00Z",
-            "valid_time_utc": "2026-08-23T18:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-23T21:00Z",
-            "valid_time_utc": "2026-08-23T21:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-24T00:00Z",
-            "valid_time_utc": "2026-08-24T00:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-24T03:00Z",
-            "valid_time_utc": "2026-08-24T03:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-24T06:00Z",
-            "valid_time_utc": "2026-08-24T06:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-24T09:00Z",
-            "valid_time_utc": "2026-08-24T09:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-24T12:00Z",
-            "valid_time_utc": "2026-08-24T12:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-24T15:00Z",
-            "valid_time_utc": "2026-08-24T15:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-24T18:00Z",
-            "valid_time_utc": "2026-08-24T18:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-24T21:00Z",
-            "valid_time_utc": "2026-08-24T21:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-25T00:00Z",
-            "valid_time_utc": "2026-08-25T00:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-25T03:00Z",
-            "valid_time_utc": "2026-08-25T03:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-25T06:00Z",
-            "valid_time_utc": "2026-08-25T06:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-25T09:00Z",
-            "valid_time_utc": "2026-08-25T09:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-25T12:00Z",
-            "valid_time_utc": "2026-08-25T12:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-25T15:00Z",
-            "valid_time_utc": "2026-08-25T15:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-25T18:00Z",
-            "valid_time_utc": "2026-08-25T18:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-25T21:00Z",
-            "valid_time_utc": "2026-08-25T21:00:00Z"
-          },
-          {
-            "kind": "gfs_f000_analysis",
-            "name": "20260825_18",
-            "valid_time_utc": "2026-08-25T18:00:00Z"
-          },
-          {
-            "kind": "gfs_f000_analysis",
-            "name": "20260823_18",
-            "valid_time_utc": "2026-08-23T18:00:00Z"
-          },
-          {
-            "kind": "gfs_f000_analysis",
-            "name": "20260824_06",
-            "valid_time_utc": "2026-08-24T06:00:00Z"
-          },
-          {
-            "kind": "gfs_f000_analysis",
-            "name": "20260824_18",
-            "valid_time_utc": "2026-08-24T18:00:00Z"
-          },
-          {
-            "kind": "gfs_f000_analysis",
-            "name": "20260825_06",
-            "valid_time_utc": "2026-08-25T06:00:00Z"
-          }
-        ],
-        "latest_input_valid_time_utc": "2026-08-25T21:00:00Z",
-        "future_rows_used_for_inference": 0,
-        "official_forecasts_used_for_inference": false,
-        "forecast_products_used": [],
-        "enforcement": "every input above was checked against the issue time before use; a later-valid input raises CausalityError and the storm falls back"
-      }
-    },
-    "TC2621": {
-      "issue_time": "2026-08-25T21:00",
-      "base_lat": 27.7,
-      "base_lon": 127.6,
-      "lead_hours": [
-        6,
-        12,
-        18,
-        24,
-        30,
-        36,
-        42,
-        48,
-        54,
-        60,
-        66,
-        72,
-        78,
-        84,
-        90,
-        96,
-        102,
-        108,
-        114,
-        120
-      ],
-      "lats": [
-        28.168,
-        28.636,
-        29.083,
-        29.499,
-        29.889,
-        30.267,
-        30.649,
-        31.044,
-        31.453,
-        31.869,
-        32.287,
-        32.7,
-        33.105,
-        33.502,
-        33.891,
-        34.271,
-        34.643,
-        35.013,
-        35.382,
-        35.751
-      ],
-      "lons": [
-        126.803,
-        126.016,
-        125.231,
-        124.436,
-        123.624,
-        122.801,
-        121.975,
-        121.158,
-        120.356,
-        119.569,
-        118.794,
-        118.027,
-        117.262,
-        116.503,
-        115.748,
-        114.993,
-        114.234,
-        113.467,
-        112.692,
-        111.907
-      ],
-      "vmax_kt": [
-        74.4,
-        73.8,
-        73.4,
-        71.7,
-        69.9,
-        67.2,
-        64.7,
-        62.9,
-        60.9,
-        59.2,
-        57.6,
-        56.0,
-        55.0,
-        54.5,
-        54.2,
-        54.0,
-        53.4,
-        52.6,
-        51.7,
-        51.3
-      ],
-      "pres_hpa": [
-        962.1,
-        963.5,
-        964.0,
-        966.6,
-        968.7,
-        971.4,
-        973.7,
-        975.3,
-        976.9,
-        978.3,
-        979.6,
-        980.9,
-        981.8,
-        982.4,
-        983.2,
-        984.3,
-        985.4,
-        986.5,
-        987.2,
-        988.0
-      ],
-      "n_padded_history": 0,
-      "seeds": 10,
-      "precision": "fp32",
-      "tcId": "TC2621",
-      "name": "Saudel",
-      "track_source": "trackformer11",
-      "radii_km": [
-        [
-          337.6,
-          336.6,
-          247.0,
-          334.1,
-          154.6,
-          152.3,
-          123.9,
-          155.3,
-          null,
-          null,
-          null,
-          null
-        ],
-        [
-          334.0,
-          326.2,
-          250.1,
-          321.5,
-          142.4,
-          138.3,
-          115.4,
-          144.0,
-          null,
-          null,
-          null,
-          null
-        ],
-        [
-          320.6,
-          314.5,
-          247.4,
-          308.7,
-          133.8,
-          129.6,
-          105.9,
-          133.6,
-          null,
-          null,
-          null,
-          null
-        ],
-        [
-          301.6,
-          305.0,
-          243.6,
-          305.2,
-          128.0,
-          123.0,
-          97.1,
-          125.0,
-          null,
-          null,
-          null,
-          null
-        ],
-        [
-          289.9,
-          298.1,
-          237.6,
-          293.2,
-          123.7,
-          118.8,
-          91.9,
-          121.0,
-          null,
-          null,
-          null,
-          null
-        ],
-        [
-          281.2,
-          289.3,
-          230.3,
-          283.3,
-          122.6,
-          117.0,
-          89.1,
-          119.0,
-          null,
-          null,
-          null,
-          null
-        ],
-        [
-          275.1,
-          279.6,
-          224.6,
-          275.9,
-          121.5,
-          115.2,
-          86.8,
-          117.7,
-          null,
-          null,
-          null,
-          null
-        ],
-        [
-          269.6,
-          269.9,
-          218.0,
-          268.5,
-          120.1,
-          113.1,
-          84.1,
-          116.1,
-          null,
-          null,
-          null,
-          null
-        ],
-        [
-          262.1,
-          261.3,
-          210.1,
-          262.0,
-          116.7,
-          110.8,
-          81.0,
-          113.8,
-          null,
-          null,
-          null,
-          null
-        ],
-        [
-          252.3,
-          253.4,
-          202.1,
-          253.4,
-          113.0,
-          107.2,
-          76.8,
-          110.8,
-          null,
-          null,
-          null,
-          null
-        ],
-        [
-          246.9,
-          245.3,
-          196.0,
-          246.6,
-          110.0,
-          102.7,
-          72.7,
-          108.6,
-          null,
-          null,
-          null,
-          null
-        ],
-        [
-          243.6,
-          237.6,
-          189.1,
-          241.7,
-          107.9,
-          96.2,
-          66.8,
-          106.8,
-          null,
-          null,
-          null,
-          null
-        ],
-        [
-          242.6,
-          231.1,
-          184.4,
-          238.4,
-          106.8,
-          90.4,
-          62.2,
-          106.2,
-          null,
-          null,
-          null,
-          null
-        ],
-        [
-          238.7,
-          226.6,
-          179.8,
-          235.2,
-          105.0,
-          85.9,
-          57.7,
-          105.4,
-          null,
-          null,
-          null,
-          null
-        ],
-        [
-          232.7,
-          220.5,
-          175.0,
-          230.0,
-          102.9,
-          80.9,
-          54.7,
-          106.9,
-          null,
-          null,
-          null,
-          null
-        ],
-        [
-          225.3,
-          214.6,
-          170.8,
-          224.5,
-          99.1,
-          76.5,
-          55.0,
-          107.5,
-          null,
-          null,
-          null,
-          null
-        ],
-        [
-          218.7,
-          209.8,
-          165.3,
-          220.0,
-          96.8,
-          73.3,
-          52.8,
-          106.7,
-          null,
-          null,
-          null,
-          null
-        ],
-        [
-          215.5,
-          207.1,
-          160.4,
-          217.4,
-          95.2,
-          73.5,
-          52.0,
-          104.7,
-          null,
-          null,
-          null,
-          null
-        ],
-        [
-          214.1,
-          206.9,
-          160.3,
-          217.8,
-          95.9,
-          72.3,
-          53.5,
-          103.6,
-          null,
-          null,
-          null,
-          null
-        ],
-        [
-          239.2,
-          232.2,
-          186.3,
-          248.1,
-          108.0,
-          81.6,
-          64.7,
-          116.3,
-          null,
-          null,
-          null,
-          null
-        ]
-      ],
-      "structure_anchor": 8,
-      "intensity_source": "trackformer11",
-      "trackformer11": {
-        "lats": [
-          28.168,
-          28.636,
-          29.083,
-          29.499,
-          29.889,
-          30.267,
-          30.649,
-          31.044,
-          31.453,
-          31.869,
-          32.287,
-          32.7,
-          33.105,
-          33.502,
-          33.891,
-          34.271,
-          34.643,
-          35.013,
-          35.382,
-          35.751
-        ],
-        "lons": [
-          126.803,
-          126.016,
-          125.231,
-          124.436,
-          123.624,
-          122.801,
-          121.975,
-          121.158,
-          120.356,
-          119.569,
-          118.794,
-          118.027,
-          117.262,
-          116.503,
-          115.748,
-          114.993,
-          114.234,
-          113.467,
-          112.692,
-          111.907
-        ],
-        "analysis_cycle": "20260825_18",
-        "analysis_lag_hours": 3.0,
-        "cycles_used": [
-          "20260823_18",
-          "20260824_06",
-          "20260824_18",
-          "20260825_06",
-          "20260825_18"
-        ],
-        "local_weight": 0.75,
-        "pacific_weight": 0.25,
-        "domain": "100-190E, 0-60N",
-        "history_available": [
-          1.0,
-          1.0
-        ],
-        "source": "NOAA NOMADS GFS 0.25 degree f000 analysis only",
-        "future_rows_used_for_inference": 0,
-        "official_forecasts_used_for_inference": false,
-        "intensity_model": {
-          "model": "Trackformer1.1 residual-anchor spatial ensemble used as the Trackformer1.1 intensity head",
-          "checkpoint_count": 3,
-          "calibration": "/home/runner/work/yu314-coder.github.io/yu314-coder.github.io/typhoon-predict-src/models/trackformer_1_1/trackformer_1_1_calibration.json",
-          "field_contract": "4x17x17 analysis patch, q/31.75 then clipped to [-4,4]",
-          "outputs": [
-            "vmax_kt",
-            "central_pressure_hpa",
-            "rmw_km",
-            "wind_radii_km"
-          ],
-          "native_structure_unit": "nautical_miles",
-          "output_distance_unit": "kilometres",
-          "ensemble_spread": "standard deviation across the three frozen spatial experts",
-          "structure_calibration": "lead- and component-wise validation blend with observed current RMW/radii when available",
-          "structure_expert_blend": true,
-          "temporal_wind_branch": false,
-          "temporal_wind_branch_policy": "same-storm t-12/t-24 analysis patches; wind only; enabled above the validation-selected current-wind gate; base pressure calibration retained",
-          "pressure_anchor_alpha": [
-            0.5522160094389178,
-            0.6962881299556641,
-            0.7642130854290704,
-            0.8250283768554111,
-            0.8682641709344661,
-            0.8950311405808169,
-            0.912311094958641,
-            0.9251489323454353,
-            0.9362969190603518,
-            0.9450910275730012,
-            0.953263937622913,
-            0.9605904396465027,
-            0.9650098139429872,
-            0.9694222567928482,
-            0.973242185094525,
-            0.9765976015127111,
-            0.9792250259796094,
-            0.9817388698882592,
-            0.9835805375991149,
-            0.9838229441690179
-          ],
-          "pressure_anchor_policy": "validation-fitted blend with valid observed current pressure; no blend when current pressure is missing",
-          "track_input_policy": "per-feature 0.1%-99.9% bounds from train split only",
-          "official_forecasts_used": false,
-          "positive_lead_weather_used": false,
-          "device": "cpu",
-          "pressure_map_coupling": {
-            "enabled": true,
-            "method": "causal forecast pressure-map query plus confidence-weighted local-minimum/anomaly-radius coupling",
-            "map_weight": 0.35,
-            "minimum_confidence": "local minimum contribution decays directly with route-to-minimum confidence; untrusted minima have near-zero central-intensity weight",
-            "pressure_recovery_limit_hpa_per_6h": 6.0,
-            "pressure_recovery_limit_source": "training-split 90th percentile of positive six-hour pressure changes",
-            "pressure_signal_weights": {
-              "tracked_map_minimum": 0.75,
-              "map_anomaly_extent": 0.25
-            },
-            "wind_pressure_anchor": "observed current wind/pressure; map drives only future changes",
-            "radius_method": "learned radius baseline rescaled by trusted local quadrant pressure-anomaly extent; max four-degree footprint",
-            "map_features": [
-              {
-                "map_min_pressure_hpa": 971.84,
-                "map_query_pressure_hpa": 975.69,
-                "map_environment_pressure_hpa": 1005.18,
-                "map_pressure_deficit_hpa": 33.33,
-                "map_center_latitude": 27.75,
-                "map_center_longitude": 128.25,
-                "map_center_offset_km": 64.24,
-                "map_center_trusted": true,
-                "map_center_confidence": 1.0,
-                "map_wind850_kt": 20.22,
-                "map_query_wind850_kt": 40.05,
-                "map_pressure_radii_km": [
-                  157.74,
-                  221.42,
-                  244.25,
-                  223.76,
-                  92.41,
-                  126.12,
-                  134.99,
-                  113.89,
-                  60.8,
-                  98.41,
-                  98.41,
-                  86.95
-                ]
-              },
-              {
-                "map_min_pressure_hpa": 968.02,
-                "map_query_pressure_hpa": 991.17,
-                "map_environment_pressure_hpa": 1005.2,
-                "map_pressure_deficit_hpa": 37.18,
-                "map_center_latitude": 27.75,
-                "map_center_longitude": 128.25,
-                "map_center_offset_km": 149.27,
-                "map_center_trusted": true,
-                "map_center_confidence": 1.0,
-                "map_wind850_kt": 21.26,
-                "map_query_wind850_kt": 69.62,
-                "map_pressure_radii_km": [
-                  166.8,
-                  223.16,
-                  244.25,
-                  222.4,
-                  92.41,
-                  126.12,
-                  134.99,
-                  113.89,
-                  60.8,
-                  98.41,
-                  98.41,
-                  86.95
-                ]
-              },
-              {
-                "map_min_pressure_hpa": 964.19,
-                "map_query_pressure_hpa": 996.31,
-                "map_environment_pressure_hpa": 1005.07,
-                "map_pressure_deficit_hpa": 40.88,
-                "map_center_latitude": 27.75,
-                "map_center_longitude": 128.25,
-                "map_center_offset_km": 239.26,
-                "map_center_trusted": true,
-                "map_center_confidence": 1.0,
-                "map_wind850_kt": 23.08,
-                "map_query_wind850_kt": 60.54,
-                "map_pressure_radii_km": [
-                  168.6,
-                  223.16,
-                  244.25,
-                  200.72,
-                  86.95,
-                  126.12,
-                  134.99,
-                  113.89,
-                  60.8,
-                  98.41,
-                  98.41,
-                  83.4
-                ]
-              },
-              {
-                "map_min_pressure_hpa": 960.37,
-                "map_query_pressure_hpa": 999.12,
-                "map_environment_pressure_hpa": 1004.93,
-                "map_pressure_deficit_hpa": 44.55,
-                "map_center_latitude": 27.75,
-                "map_center_longitude": 128.25,
-                "map_center_offset_km": 328.7,
-                "map_center_trusted": true,
-                "map_center_confidence": 1.0,
-                "map_wind850_kt": 25.53,
-                "map_query_wind850_kt": 45.84,
-                "map_pressure_radii_km": [
-                  168.6,
-                  223.16,
-                  240.96,
-                  196.15,
-                  86.95,
-                  126.12,
-                  134.99,
-                  113.89,
-                  60.8,
-                  98.41,
-                  98.41,
-                  83.4
-                ]
-              },
-              {
-                "map_min_pressure_hpa": 956.55,
-                "map_query_pressure_hpa": 1001.48,
-                "map_environment_pressure_hpa": 1004.71,
-                "map_pressure_deficit_hpa": 48.16,
-                "map_center_latitude": 27.75,
-                "map_center_longitude": 128.25,
-                "map_center_offset_km": 417.24,
-                "map_center_trusted": false,
-                "map_center_confidence": 0.75,
-                "map_wind850_kt": 28.43,
-                "map_query_wind850_kt": 32.47,
-                "map_pressure_radii_km": [
-                  168.6,
-                  223.16,
-                  240.96,
-                  196.15,
-                  86.95,
-                  126.12,
-                  134.99,
-                  113.89,
-                  60.8,
-                  98.41,
-                  98.41,
-                  83.4
-                ]
-              },
-              {
-                "map_min_pressure_hpa": 952.72,
-                "map_query_pressure_hpa": 1003.49,
-                "map_environment_pressure_hpa": 1004.5,
-                "map_pressure_deficit_hpa": 51.78,
-                "map_center_latitude": 27.75,
-                "map_center_longitude": 128.25,
-                "map_center_offset_km": 505.45,
-                "map_center_trusted": false,
-                "map_center_confidence": 0.614,
-                "map_wind850_kt": 31.67,
-                "map_query_wind850_kt": 29.3,
-                "map_pressure_radii_km": [
-                  168.6,
-                  228.3,
-                  240.96,
-                  196.15,
-                  86.95,
-                  126.12,
-                  134.99,
-                  113.89,
-                  60.8,
-                  98.41,
-                  98.41,
-                  83.4
-                ]
-              },
-              {
-                "map_min_pressure_hpa": 948.9,
-                "map_query_pressure_hpa": 1004.68,
-                "map_environment_pressure_hpa": 1004.28,
-                "map_pressure_deficit_hpa": 55.38,
-                "map_center_latitude": 27.75,
-                "map_center_longitude": 128.25,
-                "map_center_offset_km": 593.48,
-                "map_center_trusted": false,
-                "map_center_confidence": 0.416,
-                "map_wind850_kt": 35.15,
-                "map_query_wind850_kt": 30.35,
-                "map_pressure_radii_km": [
-                  168.6,
-                  228.3,
-                  240.96,
-                  194.6,
-                  86.95,
-                  126.12,
-                  134.99,
-                  111.2,
-                  60.8,
-                  98.41,
-                  98.41,
-                  83.4
-                ]
-              },
-              {
-                "map_min_pressure_hpa": 945.69,
-                "map_query_pressure_hpa": 1005.18,
-                "map_environment_pressure_hpa": 1004.02,
-                "map_pressure_deficit_hpa": 58.34,
-                "map_center_latitude": 27.75,
-                "map_center_longitude": 128.0,
-                "map_center_offset_km": 660.41,
-                "map_center_trusted": false,
-                "map_center_confidence": 0.265,
-                "map_wind850_kt": 11.61,
-                "map_query_wind850_kt": 20.83,
-                "map_pressure_radii_km": [
-                  173.91,
-                  204.52,
-                  222.74,
-                  196.15,
-                  102.26,
-                  102.26,
-                  121.6,
-                  113.89,
-                  78.87,
-                  74.25,
-                  86.95,
-                  92.41
-                ]
-              },
-              {
-                "map_min_pressure_hpa": 965.41,
-                "map_query_pressure_hpa": 1005.77,
-                "map_environment_pressure_hpa": 1003.96,
-                "map_pressure_deficit_hpa": 38.55,
-                "map_center_latitude": 28.25,
-                "map_center_longitude": 127.25,
-                "map_center_offset_km": 658.33,
-                "map_center_trusted": false,
-                "map_center_confidence": 0.27,
-                "map_wind850_kt": 146.98,
-                "map_query_wind850_kt": 14.13,
-                "map_pressure_radii_km": [
-                  222.15,
-                  122.44,
-                  251.4,
-                  268.69,
-                  146.93,
-                  0.0,
-                  139.0,
-                  204.33,
-                  122.44,
-                  null,
-                  55.6,
-                  184.27
-                ]
-              },
-              {
-                "map_min_pressure_hpa": 986.09,
-                "map_query_pressure_hpa": 1006.22,
-                "map_environment_pressure_hpa": 1003.88,
-                "map_pressure_deficit_hpa": 17.78,
-                "map_center_latitude": 28.25,
-                "map_center_longitude": 126.25,
-                "map_center_offset_km": 662.92,
-                "map_center_trusted": false,
-                "map_center_confidence": 0.26,
-                "map_wind850_kt": 95.39,
-                "map_query_wind850_kt": 10.35,
-                "map_pressure_radii_km": [
-                  319.57,
-                  27.8,
-                  194.6,
-                  332.31,
-                  244.89,
-                  null,
-                  null,
-                  291.43,
-                  220.4,
-                  null,
-                  null,
-                  268.95
-                ]
-              },
-              {
-                "map_min_pressure_hpa": 992.75,
-                "map_query_pressure_hpa": 1005.64,
-                "map_environment_pressure_hpa": 1004.27,
-                "map_pressure_deficit_hpa": 11.52,
-                "map_center_latitude": 29.0,
-                "map_center_longitude": 125.75,
-                "map_center_offset_km": 665.21,
-                "map_center_trusted": false,
-                "map_center_confidence": 0.254,
-                "map_wind850_kt": 78.08,
-                "map_query_wind850_kt": 10.65,
-                "map_pressure_radii_km": [
-                  316.09,
-                  null,
-                  null,
-                  422.66,
-                  null,
-                  null,
-                  null,
-                  371.19,
-                  null,
-                  null,
-                  null,
-                  350.71
-                ]
-              },
-              {
-                "map_min_pressure_hpa": 997.33,
-                "map_query_pressure_hpa": 1005.61,
-                "map_environment_pressure_hpa": 1004.58,
-                "map_pressure_deficit_hpa": 7.24,
-                "map_center_latitude": 29.5,
-                "map_center_longitude": 125.0,
-                "map_center_offset_km": 660.61,
-                "map_center_trusted": false,
-                "map_center_confidence": 0.265,
-                "map_wind850_kt": 55.58,
-                "map_query_wind850_kt": 8.78,
-                "map_pressure_radii_km": [
-                  null,
-                  null,
-                  null,
-                  443.86,
-                  null,
-                  null,
-                  null,
-                  440.82,
-                  null,
-                  null,
-                  null,
-                  440.82
-                ]
-              },
-              {
-                "map_min_pressure_hpa": 1000.41,
-                "map_query_pressure_hpa": 1005.9,
-                "map_environment_pressure_hpa": 1005.07,
-                "map_pressure_deficit_hpa": 4.66,
-                "map_center_latitude": 30.0,
-                "map_center_longitude": 124.25,
-                "map_center_offset_km": 655.17,
-                "map_center_trusted": false,
-                "map_center_confidence": 0.277,
-                "map_wind850_kt": 38.44,
-                "map_query_wind850_kt": 5.92,
-                "map_pressure_radii_km": [
-                  null,
-                  null,
-                  null,
-                  444.8,
-                  null,
-                  null,
-                  null,
-                  444.8,
-                  null,
-                  null,
-                  null,
-                  444.8
-                ]
-              },
-              {
-                "map_min_pressure_hpa": 1002.41,
-                "map_query_pressure_hpa": 1005.84,
-                "map_environment_pressure_hpa": 1005.26,
-                "map_pressure_deficit_hpa": 2.85,
-                "map_center_latitude": 30.25,
-                "map_center_longitude": 123.5,
-                "map_center_offset_km": 662.14,
-                "map_center_trusted": false,
-                "map_center_confidence": 0.261,
-                "map_wind850_kt": 37.87,
-                "map_query_wind850_kt": 4.41,
-                "map_pressure_radii_km": [
-                  null,
-                  null,
-                  null,
-                  443.96,
-                  null,
-                  null,
-                  null,
-                  443.96,
-                  null,
-                  null,
-                  null,
-                  443.96
-                ]
-              },
-              {
-                "map_min_pressure_hpa": 1003.14,
-                "map_query_pressure_hpa": 1005.58,
-                "map_environment_pressure_hpa": 1007.52,
-                "map_pressure_deficit_hpa": 4.38,
-                "map_center_latitude": 34.75,
-                "map_center_longitude": 109.5,
-                "map_center_offset_km": 664.02,
-                "map_center_trusted": false,
-                "map_center_confidence": 0.257,
-                "map_wind850_kt": 5.55,
-                "map_query_wind850_kt": 5.32,
-                "map_pressure_radii_km": [
-                  443.7,
-                  422.59,
-                  442.47,
-                  443.7,
-                  443.7,
-                  417.0,
-                  440.16,
-                  440.16,
-                  399.78,
-                  389.87,
-                  440.16,
-                  45.68
-                ]
-              },
-              {
-                "map_min_pressure_hpa": 1002.51,
-                "map_query_pressure_hpa": 1005.65,
-                "map_environment_pressure_hpa": 1007.22,
-                "map_pressure_deficit_hpa": 4.71,
-                "map_center_latitude": 34.25,
-                "map_center_longitude": 108.75,
-                "map_center_offset_km": 647.2,
-                "map_center_trusted": false,
-                "map_center_confidence": 0.295,
-                "map_wind850_kt": 14.43,
-                "map_query_wind850_kt": 9.89,
-                "map_pressure_radii_km": [
-                  444.8,
-                  444.8,
-                  443.86,
-                  444.72,
-                  444.5,
-                  417.0,
-                  443.86,
-                  425.18,
-                  427.01,
-                  68.94,
-                  443.86,
-                  22.98
-                ]
-              },
-              {
-                "map_min_pressure_hpa": 1002.51,
-                "map_query_pressure_hpa": 1005.67,
-                "map_environment_pressure_hpa": 1007.22,
-                "map_pressure_deficit_hpa": 4.71,
-                "map_center_latitude": 34.25,
-                "map_center_longitude": 108.75,
-                "map_center_offset_km": 573.7,
-                "map_center_trusted": false,
-                "map_center_confidence": 0.46,
-                "map_wind850_kt": 14.43,
-                "map_query_wind850_kt": 14.37,
-                "map_pressure_radii_km": [
-                  444.8,
-                  444.8,
-                  443.86,
-                  444.72,
-                  444.5,
-                  417.0,
-                  443.86,
-                  425.18,
-                  427.01,
-                  68.94,
-                  443.86,
-                  22.98
-                ]
-              },
-              {
-                "map_min_pressure_hpa": 1002.51,
-                "map_query_pressure_hpa": 1005.32,
-                "map_environment_pressure_hpa": 1007.22,
-                "map_pressure_deficit_hpa": 4.71,
-                "map_center_latitude": 34.25,
-                "map_center_longitude": 108.75,
-                "map_center_offset_km": 503.61,
-                "map_center_trusted": false,
-                "map_center_confidence": 0.618,
-                "map_wind850_kt": 14.43,
-                "map_query_wind850_kt": 18.88,
-                "map_pressure_radii_km": [
-                  444.8,
-                  444.8,
-                  443.86,
-                  444.72,
-                  444.5,
-                  417.0,
-                  443.86,
-                  425.18,
-                  427.01,
-                  68.94,
-                  443.86,
-                  22.98
-                ]
-              },
-              {
-                "map_min_pressure_hpa": 1002.51,
-                "map_query_pressure_hpa": 1004.44,
-                "map_environment_pressure_hpa": 1007.22,
-                "map_pressure_deficit_hpa": 4.71,
-                "map_center_latitude": 34.25,
-                "map_center_longitude": 108.75,
-                "map_center_offset_km": 437.9,
-                "map_center_trusted": false,
-                "map_center_confidence": 0.75,
-                "map_wind850_kt": 14.43,
-                "map_query_wind850_kt": 17.45,
-                "map_pressure_radii_km": [
-                  444.8,
-                  444.8,
-                  443.86,
-                  444.72,
-                  444.5,
-                  417.0,
-                  443.86,
-                  425.18,
-                  427.01,
-                  68.94,
-                  443.86,
-                  22.98
-                ]
-              },
-              {
-                "map_min_pressure_hpa": 1002.51,
-                "map_query_pressure_hpa": 1007.24,
-                "map_environment_pressure_hpa": 1007.22,
-                "map_pressure_deficit_hpa": 4.71,
-                "map_center_latitude": 34.25,
-                "map_center_longitude": 108.75,
-                "map_center_offset_km": 378.91,
-                "map_center_trusted": false,
-                "map_center_confidence": 0.75,
-                "map_wind850_kt": 14.43,
-                "map_query_wind850_kt": 18.07,
-                "map_pressure_radii_km": [
-                  444.8,
-                  444.8,
-                  443.86,
-                  444.72,
-                  444.5,
-                  417.0,
-                  443.86,
-                  425.18,
-                  427.01,
-                  68.94,
-                  443.86,
-                  22.98
-                ]
-              },
-              {
-                "map_min_pressure_hpa": 1002.51,
-                "map_query_pressure_hpa": 1007.64,
-                "map_environment_pressure_hpa": 1007.22,
-                "map_pressure_deficit_hpa": 4.71,
-                "map_center_latitude": 34.25,
-                "map_center_longitude": 108.75,
-                "map_center_offset_km": 330.2,
-                "map_center_trusted": true,
-                "map_center_confidence": 1.0,
-                "map_wind850_kt": 14.43,
-                "map_query_wind850_kt": 11.48,
-                "map_pressure_radii_km": [
-                  444.8,
-                  444.8,
-                  443.86,
-                  444.72,
-                  444.5,
-                  417.0,
-                  443.86,
-                  425.18,
-                  427.01,
-                  68.94,
-                  443.86,
-                  22.98
-                ]
-              }
-            ],
-            "official_forecasts_used": false,
-            "positive_lead_weather_product_used": false
-          }
-        },
-        "cone_km": [
-          19.0,
-          38.9,
-          58.9,
-          77.5,
-          97.0,
-          119.3,
-          140.4,
-          163.2,
-          184.3,
-          195.9,
-          212.5,
-          228.6,
-          244.3,
-          260.2,
-          271.7,
-          278.0,
-          284.0,
-          288.1,
-          291.5,
-          313.1
-        ],
-        "cone_percentile": 90.0,
-        "member_count": 189
-      },
-      "causality": {
-        "issue_time_utc": "2026-08-25T21:00:00Z",
-        "inputs_opened": [
-          {
-            "kind": "jma_analysis",
-            "name": "TC2621/specifications.json[1]",
-            "valid_time_utc": "2026-08-25T21:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-18T12:00Z",
-            "valid_time_utc": "2026-08-18T12:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-18T15:00Z",
-            "valid_time_utc": "2026-08-18T15:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-18T18:00Z",
-            "valid_time_utc": "2026-08-18T18:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-18T21:00Z",
-            "valid_time_utc": "2026-08-18T21:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-19T00:00Z",
-            "valid_time_utc": "2026-08-19T00:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-19T03:00Z",
-            "valid_time_utc": "2026-08-19T03:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-19T06:00Z",
-            "valid_time_utc": "2026-08-19T06:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-19T09:00Z",
-            "valid_time_utc": "2026-08-19T09:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-19T12:00Z",
-            "valid_time_utc": "2026-08-19T12:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-19T15:00Z",
-            "valid_time_utc": "2026-08-19T15:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-19T18:00Z",
-            "valid_time_utc": "2026-08-19T18:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-19T21:00Z",
-            "valid_time_utc": "2026-08-19T21:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-20T00:00Z",
-            "valid_time_utc": "2026-08-20T00:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-20T03:00Z",
-            "valid_time_utc": "2026-08-20T03:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-20T06:00Z",
-            "valid_time_utc": "2026-08-20T06:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-20T09:00Z",
-            "valid_time_utc": "2026-08-20T09:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-20T12:00Z",
-            "valid_time_utc": "2026-08-20T12:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-20T15:00Z",
-            "valid_time_utc": "2026-08-20T15:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-20T18:00Z",
-            "valid_time_utc": "2026-08-20T18:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-20T21:00Z",
-            "valid_time_utc": "2026-08-20T21:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-21T00:00Z",
-            "valid_time_utc": "2026-08-21T00:00:00Z"
-          },
-          {
-            "kind": "observed_fix",
-            "name": "2026-08-21T03:00Z",
-            "valid_time_utc": "2026-08-21T03:00:00Z"
           },
           {
             "kind": "observed_fix",
