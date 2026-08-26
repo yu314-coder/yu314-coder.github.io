@@ -1714,6 +1714,21 @@ body.theme-dark .navbar.scrolled { background: rgba(8,8,12,0.82); }
    would only move the problem to whichever width wraps a heading to three
    lines.
    ------------------------------------------------------------------------- */
+/* The alignment must NOT depend on subgrid. Reserve two lines of heading in
+   every column whether the text wraps to two or not, so the paragraph below
+   always starts at the same offset — this is what makes the row line up in
+   every browser, and it is harmless where subgrid is doing the job properly.
+   Only above 576px: stacked in one column there is nothing to align against
+   and the reserved line would just be a gap. */
+@media (min-width: 576px) {
+  .capability-grid h4 { min-height: 2.12em; }   /* 2 lines at this 1.06 ratio */
+}
+@supports (min-height: 2lh) {
+  @media (min-width: 576px) {
+    .capability-grid h4 { min-height: 2lh; }
+  }
+}
+
 @supports (grid-template-rows: subgrid) {
   .capability-grid {
     display: grid;
