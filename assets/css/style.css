@@ -1698,3 +1698,41 @@ body.theme-dark .navbar.scrolled { background: rgba(8,8,12,0.82); }
   }
   body.theme-dark { background-image: none; }
 }
+
+/* ---------------------------------------------------------------------------
+   19. Capability columns — align across, not just within
+   ---------------------------------------------------------------------------
+   The four "What I do" columns each hold a number, a heading and a paragraph.
+   As flex columns each one stacks independently, so a heading that wraps to two
+   lines ("Mathematical research") pushes its paragraph a line lower than one
+   that fits on one ("Cross-platform apps") — the columns read as ragged.
+
+   Subgrid fixes it properly: the row owns the three rows, and each column
+   inherits them, so numbers line up with numbers and body copy with body copy
+   however the headings wrap. Behind @supports because without subgrid the
+   right answer is the current behaviour, not a broken grid — and min-heights
+   would only move the problem to whichever width wraps a heading to three
+   lines.
+   ------------------------------------------------------------------------- */
+@supports (grid-template-rows: subgrid) {
+  .capability-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: auto auto auto;
+    gap: 3rem 1.5rem;
+    margin-inline: 0;
+  }
+  .capability-grid > * {
+    display: grid;
+    grid-template-rows: subgrid;
+    grid-row: span 3;
+    width: auto; max-width: none; flex: none;
+    padding-inline: 0;
+  }
+  @media (max-width: 991.98px) {
+    .capability-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 575.98px) {
+    .capability-grid { grid-template-columns: minmax(0, 1fr); gap: 2.25rem; }
+  }
+}
