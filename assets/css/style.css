@@ -1707,47 +1707,24 @@ body.theme-dark .navbar.scrolled { background: rgba(8,8,12,0.82); }
    lines ("Mathematical research") pushes its paragraph a line lower than one
    that fits on one ("Cross-platform apps") — the columns read as ragged.
 
-   Subgrid fixes it properly: the row owns the three rows, and each column
-   inherits them, so numbers line up with numbers and body copy with body copy
-   however the headings wrap. Behind @supports because without subgrid the
-   right answer is the current behaviour, not a broken grid — and min-heights
-   would only move the problem to whichever width wraps a heading to three
-   lines.
+   The fix is to reserve two lines of heading in every column, wrapped or not,
+   so the paragraph below always starts at the same offset.
+
+   This was subgrid first. Subgrid aligns the three rows properly, but the grid
+   still needs a row-gap to separate the column bands at narrow widths, and that
+   same gap then lands BETWEEN the number, the heading and the paragraph — 3rem
+   of dead space inside every column, which is worse than the raggedness it
+   fixed. Reserving the heading height needs no grid at all, leaves Bootstrap's
+   own gutters behaving exactly as they did, and works in every browser.
+
+   Only above 576px: stacked in one column there is nothing to align against,
+   and the reserved line would just be a gap.
    ------------------------------------------------------------------------- */
-/* The alignment must NOT depend on subgrid. Reserve two lines of heading in
-   every column whether the text wraps to two or not, so the paragraph below
-   always starts at the same offset — this is what makes the row line up in
-   every browser, and it is harmless where subgrid is doing the job properly.
-   Only above 576px: stacked in one column there is nothing to align against
-   and the reserved line would just be a gap. */
 @media (min-width: 576px) {
   .capability-grid h4 { min-height: 2.12em; }   /* 2 lines at this 1.06 ratio */
 }
 @supports (min-height: 2lh) {
   @media (min-width: 576px) {
     .capability-grid h4 { min-height: 2lh; }
-  }
-}
-
-@supports (grid-template-rows: subgrid) {
-  .capability-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    grid-template-rows: auto auto auto;
-    gap: 3rem 1.5rem;
-    margin-inline: 0;
-  }
-  .capability-grid > * {
-    display: grid;
-    grid-template-rows: subgrid;
-    grid-row: span 3;
-    width: auto; max-width: none; flex: none;
-    padding-inline: 0;
-  }
-  @media (max-width: 991.98px) {
-    .capability-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  }
-  @media (max-width: 575.98px) {
-    .capability-grid { grid-template-columns: minmax(0, 1fr); gap: 2.25rem; }
   }
 }
