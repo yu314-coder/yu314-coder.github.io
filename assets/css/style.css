@@ -1703,28 +1703,56 @@ body.theme-dark .navbar.scrolled { background: rgba(8,8,12,0.82); }
    19. Capability columns — align across, not just within
    ---------------------------------------------------------------------------
    The four "What I do" columns each hold a number, a heading and a paragraph.
-   As flex columns each one stacks independently, so a heading that wraps to two
-   lines ("Mathematical research") pushes its paragraph a line lower than one
-   that fits on one ("Cross-platform apps") — the columns read as ragged.
+   As flex columns each stacks independently, so a heading that wraps to two
+   lines pushes its paragraph a line lower than one that fits on one, and the
+   row reads as ragged.
 
-   The fix is to reserve two lines of heading in every column, wrapped or not,
-   so the paragraph below always starts at the same offset.
+   This took three goes, so the reasoning is worth keeping:
 
-   This was subgrid first. Subgrid aligns the three rows properly, but the grid
-   still needs a row-gap to separate the column bands at narrow widths, and that
-   same gap then lands BETWEEN the number, the heading and the paragraph — 3rem
-   of dead space inside every column, which is worse than the raggedness it
-   fixed. Reserving the heading height needs no grid at all, leaves Bootstrap's
-   own gutters behaving exactly as they did, and works in every browser.
+   1. Subgrid, with `gap: 3rem 1.5rem`. Aligned the rows correctly — but the
+      grid owns the three rows, so that 3rem row-gap landed BETWEEN the number,
+      the heading and the paragraph. Three times over, in every column.
+   2. A flat `min-height: 2lh` on the heading. No grid, no gap problem, works
+      everywhere — but it reserves two lines whether or not anything wraps. At
+      1200px all four headings fit on one line, so every column carried 21px of
+      dead space and each heading floated away from its own paragraph.
+   3. Subgrid again, with row-gap ZERO. The heading row then sizes itself to the
+      tallest heading — two lines when one wraps, one line when none do — and
+      the spacing inside a column comes from the elements' own margins, as it
+      always did. Adaptive, and nothing is reserved that is not needed.
 
-   Only above 576px: stacked in one column there is nothing to align against,
-   and the reserved line would just be a gap.
+   Only from 768px up, where the columns actually sit side by side. Below that
+   they are stacked and there is nothing to align against. At 768–991 there are
+   two bands of two, so the wrappers carry the band separation themselves —
+   row-gap cannot, since it would reappear between the three inner rows.
    ------------------------------------------------------------------------- */
-@media (min-width: 576px) {
-  .capability-grid h4 { min-height: 2.12em; }   /* 2 lines at this 1.06 ratio */
-}
-@supports (min-height: 2lh) {
-  @media (min-width: 576px) {
-    .capability-grid h4 { min-height: 2lh; }
+@supports (grid-template-rows: subgrid) {
+  @media (min-width: 768px) {
+    .capability-grid {
+      display: grid;
+      grid-template-rows: auto auto auto;
+      column-gap: 1.5rem;
+      row-gap: 0;
+      /* margin, not margin-inline. Bootstrap's .row carries margin-top:-3rem
+         (the g-5 gutter) which .row > * normally cancels with a matching +3rem;
+         zeroing the children's below leaves that negative pulling the row up
+         into the section heading and swallowing its 48px of space. */
+      margin: 0;
+    }
+    .capability-grid > * {
+      display: grid;
+      grid-template-rows: subgrid;
+      grid-row: span 3;
+      width: auto; max-width: none; flex: none;
+      padding-inline: 0;
+      margin-top: 0;
+    }
+  }
+  @media (min-width: 768px) and (max-width: 991.98px) {
+    .capability-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .capability-grid > * { margin-bottom: 3rem; }
+  }
+  @media (min-width: 992px) {
+    .capability-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   }
 }
