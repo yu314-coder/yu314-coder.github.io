@@ -349,6 +349,21 @@
       }
     }
 
+    // Bucketed drawing. The old loop set ctx.shadowBlur per particle and
+    // issued one stroke each: 200 shadowed strokes a frame. shadowBlur is the
+    // most expensive operation in the 2D canvas — it re-rasterises the shape
+    // through a blur kernel every time — and it was what made this drag.
+    //
+    // The bloom it bought is reproduced far more cheaply by stroking each path
+    // TWICE under `lighter`: once wide and faint, once narrow and bright. And
+    // because the colour and width are then constant per group, every particle
+    // in a group joins ONE path. 200 shadowed strokes become ~28 plain ones.
+    var NCOL = 7, NSPD = 2, NB = NCOL * NSPD;
+    var buckets = [];
+    for (var bi = 0; bi < NB; bi++) buckets.push([]);
+    var bucketRGB = [];
+    for (var ci = 0; ci < NCOL; ci++) bucketRGB.push(colorFor((ci + 0.5) / NCOL).join(","));
+
     function draw(cx, cy, R) {
       // Trails fade by ERASING alpha rather than painting a ground over them.
       // The old fillRect faded to white, which only worked because the hero was
@@ -358,29 +373,45 @@
       ctx.globalCompositeOperation = "destination-out";
       ctx.fillStyle = "rgba(0,0,0,0.07)";
       ctx.fillRect(0, 0, size, size);
-      ctx.globalCompositeOperation = "source-over";
 
+      for (var b = 0; b < NB; b++) buckets[b].length = 0;
       for (var i = 0; i < particles.length; i++) {
         var p = particles[i];
         var rNow = Math.sqrt(p.x * p.x + p.y * p.y);
-        var col = colorFor(Math.min(rNow / 0.95, 1));
-        var rgb = "rgb(" + col.join(",") + ")";
-        // Faster-moving particles (just stirred, or mid-burst) glow a little
-        // brighter and thicker — motion itself becomes visible, not just position.
-        var speed = Math.min(Math.hypot(p.x - p.px, p.y - p.py) * 45, 2.2);
-        ctx.shadowBlur = 4 + speed * 2.5;
-        ctx.shadowColor = rgb;
-        // Additive: the spiral adds light to the field behind it.
-        ctx.globalCompositeOperation = "lighter";
-        ctx.strokeStyle = "rgba(" + col.join(",") + "," + Math.min(0.72 + speed * 0.1, 0.95) + ")";
-        ctx.lineWidth = 1.8 + speed;
+        var ci = Math.min(NCOL - 1, (Math.min(rNow / 0.95, 1) * NCOL) | 0);
+        // Fast particles — just stirred, or mid-burst — still read brighter and
+        // thicker, so motion stays visible; it is a second tier now, not a
+        // per-particle value.
+        var dx = p.x - p.px, dy = p.y - p.py;
+        var fast = (dx * dx + dy * dy) * 2025 > 1 ? 1 : 0;
+        buckets[ci * NSPD + fast].push(p);
+      }
+
+      ctx.globalCompositeOperation = "lighter";
+      ctx.lineCap = "round";
+      for (var b = 0; b < NB; b++) {
+        var list = buckets[b];
+        if (!list.length) continue;
+        var rgb = bucketRGB[(b / NSPD) | 0];
+        var isFast = (b % NSPD) === 1;
+
         ctx.beginPath();
-        ctx.moveTo(cx + p.px * R, cy + p.py * R);
-        ctx.lineTo(cx + p.x * R, cy + p.y * R);
+        for (var k = 0; k < list.length; k++) {
+          var q = list[k];
+          ctx.moveTo(cx + q.px * R, cy + q.py * R);
+          ctx.lineTo(cx + q.x * R, cy + q.y * R);
+        }
+        // wide + faint: the bloom shadowBlur used to draw
+        ctx.strokeStyle = "rgba(" + rgb + "," + (isFast ? 0.13 : 0.09) + ")";
+        ctx.lineWidth = isFast ? 9 : 6.5;
+        ctx.stroke();
+        // narrow + bright: the particle itself
+        ctx.strokeStyle = "rgba(" + rgb + "," + (isFast ? 0.95 : 0.78) + ")";
+        ctx.lineWidth = isFast ? 2.6 : 1.8;
         ctx.stroke();
       }
+
       ctx.globalCompositeOperation = "source-over";
-      ctx.shadowBlur = 0;
       paintCore(cx, cy, R);
     }
 
