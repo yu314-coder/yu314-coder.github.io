@@ -40,8 +40,11 @@
   --section: clamp(4.5rem, 9vw, 8rem);
   --container: 1120px;
 
-  --font-head: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  /* Space Grotesk carries the display voice, Sora the reading voice. The CJK
+     fallbacks matter: neither face ships 尤耀星, so the name would otherwise
+     drop to whatever the OS picked and change weight mid-headline. */
+  --font-head: 'Space Grotesk', 'PingFang TC', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Sora', 'PingFang TC', 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-serif:'Source Serif 4', Georgia, 'Times New Roman', serif;
 
@@ -237,13 +240,17 @@ code {
    and footer get matching dark chrome.
    ------------------------------------------------------------------------- */
 body.theme-dark {
-  --bg:        #0b0e14;
-  --bg-alt:    #11151f;
-  --surface:   #141a27;
-  --ink:       #f2f4f8;
-  --ink-2:     #aeb4c4;
-  --ink-3:     #828aa0;
-  --line:      rgba(255,255,255,0.10);
+  /* Photonic: a near-black ground so the luminous field reads, and surfaces
+     that are translucent rather than solid — the glass panels are what make
+     the gradient behind them part of the page instead of a backdrop. */
+  --bg:        #08080c;
+  --bg-alt:    #0b0b11;
+  --surface:   rgba(255,255,255,0.035);
+  --surface-solid: #12121a;
+  --ink:       #eef0f6;
+  --ink-2:     #a8adc0;
+  --ink-3:     #8a8fa3;
+  --line:      rgba(255,255,255,0.09);
   --line-2:    rgba(255,255,255,0.18);
   --accent:    #6b9bff;
   --accent-press: #8bb4ff;
@@ -253,10 +260,14 @@ body.theme-dark {
   --bs-body-color-rgb: 242, 244, 248;
   --accent-2:  #a78bfa;
   --accent-3:  #22d3ee;
-  --grad-text: linear-gradient(115deg, #7cb0ff 0%, #8b8bff 50%, #c4a8ff 100%);
+  /* Leads with white so the name reads as light rather than as a blue wash —
+     the gradient should feel like the field lighting the letters, not tinting
+     them. Violet only arrives at the tail. */
+  --grad-text: linear-gradient(115deg, #ffffff 0%, #cbd2ff 44%, #a78bfa 100%);
   --grad-btn:  linear-gradient(120deg, #4f88ff 0%, #7c7cff 55%, #a78bfa 100%);
-  --grad-soft: radial-gradient(55% 60% at 80% 12%, rgba(79,136,255,0.18) 0%, transparent 62%),
-               radial-gradient(50% 55% at 12% 85%, rgba(167,139,250,0.14) 0%, transparent 62%);
+  /* The field: a violet mass top-right, cyan counterweight bottom-left. */
+  --grad-soft: radial-gradient(58% 62% at 82% 6%, rgba(124,58,237,0.26) 0%, transparent 66%),
+               radial-gradient(46% 52% at 8% 88%, rgba(6,182,212,0.20) 0%, transparent 66%);
   background: var(--bg);
   color: var(--ink);
 }
@@ -1512,4 +1523,165 @@ body.theme-dark .chip-no { background: rgba(255,255,255,0.05); }
   body.tracker-page #typhoon-frame {
     min-height: 0; display: block; width: 100%; border: 0;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   18. Photonic — the dark direction, site-wide
+   ---------------------------------------------------------------------------
+   Scoped to body.theme-dark and appended deliberately: the sections above are
+   the light-theme cascade, and overriding them here keeps the redesign in one
+   readable block rather than smeared through fifteen others.
+
+   The idea is optics. A luminous violet/cyan field sits behind everything,
+   surfaces are frosted glass so that field shows THROUGH the page rather than
+   behind it, and the display type is large enough to carry the gradient.
+   ------------------------------------------------------------------------- */
+
+/* The field is the page, not a hero decoration: it must not stop at the fold. */
+body.theme-dark {
+  background-color: var(--bg);
+  background-image: var(--grad-soft);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+/* A fine grain over the whole thing kills the banding a big soft gradient
+   shows on 8-bit panels, which is exactly where these washes fall apart. */
+body.theme-dark::before {
+  content: "";
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  opacity: 0.5;
+  background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+  background-size: 3px 3px;
+}
+body.theme-dark > * { position: relative; z-index: 1; }
+
+/* --- Display type -------------------------------------------------------- */
+body.theme-dark h1, body.theme-dark h2, body.theme-dark h3,
+body.theme-dark .h1, body.theme-dark .h2, body.theme-dark .h3 {
+  font-family: var(--font-head);
+  letter-spacing: -0.035em;
+}
+body.theme-dark h1, body.theme-dark .h1 {
+  font-size: clamp(3rem, 7vw, 5.4rem);
+  font-weight: 700;
+  line-height: 0.98;
+}
+body.theme-dark .hero h1 { margin-block: 1.4rem 1.4rem; }
+body.theme-dark .lead, body.theme-dark .lead-2, body.theme-dark .hero-lead {
+  font-weight: 300;
+  color: var(--ink-2);
+}
+body.theme-dark .hero .hero-lead { max-width: 44ch; }
+
+/* The eyebrow becomes a pill with a lit dot — the hero's smallest signal. */
+body.theme-dark .eyebrow--rule {
+  display: inline-flex; align-items: center; gap: 0.6rem;
+  padding: 0.44rem 0.9rem;
+  border: 1px solid var(--line); border-radius: var(--r-pill);
+  background: rgba(255,255,255,0.03);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  color: var(--ink-2);
+}
+body.theme-dark .eyebrow--rule::before {
+  content: ""; position: static;
+  width: 6px; height: 6px; flex: none; border-radius: 50%;
+  background: linear-gradient(120deg, var(--accent-3), var(--accent-2));
+}
+
+/* --- Glass surfaces ------------------------------------------------------ */
+body.theme-dark .card,
+body.theme-dark .lib-category-card,
+body.theme-dark .featured-project,
+body.theme-dark .tracker-shell {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+}
+body.theme-dark .card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(167,139,250,0.34);
+  box-shadow: 0 18px 50px rgba(0,0,0,0.5);
+}
+/* The featured card earns a tint rather than another border colour. */
+body.theme-dark .card--hue {
+  background: linear-gradient(160deg, rgba(124,58,237,0.13), rgba(255,255,255,0.02));
+  border-color: rgba(167,139,250,0.30);
+}
+
+/* --- Controls ------------------------------------------------------------ */
+body.theme-dark .btn { border-radius: var(--r-pill); font-family: var(--font-body); font-weight: 500; }
+body.theme-dark .btn-primary {
+  box-shadow: 0 12px 40px rgba(93,91,240,0.40);
+}
+body.theme-dark .btn-primary:hover { box-shadow: 0 16px 50px rgba(93,91,240,0.52); }
+body.theme-dark .btn-ghost {
+  border: 1px solid var(--line-2);
+  background: rgba(255,255,255,0.03);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  color: var(--ink);
+}
+body.theme-dark .btn-ghost:hover { border-color: rgba(167,139,250,0.45); background: rgba(255,255,255,0.06); }
+body.theme-dark .badge-btn {
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.04);
+}
+body.theme-dark .badge-btn:hover { border-color: rgba(167,139,250,0.40); background: rgba(255,255,255,0.07); }
+
+/* --- The stat rail -------------------------------------------------------
+   The home page's strip is a plain `section.bg-alt` with `.highlight-item`
+   children, not `.highlights-banner` — so target the row that actually holds
+   them, or the glass lands on nothing. */
+body.theme-dark .bg-alt:has(.highlight-item) {
+  background: transparent;
+  border-block: 0 !important;
+}
+body.theme-dark .bg-alt:has(.highlight-item) > .container > .row {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: rgba(255,255,255,0.035);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  padding: clamp(1.4rem, 3vw, 2rem) clamp(0.6rem, 2vw, 1.4rem);
+  margin-inline: 0;
+}
+body.theme-dark .highlights-banner {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: rgba(255,255,255,0.035);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  padding: clamp(1.6rem, 3vw, 2.2rem) clamp(1.4rem, 3vw, 2.4rem);
+  margin-inline: auto;
+  max-width: var(--container);
+}
+body.theme-dark .highlight-number {
+  font-family: var(--font-head);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+/* the "+" on 30+ picks up the accent pair */
+body.theme-dark .highlight-number .suffix {
+  background: linear-gradient(120deg, var(--accent-3), var(--accent-2));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* --- Navbar -------------------------------------------------------------- */
+body.theme-dark .navbar { background: rgba(8,8,12,0.62); }
+body.theme-dark .navbar.scrolled { background: rgba(8,8,12,0.82); }
+
+/* --- Reduced transparency ------------------------------------------------
+   Frosted glass over a moving gradient is exactly what this setting exists to
+   turn off; fall back to a solid surface rather than a blurred one. */
+@media (prefers-reduced-transparency: reduce) {
+  body.theme-dark .card,
+  body.theme-dark .lib-category-card,
+  body.theme-dark .featured-project,
+  body.theme-dark .highlights-banner,
+  body.theme-dark .bg-alt:has(.highlight-item) > .container > .row,
+  body.theme-dark .eyebrow--rule,
+  body.theme-dark .btn-ghost,
+  body.theme-dark .badge-btn {
+    background: var(--surface-solid);
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+  }
+  body.theme-dark { background-image: none; }
 }

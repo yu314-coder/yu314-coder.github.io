@@ -1,0 +1,54 @@
+{
+  "pages": [
+    {
+      "id": "page-1",
+      "name": "Redesign"
+    },
+    {
+      "id": "page-2",
+      "name": "Not chosen"
+    }
+  ],
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "title": "Home — Photonic",
+      "page": "page-1",
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 980
+    },
+    {
+      "file": "Blueprint.dc.html",
+      "title": "C · Blueprint",
+      "page": "page-2",
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 980
+    }
+  ],
+  "annotations": [
+    {
+      "id": "note-main",
+      "page": "page-1",
+      "x": 0,
+      "y": 1030,
+      "w": 560,
+      "text": "PHOTONIC — your headline, your spiral.\n\nKept: \"Yu, Yao-Hsing 尤耀星\" as the headline (78px Space Grotesk, gradient across it), the eyebrow, the lead, the award line, and the phase-portrait spiral — the same damped-spiral maths the site runs today (eigenvalues A±Bi, A=-0.5 B=-1.4, 200 particles, deterministic seed, click to burst, cursor stirs the flow).\n\nMade to match its surroundings: the canvas is transparent, so the violet/cyan field shows through it instead of a black square sitting on top. Trails fade by erasing alpha (destination-out) rather than painting a ground over them, and the strokes composite additively so the spiral adds light to the field. Ramp moved to cyan→blue→violet to read against #08080c.\n\nBefore I touch the site: does the light theme survive, or is it dark-only now?"
+    },
+    {
+      "id": "note-alt",
+      "page": "page-2",
+      "x": 0,
+      "y": 1030,
+      "w": 460,
+      "text": "Kept here for reference, not chosen. The light drafting-sheet direction — if you ever want the opposite of Photonic, this is the sketch to come back to."
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "page-1"
+  }
+}

@@ -1,0 +1,101 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; background: #fbfbf9; }
+    a { color: #1e40af; text-decoration: none; } a:hover { color: #1e3a8a; }
+  </style>
+</helmet>
+
+<div style="width: 1280px; height: 980px; overflow: hidden; position: relative; background: #fbfbf9; color: #14161c; font-family: 'Archivo', system-ui, sans-serif;">
+
+  <!-- drafting grid -->
+  <div style="position: absolute; inset: 0; pointer-events: none; background-image: linear-gradient(rgba(30,64,175,0.055) 1px, transparent 1px), linear-gradient(90deg, rgba(30,64,175,0.055) 1px, transparent 1px); background-size: 32px 32px;"></div>
+  <div style="position: absolute; inset: 0; pointer-events: none; background-image: linear-gradient(rgba(30,64,175,0.10) 1px, transparent 1px), linear-gradient(90deg, rgba(30,64,175,0.10) 1px, transparent 1px); background-size: 160px 160px;"></div>
+
+  <!-- corner registration marks -->
+  <div style="position: absolute; top: 22px; left: 22px; width: 16px; height: 16px; border-left: 1px solid #1e40af; border-top: 1px solid #1e40af;"></div>
+  <div style="position: absolute; top: 22px; right: 22px; width: 16px; height: 16px; border-right: 1px solid #1e40af; border-top: 1px solid #1e40af;"></div>
+  <div style="position: absolute; bottom: 22px; left: 22px; width: 16px; height: 16px; border-left: 1px solid #1e40af; border-bottom: 1px solid #1e40af;"></div>
+  <div style="position: absolute; bottom: 22px; right: 22px; width: 16px; height: 16px; border-right: 1px solid #1e40af; border-bottom: 1px solid #1e40af;"></div>
+
+  <!-- title block -->
+  <div style="position: relative; display: flex; align-items: center; justify-content: space-between; padding: 0 52px; height: 62px; border-bottom: 1px solid rgba(20,22,28,0.14);">
+    <div style="display: flex; align-items: baseline; gap: 12px;">
+      <span style="font-size: 16px; font-weight: 700; letter-spacing: -0.01em;">Yu, Yao-Hsing</span>
+      <span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #6b6f7d;">尤耀星</span>
+    </div>
+    <div style="display: flex; gap: 26px; font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; letter-spacing: 0.04em; color: #6b6f7d;">
+      <span style="color: #1e40af; border-bottom: 1px solid #1e40af; padding-bottom: 2px;">HOME</span><span>ABOUT</span><span>PROJECTS</span><span>PYPI</span><span>STORE</span><span>TYPHOON</span>
+    </div>
+  </div>
+
+  <!-- hero -->
+  <div style="position: relative; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 24px; padding: 70px 52px 0;">
+    <div style="grid-column: span 7;">
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.18em; color: #1e40af;">FIG. 01 — DEVELOPER · RESEARCHER · MATHEMATICIAN</div>
+      <h1 style="margin: 22px 0 0; font-size: 68px; line-height: 0.98; font-weight: 700; letter-spacing: -0.035em;">Mathematics,<br>drawn to spec.</h1>
+      <!-- dimension line -->
+      <div style="display: flex; align-items: center; gap: 8px; margin-top: 22px; color: #1e40af;">
+        <span style="width: 1px; height: 10px; background: #1e40af;"></span>
+        <span style="flex: 1 1 auto; height: 1px; background: #1e40af; max-width: 300px;"></span>
+        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.08em;">7 APPS · 5 PACKAGES · 2 AWARDS</span>
+      </div>
+      <p style="margin: 26px 0 0; max-width: 500px; font-size: 15.5px; line-height: 1.62; color: #4a4e5a; text-wrap: pretty;">I build tools that bridge mathematics, AI, and real-world applications — Microsoft Store desktop apps, full Python runtimes for iOS, and on-device IDEs for iPad.</p>
+      <div style="display: flex; gap: 12px; margin-top: 30px;">
+        <a href="#" style="display: inline-flex; align-items: center; gap: 9px; padding: 13px 22px; background: #14161c; color: #fbfbf9; font-size: 14px; font-weight: 500;">See my work
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+        </a>
+        <a href="#" style="display: inline-flex; align-items: center; padding: 13px 22px; border: 1px solid rgba(20,22,28,0.22); color: #14161c; font-size: 14px;">About me</a>
+      </div>
+    </div>
+
+    <!-- spec table -->
+    <div style="grid-column: span 5; border: 1px solid rgba(20,22,28,0.16); background: rgba(255,255,255,0.72);">
+      <div style="display: flex; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid rgba(20,22,28,0.14); font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.12em; color: #6b6f7d;">
+        <span>SPECIFICATION</span><span>REV. 2026</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));">
+        <div style="padding: 20px 18px; border-right: 1px solid rgba(20,22,28,0.10); border-bottom: 1px solid rgba(20,22,28,0.10);"><div style="font-size: 34px; font-weight: 700; letter-spacing: -0.03em; line-height: 1;">7</div><div style="margin-top: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #6b6f7d;">APPS SHIPPED</div></div>
+        <div style="padding: 20px 18px; border-bottom: 1px solid rgba(20,22,28,0.10);"><div style="font-size: 34px; font-weight: 700; letter-spacing: -0.03em; line-height: 1;">30<span style="color: #1e40af;">+</span></div><div style="margin-top: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #6b6f7d;">iOS PYTHON LIBS</div></div>
+        <div style="padding: 20px 18px; border-right: 1px solid rgba(20,22,28,0.10);"><div style="font-size: 34px; font-weight: 700; letter-spacing: -0.03em; line-height: 1;">5</div><div style="margin-top: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #6b6f7d;">PyPI PACKAGES</div></div>
+        <div style="padding: 20px 18px;"><div style="font-size: 34px; font-weight: 700; letter-spacing: -0.03em; line-height: 1;">2</div><div style="margin-top: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: #6b6f7d;">SCIENCE AWARDS</div></div>
+      </div>
+      <div style="padding: 14px 18px; border-top: 1px solid rgba(20,22,28,0.14); font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; line-height: 1.6; color: #4a4e5a;">2025 S.T. YAU SCIENCE AWARD<br>BRONZE GRAND FINALS · SILVER ASIA REGIONAL</div>
+    </div>
+  </div>
+
+  <!-- parts list -->
+  <div style="position: relative; padding: 56px 52px 0;">
+    <div style="display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.14em; color: #6b6f7d; padding-bottom: 10px; border-bottom: 1px solid rgba(20,22,28,0.16);">
+      <span>PARTS LIST — SELECTED WORK</span><span>10 ITEMS</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border-left: 1px solid rgba(20,22,28,0.10);">
+      <div style="padding: 22px 20px; border-right: 1px solid rgba(20,22,28,0.10); border-bottom: 1px solid rgba(20,22,28,0.10);">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: #1e40af;">ITEM 01</div>
+        <div style="margin-top: 10px; font-size: 18px; font-weight: 600;">ManimStudio</div>
+        <p style="margin: 8px 0 0; font-size: 13px; line-height: 1.55; color: #4a4e5a;">GUI for mathematical animation. Bundled Python and MiKTeX.</p>
+      </div>
+      <div style="padding: 22px 20px; border-right: 1px solid rgba(20,22,28,0.10); border-bottom: 1px solid rgba(20,22,28,0.10); background: rgba(30,64,175,0.045);">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: #1e40af;">ITEM 04</div>
+        <div style="margin-top: 10px; font-size: 18px; font-weight: 600;">EigenDenoise</div>
+        <p style="margin: 8px 0 0; font-size: 13px; line-height: 1.55; color: #4a4e5a;">Random matrix theory as a Metal denoiser and a Windows ESD tool.</p>
+      </div>
+      <div style="padding: 22px 20px; border-right: 1px solid rgba(20,22,28,0.10); border-bottom: 1px solid rgba(20,22,28,0.10);">
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: #1e40af;">ITEM 07</div>
+        <div style="margin-top: 10px; font-size: 18px; font-weight: 600;">Trackformer</div>
+        <p style="margin: 8px 0 0; font-size: 13px; line-height: 1.55; color: #4a4e5a;">Causal tropical-cyclone model out to +120 h.</p>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

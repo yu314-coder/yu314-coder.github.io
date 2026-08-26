@@ -201,7 +201,10 @@
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     }
 
-    var STOPS = [[45, 107, 255], [91, 91, 240], [124, 58, 237]]; // accent -> accent-2
+    // Cyan -> blue -> violet. The old ramp started at the accent blue, which
+    // was tuned for a WHITE hero; on the Photonic ground its outer radius
+    // sank into the background before the particles respawned.
+    var STOPS = [[34, 211, 238], [91, 122, 245], [167, 139, 250]];
     function colorFor(r) {
       var t = Math.min(Math.max(r, 0), 1) * (STOPS.length - 1);
       var i = Math.min(Math.floor(t), STOPS.length - 2);
@@ -271,8 +274,9 @@
       canvas.width = Math.round(size * dpr);
       canvas.height = Math.round(size * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.fillStyle = "#fff";
-      ctx.fillRect(0, 0, size, size);
+      // Transparent, not filled. Painting a ground here makes the canvas an
+      // opaque square sitting ON the luminous field instead of in it.
+      ctx.clearRect(0, 0, size, size);
     }
 
     // Cursor tracking, canvas-local CSS px, plus its recent velocity — so the
@@ -346,9 +350,15 @@
     }
 
     function draw(cx, cy, R) {
+      // Trails fade by ERASING alpha rather than painting a ground over them.
+      // The old fillRect faded to white, which only worked because the hero was
+      // white and the canvas opaque; on a transparent canvas over the field it
+      // would smear the whole disc grey.
       ctx.shadowBlur = 0;
-      ctx.fillStyle = "rgba(255,255,255,0.08)";
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.fillStyle = "rgba(0,0,0,0.07)";
       ctx.fillRect(0, 0, size, size);
+      ctx.globalCompositeOperation = "source-over";
 
       for (var i = 0; i < particles.length; i++) {
         var p = particles[i];
@@ -360,13 +370,16 @@
         var speed = Math.min(Math.hypot(p.x - p.px, p.y - p.py) * 45, 2.2);
         ctx.shadowBlur = 4 + speed * 2.5;
         ctx.shadowColor = rgb;
-        ctx.strokeStyle = "rgba(" + col.join(",") + "," + Math.min(0.8 + speed * 0.1, 1) + ")";
+        // Additive: the spiral adds light to the field behind it.
+        ctx.globalCompositeOperation = "lighter";
+        ctx.strokeStyle = "rgba(" + col.join(",") + "," + Math.min(0.72 + speed * 0.1, 0.95) + ")";
         ctx.lineWidth = 1.8 + speed;
         ctx.beginPath();
         ctx.moveTo(cx + p.px * R, cy + p.py * R);
         ctx.lineTo(cx + p.x * R, cy + p.y * R);
         ctx.stroke();
       }
+      ctx.globalCompositeOperation = "source-over";
       ctx.shadowBlur = 0;
       paintCore(cx, cy, R);
     }

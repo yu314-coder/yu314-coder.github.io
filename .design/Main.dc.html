@@ -1,0 +1,263 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@300;400;500&display=swap">
+  <style>
+    body { margin: 0; background: #08080c; }
+    a { color: #a78bfa; text-decoration: none; } a:hover { color: #c4b5fd; }
+  </style>
+</helmet>
+
+<div style="width: 1280px; height: 980px; overflow: hidden; position: relative; background: #08080c; color: #eef0f6; font-family: 'Sora', system-ui, sans-serif;">
+
+  <!-- luminous field -->
+  <div style="position: absolute; width: 900px; height: 900px; right: -240px; top: -320px; border-radius: 50%; background: radial-gradient(circle at 50% 50%, rgba(124,58,237,0.26) 0%, rgba(45,107,255,0.14) 38%, transparent 68%); filter: blur(18px); pointer-events: none;"></div>
+  <div style="position: absolute; width: 520px; height: 520px; left: -180px; bottom: -220px; border-radius: 50%; background: radial-gradient(circle at 50% 50%, rgba(6,182,212,0.20) 0%, transparent 66%); filter: blur(14px); pointer-events: none;"></div>
+  <div style="position: absolute; inset: 0; opacity: 0.5; pointer-events: none; background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px); background-size: 3px 3px;"></div>
+
+  <!-- nav -->
+  <div style="position: relative; display: flex; align-items: center; justify-content: space-between; padding: 28px 56px;">
+    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 600; letter-spacing: -0.01em;">Yu, Yao-Hsing <span style="color: #8a8fa3; font-weight: 400;">尤耀星</span></div>
+    <div style="display: flex; align-items: center; gap: 30px; font-size: 13.5px; color: #9ba0b4;">
+      <span style="color: #eef0f6;">Home</span><span>About</span><span>Projects</span><span>PyPI Stats</span><span>Store Stats</span><span>Typhoon Tracks</span><span>Privacy</span>
+    </div>
+  </div>
+
+  <!-- hero: copy left, spiral right (the site's own arrangement) -->
+  <div style="position: relative; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 32px; align-items: center; padding: 54px 56px 0;">
+
+    <div style="grid-column: span 7;">
+      <div style="display: inline-flex; align-items: center; gap: 10px; padding: 7px 14px; border: 1px solid rgba(255,255,255,0.14); border-radius: 999px; font-size: 11.5px; letter-spacing: 0.10em; text-transform: uppercase; color: #b9bdcd;">
+        <span style="width: 6px; height: 6px; border-radius: 50%; background: linear-gradient(120deg, #22d3ee, #a78bfa);"></span>
+        Developer · Researcher · Mathematician
+      </div>
+
+      <h1 style="margin: 28px 0 0; font-family: 'Space Grotesk', 'PingFang TC', 'Noto Sans TC', sans-serif; font-size: 78px; line-height: 0.98; font-weight: 700; letter-spacing: -0.045em; background: linear-gradient(115deg, #ffffff 0%, #cbd2ff 44%, #a78bfa 100%); -webkit-background-clip: text; background-clip: text; color: transparent;">Yu, Yao-Hsing<br>尤耀星</h1>
+
+      <p style="margin: 26px 0 0; max-width: 520px; font-size: 16.5px; line-height: 1.65; font-weight: 300; color: #a8adc0; text-wrap: pretty;">I build tools that bridge mathematics, AI, and real-world applications — Microsoft Store desktop apps, full Python runtimes for iOS, and on-device IDEs for iPad.</p>
+
+      <div style="display: flex; align-items: center; gap: 14px; margin-top: 32px;">
+        <a href="#" style="display: inline-flex; align-items: center; gap: 10px; padding: 15px 26px; border-radius: 999px; background: linear-gradient(120deg, #2d6bff 0%, #5b5bf0 55%, #7c3aed 100%); color: #fff; font-size: 14.5px; font-weight: 500; box-shadow: 0 12px 40px rgba(93,91,240,0.42);">See my work
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+        </a>
+        <a href="#" style="display: inline-flex; align-items: center; padding: 15px 26px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.18); color: #d7dae6; font-size: 14.5px;">About me</a>
+      </div>
+
+      <p style="margin: 26px 0 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; letter-spacing: 0.02em; color: #8a8fa3;">2025 S.T. Yau High School Science Award · <span style="color: #d6b25e;">Bronze</span>, Grand Finals · <span style="color: #c3c8d6;">Silver</span>, Asia Regional</p>
+    </div>
+
+    <!-- the spiral: same phase-portrait flow the site runs today -->
+    <div style="grid-column: span 5; display: flex; justify-content: center;">
+      <canvas class="hero-flow" width="380" height="380" role="img" aria-label="Glowing particles spiraling into a bright core — the phase portrait of a linear system with a complex eigenvalue pair" style="display: block; width: 380px; height: 380px;"></canvas>
+    </div>
+  </div>
+
+  <!-- glass stat rail -->
+  <div style="position: relative; margin: 52px 56px 0; padding: 26px 32px; border: 1px solid rgba(255,255,255,0.10); border-radius: 22px; background: rgba(255,255,255,0.035); backdrop-filter: blur(20px); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px;">
+    <div><div style="font-family: 'Space Grotesk', sans-serif; font-size: 42px; font-weight: 600; letter-spacing: -0.03em; line-height: 1;">7</div><div style="margin-top: 8px; font-size: 12.5px; color: #9ba0b4;">Apps shipped</div></div>
+    <div><div style="font-family: 'Space Grotesk', sans-serif; font-size: 42px; font-weight: 600; letter-spacing: -0.03em; line-height: 1;">30<span style="background: linear-gradient(120deg,#22d3ee,#a78bfa); -webkit-background-clip: text; background-clip: text; color: transparent;">+</span></div><div style="margin-top: 8px; font-size: 12.5px; color: #9ba0b4;">iOS Python libraries</div></div>
+    <div><div style="font-family: 'Space Grotesk', sans-serif; font-size: 42px; font-weight: 600; letter-spacing: -0.03em; line-height: 1;">5</div><div style="margin-top: 8px; font-size: 12.5px; color: #9ba0b4;">PyPI packages</div></div>
+    <div><div style="font-family: 'Space Grotesk', sans-serif; font-size: 42px; font-weight: 600; letter-spacing: -0.03em; line-height: 1;">2</div><div style="margin-top: 8px; font-size: 12.5px; color: #9ba0b4;">Science awards</div></div>
+  </div>
+
+  <!-- cards -->
+  <div style="position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; padding: 26px 56px 0;">
+    <div style="padding: 22px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.03); backdrop-filter: blur(14px);">
+      <div style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 600;">ManimStudio</div>
+      <p style="margin: 9px 0 0; font-size: 13.5px; line-height: 1.55; font-weight: 300; color: #9ba0b4;">GUI for mathematical animation, on two stores.</p>
+    </div>
+    <div style="padding: 22px; border-radius: 20px; border: 1px solid rgba(167,139,250,0.32); background: linear-gradient(160deg, rgba(124,58,237,0.14), rgba(255,255,255,0.02)); backdrop-filter: blur(14px);">
+      <div style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 600;">EigenDenoise</div>
+      <p style="margin: 9px 0 0; font-size: 13.5px; line-height: 1.55; font-weight: 300; color: #a8adc0;">Random matrix theory as a Metal denoiser and a Windows ESD tool.</p>
+    </div>
+    <div style="padding: 22px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.03); backdrop-filter: blur(14px);">
+      <div style="font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 600;">Trackformer</div>
+      <p style="margin: 9px 0 0; font-size: 13.5px; line-height: 1.55; font-weight: 300; color: #9ba0b4;">Causal cyclone forecasting to +120 h.</p>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script>
+class Component extends DCLogic {
+  componentDidMount() { this.boot(0); }
+  componentWillUnmount() { if (this.rafId) cancelAnimationFrame(this.rafId); this.stopped = true; }
+
+  boot(tries) {
+    var canvas = document.querySelector('.hero-flow');
+    if (!canvas || !canvas.getContext) {
+      if (tries < 30) setTimeout(this.boot.bind(this, tries + 1), 50);
+      return;
+    }
+    this.run(canvas);
+  }
+
+  run(canvas) {
+    var self = this;
+    var ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var size = 380;
+
+    // Deterministic PRNG, so the piece looks the same every load.
+    var seed = 3141592;
+    function rand() {
+      seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+      var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    }
+
+    // On the dark ground the flow needs a brighter, cooler ramp than the
+    // light-background original: cyan through blue into violet.
+    var STOPS = [[34, 211, 238], [91, 122, 245], [167, 139, 250]];
+    function colorFor(r) {
+      var t = Math.min(Math.max(r, 0), 1) * (STOPS.length - 1);
+      var i = Math.min(Math.floor(t), STOPS.length - 2);
+      var f = t - i, a = STOPS[i], b = STOPS[i + 1];
+      return [Math.round(a[0] + (b[0] - a[0]) * f),
+              Math.round(a[1] + (b[1] - a[1]) * f),
+              Math.round(a[2] + (b[2] - a[2]) * f)];
+    }
+
+    // x' = Ax - By, y' = Bx + Ay  <=>  eigenvalues A ± Bi.
+    // A < 0 damps, B rotates: a damped spiral into the origin.
+    var A = -0.5, B = -1.4;
+    var N = 200, particles = [];
+
+    function spawn(p) {
+      var ang = rand() * Math.PI * 2, rad = 0.62 + rand() * 0.34;
+      p.x = rad * Math.cos(ang); p.y = rad * Math.sin(ang);
+      p.px = p.x; p.py = p.y; p.age = 0; p.burstLife = 0;
+    }
+    for (var i = 0; i < N; i++) {
+      var p = { burstLife: 0 };
+      var a0 = rand() * Math.PI * 2, r0 = Math.sqrt(rand()) * 0.95;
+      p.x = r0 * Math.cos(a0); p.y = r0 * Math.sin(a0);
+      p.px = p.x; p.py = p.y; p.age = 0;
+      particles.push(p);
+    }
+
+    function burst(nx, ny) {
+      for (var k = 0; k < Math.min(24, particles.length); k++) {
+        var q = particles[Math.floor(rand() * particles.length)];
+        var ang = rand() * Math.PI * 2, sp = 0.6 + rand() * 0.9;
+        q.x = nx; q.y = ny; q.px = nx; q.py = ny; q.age = 0;
+        q.burstVX = Math.cos(ang) * sp; q.burstVY = Math.sin(ang) * sp;
+        q.burstLife = 0.7;
+      }
+    }
+
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // Transparent, NOT filled. Painting a ground here makes the canvas an
+    // opaque square sitting on top of the luminous field behind it.
+    ctx.clearRect(0, 0, size, size);
+
+    // Pointer stir, scoped to the canvas rather than the window so the
+    // artboard never fights the canvas editor for events.
+    var mouseX = null, mouseY = null, stirVX = 0, stirVY = 0;
+    canvas.addEventListener('mousemove', function (e) {
+      var r = canvas.getBoundingClientRect();
+      var nx = e.clientX - r.left, ny = e.clientY - r.top;
+      if (mouseX != null) { stirVX = nx - mouseX; stirVY = ny - mouseY; }
+      mouseX = nx; mouseY = ny;
+    }, { passive: true });
+    canvas.addEventListener('mouseleave', function () { mouseX = null; mouseY = null; });
+    canvas.addEventListener('click', function (e) {
+      var r = canvas.getBoundingClientRect(), R = size * 0.46;
+      burst((e.clientX - r.left - size / 2) / R, (e.clientY - r.top - size / 2) / R);
+    });
+
+    function step(dt, R, cx, cy) {
+      stirVX *= 0.85; stirVY *= 0.85;
+      for (var i = 0; i < particles.length; i++) {
+        var p = particles[i];
+        p.px = p.x; p.py = p.y;
+        var vx = A * p.x - B * p.y, vy = B * p.x + A * p.y;
+        if (p.burstLife > 0) {
+          var bf = p.burstLife / 0.7;
+          vx += p.burstVX * bf * 3; vy += p.burstVY * bf * 3;
+          p.burstLife -= dt;
+        }
+        if (mouseX != null) {
+          var wx = cx + p.x * R, wy = cy + p.y * R;
+          var mdx = wx - mouseX, mdy = wy - mouseY;
+          var md = Math.sqrt(mdx * mdx + mdy * mdy);
+          if (md < 80) {
+            var fo = 1 - md / 80;
+            vx += (stirVX / R) * fo * 18; vy += (stirVY / R) * fo * 18;
+            var push = fo * 0.8;
+            vx += (mdx / (md || 1)) * push; vy += (mdy / (md || 1)) * push;
+          }
+        }
+        p.x += vx * dt; p.y += vy * dt; p.age += dt;
+        var rr = Math.sqrt(p.x * p.x + p.y * p.y);
+        if (rr < 0.05 || p.age > 7.5) spawn(p);
+      }
+    }
+
+    function draw(cx, cy, R) {
+      // Trails fade by ERASING alpha, not by painting a ground over them.
+      // The site's original fades to white because its hero is light and its
+      // canvas is opaque; here the canvas has to stay transparent so the
+      // violet/cyan field behind shows through the spiral, so the same effect
+      // has to come from destination-out instead of a fillRect.
+      ctx.shadowBlur = 0;
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.fillStyle = 'rgba(0,0,0,0.07)';
+      ctx.fillRect(0, 0, size, size);
+      ctx.globalCompositeOperation = 'source-over';
+
+      for (var i = 0; i < particles.length; i++) {
+        var p = particles[i];
+        var rNow = Math.sqrt(p.x * p.x + p.y * p.y);
+        var col = colorFor(Math.min(rNow / 0.95, 1));
+        var rgb = 'rgb(' + col.join(',') + ')';
+        var speed = Math.min(Math.hypot(p.x - p.px, p.y - p.py) * 45, 2.2);
+        ctx.shadowBlur = 5 + speed * 3;
+        ctx.shadowColor = rgb;
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = 'rgba(' + col.join(',') + ',' + Math.min(0.72 + speed * 0.1, 0.95) + ')';
+        ctx.lineWidth = 1.6 + speed;
+        ctx.beginPath();
+        ctx.moveTo(cx + p.px * R, cy + p.py * R);
+        ctx.lineTo(cx + p.x * R, cy + p.y * R);
+        ctx.stroke();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.shadowBlur = 0;
+
+      var core = colorFor(0);
+      var glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.13);
+      glow.addColorStop(0, 'rgba(' + core.join(',') + ',0.45)');
+      glow.addColorStop(1, 'rgba(' + core.join(',') + ',0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath(); ctx.arc(cx, cy, R * 0.13, 0, Math.PI * 2); ctx.fill();
+    }
+
+    var last = null;
+    function frame(ts) {
+      if (self.stopped) return;
+      var dt = last == null ? 1 / 60 : Math.min((ts - last) / 1000, 0.05);
+      last = ts;
+      var cx = size / 2, cy = size / 2, R = size * 0.46;
+      step(dt, R, cx, cy);
+      draw(cx, cy, R);
+      self.rafId = requestAnimationFrame(frame);
+    }
+    self.rafId = requestAnimationFrame(frame);
+  }
+
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

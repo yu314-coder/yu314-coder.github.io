@@ -14,3 +14,7 @@ assets/stocks/
 scripts/refresh_stocks.py
 .github/workflows/refresh-stocks.yml
 __pycache__/
+
+# Design canvas: keep the artboard sources, not the 2.4 MB seeded payload
+# (the published canvas is the artifact; the payload re-seeds from these).
+.design/high-tech-redesign-directions.html
