@@ -1549,7 +1549,10 @@ body.theme-dark .chip-no { background: rgba(255,255,255,0.05); }
 body.theme-dark { background-color: var(--bg); }
 body.theme-dark::before {
   content: "";
-  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  /* z-index -1, so the field paints above the body's background colour but
+     below everything in the document — no need to promote body's children,
+     which is what broke the fixed-position elements among them. */
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
   background-image:
     radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
     radial-gradient(58% 62% at 82% 6%, rgba(124,58,237,0.26) 0%, transparent 66%),
@@ -1562,7 +1565,13 @@ body.theme-dark::before {
    pure cost. */
 body.theme-dark .hero::before,
 body.theme-dark .page-header::before { background: none; }
-body.theme-dark > * { position: relative; z-index: 1; }
+/* Deliberately NOT `body.theme-dark > * { position: relative }`. That was here
+   to lift content above the field, and it silently rewrote position on every
+   direct child of body — including the fixed device chip, which fell into
+   normal flow: it landed bottom-LEFT (a relative box reads `right: 18px` as a
+   leftward shift from its flow position) and added its own 39px of height
+   below the footer. The field's negative z-index does the same job without
+   touching anything else. */
 
 /* --- Display type -------------------------------------------------------- */
 body.theme-dark h1, body.theme-dark h2, body.theme-dark h3,
