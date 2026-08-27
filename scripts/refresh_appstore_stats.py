@@ -190,8 +190,28 @@ def main():
     # re-fetching an overlapping day overwrites it instead of double-counting.
     terr = {a: loaded[a][1] for a in APPS}
     cold = not any(history.values())
-    span = COLD_START_DAYS if cold else WARM_DAYS
-    log(f"{'cold start' if cold else 'incremental'}: fetching {span} day(s)")
+
+    # A dimension added after the history already existed — country counts, say
+    # — starts empty even though the unit series goes back months. Left alone,
+    # an incremental run would fill only the last few days and the page would
+    # show a 10-day country split underneath a 120-day download total: two
+    # different windows presented as one number, which is exactly the misreading
+    # this page exists to avoid. So reach back over the whole window until the
+    # country data covers the days that actually have units. Self-healing: once
+    # covered, runs go back to being incremental on their own.
+    def needs_backfill(app_id):
+        active = sum(1 for v in history[app_id].values() if v)
+        return bool(active) and len(terr[app_id]) < active * 0.9
+
+    gaps = [APPS[a] for a in APPS if needs_backfill(a)]
+    span = COLD_START_DAYS if (cold or gaps) else WARM_DAYS
+    if cold:
+        log(f"cold start: fetching {span} day(s)")
+    elif gaps:
+        log(f"country data incomplete for {', '.join(gaps)} — "
+            f"reaching back {span} day(s) to fill it")
+    else:
+        log(f"incremental: fetching {span} day(s)")
 
     bearer = token(c["APPSTORE_ISSUER_ID"], c["APPSTORE_KEY_ID"],
                    c["APPSTORE_PRIVATE_KEY"])
