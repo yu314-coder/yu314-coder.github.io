@@ -205,7 +205,7 @@
       var i = ICONS[id]; if (!i) return "";
       return '<span class="app-icon ' + (cls || "") + '"><picture>' +
         '<source srcset="assets/img/app-icons/' + i[0] + '.webp" type="image/webp">' +
-        '<img src="assets/img/app-icons/' + i[0] + '.png" alt="' + i[1] + '" width="256" height="256" loading="lazy" decoding="async"></picture></span>';
+        '<img src="assets/img/app-icons/' + i[0] + '.png" alt="' + i[1] + '" width="256" height="256" loading="eager" decoding="async"></picture></span>';
     }
     // "+N since <date>" chip next to a headline tile, from the previous snapshot
     // the build script now carries forward. Omitted when there's nothing to
