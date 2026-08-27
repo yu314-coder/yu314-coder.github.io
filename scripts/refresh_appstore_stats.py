@@ -136,34 +136,46 @@ def report_for(day, bearer, vendor):
 
 
 def units_by_app(rows):
-    """Sum Units per Apple Identifier, keeping only apps this site lists.
+    """Per-app units, and per-app units split by country, for one day.
+
+    Returns ({app_id: units}, {app_id: {country_code: units}}). The country
+    split is free: every sales row already carries a Country Code, so this is
+    the same download data grouped a second way — no extra request, no extra
+    API, and it needs nothing that units did not already need.
 
     Refunds arrive as negative units in the same column, so a plain sum is the
     net figure rather than a gross one. Every app tracked here is free with no
     in-app purchases, so in practice there is nothing to refund and the sum is
     just downloads — but the arithmetic is right either way if that changes.
     """
-    out = {}
+    out, by_country = {}, {}
     for r in rows:
         app_id = (r.get("Apple Identifier") or "").strip()
         if app_id not in APPS:
             continue
         try:
-            out[app_id] = out.get(app_id, 0) + int(float(r.get("Units") or 0))
+            n = int(float(r.get("Units") or 0))
         except ValueError:
             continue
-    return out
+        out[app_id] = out.get(app_id, 0) + n
+        cc = (r.get("Country Code") or "").strip().upper()
+        if cc:
+            by_country.setdefault(app_id, {})
+            by_country[app_id][cc] = by_country[app_id].get(cc, 0) + n
+    return out, by_country
 
 
 def load_existing(app_id):
+    """Committed history for one app: ({date: units}, {date: {cc: units}})."""
     p = OUT / f"{app_id}.json"
     if not p.exists():
-        return {}
+        return {}, {}
     try:
         d = json.loads(p.read_text())
-        return {row["date"]: row["installs"] for row in d.get("rows", [])}
+        days = {row["date"]: row["installs"] for row in d.get("rows", [])}
+        return days, dict(d.get("territory_days") or {})
     except Exception:
-        return {}
+        return {}, {}
 
 
 def main():
@@ -172,7 +184,11 @@ def main():
         return 0
 
     OUT.mkdir(parents=True, exist_ok=True)
-    history = {a: load_existing(a) for a in APPS}
+    loaded = {a: load_existing(a) for a in APPS}
+    history = {a: loaded[a][0] for a in APPS}
+    # Country counts are kept per DAY, not as a running total, so that
+    # re-fetching an overlapping day overwrites it instead of double-counting.
+    terr = {a: loaded[a][1] for a in APPS}
     cold = not any(history.values())
     span = COLD_START_DAYS if cold else WARM_DAYS
     log(f"{'cold start' if cold else 'incremental'}: fetching {span} day(s)")
@@ -192,9 +208,15 @@ def main():
         except Exception as exc:                      # noqa: BLE001
             log(f"  {day}: {type(exc).__name__}: {exc} — skipped")
             continue
-        counts = units_by_app(rows)
+        counts, countries = units_by_app(rows)
+        iso = day.isoformat()
         for app_id in APPS:
-            history[app_id][day.isoformat()] = counts.get(app_id, 0)
+            history[app_id][iso] = counts.get(app_id, 0)
+            got = countries.get(app_id)
+            if got:
+                terr[app_id][iso] = got
+            else:
+                terr[app_id].pop(iso, None)
         fetched += 1
 
     stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -204,6 +226,14 @@ def main():
         if not days:
             continue
         rows = [{"date": d, "installs": days[d]} for d in sorted(days)]
+        # Roll the per-day country split up once here so the page does not have
+        # to; the per-day form stays as the mergeable source of truth.
+        totals = {}
+        for per in terr[app_id].values():
+            for cc, n in per.items():
+                totals[cc] = totals.get(cc, 0) + n
+        territories = [{"code": cc, "units": n}
+                       for cc, n in sorted(totals.items(), key=lambda kv: (-kv[1], kv[0]))]
         payload = {
             "app": name,
             "id": app_id,
@@ -211,11 +241,15 @@ def main():
             "updated_utc": stamp,
             "window": f"{rows[0]['date']} to {rows[-1]['date']}",
             "downloads": sum(r["installs"] for r in rows),
+            "territories": territories,
+            "territory_days": terr[app_id],
             "rows": rows,
         }
         (OUT / f"{app_id}.json").write_text(json.dumps(payload, separators=(",", ":")))
         index.append({"id": app_id, "name": name})
-        log(f"  {name}: {payload['downloads']} units over {len(rows)} day(s)")
+        top = ", ".join(f"{t['code']} {t['units']}" for t in territories[:4]) or "no country data"
+        log(f"  {name}: {payload['downloads']} units over {len(rows)} day(s) "
+            f"| {len(territories)} countries — {top}")
 
     (OUT / "index.json").write_text(json.dumps(index, separators=(",", ":")))
     log(f"wrote {len(index)} app(s) from {fetched} day(s) of reports")

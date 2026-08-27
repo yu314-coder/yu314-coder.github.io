@@ -53,6 +53,26 @@
     .ss-cmp-bar{display:block;height:100%;border-radius:3px;background:var(--grad-btn,var(--accent));transition:width .4s ease}
     .ss-cmp-val{font:700 .8rem/1 JetBrains Mono,monospace;width:4.5rem;flex:none;text-align:right}
 
+    /* Store switch — the top-level choice, deliberately heavier than the
+       per-app tabs below it so the hierarchy reads at a glance: which store,
+       then which app. */
+    .ss-storebar{display:flex;gap:.6rem;flex-wrap:wrap;margin:0 0 1.75rem}
+    .ss-store{display:inline-flex;align-items:center;gap:.6rem;cursor:pointer;
+      font:600 .95rem/1 Inter,sans-serif;color:var(--ink-2);
+      padding:.7rem 1.1rem;border-radius:12px;border:1px solid var(--line);
+      background:var(--bg-alt);transition:border-color .14s ease,background .14s ease,color .14s ease}
+    .ss-store:hover{border-color:var(--line-2);color:var(--ink)}
+    .ss-store-mark{height:18px;width:18px;flex:none;opacity:.75}
+    .ss-store.is-active{background:var(--grad-btn,var(--accent));color:#fff;border-color:transparent}
+    .ss-store.is-active .ss-store-mark{opacity:1}
+    .ss-store-count{font:700 .8rem/1 JetBrains Mono,monospace;padding:.2rem .5rem;border-radius:999px;
+      background:rgba(255,255,255,.07);color:inherit;font-variant-numeric:tabular-nums}
+    .ss-store.is-active .ss-store-count{background:rgba(0,0,0,.22)}
+    .ss-pane-h{font:700 1.55rem/1.2 var(--font-head,Inter),sans-serif;margin:.35rem 0 .6rem}
+    @media (max-width:520px){
+      .ss-store{flex:1 1 100%;justify-content:flex-start}
+    }
+
     .ss-tabs{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.25rem}
     .ss-tab{font:600 .9rem/1 Inter,sans-serif;padding:.5rem 1rem .5rem .6rem;border-radius:999px;border:1px solid var(--line);
       background:var(--surface);color:var(--ink-2);cursor:pointer;display:inline-flex;align-items:center;gap:.5rem}
@@ -77,10 +97,6 @@
     .ss-chart{width:100%;display:block}
     .ss-legend{display:flex;gap:1.25rem;flex-wrap:wrap;font:500 .82rem/1 Inter,sans-serif;color:var(--ink-2);margin:.4rem .2rem 0}
     .ss-legend b{display:inline-block;width:.8rem;height:.8rem;border-radius:2px;margin-right:.35rem;vertical-align:-1px}
-    .ss-markets{margin-top:1.25rem}
-    .ss-mkt-row{display:flex;align-items:center;gap:.75rem;margin:.35rem 0;font:500 .85rem/1.2 Inter,sans-serif}
-    .ss-mkt-row .ss-mkt-code{width:2.4rem;font:600 .8rem/1 JetBrains Mono,monospace;color:var(--ink-2)}
-    .ss-mkt-bar{height:.7rem;border-radius:3px;background:var(--accent);min-width:2px}
     .ss-updated{font:500 .8rem/1.3 Inter,sans-serif;color:var(--ink-2);margin-top:.75rem}
     .ss-tile .ss-sub{font:500 .72rem/1.25 Inter,sans-serif;color:var(--ink-2);margin-top:.35rem}
     .ss-delta{display:inline-block;font:700 .66rem/1 JetBrains Mono,monospace;padding:.15rem .4rem;border-radius:999px;margin-left:.4rem;vertical-align:middle}
@@ -117,6 +133,27 @@
       .ss-fn-track{grid-column:1/-1}
       .ss-fn-row .ss-fn-conv{grid-column:1/-1;text-align:right}
     }
+    .ss-missing{background:rgba(248,113,113,.10);border:1px solid rgba(248,113,113,.32);border-radius:10px;
+      padding:.7rem .9rem;margin:0 0 1rem;font:500 .84rem/1.45 Inter,sans-serif;color:var(--ink)}
+    /* Downloads by country. Two columns on wide screens because these lists
+       are long and thin — one column wastes half the page and pushes the chart
+       below the fold. */
+    .ss-geo{margin-top:1.75rem}
+    .ss-geo-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+      gap:.15rem 2rem;margin-top:.7rem}
+    .ss-geo-row{display:grid;grid-template-columns:1.6rem minmax(0,1fr) 3.2rem;align-items:center;
+      gap:.6rem;padding:.34rem .5rem;margin:0 -.5rem;border-radius:8px;
+      font:500 .85rem/1.2 Inter,sans-serif;color:var(--ink-2)}
+    .ss-geo-row:hover{background:rgba(255,255,255,.035)}
+    .ss-geo-flag{font-size:1.05rem;line-height:1;text-align:center;
+      font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+    .ss-geo-name{display:flex;flex-direction:column;gap:.2rem;min-width:0}
+    .ss-geo-name b{font:600 .85rem/1.2 Inter,sans-serif;color:var(--ink);
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .ss-geo-track{height:.42rem;border-radius:3px;background:rgba(255,255,255,.06);overflow:hidden}
+    .ss-geo-bar{display:block;height:100%;border-radius:3px;background:var(--grad-btn,var(--accent))}
+    .ss-geo-val{font:700 .85rem/1 JetBrains Mono,monospace;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+    .ss-geo-more{font:500 .78rem/1.3 Inter,sans-serif;color:var(--ink-3);margin:.6rem .5rem 0}
     .ss-empty{background:var(--bg-alt);border:1px dashed var(--line);border-radius:var(--r);padding:2rem;text-align:center;color:var(--ink-2)}
   </style>
 </head>
@@ -151,34 +188,54 @@
     </div>
   </header>
 
-  <!-- Download Stats -->
+  <!-- Download stats, one store at a time.
+       The two stores measure different things — Microsoft publishes a
+       four-stage acquisition funnel, Apple publishes units and (separately)
+       impressions and page views — so putting them side by side invites
+       false comparison. A store switch shows one at a time and names the
+       measure each is using. -->
   <section class="container section">
     <div class="mb-4 reveal">
-      <p class="eyebrow eyebrow--rule">microsoft store &middot; acquisitions &middot; last 12 months</p>
-      <h2>Downloads, not page views</h2>
-      <p class="lead-2 mb-0">Each app's real acquisition funnel from Partner Center: how many people saw the store listing (<em>page views</em>), tried to install, actually installed (<em>downloads</em>), then launched it. <strong>Downloads = successful installs</strong> &mdash; the honest &ldquo;someone got the app&rdquo; count, which sits well below page views.</p>
-      <p class="tracker-note mb-0">Hand-read from the Partner Center acquisitions report &mdash; a personal Microsoft account has no Entra app for the automated API, so this is a snapshot rather than a nightly pull.</p>
+      <p class="eyebrow eyebrow--rule">downloads &middot; two stores</p>
+      <h2>Real numbers, straight from each store</h2>
+      <p class="lead-2 mb-0">Nothing here is an estimate and nothing comes from a third-party tracker. Each store reports differently, so pick one &mdash; the wording and the tiles change with it, because the underlying measures genuinely are not the same.</p>
     </div>
 
-    <div class="reveal" id="ss-app"><!-- populated by JS --></div>
-  </section>
-
-  <!-- App Store downloads.
-       Apple's sales report is a different measurement from Microsoft's funnel:
-       it counts UNITS (first-time downloads and re-downloads onto a new device),
-       and publishes no page-view or install-attempt stage. So this section gets
-       its own copy and its own tiles rather than being forced into the funnel
-       above. The whole section stays hidden until snapshots exist, so the page
-       never shows an empty Apple panel. -->
-  <section class="container section" id="as-section" hidden>
-    <div class="mb-4 reveal">
-      <p class="eyebrow eyebrow--rule">app store &middot; units</p>
-      <h2>Downloads on iPhone, iPad and Mac</h2>
-      <p class="lead-2 mb-0">Daily <em>units</em> from App Store Connect's sales reports &mdash; Apple's count of app downloads, including a re-download onto another one of your own devices. Every app here is free with no in-app purchases, so a unit is simply someone getting the app. <strong>It is not the same measure as the Microsoft funnel above</strong>: Apple publishes no page-view or install-attempt stage in this report, so there is no funnel to draw.</p>
-      <p class="tracker-note mb-0">Pulled nightly from the App Store Connect API and committed as static JSON &mdash; the numbers below are whatever Apple last reported, never an estimate.</p>
+    <div class="ss-storebar reveal" role="tablist" aria-label="Choose a store">
+      <button type="button" class="ss-store is-active" role="tab" aria-selected="true" aria-controls="pane-ms" data-store="ms">
+        <svg class="ss-store-mark" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M11.4 11.4H2V2h9.4v9.4zM22 11.4h-9.4V2H22v9.4zM11.4 22H2v-9.4h9.4V22zM22 22h-9.4v-9.4H22V22z"/></svg>
+        <span class="ss-store-name">Microsoft Store</span>
+        <span class="ss-store-count" data-count="ms">&mdash;</span>
+      </button>
+      <button type="button" class="ss-store" role="tab" aria-selected="false" aria-controls="pane-apple" data-store="apple">
+        <svg class="ss-store-mark" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+        <span class="ss-store-name">App Store</span>
+        <span class="ss-store-count" data-count="apple">&mdash;</span>
+      </button>
     </div>
 
-    <div class="reveal" id="as-app"><!-- populated by JS --></div>
+    <!-- Microsoft pane -->
+    <div class="ss-pane" id="pane-ms" role="tabpanel">
+      <div class="mb-4">
+        <p class="eyebrow eyebrow--rule">acquisitions &middot; last 12 months</p>
+        <h3 class="ss-pane-h">Downloads, not page views</h3>
+        <p class="lead-2 mb-0">Each app's real acquisition funnel from Partner Center: how many people saw the store listing (<em>page views</em>), tried to install, actually installed (<em>downloads</em>), then launched it. <strong>Downloads = successful installs</strong> &mdash; the honest &ldquo;someone got the app&rdquo; count, which sits well below page views.</p>
+        <p class="tracker-note mb-0">Hand-read from the Partner Center acquisitions report &mdash; a personal Microsoft account has no Entra app for the automated API, so this is a snapshot rather than a nightly pull.</p>
+      </div>
+      <div id="ss-app"><!-- populated by JS --></div>
+    </div>
+
+    <!-- Apple pane. Hidden until snapshots exist, so the switch never offers an
+         empty store. -->
+    <div class="ss-pane" id="pane-apple" role="tabpanel" hidden>
+      <div class="mb-4">
+        <p class="eyebrow eyebrow--rule">units, impressions &amp; page views</p>
+        <h3 class="ss-pane-h">Downloads on iPhone, iPad and Mac</h3>
+        <p class="lead-2 mb-0">Daily <em>units</em> from App Store Connect's sales reports &mdash; Apple's count of app downloads, including a re-download onto another one of your own devices. Every app here is free with no in-app purchases, so a unit is simply someone getting the app. Where Apple has published them, <em>impressions</em> (times the app appeared in browsing or search) and <em>product page views</em> sit alongside.</p>
+        <p class="tracker-note mb-0">Pulled nightly from the App Store Connect API and committed as static JSON &mdash; the numbers below are whatever Apple last reported, never an estimate.</p>
+      </div>
+      <div id="as-app"><!-- populated by JS --></div>
+    </div>
   </section>
 
   <!-- Footer -->
@@ -203,6 +260,38 @@
   (function () {
     var DATA = "assets/store-tracker/data/", root = document.getElementById("ss-app");
     var SVGNS = "http://www.w3.org/2000/svg";
+
+    /* ---- store switch -------------------------------------------------
+       Top-level choice: which store, then which app within it. Apple's
+       button stays hidden until its snapshots actually load, so the switch
+       never offers a store with nothing behind it. */
+    var PANES = { ms: document.getElementById("pane-ms"), apple: document.getElementById("pane-apple") };
+    var STOREBTN = {};
+    [].forEach.call(document.querySelectorAll(".ss-storebar .ss-store"), function (b) {
+      var k = b.getAttribute("data-store");
+      STOREBTN[k] = b;
+      b.addEventListener("click", function () { selectStore(k); });
+    });
+    STOREBTN.apple.hidden = true;
+
+    function selectStore(which) {
+      Object.keys(PANES).forEach(function (k) {
+        var on = k === which;
+        PANES[k].hidden = !on;
+        STOREBTN[k].classList.toggle("is-active", on);
+        STOREBTN[k].setAttribute("aria-selected", on ? "true" : "false");
+      });
+      // A chart sizes itself from its wrapper's width, which is 0 while the
+      // pane is hidden — so a pane built off-screen would render at the 320px
+      // floor. Re-click the active app tab to redraw it at the real width.
+      var active = PANES[which].querySelector(".ss-tab.is-active");
+      if (active) active.click();
+    }
+
+    function setStoreCount(which, n, unit) {
+      var el = STOREBTN[which] && STOREBTN[which].querySelector("[data-count]");
+      if (el) { el.textContent = fmt(n); el.title = fmt(n) + " " + unit; }
+    }
     // Store-ID -> app-icon asset, so tabs and panel headers show the real icon
     // used everywhere else on the site (privacy.html, projects.html, index.html).
     var ICONS = {
@@ -228,6 +317,59 @@
     function el(tag, attrs, txt) { var e = document.createElementNS(SVGNS, tag);
       for (var k in attrs) e.setAttribute(k, attrs[k]); if (txt != null) e.textContent = txt; return e; }
     function fmt(n) { return (n || 0).toLocaleString("en-US"); }
+    // Country code -> readable name and flag, with no shipped lookup table.
+    // Intl.DisplayNames is built into every browser this site supports; the
+    // flag is just the two letters as regional-indicator codepoints. Both fall
+    // back to the bare code rather than showing nothing.
+    var REGION_NAMES = (function () {
+      try { return new Intl.DisplayNames(["en"], { type: "region" }); }
+      catch (e) { return null; }
+    })();
+    function countryName(cc) {
+      if (!cc) return "Unknown";
+      try { return (REGION_NAMES && REGION_NAMES.of(cc)) || cc; }
+      catch (e) { return cc; }
+    }
+    function countryFlag(cc) {
+      if (!cc || cc.length !== 2 || !/^[A-Z]{2}$/.test(cc)) return "\uD83C\uDF10";
+      return String.fromCodePoint(
+        0x1F1E6 + cc.charCodeAt(0) - 65, 0x1F1E6 + cc.charCodeAt(1) - 65);
+    }
+
+    // Ranked country list. `field` is whichever metric the caller is showing,
+    // so the same builder serves downloads and (once Apple publishes them)
+    // impressions.
+    function geoBlock(title, items, field, unitWord) {
+      if (!items || !items.length) return null;
+      var wrap = document.createElement("div"); wrap.className = "ss-geo";
+      wrap.innerHTML = '<p class="eyebrow eyebrow--rule" style="margin-bottom:.2rem">' + title + '</p>';
+      var total = items.reduce(function (t, r) { return t + (r[field] || 0); }, 0);
+      var max = Math.max.apply(null, items.map(function (r) { return r[field] || 0; }).concat([1]));
+      var list = document.createElement("div"); list.className = "ss-geo-list";
+      // A long tail of single-download countries is noise; show the ones that
+      // carry the number and say plainly what was left off.
+      var SHOWN = 12;
+      items.slice(0, SHOWN).forEach(function (r) {
+        var row = document.createElement("div"); row.className = "ss-geo-row";
+        var pct = total ? Math.round(1000 * (r[field] || 0) / total) / 10 : 0;
+        row.innerHTML =
+          '<span class="ss-geo-flag">' + countryFlag(r.code) + '</span>' +
+          '<span class="ss-geo-name"><b>' + countryName(r.code) + '</b>' +
+            '<span class="ss-geo-track"><span class="ss-geo-bar" style="width:' +
+              Math.max(2, Math.round(100 * (r[field] || 0) / max)) + '%"></span></span></span>' +
+          '<span class="ss-geo-val" title="' + pct + '% of ' + unitWord + '">' + fmt(r[field]) + '</span>';
+        list.appendChild(row);
+      });
+      wrap.appendChild(list);
+      if (items.length > SHOWN) {
+        var rest = items.slice(SHOWN).reduce(function (t, r) { return t + (r[field] || 0); }, 0);
+        var more = document.createElement("p"); more.className = "ss-geo-more";
+        more.textContent = "+ " + (items.length - SHOWN) + " more countries, " +
+                           fmt(rest) + " " + unitWord + " between them";
+        wrap.appendChild(more);
+      }
+      return wrap;
+    }
     function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim() || "#4f7cff"; }
     function iconHtml(id, cls) {
       var i = ICONS[id]; if (!i) return "";
@@ -249,22 +391,49 @@
       root.innerHTML = '<div class="ss-empty">' + msg + '</div>';
     }
 
+    // One retry per snapshot. A dropped request used to be swallowed and the
+    // app simply vanished from the tabs and the totals — a page built on
+    // "these are the real numbers" silently showing a smaller one is the worst
+    // way to fail. Anything still missing after the retry gets reported.
+    function fetchApp(base, id) {
+      function once() {
+        return fetch(base + id + ".json?cb=" + Date.now() + "-" + Math.random().toString(36).slice(2))
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .catch(function () { return null; });
+      }
+      return once().then(function (d) { return d || once(); });
+    }
+
+    // Names that never arrived, said out loud above the numbers they'd have
+    // changed, rather than left to look like the whole picture.
+    function missingNote(container, names) {
+      if (!names.length) return;
+      var p = document.createElement("p");
+      p.className = "ss-missing";
+      p.textContent = names.length + (names.length > 1 ? " apps" : " app") +
+        " couldn't be loaded (" + names.join(", ") + "), so the totals below are " +
+        "incomplete. A reload usually fixes it.";
+      container.insertBefore(p, container.firstChild);
+    }
+
     fetch(DATA + "index.json?cb=" + Date.now()).then(function (r) { return r.ok ? r.json() : []; })
       .then(function (apps) {
         if (!apps || !apps.length) {
           emptyState("<strong>No snapshots found.</strong><br>The apps are on the <a href=\"projects.html\">Projects</a> page.");
           return;
         }
-        Promise.all(apps.map(function (a) {
-          return fetch(DATA + a.id + ".json?cb=" + Date.now()).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
-        })).then(function (loaded) {
-          var data = loaded.filter(Boolean);
-          if (!data.length) { emptyState("Snapshots are listed but couldn't be loaded yet — check back after the next refresh."); return; }
-          render(data);
-        });
+        Promise.all(apps.map(function (a) { return fetchApp(DATA, a.id); }))
+          .then(function (loaded) {
+            var data = loaded.filter(Boolean);
+            var missing = apps.filter(function (a, i) { return !loaded[i]; }).map(function (a) { return a.name; });
+            if (!data.length) { emptyState("Snapshots are listed but couldn't be loaded yet — check back after the next refresh."); return; }
+            render(data);
+            missingNote(root, missing);
+          });
       }).catch(function () { emptyState("Couldn't load the download snapshots."); });
 
     function render(apps) {
+      setStoreCount("ms", apps.reduce(function (t, a) { return t + (a.downloads || 0); }, 0), "downloads");
       var overview = buildOverview(apps);
       var tabs = document.createElement("div"); tabs.className = "ss-tabs";
       var body = document.createElement("div");
@@ -626,7 +795,6 @@
      * does not mean that.
      * ------------------------------------------------------------------ */
     var APPLE_DATA = "assets/appstore-tracker/data/";
-    var asSection = document.getElementById("as-section");
     var asRoot = document.getElementById("as-app");
 
     function last(rows, days) {
@@ -637,23 +805,24 @@
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (apps) {
         if (!apps || !apps.length) return;      // no snapshots yet: section stays hidden
-        return Promise.all(apps.map(function (a) {
-          return fetch(APPLE_DATA + a.id + ".json?cb=" + Date.now())
-            .then(function (r) { return r.ok ? r.json() : null; })
-            .catch(function () { return null; });
-        })).then(function (loaded) {
+        return Promise.all(apps.map(function (a) { return fetchApp(APPLE_DATA, a.id); }))
+          .then(function (loaded) {
           var data = loaded.filter(function (d) { return d && d.rows && d.rows.length; });
+          var missing = apps.filter(function (a, i) { return !(loaded[i] && loaded[i].rows && loaded[i].rows.length); })
+                            .map(function (a) { return a.name; });
           if (!data.length) return;
           // Busiest app first, so the tab that opens by default is the one worth
           // looking at rather than whichever the index happened to list first.
           data.sort(function (a, b) { return (b.downloads || 0) - (a.downloads || 0); });
-          asSection.hidden = false;
+          STOREBTN.apple.hidden = false;   // the store is now worth offering
           renderApple(data);
+          missingNote(asRoot, missing);
         });
       })
-      .catch(function () { /* leave the section hidden; the Microsoft one still renders */ });
+      .catch(function () { /* leave Apple off the switch; Microsoft still renders */ });
 
     function renderApple(apps) {
+      setStoreCount("apple", apps.reduce(function (t, a) { return t + (a.downloads || 0); }, 0), "units");
       var overview = buildAppleOverview(apps);
       var tabs = document.createElement("div"); tabs.className = "ss-tabs";
       var body = document.createElement("div");
@@ -699,11 +868,29 @@
       var wrap = document.createElement("div"); wrap.className = "ss-overview";
       wrap.innerHTML = '<p class="ss-ov-head">all apple apps &middot; ' + apps.length + ' tracked</p>';
 
+      // Impressions and page views arrive from a different API than units and
+      // land later, so they show only once Apple has actually published them —
+      // never as a zero, which would read as "nobody saw it".
+      var impr = apps.reduce(function (t, a) { return t + (a.impressions || 0); }, 0);
+      var views = apps.reduce(function (t, a) { return t + (a.page_views || 0); }, 0);
       var tiles = document.createElement("div"); tiles.className = "ss-ov-tiles";
-      [["Total units", fmt(total)],
-       ["Last 30 days", fmt(last30)],
-       ["Days reported", fmt(days)]]
-        .forEach(function (t) {
+      var ovRows = [["Total units", fmt(total)],
+                    ["Last 30 days", fmt(last30)],
+                    ["Days reported", fmt(days)]];
+      var engSpan = apps.reduce(function (n, a) {
+        return Math.max(n, (a.rows || []).filter(function (r) { return r.impressions != null || r.page_views != null; }).length);
+      }, 0);
+      if (impr) ovRows.push(["Impressions &middot; " + engSpan + "d", fmt(impr)]);
+      if (views) ovRows.push(["Page views &middot; " + engSpan + "d", fmt(views)]);
+      // Countries across every app, deduplicated — the reach number.
+      var allCC = {};
+      apps.forEach(function (a) {
+        (a.territories || []).forEach(function (t) { allCC[t.code] = (allCC[t.code] || 0) + t.units; });
+      });
+      var ccList = Object.keys(allCC).map(function (c) { return { code: c, units: allCC[c] }; })
+                         .sort(function (x, y) { return y.units - x.units || (x.code < y.code ? -1 : 1); });
+      if (ccList.length) ovRows.push(["Countries", fmt(ccList.length)]);
+      ovRows.forEach(function (t) {
           tiles.innerHTML += '<div><div class="ss-k">' + t[0] + '</div><div class="ss-v">' + t[1] + '</div></div>';
         });
       wrap.appendChild(tiles);
@@ -720,6 +907,8 @@
         cmp.appendChild(row);
       });
       wrap.appendChild(cmp);
+      var allGeo = geoBlock("downloads by country &middot; all apps", ccList, "units", "downloads");
+      if (allGeo) { allGeo.style.marginTop = "1.4rem"; wrap.appendChild(allGeo); }
       return wrap;
     }
 
@@ -742,29 +931,86 @@
       var best = rows.reduce(function (b, r) { return r.installs > b.installs ? r : b; }, rows[0] || { date: "", installs: 0 });
       var avg = rows.length ? (rows.reduce(function (t, r) { return t + r.installs; }, 0) / rows.length) : 0;
       var tiles = document.createElement("div"); tiles.className = "ss-tiles";
-      [["Units", fmt(app.downloads), "downloads incl. re-downloads"],
-       ["Last 30 days", fmt(last(rows, 30)), "rolling window"],
-       ["Best day", fmt(best.installs), best.date || "—"],
-       ["Daily average", avg.toFixed(avg < 10 ? 1 : 0), "over " + fmt(rows.length) + " reported days"]]
-        .forEach(function (t) {
+      var tileRows = [["Units", fmt(app.downloads), "downloads incl. re-downloads"],
+                      ["Last 30 days", fmt(last(rows, 30)), "rolling window"],
+                      ["Best day", fmt(best.installs), best.date || "—"],
+                      ["Daily average", avg.toFixed(avg < 10 ? 1 : 0), "over " + fmt(rows.length) + " reported days"]];
+      // Once engagement data exists, the interesting pair is the funnel Apple
+      // does give us: of everyone who saw it, how many opened the page; of
+      // those, how many downloaded.
+      //
+      // The conversion rate MUST be computed over only the days that have BOTH
+      // numbers. Units go back to the start of the sales window while
+      // engagement begins whenever the analytics subscription was created, so
+      // dividing the full unit total by a short page-view total gives a rate
+      // over 100% — which is what this did before, reporting 111%.
+      var engDays = rows.filter(function (r) { return r.page_views != null; });
+      var engUnits = engDays.reduce(function (t, r) { return t + (r.installs || 0); }, 0);
+      var engViews = engDays.reduce(function (t, r) { return t + (r.page_views || 0); }, 0);
+      if (app.impressions) tileRows.push(["Impressions", fmt(app.impressions),
+        "appeared in browse or search"]);
+      if (app.page_views) tileRows.push(["Page views", fmt(app.page_views),
+        app.impressions ? Math.round(100 * app.page_views / app.impressions) + "% of impressions" : "product page opened"]);
+      if (engViews) tileRows.push(["View to download", Math.round(100 * engUnits / engViews) + "%",
+        fmt(engUnits) + " of " + fmt(engViews) + " over the same " + engDays.length + " days"]);
+      tileRows.forEach(function (t) {
           tiles.innerHTML += '<div class="ss-tile"><div class="ss-k">' + t[0] + '</div><div class="ss-v">'
             + t[1] + '</div><div class="ss-sub">' + t[2] + '</div></div>';
         });
       body.appendChild(tiles);
 
+      // Units always; impressions and page views join the picker only for the
+      // days Apple has published them.
+      var metrics = [{ key: "installs", label: "Units", unit: "units / day" }];
+      if (rows.some(function (r) { return r.impressions != null; }))
+        metrics.push({ key: "impressions", label: "Impressions", unit: "impressions / day" });
+      if (rows.some(function (r) { return r.page_views != null; }))
+        metrics.push({ key: "page_views", label: "Page views", unit: "page views / day" });
+
+      var trendHead = document.createElement("div");
+      trendHead.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin:1.6rem 0 .6rem";
       var eyebrow = document.createElement("p");
-      eyebrow.className = "eyebrow eyebrow--rule";
-      eyebrow.style.cssText = "margin:1.6rem 0 .6rem";
+      eyebrow.className = "eyebrow eyebrow--rule"; eyebrow.style.margin = "0";
       eyebrow.textContent = "daily trend";
-      body.appendChild(eyebrow);
+      trendHead.appendChild(eyebrow);
+      var sel = null;
+      if (metrics.length > 1) {
+        sel = document.createElement("div"); sel.className = "ss-metric-sel";
+        trendHead.appendChild(sel);
+      }
+      body.appendChild(trendHead);
 
       var wrap = document.createElement("div"); wrap.className = "ss-chartwrap"; body.appendChild(wrap);
-      wrap.appendChild(chart(toSeries(rows, "installs"), "units / day", wrap));
+      var legend = document.createElement("div"); legend.className = "ss-legend"; body.appendChild(legend);
 
-      var legend = document.createElement("div"); legend.className = "ss-legend";
-      legend.innerHTML = '<span><b style="background:' + cssVar("--ss-series-1") + '"></b>units / day</span>' +
-                         '<span><b style="background:' + cssVar("--ss-series-2") + '"></b>cumulative total</span>';
-      body.appendChild(legend);
+      function paintApple(mt) {
+        // Days Apple has not reported this metric for are dropped, not plotted
+        // as zero — a zero would draw a cliff that never happened.
+        var src = mt.key === "installs" ? rows
+                : rows.filter(function (r) { return r[mt.key] != null; });
+        wrap.innerHTML = "";
+        wrap.appendChild(chart(toSeries(src, mt.key), mt.unit, wrap));
+        legend.innerHTML = '<span><b style="background:' + cssVar("--ss-series-1") + '"></b>' + mt.unit + '</span>' +
+                           '<span><b style="background:' + cssVar("--ss-series-2") + '"></b>cumulative total</span>';
+      }
+      if (sel) {
+        metrics.forEach(function (mt, i) {
+          var b = document.createElement("button"); b.type = "button"; b.textContent = mt.label;
+          if (i === 0) b.className = "on";
+          b.onclick = function () {
+            [].forEach.call(sel.children, function (o) { o.className = ""; });
+            b.className = "on"; paintApple(mt);
+          };
+          sel.appendChild(b);
+        });
+      }
+      paintApple(metrics[0]);
+
+      var geo = geoBlock("downloads by country", app.territories, "units", "downloads");
+      if (geo) body.appendChild(geo);
+      var geoImpr = geoBlock("impressions by country", app.impression_territories,
+                             "impressions", "impressions");
+      if (geoImpr) body.appendChild(geoImpr);
 
       var up = document.createElement("p"); up.className = "ss-updated";
       up.textContent = "App Store Connect sales report, " + (app.window || "") +

@@ -41,6 +41,24 @@ jobs:
           APPSTORE_VENDOR_NUMBER: ${{ secrets.APPSTORE_VENDOR_NUMBER }}
         run: python3 scripts/refresh_appstore_stats.py
 
+      # Impressions and page views come from a different API than units — the
+      # Analytics Reports one, which is a subscription rather than a query.
+      # It no-ops harmlessly until Apple has generated the first report
+      # (roughly 24-48h after the subscription is created), so it is safe to
+      # run every night from the start.
+      - name: Fetch App Store impressions and page views
+        # Never let engagement trouble cost us the night's sales data: this step
+        # runs AFTER the sales fetch but BEFORE the commit, so a hard failure
+        # here would abort the job and drop units that were already downloaded.
+        # The Analytics API is the newer, less predictable of the two.
+        continue-on-error: true
+        env:
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+          APPSTORE_VENDOR_NUMBER: ${{ secrets.APPSTORE_VENDOR_NUMBER }}
+        run: python3 scripts/refresh_appstore_analytics.py
+
       - name: Commit if changed
         run: |
           git config user.name "github-actions[bot]"
