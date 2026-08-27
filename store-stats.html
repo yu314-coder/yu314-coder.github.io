@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <!-- SEO Meta Tags -->
-  <meta name="description" content="Microsoft Store download statistics for Yu, Yao-Hsing 尤耀星's apps — ManimStudio, t-SNE Visualization, and Generalized Covariance Matrix — snapshotted daily from Partner Center analytics.">
-  <meta name="keywords" content="Yu, Yao-Hsing 尤耀星, Microsoft Store, downloads, acquisitions, ManimStudio, t-SNE, Generalized Covariance, app analytics">
+  <meta name="description" content="Real download statistics for Yu, Yao-Hsing 尤耀星's apps — three on the Microsoft Store from Partner Center acquisitions, five on Apple's App Store from App Store Connect sales reports.">
+  <meta name="keywords" content="Yu, Yao-Hsing 尤耀星, Microsoft Store, App Store, downloads, acquisitions, units, ManimStudio, EigenDenoise, SidecarBridge, WhisperKit, app analytics">
   <meta name="author" content="Yu, Yao-Hsing 尤耀星">
   <meta name="robots" content="index, follow">
   <meta name="referrer" content="strict-origin-when-cross-origin">
@@ -14,7 +14,7 @@
   <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="Store Stats | Yu, Yao-Hsing 尤耀星">
-  <meta property="og:description" content="Microsoft Store download statistics for my apps — daily and cumulative acquisitions from Partner Center">
+  <meta property="og:description" content="Real download statistics for my apps — Microsoft Store acquisitions and App Store units, daily and cumulative">
   <meta property="og:url" content="https://yu314-coder.github.io/store-stats.html">
   <meta property="og:image" content="https://yu314-coder.github.io/assets/img/og-image.png">
   <meta property="og:image:width" content="1200">
@@ -22,7 +22,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:image" content="https://yu314-coder.github.io/assets/img/og-image.png">
 
-  <title>Store Stats | Yu, Yao-Hsing 尤耀星 - Microsoft Store Download Analytics</title>
+  <title>Store Stats | Yu, Yao-Hsing 尤耀星 - Microsoft Store &amp; App Store Download Analytics</title>
 
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
@@ -47,7 +47,10 @@
     .ss-cmp-row:hover{background:var(--surface)}
     .ss-cmp-row .ss-cmp-name{width:11.5rem;flex:none;color:var(--ink);font-weight:600;display:flex;align-items:center;gap:.5rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .ss-cmp-track{flex:1;background:var(--surface);border-radius:3px;height:.6rem;overflow:hidden}
-    .ss-cmp-bar{height:100%;border-radius:3px;background:var(--grad-btn,var(--accent));transition:width .4s ease}
+    /* display:block matters: a bare <span> is inline, and an inline box ignores
+       width, so these bars rendered at zero width and every app's row looked
+       like an empty track. The funnel bars set it and worked; these did not. */
+    .ss-cmp-bar{display:block;height:100%;border-radius:3px;background:var(--grad-btn,var(--accent));transition:width .4s ease}
     .ss-cmp-val{font:700 .8rem/1 JetBrains Mono,monospace;width:4.5rem;flex:none;text-align:right}
 
     .ss-tabs{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.25rem}
@@ -142,22 +145,40 @@
   <!-- Header Section -->
   <header class="page-header">
     <div class="container">
-      <p class="eyebrow eyebrow--rule">microsoft store analytics</p>
+      <p class="eyebrow eyebrow--rule">app store analytics</p>
       <h1>Store Stats</h1>
-      <p class="lead-2 mb-0">Real download numbers for my three Microsoft Store apps &mdash; ManimStudio, t-SNE Visualization, and Generalized Covariance Matrix &mdash; read straight from Partner Center's acquisitions report.</p>
+      <p class="lead-2 mb-0">Real download numbers for my published apps, read straight from each store's own reporting &mdash; three on the <strong>Microsoft Store</strong> from Partner Center's acquisitions report, five on Apple's <strong>App Store</strong> from App Store Connect's sales reports. No estimates and no third-party trackers.</p>
     </div>
   </header>
 
   <!-- Download Stats -->
   <section class="container section">
     <div class="mb-4 reveal">
-      <p class="eyebrow eyebrow--rule">acquisitions &middot; last 12 months</p>
+      <p class="eyebrow eyebrow--rule">microsoft store &middot; acquisitions &middot; last 12 months</p>
       <h2>Downloads, not page views</h2>
       <p class="lead-2 mb-0">Each app's real acquisition funnel from Partner Center: how many people saw the store listing (<em>page views</em>), tried to install, actually installed (<em>downloads</em>), then launched it. <strong>Downloads = successful installs</strong> &mdash; the honest &ldquo;someone got the app&rdquo; count, which sits well below page views.</p>
       <p class="tracker-note mb-0">Hand-read from the Partner Center acquisitions report &mdash; a personal Microsoft account has no Entra app for the automated API, so this is a snapshot rather than a nightly pull.</p>
     </div>
 
     <div class="reveal" id="ss-app"><!-- populated by JS --></div>
+  </section>
+
+  <!-- App Store downloads.
+       Apple's sales report is a different measurement from Microsoft's funnel:
+       it counts UNITS (first-time downloads and re-downloads onto a new device),
+       and publishes no page-view or install-attempt stage. So this section gets
+       its own copy and its own tiles rather than being forced into the funnel
+       above. The whole section stays hidden until snapshots exist, so the page
+       never shows an empty Apple panel. -->
+  <section class="container section" id="as-section" hidden>
+    <div class="mb-4 reveal">
+      <p class="eyebrow eyebrow--rule">app store &middot; units</p>
+      <h2>Downloads on iPhone, iPad and Mac</h2>
+      <p class="lead-2 mb-0">Daily <em>units</em> from App Store Connect's sales reports &mdash; Apple's count of app downloads, including a re-download onto another one of your own devices. Every app here is free with no in-app purchases, so a unit is simply someone getting the app. <strong>It is not the same measure as the Microsoft funnel above</strong>: Apple publishes no page-view or install-attempt stage in this report, so there is no funnel to draw.</p>
+      <p class="tracker-note mb-0">Pulled nightly from the App Store Connect API and committed as static JSON &mdash; the numbers below are whatever Apple last reported, never an estimate.</p>
+    </div>
+
+    <div class="reveal" id="as-app"><!-- populated by JS --></div>
   </section>
 
   <!-- Footer -->
@@ -187,7 +208,22 @@
     var ICONS = {
       "9NZFT55DVCBS": ["manimstudio-win", "ManimStudio icon"],
       "9P969D6N7P6J": ["t-sne", "t-SNE Visualization icon"],
-      "9NZJ475S7B01": ["generalized-covariance", "Generalized Covariance Matrix icon"]
+      "9NZJ475S7B01": ["generalized-covariance", "Generalized Covariance Matrix icon"],
+      "6764472686": ["manimstudio-ios", "ManimStudio icon"],
+      "6764759636": ["eigendenoise", "EigenDenoise icon"],
+      "6792298083": ["sidecarbridge", "SidecarBridge icon"],
+      "6764729098": ["gps-location-app", "GPS-location-app icon"],
+      "6764759491": ["whisperkit", "WhisperKit icon"]
+    };
+    // Store-listing slug and which of the two badges each Apple app carries —
+    // EigenDenoise ships on the Mac App Store, the rest on iOS. Kept here so the
+    // panel links to the real listing rather than a guessed URL.
+    var APPLE_META = {
+      "6764472686": ["manimstudio", "appstore", "App Store"],
+      "6764759636": ["eigendenoise", "macappstore", "Mac App Store"],
+      "6792298083": ["sidecarbridge", "appstore", "App Store"],
+      "6764729098": ["gps-location-app", "appstore", "App Store"],
+      "6764759491": ["whisperkit", "appstore", "App Store"]
     };
     function el(tag, attrs, txt) { var e = document.createElementNS(SVGNS, tag);
       for (var k in attrs) e.setAttribute(k, attrs[k]); if (txt != null) e.textContent = txt; return e; }
@@ -433,7 +469,7 @@
 
         function paint(m) {
           eyebrow.textContent = (GRAN_WORD[m.gran] ? GRAN_WORD[m.gran] + " " : "") + "trend";
-          wrap.innerHTML = ""; wrap.appendChild(chart(m.series, m.unit));
+          wrap.innerHTML = ""; wrap.appendChild(chart(m.series, m.unit, wrap));
           legend.innerHTML = '<span><b style="background:' + cssVar("--ss-series-1") + '"></b>' + m.unit + '</span>' +
                              '<span><b style="background:' + cssVar("--ss-series-2") + '"></b>cumulative total</span>';
         }
@@ -470,8 +506,8 @@
     // the crossing point of the two marks is an artefact of the scaling and
     // means nothing. Two stacked panels over ONE shared x-axis say the same
     // thing without inviting that reading.
-    function chart(series, perLabel) {
-      var wrap = document.querySelector(".ss-chartwrap");
+    function chart(series, perLabel, wrap) {
+      wrap = wrap || document.querySelector(".ss-chartwrap");
       var W = Math.max(320, (wrap ? wrap.clientWidth : 800) - 32);
       var pad = { l: 52, r: 14, t: 14, b: 24 };
       var topH = 176, gap = 26, botH = 104;
@@ -577,6 +613,164 @@
       hit.addEventListener("mouseleave", function () { tip.setAttribute("visibility", "hidden"); });
       svg.appendChild(hit);
       return svg;
+    }
+
+    /* ------------------------------------------------------------------ *
+     * App Store
+     *
+     * Same snapshot-on-disk pattern as above, different measurement. Apple's
+     * DAILY SALES SUMMARY report gives units per app per day and nothing else
+     * — no page views, no install attempts — so this renders tiles and a trend
+     * rather than the four-stage funnel, and says "units" everywhere instead of
+     * borrowing Microsoft's "successful installs" wording for a number that
+     * does not mean that.
+     * ------------------------------------------------------------------ */
+    var APPLE_DATA = "assets/appstore-tracker/data/";
+    var asSection = document.getElementById("as-section");
+    var asRoot = document.getElementById("as-app");
+
+    function last(rows, days) {
+      return rows.slice(-days).reduce(function (t, r) { return t + (r.installs || 0); }, 0);
+    }
+
+    fetch(APPLE_DATA + "index.json?cb=" + Date.now())
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (apps) {
+        if (!apps || !apps.length) return;      // no snapshots yet: section stays hidden
+        return Promise.all(apps.map(function (a) {
+          return fetch(APPLE_DATA + a.id + ".json?cb=" + Date.now())
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .catch(function () { return null; });
+        })).then(function (loaded) {
+          var data = loaded.filter(function (d) { return d && d.rows && d.rows.length; });
+          if (!data.length) return;
+          // Busiest app first, so the tab that opens by default is the one worth
+          // looking at rather than whichever the index happened to list first.
+          data.sort(function (a, b) { return (b.downloads || 0) - (a.downloads || 0); });
+          asSection.hidden = false;
+          renderApple(data);
+        });
+      })
+      .catch(function () { /* leave the section hidden; the Microsoft one still renders */ });
+
+    function renderApple(apps) {
+      var overview = buildAppleOverview(apps);
+      var tabs = document.createElement("div"); tabs.className = "ss-tabs";
+      var body = document.createElement("div");
+      asRoot.innerHTML = "";
+      asRoot.appendChild(overview); asRoot.appendChild(tabs); asRoot.appendChild(body);
+
+      function activate(app, btn) {
+        [].forEach.call(tabs.children, function (c) { c.classList.remove("is-active"); });
+        btn.classList.add("is-active");
+        showAppleApp(app, body);
+      }
+      var buttons = apps.map(function (app, i) {
+        var b = document.createElement("button");
+        b.className = "ss-tab" + (i === 0 ? " is-active" : "");
+        b.innerHTML = iconHtml(app.id, "app-icon-sm") + "<span>" + app.app + "</span>";
+        b.onclick = function () { activate(app, b); };
+        tabs.appendChild(b);
+        return b;
+      });
+      [].forEach.call(overview.querySelectorAll(".ss-cmp-row"), function (row) {
+        var id = row.getAttribute("data-id");
+        var i = apps.findIndex(function (a) { return a.id === id; });
+        if (i < 0) return;
+        row.addEventListener("click", function () {
+          activate(apps[i], buttons[i]);
+          window.scrollTo({ top: tabs.getBoundingClientRect().top + window.scrollY - 90, behavior: "smooth" });
+        });
+      });
+      showAppleApp(apps[0], body);
+      // Redraw on resize: the SVG is sized in px against the wrapper's width.
+      window.addEventListener("resize", function () {
+        var active = tabs.querySelector(".is-active"); if (active) active.click();
+      });
+    }
+
+    function buildAppleOverview(apps) {
+      var total = 0, last30 = 0, days = 0;
+      apps.forEach(function (a) {
+        total += a.downloads || 0;
+        last30 += last(a.rows, 30);
+        days = Math.max(days, a.rows.length);
+      });
+      var wrap = document.createElement("div"); wrap.className = "ss-overview";
+      wrap.innerHTML = '<p class="ss-ov-head">all apple apps &middot; ' + apps.length + ' tracked</p>';
+
+      var tiles = document.createElement("div"); tiles.className = "ss-ov-tiles";
+      [["Total units", fmt(total)],
+       ["Last 30 days", fmt(last30)],
+       ["Days reported", fmt(days)]]
+        .forEach(function (t) {
+          tiles.innerHTML += '<div><div class="ss-k">' + t[0] + '</div><div class="ss-v">' + t[1] + '</div></div>';
+        });
+      wrap.appendChild(tiles);
+
+      var cmp = document.createElement("div"); cmp.className = "ss-compare";
+      var maxD = Math.max.apply(null, apps.map(function (a) { return a.downloads || 0; }).concat([1]));
+      apps.slice().sort(function (a, b) { return (b.downloads || 0) - (a.downloads || 0); }).forEach(function (a) {
+        var row = document.createElement("button"); row.type = "button"; row.className = "ss-cmp-row";
+        row.setAttribute("data-id", a.id);
+        row.innerHTML = '<span class="ss-cmp-name">' + iconHtml(a.id, "app-icon-sm") + '<span>' + a.app + '</span></span>'
+          + '<span class="ss-cmp-track"><span class="ss-cmp-bar" style="width:'
+          + Math.max(2, Math.round(100 * (a.downloads || 0) / maxD)) + '%"></span></span>'
+          + '<span class="ss-cmp-val">' + fmt(a.downloads) + '</span>';
+        cmp.appendChild(row);
+      });
+      wrap.appendChild(cmp);
+      return wrap;
+    }
+
+    function showAppleApp(app, body) {
+      body.innerHTML = "";
+      var rows = app.rows || [];
+      var meta = APPLE_META[app.id] || ["", "appstore", "App Store"];
+
+      var head = document.createElement("div"); head.className = "ss-panel-head";
+      head.innerHTML =
+        '<div class="ss-panel-id">' + iconHtml(app.id) +
+        '<div><h3>' + app.app + '</h3><span class="ss-store-id">Apple ID ' + app.id + '</span></div></div>' +
+        '<a class="store-badge store-badge-sm" href="https://apps.apple.com/app/' + meta[0] + '/id' + app.id +
+        '" target="_blank" rel="noopener noreferrer" aria-label="Download ' + app.app + ' on the ' + meta[2] + '">' +
+        '<img src="assets/img/badges/' + meta[1] + '.svg" alt="Download on the ' + meta[2] + '"></a>';
+      body.appendChild(head);
+
+      // Best day is the single busiest reported day, dated — a launch spike is
+      // the most interesting thing in a units series and averages hide it.
+      var best = rows.reduce(function (b, r) { return r.installs > b.installs ? r : b; }, rows[0] || { date: "", installs: 0 });
+      var avg = rows.length ? (rows.reduce(function (t, r) { return t + r.installs; }, 0) / rows.length) : 0;
+      var tiles = document.createElement("div"); tiles.className = "ss-tiles";
+      [["Units", fmt(app.downloads), "downloads incl. re-downloads"],
+       ["Last 30 days", fmt(last(rows, 30)), "rolling window"],
+       ["Best day", fmt(best.installs), best.date || "—"],
+       ["Daily average", avg.toFixed(avg < 10 ? 1 : 0), "over " + fmt(rows.length) + " reported days"]]
+        .forEach(function (t) {
+          tiles.innerHTML += '<div class="ss-tile"><div class="ss-k">' + t[0] + '</div><div class="ss-v">'
+            + t[1] + '</div><div class="ss-sub">' + t[2] + '</div></div>';
+        });
+      body.appendChild(tiles);
+
+      var eyebrow = document.createElement("p");
+      eyebrow.className = "eyebrow eyebrow--rule";
+      eyebrow.style.cssText = "margin:1.6rem 0 .6rem";
+      eyebrow.textContent = "daily trend";
+      body.appendChild(eyebrow);
+
+      var wrap = document.createElement("div"); wrap.className = "ss-chartwrap"; body.appendChild(wrap);
+      wrap.appendChild(chart(toSeries(rows, "installs"), "units / day", wrap));
+
+      var legend = document.createElement("div"); legend.className = "ss-legend";
+      legend.innerHTML = '<span><b style="background:' + cssVar("--ss-series-1") + '"></b>units / day</span>' +
+                         '<span><b style="background:' + cssVar("--ss-series-2") + '"></b>cumulative total</span>';
+      body.appendChild(legend);
+
+      var up = document.createElement("p"); up.className = "ss-updated";
+      up.textContent = "App Store Connect sales report, " + (app.window || "") +
+                       " · pulled " + (app.updated_utc || "").replace("T", " ").replace("Z", " UTC") +
+                       " · Apple publishes each day about a day in arrears";
+      body.appendChild(up);
     }
   })();
   </script>

@@ -1,0 +1,62 @@
+name: Refresh App Store stats
+
+# Snapshot Apple App Store download counts into static JSON that store-stats.html
+# reads same-origin — same idea as the Microsoft Store and PyPI refreshers.
+#
+# Unlike the Microsoft one, this can genuinely run unattended: App Store Connect
+# issues API keys straight from the developer account, with no Entra app
+# registration in the way.
+#
+# Needs four repo secrets (Settings → Secrets and variables → Actions):
+#   APPSTORE_ISSUER_ID, APPSTORE_KEY_ID, APPSTORE_PRIVATE_KEY, APPSTORE_VENDOR_NUMBER
+# APPSTORE_PRIVATE_KEY is the whole .p8 file including the BEGIN/END lines.
+# The key needs an Admin, Finance or Sales role — Developer gets a bare 403.
+# Until they're set, the script is a graceful no-op, so this workflow stays green.
+on:
+  schedule:
+    - cron: "57 6 * * *" # ~06:57 UTC daily (offset from the PyPI and Store jobs)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-appstore-stats
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PyJWT (ES256 needs the cryptography extra)
+        run: pip install --quiet "pyjwt[crypto]>=2.8"
+
+      - name: Fetch App Store sales reports
+        env:
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+          APPSTORE_VENDOR_NUMBER: ${{ secrets.APPSTORE_VENDOR_NUMBER }}
+        run: python3 scripts/refresh_appstore_stats.py
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # The data directory does not exist until the first successful pull.
+          # `git add` on a missing pathspec is a fatal error, so before the
+          # secrets are set this step would fail the run — the opposite of the
+          # graceful no-op the script goes to the trouble of providing.
+          if [ ! -d assets/appstore-tracker/data ]; then
+            echo "No App Store snapshots yet (script is a no-op until the four secrets are set)."
+            exit 0
+          fi
+          git add assets/appstore-tracker/data
+          if git diff --cached --quiet; then
+            echo "No change in App Store snapshots."
+          else
+            git commit -m "chore: refresh App Store download snapshots"
+            git push
+          fi
