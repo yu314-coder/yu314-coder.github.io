@@ -55,13 +55,25 @@
     var dur = opts.duration != null ? opts.duration
       : parseInt(el.getAttribute("data-duration"), 10) || 1600;
 
-    if (REDUCED || !target || dur <= 0) {
+    // requestAnimationFrame does not run while a tab is in the background, so
+    // writing the number ONLY from inside the animation leaves it blank for
+    // anyone who opens the page in a background tab (cmd-click, "open in new
+    // tab") and for thumbnail/preview capture. The count-up is a flourish; the
+    // number is the point. Skip straight to it when nothing will animate.
+    if (REDUCED || !target || dur <= 0 || document.hidden) {
       el.textContent = prefix + formatInt(target) + suffix;
       return;
     }
 
-    var start = null;
+    var start = null, started = false;
+    // Safety net for the cases document.hidden does not catch — a heavily
+    // throttled but nominally visible tab, an embedded context. If the
+    // animation has not begun shortly after being asked for, just write it.
+    setTimeout(function () {
+      if (!started) el.textContent = prefix + formatInt(target) + suffix;
+    }, 500);
     function step(ts) {
+      started = true;
       if (start === null) start = ts;
       var p = Math.min((ts - start) / dur, 1);
       // easeOutCubic
