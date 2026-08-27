@@ -2,8 +2,20 @@
 """Build the Store-stats JSON the site reads, from CSVs exported by Partner Center.
 
 A personal Microsoft account has no Microsoft Entra app, so the automated
-acquisitions API (see refresh_store_stats.py) can't run. Instead we read the
-numbers by hand from Partner Center → Analytics → Acquisitions and export CSVs,
+acquisitions API can't run. This is structural, not a to-do: creating an Entra
+tenant to get one actually switched Partner Center away from the apps. There
+was a `refresh_store_stats.py` + nightly workflow attempting it; both were
+deleted 2026-08-27 (see git history) because they could never run, and because
+what they wrote would have corrupted this directory if they ever had — the
+acquisitions endpoint returns only `acquisitionQuantity`, so it cannot produce
+the install-attempt / page-view / first-launch stages the page needs.
+
+By contrast the *Apple* half of the page IS automated, nightly, via
+scripts/refresh_appstore_stats.py — App Store Connect issues API keys straight
+from the developer account with no tenant involved. Don't let that one mislead
+you into thinking this half is a wiring problem.
+
+So: read the numbers by hand from Partner Center → Analytics → Acquisitions and export CSVs,
 then turn them into assets/store-tracker/data/<storeid>.json:
 
   * Acquisition funnel CSV  ("Category","Count"): Page views, Install attempts,
