@@ -110,29 +110,39 @@ def api(path_or_url, bearer, method="GET", body=None):
         raise RuntimeError(f"HTTP {e.code} on {url}: {detail}") from None
 
 
-def ensure_request(app_id, bearer):
-    """Return the ONGOING report-request id for one app, creating it if absent.
+def ensure_request(app_id, bearer, access="ONGOING"):
+    """Return a report-request id for one app, creating it if absent.
 
-    Creating one is a subscription, not a query — it starts Apple generating
-    daily reports for this app from now on. It is idempotent here: an existing
-    ONGOING request is reused, and Apple answers a duplicate create with 409.
+    Creating one is a subscription, not a query. Two kinds matter here:
+
+      ONGOING            — Apple generates daily reports from now on. It gives
+                           nothing for the past, so on its own the impression
+                           series would start today and sit permanently shorter
+                           than the 120-day download series beside it.
+      ONE_TIME_SNAPSHOT  — historical data, which is what actually lets the two
+                           series line up.
+
+    So we ask for both and read whichever has instances. Idempotent: an
+    existing request is reused, and Apple answers a duplicate create with 409.
     """
-    got = api(f"/apps/{app_id}/analyticsReportRequests"
-              "?filter[accessType]=ONGOING&limit=50", bearer)
-    for item in got.get("data", []):
-        if not item.get("attributes", {}).get("stoppedDueToInactivity"):
-            return item["id"], False
+    def existing():
+        got = api(f"/apps/{app_id}/analyticsReportRequests"
+                  f"?filter[accessType]={access}&limit=50", bearer)
+        for item in got.get("data", []):
+            if not item.get("attributes", {}).get("stoppedDueToInactivity"):
+                return item["id"]
+        return None
+
+    found = existing()
+    if found:
+        return found, False
     made = api("/analyticsReportRequests", bearer, method="POST", body={
         "data": {"type": "analyticsReportRequests",
-                 "attributes": {"accessType": "ONGOING"},
+                 "attributes": {"accessType": access},
                  "relationships": {"app": {"data": {"type": "apps", "id": app_id}}}}
     })
     if made.get("_conflict"):
-        got = api(f"/apps/{app_id}/analyticsReportRequests"
-                  "?filter[accessType]=ONGOING&limit=50", bearer)
-        for item in got.get("data", []):
-            return item["id"], False
-        return None, False
+        return existing(), False
     return made.get("data", {}).get("id"), True
 
 
@@ -178,13 +188,21 @@ def harvest(app_id, bearer):
     report carries a Territory column, same as the sales report carries a
     Country Code, so impressions get a country split for free too.
     """
-    req_id, created = ensure_request(app_id, bearer)
+    # Snapshot first: it carries history, which is what makes impressions line
+    # up with the download series rather than starting from today.
+    req_id = None
+    for access in ("ONE_TIME_SNAPSHOT", "ONGOING"):
+        rid, created = ensure_request(app_id, bearer, access)
+        if created:
+            log(f"    created a {access} report request — Apple takes about "
+                f"24-48h to generate the first one")
+        if rid and not created:
+            req_id = rid
+            break
+        if rid and req_id is None:
+            req_id = rid
     if not req_id:
-        log(f"    no report request and could not create one")
-        return {}, {}
-    if created:
-        log(f"    created an ONGOING report request — Apple's first report "
-            f"takes about 24-48h, so expect nothing until then")
+        log("    no report request and could not create one")
         return {}, {}
 
     reports = api(f"/analyticsReportRequests/{req_id}/reports"

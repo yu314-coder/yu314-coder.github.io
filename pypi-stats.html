@@ -41,6 +41,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@200;300;400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 
   <!-- Site stylesheet (single source of truth) -->
+  <link rel="stylesheet" href="assets/css/stats.css?v=20260828-stats1">
   <link rel="stylesheet" href="assets/css/style.css?v=20260823-chip1">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
@@ -71,7 +72,7 @@
     <div class="container">
       <p class="eyebrow eyebrow--rule">pypi analytics</p>
       <h1>PyPI Stats</h1>
-      <p class="lead-2 mb-0">Live download analytics for my open-source Python packages across rmt-denoise, cairometal, narrate, ollama-installer, and python-to-binary.<span data-live-downloads-wrap> — <span id="live-downloads"></span> downloads tracked.</span></p>
+      <p class="lead-2 mb-0">Live download analytics for my open-source Python packages across rmt-denoise, cairometal, narrate, ollama-installer, and python-to-binary.<span data-live-downloads-wrap> — <span id="live-downloads"></span> fetches logged all-time, mirrors included; the count below has them removed.</span></p>
     </div>
   </header>
 
@@ -162,12 +163,29 @@
     </div>
   </section>
 
+  <!-- Download numbers, mirrors separated out.
+       PyPI counts every fetch as a download, including the index mirrors and
+       CI caches that pull automatically. For these packages that is about two
+       thirds of the number, so leading with the raw figure would overstate
+       reach by roughly 3x. The real count leads; the raw one sits beside it
+       rather than being hidden, since it is what pypistats.org reports. -->
+  <section class="container section">
+    <div class="mb-4 reveal">
+      <p class="eyebrow eyebrow--rule">downloads &middot; mirrors separated</p>
+      <h2>Real installs, not mirror traffic</h2>
+      <p class="lead-2 mb-0">PyPI counts every fetch as a download &mdash; including the index mirrors and CI caches that pull packages automatically with nobody asking. Those are the majority here. <strong>The headline below has mirrors removed</strong>, the closest thing PyPI offers to &ldquo;a person installed this&rdquo;, with the raw figure alongside for honesty.</p>
+      <p class="tracker-note mb-0">Snapshotted nightly from <a href="https://pypistats.org/" target="_blank" rel="noopener noreferrer">pypistats.org</a> and committed as static JSON &mdash; never an estimate.</p>
+    </div>
+
+    <div class="reveal" id="py-app"><!-- populated by JS --></div>
+  </section>
+
   <!-- Live Download Stats -->
   <section class="container section">
     <div class="mb-4 reveal">
-      <p class="eyebrow eyebrow--rule">live data</p>
-      <h2>Live download statistics</h2>
-      <p class="lead-2">Pick one of my packages (or any PyPI project) to see downloads by country, version, and Python version.</p>
+      <p class="eyebrow eyebrow--rule">deeper breakdowns &middot; live query</p>
+      <h2>By country, version and Python</h2>
+      <p class="lead-2">The numbers above are the totals. For a specific cut &mdash; downloads by country, by release, or by Python version &mdash; query any PyPI project directly.</p>
       <p class="tracker-note mb-0">Data pulled live from the public <a href="https://clickpy.clickhouse.com/" target="_blank" rel="noopener noreferrer">ClickPy</a> dataset (PyPI download logs on ClickHouse). Queries run entirely in your browser — nothing is sent to me.</p>
     </div>
 
@@ -231,6 +249,188 @@
   </script>
 
   <!-- Site motion (scroll-reveal, counters, live PyPI total) -->
+  <!-- Shared stats primitives, then the PyPI-specific renderer. Not deferred:
+       the renderer runs at parse time and needs StatsUI present. -->
+  <script src="assets/js/stats-core.js?v=20260828-stats1"></script>
+  <script>
+  (function () {
+    var DATA = "assets/pypi-tracker/data/", root = document.getElementById("py-app");
+    if (!root || !window.StatsUI) return;
+    var S = window.StatsUI;
+    var fmt = S.fmt, cssVar = S.cssVar, chart = S.chart, toSeries = S.toSeries;
+
+    // Same five as the cards above and as scripts/refresh_pypistats.py.
+    var PKGS = ["rmt-denoise", "python-to-binary", "narrate", "ollama-installer", "cairometal"];
+
+    function totals(rows, field) {
+      return rows.reduce(function (t, r) { return t + (r[field] || 0); }, 0);
+    }
+    function lastN(rows, n, field) {
+      return rows.slice(-n).reduce(function (t, r) { return t + (r[field] || 0); }, 0);
+    }
+
+    Promise.all(PKGS.map(function (n) { return S.fetchJSON(DATA, n); }))
+      .then(function (loaded) {
+        var data = loaded.filter(function (d) { return d && d.rows && d.rows.length; });
+        var missing = PKGS.filter(function (n, i) { return !(loaded[i] && loaded[i].rows); });
+        if (!data.length) {
+          root.innerHTML = '<div class="ss-empty">Download snapshots could not be loaded &mdash; ' +
+            'the live query below still works.</div>';
+          return;
+        }
+        // Busiest first, so the tab that opens is the one worth reading.
+        data.sort(function (a, b) {
+          return totals(b.rows, "without_mirrors") - totals(a.rows, "without_mirrors");
+        });
+        render(data);
+        S.missingNote(root, missing);
+      });
+
+    function render(pkgs) {
+      var overview = buildOverview(pkgs);
+      var tabs = document.createElement("div"); tabs.className = "ss-tabs";
+      var body = document.createElement("div");
+      root.innerHTML = "";
+      root.appendChild(overview); root.appendChild(tabs); root.appendChild(body);
+
+      function activate(pkg, btn) {
+        [].forEach.call(tabs.children, function (c) { c.classList.remove("is-active"); });
+        btn.classList.add("is-active");
+        showPkg(pkg, body);
+      }
+      var buttons = pkgs.map(function (pkg, i) {
+        var b = document.createElement("button");
+        b.className = "ss-tab" + (i === 0 ? " is-active" : "");
+        b.innerHTML = "<span>" + pkg.package + "</span>";
+        b.onclick = function () { activate(pkg, b); };
+        tabs.appendChild(b);
+        return b;
+      });
+      [].forEach.call(overview.querySelectorAll(".ss-cmp-row"), function (row) {
+        var name = row.getAttribute("data-id");
+        var i = pkgs.findIndex(function (a) { return a.package === name; });
+        if (i < 0) return;
+        row.addEventListener("click", function () {
+          activate(pkgs[i], buttons[i]);
+          window.scrollTo({ top: tabs.getBoundingClientRect().top + window.scrollY - 90, behavior: "smooth" });
+        });
+      });
+      showPkg(pkgs[0], body);
+      window.addEventListener("resize", function () {
+        var a = tabs.querySelector(".is-active"); if (a) a.click();
+      });
+    }
+
+    function buildOverview(pkgs) {
+      var real = 0, raw = 0, days = 0;
+      pkgs.forEach(function (p) {
+        real += totals(p.rows, "without_mirrors");
+        raw += totals(p.rows, "with_mirrors");
+        days = Math.max(days, p.rows.length);
+      });
+      var mirrorPct = raw ? Math.round(100 * (raw - real) / raw) : 0;
+      var wrap = document.createElement("div"); wrap.className = "ss-overview";
+      wrap.innerHTML = '<p class="ss-ov-head">all packages &middot; ' + pkgs.length + ' tracked</p>';
+
+      var tiles = document.createElement("div"); tiles.className = "ss-ov-tiles";
+      [["Real downloads", fmt(real)],
+       ["With mirrors", fmt(raw)],
+       ["Mirror share", mirrorPct + "%"],
+       ["Days tracked", fmt(days)]]
+        .forEach(function (t) {
+          tiles.innerHTML += '<div><div class="ss-k">' + t[0] + '</div><div class="ss-v">' + t[1] + '</div></div>';
+        });
+      wrap.appendChild(tiles);
+
+      // Ranked by the real number, not the raw one — ordering by mirror-inflated
+      // totals would put whichever package CI happens to hammer on top.
+      var cmp = document.createElement("div"); cmp.className = "ss-compare";
+      var max = Math.max.apply(null, pkgs.map(function (p) { return totals(p.rows, "without_mirrors"); }).concat([1]));
+      pkgs.slice().sort(function (a, b) {
+        return totals(b.rows, "without_mirrors") - totals(a.rows, "without_mirrors");
+      }).forEach(function (p) {
+        var n = totals(p.rows, "without_mirrors");
+        var row = document.createElement("button"); row.type = "button"; row.className = "ss-cmp-row";
+        row.setAttribute("data-id", p.package);
+        row.innerHTML = '<span class="ss-cmp-name"><span>' + p.package + '</span></span>' +
+          '<span class="ss-cmp-track"><span class="ss-cmp-bar" style="width:' +
+            Math.max(2, Math.round(100 * n / max)) + '%"></span></span>' +
+          '<span class="ss-cmp-val">' + fmt(n) + '</span>';
+        cmp.appendChild(row);
+      });
+      wrap.appendChild(cmp);
+      return wrap;
+    }
+
+    function showPkg(pkg, body) {
+      body.innerHTML = "";
+      var rows = pkg.rows;
+      var real = totals(rows, "without_mirrors"), raw = totals(rows, "with_mirrors");
+      var best = rows.reduce(function (b, r) {
+        return (r.without_mirrors || 0) > (b.without_mirrors || 0) ? r : b;
+      }, rows[0]);
+      var avg = rows.length ? real / rows.length : 0;
+
+      var head = document.createElement("div"); head.className = "ss-panel-head";
+      head.innerHTML =
+        '<div class="ss-panel-id"><div><h3>' + pkg.package + '</h3>' +
+        '<span class="ss-store-id">' + rows[0].date + " to " + rows[rows.length - 1].date + '</span></div></div>' +
+        '<a class="btn btn-ghost btn-sm" href="https://pypi.org/project/' + pkg.package +
+        '/" target="_blank" rel="noopener noreferrer">View on PyPI</a>';
+      body.appendChild(head);
+
+      var tiles = document.createElement("div"); tiles.className = "ss-tiles";
+      [["Real downloads", fmt(real), "mirrors removed"],
+       ["With mirrors", fmt(raw), raw ? Math.round(100 * (raw - real) / raw) + "% was mirrors" : ""],
+       ["Last 30 days", fmt(lastN(rows, 30, "without_mirrors")), "real, rolling window"],
+       ["Best day", fmt(best.without_mirrors), best.date],
+       ["Daily average", avg.toFixed(avg < 10 ? 1 : 0), "over " + fmt(rows.length) + " days"]]
+        .forEach(function (t) {
+          tiles.innerHTML += '<div class="ss-tile"><div class="ss-k">' + t[0] + '</div><div class="ss-v">'
+            + t[1] + '</div><div class="ss-sub">' + t[2] + '</div></div>';
+        });
+      body.appendChild(tiles);
+
+      var metrics = [{ key: "without_mirrors", label: "Real", unit: "downloads / day" },
+                     { key: "with_mirrors", label: "With mirrors", unit: "downloads / day, mirrors included" }];
+      var trendHead = document.createElement("div");
+      trendHead.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin:1.6rem 0 .6rem";
+      var eyebrow = document.createElement("p");
+      eyebrow.className = "eyebrow eyebrow--rule"; eyebrow.style.margin = "0";
+      eyebrow.textContent = "daily trend";
+      trendHead.appendChild(eyebrow);
+      var sel = document.createElement("div"); sel.className = "ss-metric-sel";
+      trendHead.appendChild(sel);
+      body.appendChild(trendHead);
+
+      var wrap = document.createElement("div"); wrap.className = "ss-chartwrap"; body.appendChild(wrap);
+      var legend = document.createElement("div"); legend.className = "ss-legend"; body.appendChild(legend);
+
+      function paint(m) {
+        wrap.innerHTML = "";
+        wrap.appendChild(chart(toSeries(rows, m.key), m.unit, wrap));
+        legend.innerHTML = '<span><b style="background:' + cssVar("--ss-series-1") + '"></b>' + m.unit + '</span>' +
+                           '<span><b style="background:' + cssVar("--ss-series-2") + '"></b>cumulative total</span>';
+      }
+      metrics.forEach(function (m, i) {
+        var b = document.createElement("button"); b.type = "button"; b.textContent = m.label;
+        if (i === 0) b.className = "on";
+        b.onclick = function () {
+          [].forEach.call(sel.children, function (o) { o.className = ""; });
+          b.className = "on"; paint(m);
+        };
+        sel.appendChild(b);
+      });
+      paint(metrics[0]);
+
+      var up = document.createElement("p"); up.className = "ss-updated";
+      up.textContent = "pypistats.org daily downloads · snapshot taken " +
+                       (pkg.updated_utc || "").replace("T", " ").replace("Z", " UTC");
+      body.appendChild(up);
+    }
+  })();
+  </script>
+
   <script src="assets/js/ui.js?v=20260823-photonic2" defer></script>
 
   <!-- Custom JavaScript (arcade / page logic) -->

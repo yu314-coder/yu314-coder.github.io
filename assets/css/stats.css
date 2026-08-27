@@ -1,0 +1,134 @@
+/* =============================================================================
+   stats.css — the shared component system for the stats pages
+   (store-stats.html and pypi-stats.html).
+
+   These two pages present different subjects but the same kind of thing: a
+   set of tracked items, a headline strip, per-item tiles, a trend chart. They
+   used to look related only by coincidence, because each carried its own copy
+   of these rules. One file means one visual language, and a change to the
+   chart frame or the tile rhythm lands on both.
+
+   Naming stays `ss-*` (stats section) since that is what the markup already
+   uses on both pages.
+   ========================================================================== */
+
+/* Overview strip — aggregate across all tracked apps, above the tabs */
+.ss-overview{background:var(--bg-alt);border:1px solid var(--line);border-radius:var(--r);padding:1.15rem 1.25rem;margin-bottom:1.5rem}
+.ss-ov-head{font:600 .72rem/1 JetBrains Mono,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:.9rem}
+.ss-ov-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem}
+.ss-ov-tiles .ss-k{font:600 .68rem/1 JetBrains Mono,monospace;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
+.ss-ov-tiles .ss-v{font:800 1.5rem/1.1 Inter,sans-serif;margin-top:.3rem}
+.ss-compare{margin-top:1.1rem;display:flex;flex-direction:column;gap:.5rem}
+.ss-cmp-row{display:flex;align-items:center;gap:.65rem;font:500 .82rem/1.2 Inter,sans-serif;color:var(--ink-2);
+  background:none;border:0;padding:.3rem .2rem;border-radius:8px;cursor:pointer;text-align:left;width:100%}
+.ss-cmp-row:hover{background:var(--surface)}
+.ss-cmp-row .ss-cmp-name{width:11.5rem;flex:none;color:var(--ink);font-weight:600;display:flex;align-items:center;gap:.5rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ss-cmp-track{flex:1;background:var(--surface);border-radius:3px;height:.6rem;overflow:hidden}
+/* display:block matters: a bare <span> is inline, and an inline box ignores
+   width, so these bars rendered at zero width and every app's row looked
+   like an empty track. The funnel bars set it and worked; these did not. */
+.ss-cmp-bar{display:block;height:100%;border-radius:3px;background:var(--grad-btn,var(--accent));transition:width .4s ease}
+.ss-cmp-val{font:700 .8rem/1 JetBrains Mono,monospace;width:4.5rem;flex:none;text-align:right}
+
+/* Store switch — the top-level choice, deliberately heavier than the
+   per-app tabs below it so the hierarchy reads at a glance: which store,
+   then which app. */
+.ss-storebar{display:flex;gap:.6rem;flex-wrap:wrap;margin:0 0 1.75rem}
+.ss-store{display:inline-flex;align-items:center;gap:.6rem;cursor:pointer;
+  font:600 .95rem/1 Inter,sans-serif;color:var(--ink-2);
+  padding:.7rem 1.1rem;border-radius:12px;border:1px solid var(--line);
+  background:var(--bg-alt);transition:border-color .14s ease,background .14s ease,color .14s ease}
+.ss-store:hover{border-color:var(--line-2);color:var(--ink)}
+.ss-store-mark{height:18px;width:18px;flex:none;opacity:.75}
+.ss-store.is-active{background:var(--grad-btn,var(--accent));color:#fff;border-color:transparent}
+.ss-store.is-active .ss-store-mark{opacity:1}
+.ss-store-count{font:700 .8rem/1 JetBrains Mono,monospace;padding:.2rem .5rem;border-radius:999px;
+  background:rgba(255,255,255,.07);color:inherit;font-variant-numeric:tabular-nums}
+.ss-store.is-active .ss-store-count{background:rgba(0,0,0,.22)}
+.ss-pane-h{font:700 1.55rem/1.2 var(--font-head,Inter),sans-serif;margin:.35rem 0 .6rem}
+@media (max-width:520px){
+  .ss-store{flex:1 1 100%;justify-content:flex-start}
+}
+
+.ss-tabs{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.25rem}
+.ss-tab{font:600 .9rem/1 Inter,sans-serif;padding:.5rem 1rem .5rem .6rem;border-radius:999px;border:1px solid var(--line);
+  background:var(--surface);color:var(--ink-2);cursor:pointer;display:inline-flex;align-items:center;gap:.5rem}
+.ss-tab.is-active{background:var(--grad-btn,var(--accent));color:#fff;border-color:transparent}
+.ss-tab .app-icon-sm{width:24px;height:24px;border-radius:6px}
+
+.ss-panel-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem}
+.ss-panel-id{display:flex;align-items:center;gap:.8rem}
+.ss-panel-id h3{margin:0;font:700 1.15rem/1.2 Inter,sans-serif}
+.ss-panel-id .ss-store-id{font:500 .75rem/1.3 JetBrains Mono,monospace;color:var(--ink-3)}
+
+.ss-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin:1.25rem 0}
+.ss-tile{background:var(--bg-alt);border:1px solid var(--line);border-radius:var(--r);padding:1rem 1.15rem;
+  transition:border-color .14s ease,background .14s ease}
+.ss-tile:hover{border-color:var(--line-2);background:var(--surface)}
+.ss-tile .ss-k{font:600 .72rem/1 JetBrains Mono,monospace;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2)}
+.ss-tile .ss-v{font:800 1.7rem/1.1 Inter,sans-serif;margin-top:.4rem;letter-spacing:-.02em}
+.ss-metric-sel{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;flex:none}
+.ss-metric-sel button{font:600 .74rem/1 JetBrains Mono,monospace;padding:.4rem .8rem;background:transparent;color:var(--ink-2);border:0;cursor:pointer}
+.ss-metric-sel button.on{background:var(--grad-btn,var(--accent));color:#fff}
+.ss-chartwrap{background:var(--bg-alt);border:1px solid var(--line);border-radius:var(--r);padding:1rem .9rem .5rem;overflow-x:auto}
+.ss-chart{width:100%;display:block}
+.ss-legend{display:flex;gap:1.25rem;flex-wrap:wrap;font:500 .82rem/1 Inter,sans-serif;color:var(--ink-2);margin:.4rem .2rem 0}
+.ss-legend b{display:inline-block;width:.8rem;height:.8rem;border-radius:2px;margin-right:.35rem;vertical-align:-1px}
+.ss-updated{font:500 .8rem/1.3 Inter,sans-serif;color:var(--ink-2);margin-top:.75rem}
+.ss-tile .ss-sub{font:500 .72rem/1.25 Inter,sans-serif;color:var(--ink-2);margin-top:.35rem}
+.ss-delta{display:inline-block;font:700 .66rem/1 JetBrains Mono,monospace;padding:.15rem .4rem;border-radius:999px;margin-left:.4rem;vertical-align:middle}
+.ss-delta.up{color:rgb(52,211,153);background:rgba(52,211,153,.14)}
+.ss-delta.down{color:rgb(248,113,113);background:rgba(248,113,113,.14)}
+.ss-delta.flat{color:var(--ink-3);background:var(--surface)}
+/* Chart + funnel colour, all validated against this page's dark surface
+   (#141a27) with the data-viz palette checker rather than picked by eye.
+   ss-fn-1..4 are one blue hue stepped light->dark for the FOUR ORDERED
+   funnel stages (an ordinal ramp: monotone lightness, visible step gaps,
+   dimmest end still clearing 2:1 on the surface). ss-series-1/2 are two
+   categorical slots for the trend's two different measures. */
+:root{
+  --ss-fn-1:#184f95; --ss-fn-2:#256abf; --ss-fn-3:#3987e5; --ss-fn-4:#6da7ec;
+  --ss-series-1:#3987e5; --ss-series-2:#d95926;
+}
+.ss-funnel{margin-top:1.75rem}
+.ss-fn-row{display:grid;grid-template-columns:10.5rem minmax(0,1fr) 4.5rem 9.5rem;align-items:center;
+  gap:.9rem;padding:.42rem .5rem;margin:.15rem -.5rem;border-radius:8px;
+  font:500 .85rem/1.2 Inter,sans-serif;transition:background .14s ease}
+.ss-fn-row:hover{background:rgba(255,255,255,.035)}
+.ss-fn-row .ss-fn-label{color:var(--ink-2);display:flex;flex-direction:column;gap:.15rem}
+.ss-fn-row .ss-fn-label em{font:500 .68rem/1.2 Inter,sans-serif;font-style:normal;color:var(--ink-3)}
+.ss-fn-track{background:rgba(255,255,255,.05);border-radius:5px;height:1.05rem;overflow:hidden}
+.ss-fn-row .ss-fn-bar{display:block;height:100%;border-radius:5px;min-width:2px;transition:width .35s cubic-bezier(.4,0,.2,1)}
+.ss-fn-row .ss-fn-val{font:700 .92rem/1 JetBrains Mono,monospace;text-align:right;font-variant-numeric:tabular-nums}
+.ss-fn-row .ss-fn-conv{font:600 .7rem/1 JetBrains Mono,monospace;color:var(--ink-3)}
+/* The headline stage, marked so it is not one of four lookalike bars. */
+.ss-fn-row.is-key{background:rgba(57,135,229,.10);box-shadow:inset 2px 0 0 var(--ss-fn-3)}
+.ss-fn-row.is-key .ss-fn-label{color:var(--ink)}
+.ss-fn-row.is-key .ss-fn-val{color:var(--ink)}
+@media (max-width:640px){
+  .ss-fn-row{grid-template-columns:1fr auto;row-gap:.3rem}
+  .ss-fn-track{grid-column:1/-1}
+  .ss-fn-row .ss-fn-conv{grid-column:1/-1;text-align:right}
+}
+.ss-missing{background:rgba(248,113,113,.10);border:1px solid rgba(248,113,113,.32);border-radius:10px;
+  padding:.7rem .9rem;margin:0 0 1rem;font:500 .84rem/1.45 Inter,sans-serif;color:var(--ink)}
+/* Downloads by country. Two columns on wide screens because these lists
+   are long and thin — one column wastes half the page and pushes the chart
+   below the fold. */
+.ss-geo{margin-top:1.75rem}
+.ss-geo-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:.15rem 2rem;margin-top:.7rem}
+.ss-geo-row{display:grid;grid-template-columns:1.6rem minmax(0,1fr) 3.2rem;align-items:center;
+  gap:.6rem;padding:.34rem .5rem;margin:0 -.5rem;border-radius:8px;
+  font:500 .85rem/1.2 Inter,sans-serif;color:var(--ink-2)}
+.ss-geo-row:hover{background:rgba(255,255,255,.035)}
+.ss-geo-flag{font-size:1.05rem;line-height:1;text-align:center;
+  font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.ss-geo-name{display:flex;flex-direction:column;gap:.2rem;min-width:0}
+.ss-geo-name b{font:600 .85rem/1.2 Inter,sans-serif;color:var(--ink);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ss-geo-track{height:.42rem;border-radius:3px;background:rgba(255,255,255,.06);overflow:hidden}
+.ss-geo-bar{display:block;height:100%;border-radius:3px;background:var(--grad-btn,var(--accent))}
+.ss-geo-val{font:700 .85rem/1 JetBrains Mono,monospace;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+.ss-geo-more{font:500 .78rem/1.3 Inter,sans-serif;color:var(--ink-3);margin:.6rem .5rem 0}
+.ss-empty{background:var(--bg-alt);border:1px dashed var(--line);border-radius:var(--r);padding:2rem;text-align:center;color:var(--ink-2)}

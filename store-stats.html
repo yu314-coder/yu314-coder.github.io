@@ -34,128 +34,7 @@
   <link rel="stylesheet" href="assets/css/style.css?v=20260823-chip1">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 
-  <style>
-    /* Overview strip — aggregate across all tracked apps, above the tabs */
-    .ss-overview{background:var(--bg-alt);border:1px solid var(--line);border-radius:var(--r);padding:1.15rem 1.25rem;margin-bottom:1.5rem}
-    .ss-ov-head{font:600 .72rem/1 JetBrains Mono,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:.9rem}
-    .ss-ov-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem}
-    .ss-ov-tiles .ss-k{font:600 .68rem/1 JetBrains Mono,monospace;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
-    .ss-ov-tiles .ss-v{font:800 1.5rem/1.1 Inter,sans-serif;margin-top:.3rem}
-    .ss-compare{margin-top:1.1rem;display:flex;flex-direction:column;gap:.5rem}
-    .ss-cmp-row{display:flex;align-items:center;gap:.65rem;font:500 .82rem/1.2 Inter,sans-serif;color:var(--ink-2);
-      background:none;border:0;padding:.3rem .2rem;border-radius:8px;cursor:pointer;text-align:left;width:100%}
-    .ss-cmp-row:hover{background:var(--surface)}
-    .ss-cmp-row .ss-cmp-name{width:11.5rem;flex:none;color:var(--ink);font-weight:600;display:flex;align-items:center;gap:.5rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .ss-cmp-track{flex:1;background:var(--surface);border-radius:3px;height:.6rem;overflow:hidden}
-    /* display:block matters: a bare <span> is inline, and an inline box ignores
-       width, so these bars rendered at zero width and every app's row looked
-       like an empty track. The funnel bars set it and worked; these did not. */
-    .ss-cmp-bar{display:block;height:100%;border-radius:3px;background:var(--grad-btn,var(--accent));transition:width .4s ease}
-    .ss-cmp-val{font:700 .8rem/1 JetBrains Mono,monospace;width:4.5rem;flex:none;text-align:right}
-
-    /* Store switch — the top-level choice, deliberately heavier than the
-       per-app tabs below it so the hierarchy reads at a glance: which store,
-       then which app. */
-    .ss-storebar{display:flex;gap:.6rem;flex-wrap:wrap;margin:0 0 1.75rem}
-    .ss-store{display:inline-flex;align-items:center;gap:.6rem;cursor:pointer;
-      font:600 .95rem/1 Inter,sans-serif;color:var(--ink-2);
-      padding:.7rem 1.1rem;border-radius:12px;border:1px solid var(--line);
-      background:var(--bg-alt);transition:border-color .14s ease,background .14s ease,color .14s ease}
-    .ss-store:hover{border-color:var(--line-2);color:var(--ink)}
-    .ss-store-mark{height:18px;width:18px;flex:none;opacity:.75}
-    .ss-store.is-active{background:var(--grad-btn,var(--accent));color:#fff;border-color:transparent}
-    .ss-store.is-active .ss-store-mark{opacity:1}
-    .ss-store-count{font:700 .8rem/1 JetBrains Mono,monospace;padding:.2rem .5rem;border-radius:999px;
-      background:rgba(255,255,255,.07);color:inherit;font-variant-numeric:tabular-nums}
-    .ss-store.is-active .ss-store-count{background:rgba(0,0,0,.22)}
-    .ss-pane-h{font:700 1.55rem/1.2 var(--font-head,Inter),sans-serif;margin:.35rem 0 .6rem}
-    @media (max-width:520px){
-      .ss-store{flex:1 1 100%;justify-content:flex-start}
-    }
-
-    .ss-tabs{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.25rem}
-    .ss-tab{font:600 .9rem/1 Inter,sans-serif;padding:.5rem 1rem .5rem .6rem;border-radius:999px;border:1px solid var(--line);
-      background:var(--surface);color:var(--ink-2);cursor:pointer;display:inline-flex;align-items:center;gap:.5rem}
-    .ss-tab.is-active{background:var(--grad-btn,var(--accent));color:#fff;border-color:transparent}
-    .ss-tab .app-icon-sm{width:24px;height:24px;border-radius:6px}
-
-    .ss-panel-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem}
-    .ss-panel-id{display:flex;align-items:center;gap:.8rem}
-    .ss-panel-id h3{margin:0;font:700 1.15rem/1.2 Inter,sans-serif}
-    .ss-panel-id .ss-store-id{font:500 .75rem/1.3 JetBrains Mono,monospace;color:var(--ink-3)}
-
-    .ss-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin:1.25rem 0}
-    .ss-tile{background:var(--bg-alt);border:1px solid var(--line);border-radius:var(--r);padding:1rem 1.15rem;
-      transition:border-color .14s ease,background .14s ease}
-    .ss-tile:hover{border-color:var(--line-2);background:var(--surface)}
-    .ss-tile .ss-k{font:600 .72rem/1 JetBrains Mono,monospace;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2)}
-    .ss-tile .ss-v{font:800 1.7rem/1.1 Inter,sans-serif;margin-top:.4rem;letter-spacing:-.02em}
-    .ss-metric-sel{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;flex:none}
-    .ss-metric-sel button{font:600 .74rem/1 JetBrains Mono,monospace;padding:.4rem .8rem;background:transparent;color:var(--ink-2);border:0;cursor:pointer}
-    .ss-metric-sel button.on{background:var(--grad-btn,var(--accent));color:#fff}
-    .ss-chartwrap{background:var(--bg-alt);border:1px solid var(--line);border-radius:var(--r);padding:1rem .9rem .5rem;overflow-x:auto}
-    .ss-chart{width:100%;display:block}
-    .ss-legend{display:flex;gap:1.25rem;flex-wrap:wrap;font:500 .82rem/1 Inter,sans-serif;color:var(--ink-2);margin:.4rem .2rem 0}
-    .ss-legend b{display:inline-block;width:.8rem;height:.8rem;border-radius:2px;margin-right:.35rem;vertical-align:-1px}
-    .ss-updated{font:500 .8rem/1.3 Inter,sans-serif;color:var(--ink-2);margin-top:.75rem}
-    .ss-tile .ss-sub{font:500 .72rem/1.25 Inter,sans-serif;color:var(--ink-2);margin-top:.35rem}
-    .ss-delta{display:inline-block;font:700 .66rem/1 JetBrains Mono,monospace;padding:.15rem .4rem;border-radius:999px;margin-left:.4rem;vertical-align:middle}
-    .ss-delta.up{color:rgb(52,211,153);background:rgba(52,211,153,.14)}
-    .ss-delta.down{color:rgb(248,113,113);background:rgba(248,113,113,.14)}
-    .ss-delta.flat{color:var(--ink-3);background:var(--surface)}
-    /* Chart + funnel colour, all validated against this page's dark surface
-       (#141a27) with the data-viz palette checker rather than picked by eye.
-       ss-fn-1..4 are one blue hue stepped light->dark for the FOUR ORDERED
-       funnel stages (an ordinal ramp: monotone lightness, visible step gaps,
-       dimmest end still clearing 2:1 on the surface). ss-series-1/2 are two
-       categorical slots for the trend's two different measures. */
-    :root{
-      --ss-fn-1:#184f95; --ss-fn-2:#256abf; --ss-fn-3:#3987e5; --ss-fn-4:#6da7ec;
-      --ss-series-1:#3987e5; --ss-series-2:#d95926;
-    }
-    .ss-funnel{margin-top:1.75rem}
-    .ss-fn-row{display:grid;grid-template-columns:10.5rem minmax(0,1fr) 4.5rem 9.5rem;align-items:center;
-      gap:.9rem;padding:.42rem .5rem;margin:.15rem -.5rem;border-radius:8px;
-      font:500 .85rem/1.2 Inter,sans-serif;transition:background .14s ease}
-    .ss-fn-row:hover{background:rgba(255,255,255,.035)}
-    .ss-fn-row .ss-fn-label{color:var(--ink-2);display:flex;flex-direction:column;gap:.15rem}
-    .ss-fn-row .ss-fn-label em{font:500 .68rem/1.2 Inter,sans-serif;font-style:normal;color:var(--ink-3)}
-    .ss-fn-track{background:rgba(255,255,255,.05);border-radius:5px;height:1.05rem;overflow:hidden}
-    .ss-fn-row .ss-fn-bar{display:block;height:100%;border-radius:5px;min-width:2px;transition:width .35s cubic-bezier(.4,0,.2,1)}
-    .ss-fn-row .ss-fn-val{font:700 .92rem/1 JetBrains Mono,monospace;text-align:right;font-variant-numeric:tabular-nums}
-    .ss-fn-row .ss-fn-conv{font:600 .7rem/1 JetBrains Mono,monospace;color:var(--ink-3)}
-    /* The headline stage, marked so it is not one of four lookalike bars. */
-    .ss-fn-row.is-key{background:rgba(57,135,229,.10);box-shadow:inset 2px 0 0 var(--ss-fn-3)}
-    .ss-fn-row.is-key .ss-fn-label{color:var(--ink)}
-    .ss-fn-row.is-key .ss-fn-val{color:var(--ink)}
-    @media (max-width:640px){
-      .ss-fn-row{grid-template-columns:1fr auto;row-gap:.3rem}
-      .ss-fn-track{grid-column:1/-1}
-      .ss-fn-row .ss-fn-conv{grid-column:1/-1;text-align:right}
-    }
-    .ss-missing{background:rgba(248,113,113,.10);border:1px solid rgba(248,113,113,.32);border-radius:10px;
-      padding:.7rem .9rem;margin:0 0 1rem;font:500 .84rem/1.45 Inter,sans-serif;color:var(--ink)}
-    /* Downloads by country. Two columns on wide screens because these lists
-       are long and thin — one column wastes half the page and pushes the chart
-       below the fold. */
-    .ss-geo{margin-top:1.75rem}
-    .ss-geo-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-      gap:.15rem 2rem;margin-top:.7rem}
-    .ss-geo-row{display:grid;grid-template-columns:1.6rem minmax(0,1fr) 3.2rem;align-items:center;
-      gap:.6rem;padding:.34rem .5rem;margin:0 -.5rem;border-radius:8px;
-      font:500 .85rem/1.2 Inter,sans-serif;color:var(--ink-2)}
-    .ss-geo-row:hover{background:rgba(255,255,255,.035)}
-    .ss-geo-flag{font-size:1.05rem;line-height:1;text-align:center;
-      font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
-    .ss-geo-name{display:flex;flex-direction:column;gap:.2rem;min-width:0}
-    .ss-geo-name b{font:600 .85rem/1.2 Inter,sans-serif;color:var(--ink);
-      overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .ss-geo-track{height:.42rem;border-radius:3px;background:rgba(255,255,255,.06);overflow:hidden}
-    .ss-geo-bar{display:block;height:100%;border-radius:3px;background:var(--grad-btn,var(--accent))}
-    .ss-geo-val{font:700 .85rem/1 JetBrains Mono,monospace;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
-    .ss-geo-more{font:500 .78rem/1.3 Inter,sans-serif;color:var(--ink-3);margin:.6rem .5rem 0}
-    .ss-empty{background:var(--bg-alt);border:1px dashed var(--line);border-radius:var(--r);padding:2rem;text-align:center;color:var(--ink-2)}
-  </style>
+  <link rel="stylesheet" href="assets/css/stats.css?v=20260828-stats1">
 </head>
 <body class="theme-dark">
   <!-- Navigation -->
@@ -255,7 +134,9 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous" defer></script>
 
-  <!-- Store-stats renderer: reads the committed JSON snapshots, no dependencies -->
+  <!-- Shared stats primitives, then the store-specific renderer. Not deferred:
+       the renderer below runs at parse time and needs StatsUI present. -->
+  <script src="assets/js/stats-core.js?v=20260828-stats1"></script>
   <script>
   (function () {
     var DATA = "assets/store-tracker/data/", root = document.getElementById("ss-app");
@@ -314,63 +195,12 @@
       "6764729098": ["gps-location-app", "appstore", "App Store"],
       "6764759491": ["whisperkit", "appstore", "App Store"]
     };
-    function el(tag, attrs, txt) { var e = document.createElementNS(SVGNS, tag);
-      for (var k in attrs) e.setAttribute(k, attrs[k]); if (txt != null) e.textContent = txt; return e; }
-    function fmt(n) { return (n || 0).toLocaleString("en-US"); }
-    // Country code -> readable name and flag, with no shipped lookup table.
-    // Intl.DisplayNames is built into every browser this site supports; the
-    // flag is just the two letters as regional-indicator codepoints. Both fall
-    // back to the bare code rather than showing nothing.
-    var REGION_NAMES = (function () {
-      try { return new Intl.DisplayNames(["en"], { type: "region" }); }
-      catch (e) { return null; }
-    })();
-    function countryName(cc) {
-      if (!cc) return "Unknown";
-      try { return (REGION_NAMES && REGION_NAMES.of(cc)) || cc; }
-      catch (e) { return cc; }
-    }
-    function countryFlag(cc) {
-      if (!cc || cc.length !== 2 || !/^[A-Z]{2}$/.test(cc)) return "\uD83C\uDF10";
-      return String.fromCodePoint(
-        0x1F1E6 + cc.charCodeAt(0) - 65, 0x1F1E6 + cc.charCodeAt(1) - 65);
-    }
-
-    // Ranked country list. `field` is whichever metric the caller is showing,
-    // so the same builder serves downloads and (once Apple publishes them)
-    // impressions.
-    function geoBlock(title, items, field, unitWord) {
-      if (!items || !items.length) return null;
-      var wrap = document.createElement("div"); wrap.className = "ss-geo";
-      wrap.innerHTML = '<p class="eyebrow eyebrow--rule" style="margin-bottom:.2rem">' + title + '</p>';
-      var total = items.reduce(function (t, r) { return t + (r[field] || 0); }, 0);
-      var max = Math.max.apply(null, items.map(function (r) { return r[field] || 0; }).concat([1]));
-      var list = document.createElement("div"); list.className = "ss-geo-list";
-      // A long tail of single-download countries is noise; show the ones that
-      // carry the number and say plainly what was left off.
-      var SHOWN = 12;
-      items.slice(0, SHOWN).forEach(function (r) {
-        var row = document.createElement("div"); row.className = "ss-geo-row";
-        var pct = total ? Math.round(1000 * (r[field] || 0) / total) / 10 : 0;
-        row.innerHTML =
-          '<span class="ss-geo-flag">' + countryFlag(r.code) + '</span>' +
-          '<span class="ss-geo-name"><b>' + countryName(r.code) + '</b>' +
-            '<span class="ss-geo-track"><span class="ss-geo-bar" style="width:' +
-              Math.max(2, Math.round(100 * (r[field] || 0) / max)) + '%"></span></span></span>' +
-          '<span class="ss-geo-val" title="' + pct + '% of ' + unitWord + '">' + fmt(r[field]) + '</span>';
-        list.appendChild(row);
-      });
-      wrap.appendChild(list);
-      if (items.length > SHOWN) {
-        var rest = items.slice(SHOWN).reduce(function (t, r) { return t + (r[field] || 0); }, 0);
-        var more = document.createElement("p"); more.className = "ss-geo-more";
-        more.textContent = "+ " + (items.length - SHOWN) + " more countries, " +
-                           fmt(rest) + " " + unitWord + " between them";
-        wrap.appendChild(more);
-      }
-      return wrap;
-    }
-    function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim() || "#4f7cff"; }
+    // Shape-level rendering lives in stats-core.js, shared with pypi-stats.html;
+    // everything below is what is specific to stores.
+    var S = window.StatsUI;
+    var el = S.el, fmt = S.fmt, cssVar = S.cssVar, chart = S.chart,
+        toSeries = S.toSeries, inferGranularity = S.inferGranularity,
+        geoBlock = S.geoBlock, fetchApp = S.fetchJSON, missingNote = S.missingNote;
     function iconHtml(id, cls) {
       var i = ICONS[id]; if (!i) return "";
       return '<span class="app-icon ' + (cls || "") + '"><picture>' +
@@ -391,30 +221,6 @@
       root.innerHTML = '<div class="ss-empty">' + msg + '</div>';
     }
 
-    // One retry per snapshot. A dropped request used to be swallowed and the
-    // app simply vanished from the tabs and the totals — a page built on
-    // "these are the real numbers" silently showing a smaller one is the worst
-    // way to fail. Anything still missing after the retry gets reported.
-    function fetchApp(base, id) {
-      function once() {
-        return fetch(base + id + ".json?cb=" + Date.now() + "-" + Math.random().toString(36).slice(2))
-          .then(function (r) { return r.ok ? r.json() : null; })
-          .catch(function () { return null; });
-      }
-      return once().then(function (d) { return d || once(); });
-    }
-
-    // Names that never arrived, said out loud above the numbers they'd have
-    // changed, rather than left to look like the whole picture.
-    function missingNote(container, names) {
-      if (!names.length) return;
-      var p = document.createElement("p");
-      p.className = "ss-missing";
-      p.textContent = names.length + (names.length > 1 ? " apps" : " app") +
-        " couldn't be loaded (" + names.join(", ") + "), so the totals below are " +
-        "incomplete. A reload usually fixes it.";
-      container.insertBefore(p, container.firstChild);
-    }
 
     fetch(DATA + "index.json?cb=" + Date.now()).then(function (r) { return r.ok ? r.json() : []; })
       .then(function (apps) {
@@ -513,26 +319,6 @@
 
     // Turns {date, <field>} rows into the {date, d, c} shape chart() wants
     // (per-period value + running cumulative).
-    function toSeries(rows, field) {
-      var cum = 0;
-      return rows.map(function (r) { cum += r[field]; return { date: r.date, d: r[field], c: cum }; });
-    }
-    // Partner Center's "over time" export has a granularity dropdown (day / week
-    // / month) — the CSV shape is identical either way, so infer which one this
-    // export used from the actual date gaps rather than assuming weekly.
-    function inferGranularity(rows) {
-      if (!rows || rows.length < 2) return "period";
-      var diffs = [];
-      for (var i = 1; i < rows.length; i++) {
-        diffs.push((new Date(rows[i].date) - new Date(rows[i - 1].date)) / 86400000);
-      }
-      diffs.sort(function (a, b) { return a - b; });
-      var median = diffs[Math.floor(diffs.length / 2)];
-      if (median <= 1.5) return "day";
-      if (median <= 10) return "week";
-      if (median <= 45) return "month";
-      return "period";
-    }
 
     function showApp(app, body) {
       body.innerHTML = "";
@@ -675,114 +461,6 @@
     // the crossing point of the two marks is an artefact of the scaling and
     // means nothing. Two stacked panels over ONE shared x-axis say the same
     // thing without inviting that reading.
-    function chart(series, perLabel, wrap) {
-      wrap = wrap || document.querySelector(".ss-chartwrap");
-      var W = Math.max(320, (wrap ? wrap.clientWidth : 800) - 32);
-      var pad = { l: 52, r: 14, t: 14, b: 24 };
-      var topH = 176, gap = 26, botH = 104;
-      var H = pad.t + topH + gap + botH + pad.b;
-      var iw = W - pad.l - pad.r, n = series.length;
-      var topY = pad.t, botY = pad.t + topH + gap;
-
-      var maxD = Math.max.apply(null, series.map(function (s) { return s.d; }).concat([1]));
-      var maxC = Math.max.apply(null, series.map(function (s) { return s.c; }).concat([1]));
-      var x  = function (i) { return pad.l + (n <= 1 ? iw / 2 : iw * i / (n - 1)); };
-      var yD = function (v) { return topY + topH - topH * v / maxD; };
-      var yC = function (v) { return botY + botH - botH * v / maxC; };
-
-      var cPer = cssVar("--ss-series-1") || "#3987e5";
-      var cCum = cssVar("--ss-series-2") || "#d95926";
-      var cGrid = "rgba(140,150,170,0.16)", cAxis = "rgba(150,160,180,0.85)";
-      var svg = el("svg", { viewBox: "0 0 " + W + " " + H, class: "ss-chart",
-                            preserveAspectRatio: "xMidYMid meet", role: "img" });
-      svg.style.height = H + "px";
-
-      function panel(label, y0, h, maxV, colour) {
-        [0, 0.5, 1].forEach(function (f) {
-          var yy = y0 + h - h * f;
-          svg.appendChild(el("line", { x1: pad.l, y1: yy, x2: W - pad.r, y2: yy,
-                                       stroke: cGrid, "stroke-width": 1 }));
-          svg.appendChild(el("text", { x: pad.l - 8, y: yy + 3, "text-anchor": "end",
-                                       "font-size": 10, fill: cAxis }, fmt(Math.round(maxV * f))));
-        });
-        // Each panel names its own series, so identity never rests on colour alone.
-        var t = el("text", { x: pad.l, y: y0 - 5, "font-size": 10.5, fill: colour,
-                             "font-weight": 700 }, label);
-        svg.appendChild(t);
-      }
-      panel(perLabel, topY, topH, maxD, cPer);
-      panel("cumulative total", botY, botH, maxC, cCum);
-
-      // Per-period bars. A 2px surface gap between neighbours keeps adjacent
-      // weeks legible instead of reading as one solid block.
-      var slot = iw / Math.max(n, 1);
-      var bw = Math.max(1.5, Math.min(slot - 2, slot * 0.72));
-      series.forEach(function (s, i) {
-        var hh = topH * s.d / maxD;
-        if (hh <= 0.2) return;
-        svg.appendChild(el("rect", { x: x(i) - bw / 2, y: yD(s.d), width: bw,
-                                     height: Math.max(1, hh), fill: cPer,
-                                     rx: Math.min(2, bw / 2) }));
-      });
-
-      // Cumulative area + line.
-      var areaD = "M" + x(0) + "," + (botY + botH), lineD = "";
-      series.forEach(function (s, i) {
-        areaD += " L" + x(i) + "," + yC(s.c);
-        lineD += (i ? " L" : "M") + x(i) + "," + yC(s.c);
-      });
-      areaD += " L" + x(n - 1) + "," + (botY + botH) + " Z";
-      svg.appendChild(el("path", { d: areaD, fill: cCum, opacity: 0.14 }));
-      svg.appendChild(el("path", { d: lineD, fill: "none", stroke: cCum,
-                                   "stroke-width": 2, "stroke-linejoin": "round",
-                                   "stroke-linecap": "round" }));
-
-      // x labels: first, middle, last -- shared by both panels.
-      [0, Math.floor((n - 1) / 2), n - 1].forEach(function (i) {
-        if (i < 0 || i >= n) return;
-        svg.appendChild(el("text", { x: x(i), y: H - 7, "font-size": 10, fill: cAxis,
-          "text-anchor": i === 0 ? "start" : (i === n - 1 ? "end" : "middle") }, series[i].date));
-      });
-
-      // Hover: one crosshair down both panels, so a week is read in both at once.
-      var tip = el("g", { visibility: "hidden", "pointer-events": "none" });
-      var rule = el("line", { stroke: "rgba(255,255,255,0.28)", "stroke-width": 1 });
-      var dotD = el("circle", { r: 3.5, fill: cPer, stroke: "#141a27", "stroke-width": 2 });
-      var dotC = el("circle", { r: 3.5, fill: cCum, stroke: "#141a27", "stroke-width": 2 });
-      var trect = el("rect", { rx: 5, fill: "rgba(10,14,22,0.95)", stroke: "rgba(255,255,255,0.16)" });
-      var ttxt = el("text", { "font-size": 11, fill: "#fff" });
-      [rule, dotD, dotC, trect, ttxt].forEach(function (e) { tip.appendChild(e); });
-      svg.appendChild(tip);
-
-      var hit = el("rect", { x: pad.l, y: topY, width: iw, height: botY + botH - topY, fill: "transparent" });
-      function move(px) {
-        var i = Math.round((px - pad.l) / (iw / Math.max(n - 1, 1)));
-        i = Math.max(0, Math.min(n - 1, i));
-        var s = series[i], xi = x(i);
-        rule.setAttribute("x1", xi); rule.setAttribute("x2", xi);
-        rule.setAttribute("y1", topY); rule.setAttribute("y2", botY + botH);
-        dotD.setAttribute("cx", xi); dotD.setAttribute("cy", yD(s.d));
-        dotC.setAttribute("cx", xi); dotC.setAttribute("cy", yC(s.c));
-        ttxt.textContent = s.date + "  ·  " + fmt(s.d) + "  ·  \u03a3 " + fmt(s.c);
-        var tw = ttxt.getComputedTextLength ? ttxt.getComputedTextLength() + 16 : 170;
-        var tx = Math.min(Math.max(xi - tw / 2, pad.l), W - pad.r - tw);
-        var ty = topY + 2;
-        trect.setAttribute("x", tx); trect.setAttribute("y", ty);
-        trect.setAttribute("width", tw); trect.setAttribute("height", 21);
-        ttxt.setAttribute("x", tx + 8); ttxt.setAttribute("y", ty + 15);
-        tip.setAttribute("visibility", "visible");
-      }
-      function fromEvent(ev) {
-        var r = svg.getBoundingClientRect();
-        var pt = ev.touches ? ev.touches[0] : ev;
-        move((pt.clientX - r.left) / r.width * W);
-      }
-      hit.addEventListener("mousemove", fromEvent);
-      hit.addEventListener("touchmove", function (ev) { fromEvent(ev); ev.preventDefault(); }, { passive: false });
-      hit.addEventListener("mouseleave", function () { tip.setAttribute("visibility", "hidden"); });
-      svg.appendChild(hit);
-      return svg;
-    }
 
     /* ------------------------------------------------------------------ *
      * App Store
