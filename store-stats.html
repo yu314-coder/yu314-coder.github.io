@@ -609,7 +609,15 @@
       var best = rows.reduce(function (b, r) { return r.installs > b.installs ? r : b; }, rows[0] || { date: "", installs: 0 });
       var avg = rows.length ? (rows.reduce(function (t, r) { return t + r.installs; }, 0) / rows.length) : 0;
       var tiles = document.createElement("div"); tiles.className = "ss-tiles";
-      var tileRows = [["Units", fmt(app.downloads), "first-time downloads"],
+      // Once Apple's App Downloads report exists it states the breakdown
+      // outright, so show its arithmetic rather than our reading of Units.
+      var headline = app.downloads_first_time || app.downloads;
+      var headSub = app.downloads_first_time
+        ? (app.downloads_total
+            ? fmt(app.downloads_total) + " total \u2212 " + fmt(app.downloads_redownloads || 0) + " redownloads"
+            : "first-time downloads")
+        : "first-time downloads";
+      var tileRows = [["Downloads", fmt(headline), headSub],
                       ["Last 30 days", fmt(last(rows, 30)), "rolling window"],
                       ["Best day", fmt(best.installs), best.date || "—"],
                       ["Daily average", avg.toFixed(avg < 10 ? 1 : 0), "over " + fmt(rows.length) + " reported days"]];
@@ -625,6 +633,8 @@
       var engDays = rows.filter(function (r) { return r.page_views != null; });
       var engUnits = engDays.reduce(function (t, r) { return t + (r.installs || 0); }, 0);
       var engViews = engDays.reduce(function (t, r) { return t + (r.page_views || 0); }, 0);
+      if (app.downloads_redownloads) tileRows.push(["Redownloads", fmt(app.downloads_redownloads),
+        "same person, another device"]);
       if (app.impressions) tileRows.push(["Impressions", fmt(app.impressions),
         "appeared in browse or search"]);
       if (app.page_views) tileRows.push(["Page views", fmt(app.page_views),

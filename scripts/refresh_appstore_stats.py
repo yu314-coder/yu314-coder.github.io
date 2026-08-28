@@ -62,9 +62,17 @@ APPS = {
     "6764759491": "WhisperKit",
 }
 
-# How far back to reach on a cold start. Apple keeps daily reports for about a
-# year; after the first run the merge below means we only need the recent tail.
-COLD_START_DAYS = 120
+# How far back to reach on a cold start: everything Apple keeps, which is about
+# a year of daily reports.
+#
+# This was 120, and that quietly under-reported every app. The window started
+# 120 days before the first run rather than at each app's launch, so real
+# downloads that happened earlier were simply absent — 49 of them, 5.5% of the
+# total, found only by reaching back deliberately. What made it hard to spot is
+# that each app showed a run of zero days at the start of the window, which
+# looks like proof the window predates the app; it was actually a quiet spell
+# AFTER an earlier burst that had been cut off.
+COLD_START_DAYS = 365
 WARM_DAYS = 10
 
 

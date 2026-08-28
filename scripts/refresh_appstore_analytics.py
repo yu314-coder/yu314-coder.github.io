@@ -57,6 +57,13 @@ APPS = {
 # Apple's category for discovery/engagement (impressions, page views, taps).
 CATEGORY = "APP_STORE_ENGAGEMENT"
 
+# The COMMERCE category carries "App Downloads", the only place Apple publishes
+# the download breakdown explicitly: total, first-time and redownloads as
+# separate columns. The sales endpoint gives Units, which IS first-time
+# downloads, but never names the other two — so "total downloads minus
+# redownloads" can be shown as Apple's own arithmetic rather than asserted.
+DOWNLOAD_CATEGORY = "COMMERCE"
+
 
 def log(m):
     print(m, flush=True)
@@ -292,6 +299,72 @@ def harvest(app_id, bearer):
     return per_day, per_country
 
 
+def download_breakdown(app_id, bearer):
+    """Total / first-time / redownloads per day, from the App Downloads report.
+
+    Returns {} until Apple has generated it. Columns are matched by meaning,
+    and the headers actually seen are logged, since guessing at them is what
+    makes this kind of code rot.
+    """
+    req_id = None
+    for access in ("ONE_TIME_SNAPSHOT", "ONGOING"):
+        rid, created = ensure_request(app_id, bearer, access)
+        if rid and not created:
+            req_id = rid
+            break
+    if not req_id:
+        return {}
+    reports = api(f"/analyticsReportRequests/{req_id}/reports"
+                  f"?filter[category]={DOWNLOAD_CATEGORY}&limit=200", bearer)
+    target = None
+    for r in reports.get("data", []):
+        n = (r.get("attributes", {}).get("name") or "").lower()
+        if "app downloads" in n and "standard" in n:
+            target = r
+            break
+    if target is None:
+        return {}
+    inst = api(f"/analyticsReports/{target['id']}/instances"
+               "?filter[granularity]=DAILY&limit=200", bearer)
+    if not inst.get("data"):
+        log("    App Downloads report not generated yet")
+        return {}
+
+    per_day = {}
+    logged_head = False
+    for i in inst["data"]:
+        day = i.get("attributes", {}).get("processingDate")
+        segs = api(f"/analyticsReportInstances/{i['id']}/segments", bearer)
+        for sgm in segs.get("data", []):
+            url = sgm.get("attributes", {}).get("url")
+            if not url:
+                continue
+            head, rows = read_segment(url)
+            if not rows:
+                continue
+            if not logged_head:
+                log(f"    App Downloads columns: {head}")
+                logged_head = True
+            c_date = pick(head, "date") or "Date"
+            c_total = pick(head, "total", "download") or pick(head, "download")
+            c_first = pick(head, "first", "time") or pick(head, "first")
+            c_re = pick(head, "redownload") or pick(head, "re-download")
+            for row in rows:
+                d = (row.get(c_date) or day or "")[:10]
+                if not d:
+                    continue
+                slot = per_day.setdefault(d, {})
+                for key, col in (("total", c_total), ("first_time", c_first),
+                                 ("redownloads", c_re)):
+                    if not col:
+                        continue
+                    try:
+                        slot[key] = slot.get(key, 0) + int(float(row.get(col) or 0))
+                    except ValueError:
+                        pass
+    return per_day
+
+
 def main():
     c = creds()
     if not c:
@@ -312,7 +385,13 @@ def main():
         except Exception as exc:                              # noqa: BLE001
             log(f"    {type(exc).__name__}: {exc} — leaving this app's snapshot alone")
             continue
-        if not per_day:
+        try:
+            dl = download_breakdown(app_id, bearer)
+        except Exception as exc:                              # noqa: BLE001
+            log(f"    downloads breakdown: {type(exc).__name__}: {exc}")
+            dl = {}
+
+        if not per_day and not dl:
             continue
 
         path = OUT / f"{app_id}.json"
@@ -326,8 +405,23 @@ def main():
                 continue          # engagement day outside the sales window
             row["impressions"] = vals["impressions"]
             row["page_views"] = vals["page_views"]
-        payload["impressions"] = sum(v["impressions"] for v in per_day.values())
-        payload["page_views"] = sum(v["page_views"] for v in per_day.values())
+        if per_day:
+            payload["impressions"] = sum(v["impressions"] for v in per_day.values())
+            payload["page_views"] = sum(v["page_views"] for v in per_day.values())
+        if dl:
+            # Keep all three so the page can show first-time downloads AND say
+            # what it left out, instead of implying Units is the whole story.
+            for key in ("total", "first_time", "redownloads"):
+                tot = sum(v.get(key, 0) for v in dl.values())
+                if tot:
+                    payload["downloads_" + key] = tot
+            by_date = {r["date"]: r for r in payload.get("rows", [])}
+            for d, vals in dl.items():
+                row = by_date.get(d)
+                if row is not None:
+                    for key in ("total", "first_time", "redownloads"):
+                        if key in vals:
+                            row["dl_" + key] = vals[key]
         if per_country:
             payload["impression_territories"] = [
                 {"code": cc, "impressions": n}
