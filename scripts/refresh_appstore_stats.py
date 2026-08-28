@@ -210,6 +210,13 @@ def main():
 
     gaps = [APPS[a] for a in APPS if needs_backfill(a)]
     span = COLD_START_DAYS if (cold or gaps) else WARM_DAYS
+    # One-off deep reach, for answering "is the total too low because the
+    # window starts before each app existed, or after it launched?". Apple
+    # keeps daily reports for about a year.
+    forced = int(os.environ.get("APPSTORE_BACKFILL_DAYS") or 0)
+    if forced:
+        span = forced
+        log(f"forced backfill: reaching back {span} day(s)")
     if cold:
         log(f"cold start: fetching {span} day(s)")
     elif gaps:

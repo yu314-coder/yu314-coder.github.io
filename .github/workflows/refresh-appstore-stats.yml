@@ -52,6 +52,11 @@ on:
     types: [completed]
 
   workflow_dispatch:
+    inputs:
+      backfill_days:
+        description: "Reach back this many days (Apple keeps ~365). Blank = normal."
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -75,6 +80,7 @@ jobs:
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
           APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
           APPSTORE_VENDOR_NUMBER: ${{ secrets.APPSTORE_VENDOR_NUMBER }}
+          APPSTORE_BACKFILL_DAYS: ${{ inputs.backfill_days }}
         run: python3 scripts/refresh_appstore_stats.py
 
       # Impressions and page views come from a different API than units — the
