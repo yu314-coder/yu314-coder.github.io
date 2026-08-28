@@ -31,6 +31,26 @@ on:
     # Off the hour to avoid the :00 scheduling crush, which is when GitHub is
     # most likely to drop a run.
     - cron: "27 * * * *"
+
+  # Cron alone does not work on this repo. Measured over 48 hours, GitHub
+  # honoured 10 of 144 scheduled runs for the typhoon job, 8 of 24 for the data
+  # job and 1 of 4 for PyPI — roughly a tenth of what was asked for, and this
+  # job's own windows (06:57, 10:27, 11:27) were all dropped. Scheduled
+  # workflows on free public repos are best-effort and this repo is clearly
+  # being throttled.
+  #
+  # So ride along with whatever DOES get honoured. Every one of those workflows
+  # that manages to start also starts this one, which turns the repo's handful
+  # of surviving scheduled runs into the same handful of refresh opportunities.
+  # Safe to fire often: a run that finds nothing new writes no file and commits
+  # nothing.
+  workflow_run:
+    workflows:
+      - "Refresh data"
+      - "Refresh typhoon AI forecast"
+      - "Refresh PyPI stats"
+    types: [completed]
+
   workflow_dispatch:
 
 permissions:
