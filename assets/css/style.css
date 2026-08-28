@@ -561,24 +561,65 @@ body.theme-dark .tracker-shell {
 /* ---------------------------------------------------------------------------
    13. Timeline
    ------------------------------------------------------------------------- */
-.timeline { position: relative; padding-left: 1.6rem; }
+/* Entries carry real paragraphs now, not one-liners, so the run needs enough
+   structure that long items stay distinguishable: each is a panel, the rail
+   fades out at both ends instead of stopping dead, and the newest entry is
+   marked so the eye starts at the top rather than hunting. */
+.timeline { position: relative; padding-left: 2rem; }
 .timeline::before {
-  content: ""; position: absolute; left: 0; top: 0.4rem; bottom: 0.4rem;
-  width: 1px; background: var(--line);
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 1px;
+  background: linear-gradient(180deg,
+    transparent 0, var(--line-2, var(--line)) 3rem,
+    var(--line) calc(100% - 6rem), transparent 100%);
 }
-.timeline-item { position: relative; padding-bottom: 2.2rem; }
-.timeline-item:last-child { padding-bottom: 0; }
+.timeline-item {
+  position: relative; padding: 0 0 0 0.25rem; margin-bottom: 2.4rem;
+}
+.timeline-item:last-child { margin-bottom: 0; }
 .timeline-item::before {
-  content: ""; position: absolute; left: calc(-1.6rem - 4px); top: 0.5rem;
-  width: 9px; height: 9px; border-radius: 50%;
-  background: var(--bg); border: 2px solid var(--accent);
+  content: ""; position: absolute; left: calc(-2rem - 4.5px); top: 0.45rem;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--bg); border: 2px solid var(--line-2, var(--line));
+  transition: border-color .18s ease, box-shadow .18s ease;
 }
+/* The newest entry gets the accent and a halo; the rest stay quiet so the
+   marker means "most recent" rather than being decoration on every row. */
+.timeline-item:first-child::before {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.timeline-item:hover::before { border-color: var(--accent); }
 .timeline-date {
-  font-family: var(--font-mono); font-size: 0.8rem; letter-spacing: 0.04em;
-  color: var(--accent); margin-bottom: 0.3rem;
+  display: inline-block;
+  font-family: var(--font-mono); font-size: 0.74rem; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-radius: 999px; padding: 0.2rem 0.6rem; margin-bottom: 0.55rem;
 }
-.timeline-item h5 { margin-bottom: 0.4rem; }
+.timeline-item h5 {
+  margin-bottom: 0.5rem; font-size: 1.06rem; line-height: 1.35;
+}
 .timeline-item p { color: var(--ink-2); }
+.timeline-item p:last-child { margin-bottom: 0; }
+.timeline-item a { color: var(--ink); text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  text-underline-offset: 2px; }
+.timeline-item a:hover { color: var(--accent); }
+/* .pull-quote is capped at 30ch for use as a standalone display line. Inside a
+   timeline entry that column is already narrow, so the cap stacks with it and
+   the quote wraps to four or five words a line. Let it use the column. */
+.timeline-item .pull-quote {
+  max-width: none;
+  font-size: clamp(1.05rem, 1.5vw, 1.25rem);
+}
+@media (min-width: 768px) {
+  /* Dates in their own column once there is room, so the headings line up and
+     the run reads as a table of when-what rather than a stack of paragraphs. */
+  .timeline-item { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr);
+    column-gap: 1.5rem; align-items: start; }
+  .timeline-date { grid-column: 1; margin-top: 0.15rem; }
+  .timeline-item > :not(.timeline-date) { grid-column: 2; }
+}
 
 /* ---------------------------------------------------------------------------
    14. Store badges + companion buttons

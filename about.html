@@ -41,7 +41,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@200;300;400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 
   <!-- Site stylesheet (single source of truth) -->
-  <link rel="stylesheet" href="assets/css/style.css?v=20260823-chip1">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260828-about2">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
 <body class="theme-dark">
@@ -73,7 +73,7 @@
         <div class="col-lg-10 offset-lg-1">
           <p class="eyebrow eyebrow--rule reveal">About</p>
           <h1 class="reveal reveal-delay-1">About Me</h1>
-          <p class="lead-2 reveal reveal-delay-2" style="max-width: 46rem;">Developer, data enthusiast, and creative problem solver — blending mathematics, machine learning, and software to ship things that run where people actually are.</p>
+          <p class="lead-2 reveal reveal-delay-2" style="max-width: 46rem;">High-school student in Taipei working on random matrix theory, on-device machine learning, and the awkward systems work in between — getting things to run where people actually are rather than where they are easy to build.</p>
         </div>
       </div>
     </div>
@@ -85,7 +85,33 @@
       <div class="col-lg-10 offset-lg-1">
         <!-- Introduction -->
         <div class="mb-5 reveal">
-          <p class="lead-2">Hello, I'm <strong>Yu, Yao-Hsing <span class="brand-cjk">尤耀星</span></strong>. I'm a passionate developer, data enthusiast, and creative problem solver driven by a deep curiosity about technology and its potential. My journey started with exploring the intricacies of mathematics and computer science, and I continue to blend art and science to create innovative solutions.</p>
+          <p class="lead-2">Hello, I'm <strong>Yu, Yao-Hsing <span class="brand-cjk">尤耀星</span></strong>, a student at Taipei Municipal Chien Kuo High School. I work on the limiting spectral distributions of random matrices &mdash; and then on getting that mathematics to actually run somewhere: a denoiser on a Mac, a full Python runtime on an iPhone, a typhoon track model in a browser tab.</p>
+          <p class="lead-2 mb-0">The through-line is stubbornness about the gap between a result and a working thing. A proof about eigenvalue supports became <a href="https://apps.apple.com/app/eigendenoise/id6764759636" target="_blank" rel="noopener noreferrer">an image denoiser</a> and <a href="https://pypi.org/project/rmt-denoise/" target="_blank" rel="noopener noreferrer">a PyPI package</a>; wanting PyTorch on an iPad became <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer">the first public native PyTorch build for iOS</a>.</p>
+        </div>
+
+        <!-- Publication. The paper is the thing several projects on this site
+             descend from, so it goes above the skills list rather than buried
+             in the timeline. -->
+        <div class="mb-5">
+          <p class="eyebrow eyebrow--rule reveal">Publication</p>
+          <h3 class="mb-4 reveal">Peer-reviewed research</h3>
+          <div class="card reveal">
+            <div class="card-body p-4">
+              <h5 class="mb-2">Limiting spectral distributions of random matrices</h5>
+              <p class="mb-2" style="color:var(--ink-2);">
+                Yao-Hsing Yu. <em>Cambridge Journal for Junior Scientists</em>,
+                Volume&nbsp;3 (2026), Number&nbsp;2, pp.&nbsp;365&ndash;382.
+                Published 30&nbsp;July&nbsp;2026 by International Press of Boston.
+                <span class="badge-accent ms-1">Open access</span>
+              </p>
+              <p class="mono mb-3" style="font-size:.76rem; color:var(--ink-3); letter-spacing:.02em;">doi:10.4310/CJJS.260626162006</p>
+              <p class="serif mb-3">The paper grew out of &ldquo;Geometric analysis of the eigenvalue range of the generalized covariance matrix&rdquo;, which took the <strong>Bronze Medal in Mathematics</strong> at the 2025 S.-T.&nbsp;Yau High School Science Award finals. Advised by Shao-Hsuan Wang (National Central University) and Yang-Kai Lue (National Yang Ming Chiao Tung University).</p>
+              <div class="d-flex flex-wrap gap-2">
+                <a href="https://intlpress.com/JDetail/2070421842305069058" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">Read the paper</a>
+                <a href="assets/docs/yau-science-award-research-paper.pdf" class="btn btn-ghost btn-sm" download>Award version (PDF)</a>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Education Section -->
@@ -187,37 +213,69 @@
           <h3 class="mb-4 reveal">Experience &amp; Timeline</h3>
           <div class="timeline">
             <div class="timeline-item reveal">
-              <p class="timeline-date">2026</p>
-              <h5>Shipped 6 apps across the App Store, Mac App Store, and Microsoft Store</h5>
-              <p>ManimStudio (Windows + iOS), Generalized Covariance Matrix, EigenDenoise (macOS), GPS-location-app, and t-SNE Visualization.<br><br><strong>Built <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer">python-ios-lib</a></strong> — a full Python 3.14 runtime for iOS/iPadOS with 30+ native libraries, including the <strong>first public native PyTorch build on iOS</strong> (with a Metal GPU bridge for a 2–10× on-device training speedup), HuggingFace transformers, and Rust-based tokenizers.<br><br><strong>Built <a href="https://github.com/yu314-coder/CodeBench" target="_blank" rel="noopener noreferrer">CodeBench</a></strong> — a fully offline developer / scientific / AI workstation for iPad &amp; Mac: Monaco editor, integrated terminal, C/C++/Fortran, on-device pdflatex, and local LLMs.<br><br><strong>Published 5 PyPI packages</strong> — ollama-installer, narrate, rmt-denoise (random-matrix image denoising), cairometal (cairo on the Apple GPU), and python-to-binary (a Python&nbsp;&rarr;&nbsp;machine-code compiler written with nothing but the standard library).</p>
+              <p class="timeline-date">July 2026</p>
+              <h5>Paper published &mdash; <em>Cambridge Journal for Junior Scientists</em></h5>
+              <p>&ldquo;Limiting spectral distributions of random matrices&rdquo;, Volume&nbsp;3 (2026), Number&nbsp;2, pp.&nbsp;365&ndash;382, open access via International Press of Boston. The peer-reviewed form of the award work from the year before.
+              <a href="https://intlpress.com/JDetail/2070421842305069058" target="_blank" rel="noopener noreferrer">Read it &rarr;</a></p>
             </div>
+
+            <div class="timeline-item reveal">
+              <p class="timeline-date">2026</p>
+              <h5>Weather forecasting &mdash; Trackformer</h5>
+              <p>A typhoon-track model running as a quantised ONNX file small enough to sit in a browser tab, driving both the live JMA overlay and hindcasts of past storms on the
+              <a href="typhoon-tracks.html">Typhoon Tracks</a> page. The interesting part was the honesty problem: knowing, and saying, how much of a drawn track is the model and how much is persistence.</p>
+            </div>
+
+            <div class="timeline-item reveal">
+              <p class="timeline-date">2026</p>
+              <h5>Seven apps across three stores</h5>
+              <p><strong>App&nbsp;Store &amp; Mac&nbsp;App&nbsp;Store</strong> &mdash; ManimStudio, EigenDenoise, SidecarBridge, WhisperKit, GPS-location-app.<br>
+              <strong>Microsoft&nbsp;Store</strong> &mdash; ManimStudio, Generalized Covariance Matrix, t-SNE Visualization.<br><br>
+              EigenDenoise and Generalized Covariance Matrix are the paper made usable: the eigenvalue-support result turned into an image denoiser. Real download numbers for all of them are on the <a href="store-stats.html">Store Stats</a> page &mdash; including the ones that barely registered, since publishing only the flattering numbers would defeat the point.</p>
+            </div>
+
+            <div class="timeline-item reveal">
+              <p class="timeline-date">2026</p>
+              <h5>Python where it is not supposed to run</h5>
+              <p><strong><a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer">python-ios-lib</a></strong> &mdash; a Python&nbsp;3.14 runtime for iOS and iPadOS with 30+ native libraries, including the <strong>first public native PyTorch build on iOS</strong> and a Metal GPU bridge worth a 2&ndash;10&times; on-device training speedup.<br><br>
+              <strong><a href="https://github.com/yu314-coder/CodeBench" target="_blank" rel="noopener noreferrer">CodeBench</a></strong> &mdash; an offline developer and scientific workstation for iPad and Mac: Monaco editor, a real terminal, C/C++/Fortran, on-device pdflatex, and local LLMs.<br><br>
+              <strong>Bootbox</strong> and the WebAssembly work (<a href="https://github.com/yu314-coder/qemu-wasm" target="_blank" rel="noopener noreferrer">qemu-wasm</a>, <a href="https://github.com/yu314-coder/container2wasm" target="_blank" rel="noopener noreferrer">container2wasm</a>) &mdash; booting whole operating systems in a browser tab.</p>
+            </div>
+
+            <div class="timeline-item reveal">
+              <p class="timeline-date">2026</p>
+              <h5>Five packages on PyPI</h5>
+              <p><strong>rmt-denoise</strong> (random-matrix image denoising, the library counterpart to EigenDenoise), <strong>cairometal</strong> (pycairo-compatible 2D vector graphics on the Apple GPU via Metal &mdash; the first GPU cairo on PyPI), <strong>python-to-binary</strong> (Python&nbsp;&rarr;&nbsp;machine code with no C toolchain, assembler, linker, or dependencies at all), <strong>narrate</strong>, and <strong>ollama-installer</strong>.
+              Download numbers &mdash; with mirror traffic separated out &mdash; are on the <a href="pypi-stats.html">PyPI Stats</a> page.</p>
+            </div>
+
             <div class="timeline-item reveal">
               <p class="timeline-date">2025</p>
-              <h5>S. T. Yau High School Science Award — Grand Finals (Bronze Medal)</h5>
+              <h5>S.-T. Yau High School Science Award &mdash; Bronze Medal, Grand Finals</h5>
               <p class="mono mb-3" style="font-size:.76rem; color:var(--ink-3); letter-spacing:.02em;">2025 丘成桐中學科學獎總決賽</p>
-              <p class="pull-quote serif mb-3">On the limiting spectral distributions of products of sample covariance matrices with deterministic sequences — deriving explicit support bounds for two-point limiting measures via the Intermediate Value Theorem and Stieltjes transform inversion.</p>
-              <p class="serif">Awarded the Bronze Medal at the Grand Finals, with applications in statistics, signal processing, and wireless communications.</p>
-              <p><strong>S. T. Yau High School Science Award — Asia Regional (Silver Medal)</strong> — Earned the Silver Medal at the Asia regional competition, advancing to the Grand Finals.</p>
+              <p class="pull-quote serif mb-3">Geometric analysis of the eigenvalue range of the generalized covariance matrix &mdash; explicit support bounds for two-point limiting measures, via the Intermediate Value Theorem and Stieltjes transform inversion.</p>
+              <p class="serif">Bronze in Mathematics at the Grand Finals, after Silver at the Asia regional. Applications in statistics, signal processing, and wireless communications. Published in peer-reviewed form the following July.</p>
               <div class="mt-3">
-                <a href="assets/docs/yau-science-award-research-paper.pdf" class="btn btn-ghost btn-sm" download>
-                  Download research paper (PDF)
-                </a>
+                <a href="assets/docs/yau-science-award-research-paper.pdf" class="btn btn-ghost btn-sm" download>Download the award paper (PDF)</a>
               </div>
             </div>
+
             <div class="timeline-item reveal">
-              <p class="timeline-date">2023 – 2024</p>
-              <h5>Research &amp; first store releases</h5>
-              <p>Studying at Taipei Municipal Chien Kuo High School while building research projects in random matrix theory and AI, and publishing my first applications to the Microsoft Store.</p>
+              <p class="timeline-date">2023 &ndash; 2024</p>
+              <h5>Research, and the first things that shipped</h5>
+              <p>Beginning the random matrix theory work at Chien Kuo High School, alongside early AI projects &mdash; and putting the first applications on the Microsoft Store, which is where the habit of measuring what people actually download started.</p>
             </div>
+
             <div class="timeline-item reveal">
-              <p class="timeline-date">2021 – 2023</p>
-              <h5>Mathematical modeling projects</h5>
-              <p>Worked on multiple projects involving mathematical modeling and spectral distribution analysis.</p>
+              <p class="timeline-date">2021 &ndash; 2023</p>
+              <h5>Mathematical modelling</h5>
+              <p>Projects in mathematical modelling and spectral distribution analysis &mdash; the groundwork the later papers rest on.</p>
             </div>
+
             <div class="timeline-item reveal">
-              <p class="timeline-date">2019 – 2021</p>
-              <h5>Self-study &amp; exploration</h5>
-              <p>Explored various programming languages and technologies through personal projects and self-study.</p>
+              <p class="timeline-date">2019 &ndash; 2021</p>
+              <h5>Self-study</h5>
+              <p>Working through programming languages and tools on personal projects, with nobody assigning any of it.</p>
             </div>
           </div>
         </div>

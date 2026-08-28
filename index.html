@@ -43,7 +43,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@200;300;400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="assets/css/style.css?v=20260823-chip1">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260828-about2">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
 <body class="theme-dark">
@@ -90,8 +90,36 @@
     </div>
   </header>
 
-  <!-- Stats strip -->
-  <section class="bg-alt section-sm" style="border-block:1px solid var(--line);">
+  <!-- Published research, directly under the hero.
+       It sits above the counters deliberately: the peer-reviewed paper is the
+       strongest single claim on the page, and several of the things being
+       counted below descend from it. -->
+  <section class="section-sm bg-alt" style="border-block:1px solid var(--line);">
+    <div class="container">
+      <div class="row align-items-center g-4">
+        <div class="col-lg-8 reveal">
+          <p class="eyebrow eyebrow--rule">Published research &middot; peer-reviewed</p>
+          <p class="pull-quote mb-3">Limiting spectral distributions of random matrices</p>
+          <p class="mb-2" style="font-size:.95rem; color:var(--ink-2);">
+            <em>Cambridge Journal for Junior Scientists</em>, Volume&nbsp;3 (2026), Number&nbsp;2, pp.&nbsp;365&ndash;382.
+            Published 30&nbsp;July&nbsp;2026 by International Press of Boston. <strong>Open access.</strong>
+          </p>
+          <p class="mb-0 mono" style="font-size:.76rem; color:var(--ink-3); letter-spacing:.02em;">
+            doi:10.4310/CJJS.260626162006 &middot; grew out of the work that took Bronze in Mathematics
+            at the 2025 S.-T.&nbsp;Yau High School Science Award finals
+          </p>
+        </div>
+        <div class="col-lg-4 text-lg-end reveal reveal-delay-1">
+          <a href="https://intlpress.com/JDetail/2070421842305069058" target="_blank" rel="noopener noreferrer" class="btn btn-primary mb-2">Read the paper</a>
+          <a href="assets/docs/yau-science-award-research-paper.pdf" download class="btn btn-ghost">Award version (PDF)</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats strip. No top border: the research bar above already draws one,
+       and two adjacent rules read as a mistake rather than a divider. -->
+  <section class="bg-alt section-sm" style="border-bottom:1px solid var(--line);">
     <div class="container">
       <div class="row g-4">
         <div class="col-6 col-md-3">
@@ -332,21 +360,6 @@
               </div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Research note (serif voice) -->
-  <section class="section-sm bg-alt" style="border-block:1px solid var(--line);">
-    <div class="container">
-      <div class="row align-items-center g-4">
-        <div class="col-lg-8 reveal">
-          <p class="eyebrow eyebrow--rule">Research</p>
-          <p class="pull-quote">Explicit support bounds for the limiting spectral distributions of products of sample covariance matrices.</p>
-        </div>
-        <div class="col-lg-4 text-lg-end reveal reveal-delay-1">
-          <a href="assets/docs/yau-science-award-research-paper.pdf" download class="btn btn-ghost">Download research paper</a>
         </div>
       </div>
     </div>
