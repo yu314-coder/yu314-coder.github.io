@@ -4,6 +4,11 @@ name: Probe App Store analytics (read-only)
 # Writes nothing, commits nothing. Manual trigger only.
 on:
   workflow_dispatch:
+    inputs:
+      all_categories:
+        description: "Sweep every report category (slow, ~8 min)"
+        type: boolean
+        default: false
 
 jobs:
   probe:
@@ -16,4 +21,5 @@ jobs:
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
           APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
           APPSTORE_VENDOR_NUMBER: ${{ secrets.APPSTORE_VENDOR_NUMBER }}
+          PROBE_ALL: ${{ inputs.all_categories && '1' || '' }}
         run: python3 scripts/probe_appstore_analytics.py

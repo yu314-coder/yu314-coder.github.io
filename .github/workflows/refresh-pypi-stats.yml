@@ -5,7 +5,11 @@ name: Refresh PyPI stats
 # no runtime CORS proxy. Runs daily; can also be triggered by hand.
 on:
   schedule:
-    - cron: "17 6 * * *" # ~06:17 UTC daily
+    # Two windows, twelve hours apart — scheduled runs on this repo land
+    # 40-60 minutes late and are occasionally dropped. The snapshot is
+    # idempotent, so the backup costs nothing when the first one ran.
+    - cron: "17 6 * * *"  # ~06:17 UTC
+    - cron: "17 18 * * *" # ~18:17 UTC backup
   workflow_dispatch:
 
 permissions:

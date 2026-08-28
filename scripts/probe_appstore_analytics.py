@@ -6,6 +6,12 @@ API was returning nothing, and guessing which of the two is wrong is not a
 plan. This asks for EVERY report request, EVERY category, and EVERY
 granularity, and prints exactly what comes back — no filtering, no assumptions.
 
+Answered its first question on 2026-08-28: 1,560 reports across five apps and
+both request types, every one with zero instances — so an empty result is Apple
+not having generated anything yet, NOT a wrong category or report name on our
+side. Kept as the "is it ready yet?" check, narrowed to the categories that
+actually matter so it finishes in seconds rather than eight minutes.
+
 Writes nothing. Safe to run any time.
 """
 import json, os, sys, time, urllib.error, urllib.request
@@ -14,6 +20,11 @@ BASE = "https://api.appstoreconnect.apple.com/v1"
 APPS = {"6764472686": "ManimStudio", "6764759636": "EigenDenoise",
         "6792298083": "SidecarBridge", "6764729098": "GPS-location-app",
         "6764759491": "WhisperKit"}
+
+# Apple offers ~70 reports per request, over 1,000 of them FRAMEWORK_USAGE for
+# APIs these apps never call. Only these two carry anything this site shows.
+# Set PROBE_ALL=1 to sweep every category again.
+CATEGORIES = ["APP_STORE_ENGAGEMENT", "COMMERCE"]
 
 def log(m): print(m, flush=True)
 
@@ -51,13 +62,23 @@ def main():
             log(f"\n  request {rq['id']}")
             log(f"    accessType={at.get('accessType')}  "
                 f"stoppedDueToInactivity={at.get('stoppedDueToInactivity')}")
-            reports = api(f"/analyticsReportRequests/{rq['id']}/reports?limit=200", b)
+            cats = ([None] if os.environ.get("PROBE_ALL")
+                    else CATEGORIES)
+            reports = {"data": []}
+            for c in cats:
+                q = "" if c is None else f"&filter[category]={c}"
+                got = api(f"/analyticsReportRequests/{rq['id']}/reports?limit=200{q}", b)
+                if "_error" in got:
+                    reports = got
+                    break
+                reports["data"].extend(got.get("data", []))
             if "_error" in reports:
                 log(f"    reports: {reports['_error']} {reports['_body']}"); continue
             rows = reports.get("data", [])
             if not rows:
                 log("    reports: NONE")
                 continue
+            log(f"    {len(rows)} report(s) in {', '.join(CATEGORIES)}")
             for rep in rows:
                 ra = rep.get("attributes", {})
                 nm, cat = ra.get("name"), ra.get("category")
@@ -67,7 +88,7 @@ def main():
                     continue
                 idata = insts.get("data", [])
                 if not idata:
-                    log(f"    - {nm} [{cat}]: 0 instances")
+                    log(f"    - {nm} [{cat}]: not generated yet")
                     continue
                 grans = {}
                 for i in idata:

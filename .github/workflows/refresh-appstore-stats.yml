@@ -14,7 +14,14 @@ name: Refresh App Store stats
 # Until they're set, the script is a graceful no-op, so this workflow stays green.
 on:
   schedule:
-    - cron: "57 6 * * *" # ~06:57 UTC daily (offset from the PyPI and Store jobs)
+    # Two windows, twelve hours apart. GitHub treats scheduled workflows as
+    # best-effort: on this repo they land 40-60 minutes late as a matter of
+    # course, and they are sometimes dropped entirely under load. One cron a
+    # day means a dropped run costs a whole day of numbers. The script merges
+    # into history and is idempotent, so a second run is free when the first
+    # one worked.
+    - cron: "57 6 * * *"  # ~06:57 UTC (offset from the PyPI job)
+    - cron: "57 18 * * *" # ~18:57 UTC backup
   workflow_dispatch:
 
 permissions:
