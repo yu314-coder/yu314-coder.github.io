@@ -126,23 +126,34 @@ def ensure_request(app_id, bearer, access="ONGOING"):
     existing request is reused, and Apple answers a duplicate create with 409.
     """
     def existing():
+        """(id_or_None, lookup_succeeded). The second value matters: a failed
+        lookup looks exactly like 'no request exists', and acting on that would
+        create a duplicate subscription. At an hourly cadence a transient blip
+        is a matter of when, not if, so never create on anything but a clean
+        answer."""
         got = api(f"/apps/{app_id}/analyticsReportRequests"
                   f"?filter[accessType]={access}&limit=50", bearer)
+        if "_error" in got:
+            return None, False
         for item in got.get("data", []):
             if not item.get("attributes", {}).get("stoppedDueToInactivity"):
-                return item["id"]
-        return None
+                return item["id"], True
+        return None, True
 
-    found = existing()
+    found, ok = existing()
     if found:
         return found, False
+    if not ok:
+        log(f"    could not list {access} requests — not creating one blind")
+        return None, False
     made = api("/analyticsReportRequests", bearer, method="POST", body={
         "data": {"type": "analyticsReportRequests",
                  "attributes": {"accessType": access},
                  "relationships": {"app": {"data": {"type": "apps", "id": app_id}}}}
     })
     if made.get("_conflict"):
-        return existing(), False
+        again, _ = existing()
+        return again, False
     return made.get("data", {}).get("id"), True
 
 
@@ -321,6 +332,13 @@ def main():
             payload["impression_territories"] = [
                 {"code": cc, "impressions": n}
                 for cc, n in sorted(per_country.items(), key=lambda kv: (-kv[1], kv[0]))]
+        # Same rule as the sales script: don't rewrite the file just to move a
+        # timestamp, or an hourly run commits every hour for nothing.
+        before = json.loads((OUT / f"{app_id}.json").read_text())
+        if {k: v for k, v in before.items() if k != "engagement_updated_utc"} == \
+           {k: v for k, v in payload.items() if k != "engagement_updated_utc"}:
+            log("    engagement unchanged")
+            continue
         payload["engagement_updated_utc"] = dt.datetime.now(dt.timezone.utc).strftime(
             "%Y-%m-%dT%H:%M:%SZ")
         path.write_text(json.dumps(payload, separators=(",", ":")))

@@ -14,14 +14,23 @@ name: Refresh App Store stats
 # Until they're set, the script is a graceful no-op, so this workflow stays green.
 on:
   schedule:
-    # Two windows, twelve hours apart. GitHub treats scheduled workflows as
-    # best-effort: on this repo they land 40-60 minutes late as a matter of
-    # course, and they are sometimes dropped entirely under load. One cron a
-    # day means a dropped run costs a whole day of numbers. The script merges
-    # into history and is idempotent, so a second run is free when the first
-    # one worked.
-    - cron: "57 6 * * *"  # ~06:57 UTC (offset from the PyPI job)
-    - cron: "57 18 * * *" # ~18:57 UTC backup
+    # Hourly, at 27 past.
+    #
+    # Apple only publishes once a day, so this is not about needing the data
+    # sooner — it is about GitHub. Scheduled workflows here are best-effort:
+    # the daily window for this job never fired once in 24 hours, and the PyPI
+    # job routinely lands 40-60 minutes late. With one or two windows a day a
+    # dropped run costs a whole day of numbers, silently. With 24 chances, a
+    # missed hour is irrelevant.
+    #
+    # This only became reasonable once the scripts stopped rewriting files just
+    # to move a timestamp: a run that finds nothing new now leaves every file
+    # byte-identical and commits nothing. So the cost of an idle hour is one
+    # API call per app, not a commit.
+    #
+    # Off the hour to avoid the :00 scheduling crush, which is when GitHub is
+    # most likely to drop a run.
+    - cron: "27 * * * *"
   workflow_dispatch:
 
 permissions:

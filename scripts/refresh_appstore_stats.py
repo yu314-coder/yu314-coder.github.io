@@ -265,9 +265,25 @@ def main():
             "territory_days": terr[app_id],
             "rows": rows,
         }
-        (OUT / f"{app_id}.json").write_text(json.dumps(payload, separators=(",", ":")))
+        # Write only when something other than the clock moved. Apple publishes
+        # once a day, so most runs find nothing new — and restamping
+        # updated_utc every time would commit on every run, which at an hourly
+        # cadence is 24 commits a day that say nothing. The stamp means "these
+        # numbers are from this moment", so keeping the old one when the
+        # numbers are old is also the more truthful thing to do.
+        path = OUT / f"{app_id}.json"
         index.append({"id": app_id, "name": name})
         top = ", ".join(f"{t['code']} {t['units']}" for t in territories[:4]) or "no country data"
+        if path.exists():
+            try:
+                prev = json.loads(path.read_text())
+                if {k: v for k, v in prev.items() if k != "updated_utc"} == \
+                   {k: v for k, v in payload.items() if k != "updated_utc"}:
+                    log(f"  {name}: unchanged ({payload['downloads']} units)")
+                    continue
+            except Exception:                                 # noqa: BLE001
+                pass                                          # unreadable: rewrite it
+        path.write_text(json.dumps(payload, separators=(",", ":")))
         log(f"  {name}: {payload['downloads']} units over {len(rows)} day(s) "
             f"| {len(territories)} countries — {top}")
 
