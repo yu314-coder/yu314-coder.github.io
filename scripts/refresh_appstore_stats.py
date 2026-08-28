@@ -143,10 +143,15 @@ def units_by_app(rows):
     the same download data grouped a second way — no extra request, no extra
     API, and it needs nothing that units did not already need.
 
-    Refunds arrive as negative units in the same column, so a plain sum is the
-    net figure rather than a gross one. Every app tracked here is free with no
-    in-app purchases, so in practice there is nothing to refund and the sum is
-    just downloads — but the arithmetic is right either way if that changes.
+    A "unit" here is a FIRST-TIME download. Apple excludes updates, redownloads
+    on the same device, and a download onto another device under the same Apple
+    ID. That makes this smaller than the "Total Downloads" figure in App Store
+    Connect's Analytics tab, which adds redownloads on top — the two are both
+    real and measure different things, so don't reconcile one against the other.
+
+    Refunds arrive as negative units in the same column, so a plain sum is net
+    rather than gross. Every app tracked here is free, so in practice there is
+    nothing to refund — but the arithmetic is right either way if that changes.
     """
     out, by_country = {}, {}
     for r in rows:

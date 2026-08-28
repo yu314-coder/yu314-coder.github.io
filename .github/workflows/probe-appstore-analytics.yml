@@ -23,3 +23,11 @@ jobs:
           APPSTORE_VENDOR_NUMBER: ${{ secrets.APPSTORE_VENDOR_NUMBER }}
           PROBE_ALL: ${{ inputs.all_categories && '1' || '' }}
         run: python3 scripts/probe_appstore_analytics.py
+
+      - name: Spot-check committed numbers against Apple's raw report
+        env:
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+          APPSTORE_VENDOR_NUMBER: ${{ secrets.APPSTORE_VENDOR_NUMBER }}
+        run: python3 scripts/verify_appstore_numbers.py

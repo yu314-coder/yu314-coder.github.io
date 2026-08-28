@@ -110,7 +110,7 @@
       <div class="mb-4">
         <p class="eyebrow eyebrow--rule">units, impressions &amp; page views</p>
         <h3 class="ss-pane-h">Downloads on iPhone, iPad and Mac</h3>
-        <p class="lead-2 mb-0">Daily <em>units</em> from App Store Connect's sales reports &mdash; Apple's count of app downloads, including a re-download onto another one of your own devices. Every app here is free with no in-app purchases, so a unit is simply someone getting the app. Where Apple has published them, <em>impressions</em> (times the app appeared in browsing or search) and <em>product page views</em> sit alongside.</p>
+        <p class="lead-2 mb-0">Daily <em>units</em> from App Store Connect's sales reports &mdash; Apple counts a unit as a <strong>first-time download</strong> &mdash; updates, redownloads on the same device, and a download onto another device under the same Apple&nbsp;ID are all excluded. So this is people, not installs: it will read <em>lower</em> than the &ldquo;Total Downloads&rdquo; figure in App&nbsp;Store Connect&rsquo;s Analytics tab, which adds redownloads on top. Every app here is free with no in-app purchases. Where Apple has published them, <em>impressions</em> (times the app appeared in browsing or search) and <em>product page views</em> sit alongside.</p>
         <p class="tracker-note mb-0">Pulled nightly from the App Store Connect API and committed as static JSON &mdash; the numbers below are whatever Apple last reported, never an estimate.</p>
       </div>
       <div id="as-app"><!-- populated by JS --></div>
@@ -609,7 +609,7 @@
       var best = rows.reduce(function (b, r) { return r.installs > b.installs ? r : b; }, rows[0] || { date: "", installs: 0 });
       var avg = rows.length ? (rows.reduce(function (t, r) { return t + r.installs; }, 0) / rows.length) : 0;
       var tiles = document.createElement("div"); tiles.className = "ss-tiles";
-      var tileRows = [["Units", fmt(app.downloads), "downloads incl. re-downloads"],
+      var tileRows = [["Units", fmt(app.downloads), "first-time downloads"],
                       ["Last 30 days", fmt(last(rows, 30)), "rolling window"],
                       ["Best day", fmt(best.installs), best.date || "—"],
                       ["Daily average", avg.toFixed(avg < 10 ? 1 : 0), "over " + fmt(rows.length) + " reported days"]];
