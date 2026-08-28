@@ -1,0 +1,19 @@
+name: Probe App Store analytics (read-only)
+
+# Diagnostic only: dumps what the Analytics Reports API actually offers.
+# Writes nothing, commits nothing. Manual trigger only.
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --quiet "pyjwt[crypto]>=2.8"
+      - env:
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+          APPSTORE_VENDOR_NUMBER: ${{ secrets.APPSTORE_VENDOR_NUMBER }}
+        run: python3 scripts/probe_appstore_analytics.py
