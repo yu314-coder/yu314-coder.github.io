@@ -482,9 +482,22 @@
     function appleDownloads(a) {
       return a.downloads_first_time != null ? a.downloads_first_time : (a.downloads || 0);
     }
+    // The per-day equivalent, and the rows worth deriving anything from.
+    // Every tile below the headline used to be computed from `installs`, which
+    // is all download events — so "best day" for ManimStudio read 118 when the
+    // real figure was 11: 2026-08-28 was a version release and what spiked was
+    // updates. Derived stats have to come from the same measure as the
+    // headline or they quietly contradict it.
+    function appleRows(a) {
+      var withFT = (a.rows || []).filter(function (r) { return r.dl_first_time != null; });
+      return withFT.length ? withFT : (a.rows || []);
+    }
+    function rowDownloads(r) {
+      return r.dl_first_time != null ? r.dl_first_time : (r.installs || 0);
+    }
 
     function last(rows, days) {
-      return rows.slice(-days).reduce(function (t, r) { return t + (r.installs || 0); }, 0);
+      return rows.slice(-days).reduce(function (t, r) { return t + rowDownloads(r); }, 0);
     }
 
     fetch(APPLE_DATA + "index.json?cb=" + Date.now())
@@ -548,8 +561,8 @@
       var total = 0, last30 = 0, days = 0;
       apps.forEach(function (a) {
         total += appleDownloads(a);
-        last30 += last(a.rows, 30);
-        days = Math.max(days, a.rows.length);
+        last30 += last(appleRows(a), 30);
+        days = Math.max(days, appleRows(a).length);
       });
       var wrap = document.createElement("div"); wrap.className = "ss-overview";
       wrap.innerHTML = '<p class="ss-ov-head">all apple apps &middot; ' + apps.length + ' tracked</p>';
@@ -601,7 +614,8 @@
 
     function showAppleApp(app, body) {
       body.innerHTML = "";
-      var rows = app.rows || [];
+      // Derive from the same rows the headline came from.
+      var rows = appleRows(app);
       var meta = APPLE_META[app.id] || ["", "appstore", "App Store"];
 
       var head = document.createElement("div"); head.className = "ss-panel-head";
@@ -615,8 +629,11 @@
 
       // Best day is the single busiest reported day, dated — a launch spike is
       // the most interesting thing in a units series and averages hide it.
-      var best = rows.reduce(function (b, r) { return r.installs > b.installs ? r : b; }, rows[0] || { date: "", installs: 0 });
-      var avg = rows.length ? (rows.reduce(function (t, r) { return t + r.installs; }, 0) / rows.length) : 0;
+      var best = rows.reduce(function (b, r) {
+        return rowDownloads(r) > rowDownloads(b) ? r : b;
+      }, rows[0] || { date: "", installs: 0 });
+      var avg = rows.length
+        ? (rows.reduce(function (t, r) { return t + rowDownloads(r); }, 0) / rows.length) : 0;
       var tiles = document.createElement("div"); tiles.className = "ss-tiles";
       // The headline is FIRST-TIME downloads and nothing else. Redownloads,
       // auto-downloads to a second device and restores are all the same person
@@ -643,7 +660,7 @@
                        firstTime != null ? "first-time only, as App Store Connect counts it"
                                          : "all download events \u2014 breakdown pending"],
                       ["Last 30 days", fmt(last(rows, 30)), "rolling window"],
-                      ["Best day", fmt(best.installs), best.date || "—"],
+                      ["Best day", fmt(rowDownloads(best)), best.date || "—"],
                       ["Daily average", avg.toFixed(avg < 10 ? 1 : 0), "over " + fmt(rows.length) + " reported days"]];
       // Once engagement data exists, the interesting pair is the funnel Apple
       // does give us: of everyone who saw it, how many opened the page; of
@@ -683,7 +700,10 @@
 
       // Units always; impressions and page views join the picker only for the
       // days Apple has published them.
-      var metrics = [{ key: "installs", label: "Units", unit: "units / day" }];
+      var hasFT = rows.some(function (r) { return r.dl_first_time != null; });
+      var metrics = [hasFT
+        ? { key: "dl_first_time", label: "Downloads", unit: "first-time downloads / day" }
+        : { key: "installs", label: "Downloads", unit: "download events / day" }];
       if (rows.some(function (r) { return r.impressions != null; }))
         metrics.push({ key: "impressions", label: "Impressions", unit: "impressions / day" });
       if (rows.some(function (r) { return r.page_views != null; }))
@@ -708,7 +728,7 @@
       function paintApple(mt) {
         // Days Apple has not reported this metric for are dropped, not plotted
         // as zero — a zero would draw a cliff that never happened.
-        var src = mt.key === "installs" ? rows
+        var src = (mt.key === "installs" || mt.key === "dl_first_time") ? rows
                 : rows.filter(function (r) { return r[mt.key] != null; });
         wrap.innerHTML = "";
         wrap.appendChild(chart(toSeries(src, mt.key), mt.unit, wrap));
