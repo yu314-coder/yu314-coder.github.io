@@ -404,6 +404,7 @@ def download_breakdown(app_id, bearer):
     # them evenly and draws six dates spread over a hundred days as six
     # adjacent bars — a time axis that lies. Inside the reported window a
     # missing day is a real zero, so say so.
+    BUCKETS = ("first_time", "redownloads", "restores", "updates", "installs")
     if per_day:
         lo, hi = min(per_day), max(per_day)
         d0 = dt.date.fromisoformat(lo)
@@ -412,10 +413,16 @@ def download_breakdown(app_id, bearer):
         while d0 <= d1:
             iso = d0.isoformat()
             if iso not in per_day:
-                per_day[iso] = {"first_time": 0, "redownloads": 0, "restores": 0,
-                                "updates": 0, "installs": 0}
+                per_day[iso] = {}
                 filled += 1
             d0 += dt.timedelta(days=1)
+        # Every day carries every bucket, explicitly zero where it did not
+        # occur. A day with only updates otherwise has no first_time key at
+        # all, and the page filters rows on that key — so update-only days
+        # vanished from the chart exactly like the omitted ones did.
+        for vals in per_day.values():
+            for b in BUCKETS:
+                vals.setdefault(b, 0)
         if filled:
             log(f"    filled {filled} day(s) Apple omitted as zero")
     if seen_types:
