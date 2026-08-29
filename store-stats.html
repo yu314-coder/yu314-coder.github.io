@@ -617,9 +617,7 @@
       // Repeat INSTALLS only. App updates are a separate thing entirely and
       // are never added to anything here.
       var repeats = (app.downloads_redownloads || 0) + (app.downloads_restores || 0);
-      var tileRows = [["Downloads", fmt(app.downloads),
-                       repeats ? "first-time only \u2014 " + fmt(repeats) + " repeats excluded"
-                               : "first-time downloads"],
+      var tileRows = [["Downloads", fmt(app.downloads), "first-time downloads"],
                       ["Last 30 days", fmt(last(rows, 30)), "rolling window"],
                       ["Best day", fmt(best.installs), best.date || "—"],
                       ["Daily average", avg.toFixed(avg < 10 ? 1 : 0), "over " + fmt(rows.length) + " reported days"]];
@@ -635,10 +633,16 @@
       var engDays = rows.filter(function (r) { return r.page_views != null; });
       var engUnits = engDays.reduce(function (t, r) { return t + (r.installs || 0); }, 0);
       var engViews = engDays.reduce(function (t, r) { return t + (r.page_views || 0); }, 0);
+      // These come from Apple's App Downloads report, which spans a shorter
+      // period than the sales history above and uses different day boundaries.
+      // Labelling the span matters: without it these read as if they had been
+      // subtracted from the headline, which they have not.
+      var engWin = app.downloads_report_days
+        ? "last " + app.downloads_report_days + " days" : "";
       if (repeats) tileRows.push(["Repeat installs", fmt(repeats),
-        "same people again \u2014 not counted above"]);
+        engWin ? engWin + " \u2014 not counted above" : "not counted above"]);
       if (app.downloads_updates) tileRows.push(["App updates", fmt(app.downloads_updates),
-        "existing users, not installs"]);
+        engWin ? engWin + " \u2014 existing users, not installs" : "existing users, not installs"]);
       if (app.impressions) tileRows.push(["Impressions", fmt(app.impressions),
         "appeared in browse or search"]);
       if (app.page_views) tileRows.push(["Page views", fmt(app.page_views),

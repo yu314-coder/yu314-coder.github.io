@@ -444,6 +444,14 @@ def main():
             # what it left out, instead of implying Units is the whole story.
             KINDS = ("installs", "first_time", "redownloads", "restores",
                      "updates", "other")
+            # The analytics report covers a different, shorter span than the
+            # sales history, and the two do not line up day for day (different
+            # day boundaries). Record the span so the page can label these
+            # figures instead of implying they are subtractable from a
+            # year-long total.
+            payload["downloads_report_days"] = len(dl)
+            if dl:
+                payload["downloads_report_window"] = min(dl) + " to " + max(dl)
             for key in KINDS:
                 tot = sum(v.get(key, 0) for v in dl.values())
                 if tot:
