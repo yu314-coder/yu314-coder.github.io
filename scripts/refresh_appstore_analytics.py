@@ -399,6 +399,25 @@ def download_breakdown(app_id, bearer):
         cur = per_day.get(d)
         if cur is None or sum(vals.values()) > sum(cur.values()):
             per_day[d] = vals
+    # Apple omits a row entirely for a day with no activity, so the result has
+    # holes rather than zeros. A chart plotting only the days that exist spaces
+    # them evenly and draws six dates spread over a hundred days as six
+    # adjacent bars — a time axis that lies. Inside the reported window a
+    # missing day is a real zero, so say so.
+    if per_day:
+        lo, hi = min(per_day), max(per_day)
+        d0 = dt.date.fromisoformat(lo)
+        d1 = dt.date.fromisoformat(hi)
+        filled = 0
+        while d0 <= d1:
+            iso = d0.isoformat()
+            if iso not in per_day:
+                per_day[iso] = {"first_time": 0, "redownloads": 0, "restores": 0,
+                                "updates": 0, "installs": 0}
+                filled += 1
+            d0 += dt.timedelta(days=1)
+        if filled:
+            log(f"    filled {filled} day(s) Apple omitted as zero")
     if seen_types:
         log(f"    download types seen: {', '.join(sorted(seen_types))}")
     return per_day

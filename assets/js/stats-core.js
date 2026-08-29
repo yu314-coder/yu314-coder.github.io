@@ -158,8 +158,12 @@
     var peak = 0;
     for (var pi = 1; pi < n; pi++) if (series[pi].d > series[peak].d) peak = pi;
 
+    // Cap the bar width. Without a ceiling a short series turns each bar into
+    // a slab — six points across a 1000px plot gives 123px bars that read as
+    // blocks of colour rather than a chart. 34px is about where a bar still
+    // looks like a bar.
     var slot = iw / Math.max(n, 1);
-    var bw = Math.max(1.5, Math.min(slot - 2, slot * 0.74));
+    var bw = Math.max(1.5, Math.min(slot - 2, slot * 0.74, 34));
     series.forEach(function (s, i) {
       var hh = (topH * s.d / topMax);
       if (hh <= 0.2) return;
