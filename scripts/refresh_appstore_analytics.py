@@ -331,6 +331,7 @@ def download_breakdown(app_id, bearer):
         return {}
 
     per_day = {}
+    seen_types = set()
     logged_head = False
     for i in inst["data"]:
         day = i.get("attributes", {}).get("processingDate")
@@ -346,22 +347,45 @@ def download_breakdown(app_id, bearer):
                 log(f"    App Downloads columns: {head}")
                 logged_head = True
             c_date = pick(head, "date") or "Date"
-            c_total = pick(head, "total", "download") or pick(head, "download")
-            c_first = pick(head, "first", "time") or pick(head, "first")
-            c_re = pick(head, "redownload") or pick(head, "re-download")
+            # Apple does not give total / first-time / redownload as columns.
+            # There is ONE "Counts" column and a "Download Type" dimension, so
+            # the split is a row filter, not a column lookup — which is why the
+            # first version of this wrote nothing at all.
+            c_type = pick(head, "download", "type") or pick(head, "type")
+            c_count = pick(head, "count") or "Counts"
+            if not c_type:
+                log(f"    no Download Type column in {head} — skipping")
+                continue
             for row in rows:
                 d = (row.get(c_date) or day or "")[:10]
                 if not d:
                     continue
+                try:
+                    n = int(float(row.get(c_count) or 0))
+                except ValueError:
+                    continue
+                kind = (row.get(c_type) or "").strip()
+                seen_types.add(kind)
                 slot = per_day.setdefault(d, {})
-                for key, col in (("total", c_total), ("first_time", c_first),
-                                 ("redownloads", c_re)):
-                    if not col:
-                        continue
-                    try:
-                        slot[key] = slot.get(key, 0) + int(float(row.get(col) or 0))
-                    except ValueError:
-                        pass
+                slot["total"] = slot.get("total", 0) + n
+                # "First-time download" is the only kind that means a new
+                # person. Redownload, auto-download and restore are all the
+                # same person arriving again, and are deliberately kept out of
+                # the headline rather than folded into it.
+                low = kind.lower()
+                if "first" in low:
+                    bucket = "first_time"
+                elif "redownload" in low or "re-download" in low:
+                    bucket = "redownloads"
+                elif "auto" in low:
+                    bucket = "auto_downloads"
+                elif "restore" in low:
+                    bucket = "restores"
+                else:
+                    bucket = "other"
+                slot[bucket] = slot.get(bucket, 0) + n
+    if seen_types:
+        log(f"    download types seen: {', '.join(sorted(seen_types))}")
     return per_day
 
 
@@ -411,7 +435,9 @@ def main():
         if dl:
             # Keep all three so the page can show first-time downloads AND say
             # what it left out, instead of implying Units is the whole story.
-            for key in ("total", "first_time", "redownloads"):
+            KINDS = ("total", "first_time", "redownloads", "auto_downloads",
+                     "restores", "other")
+            for key in KINDS:
                 tot = sum(v.get(key, 0) for v in dl.values())
                 if tot:
                     payload["downloads_" + key] = tot
@@ -419,7 +445,7 @@ def main():
             for d, vals in dl.items():
                 row = by_date.get(d)
                 if row is not None:
-                    for key in ("total", "first_time", "redownloads"):
+                    for key in KINDS:
                         if key in vals:
                             row["dl_" + key] = vals[key]
         if per_country:

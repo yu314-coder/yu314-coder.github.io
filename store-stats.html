@@ -609,15 +609,16 @@
       var best = rows.reduce(function (b, r) { return r.installs > b.installs ? r : b; }, rows[0] || { date: "", installs: 0 });
       var avg = rows.length ? (rows.reduce(function (t, r) { return t + r.installs; }, 0) / rows.length) : 0;
       var tiles = document.createElement("div"); tiles.className = "ss-tiles";
-      // Once Apple's App Downloads report exists it states the breakdown
-      // outright, so show its arithmetic rather than our reading of Units.
-      var headline = app.downloads_first_time || app.downloads;
-      var headSub = app.downloads_first_time
-        ? (app.downloads_total
-            ? fmt(app.downloads_total) + " total \u2212 " + fmt(app.downloads_redownloads || 0) + " redownloads"
-            : "first-time downloads")
-        : "first-time downloads";
-      var tileRows = [["Downloads", fmt(headline), headSub],
+      // The headline is FIRST-TIME downloads and nothing else. Redownloads,
+      // auto-downloads to a second device and restores are all the same person
+      // arriving again; folding them in would inflate the number and is exactly
+      // what "downloads" usually means elsewhere and shouldn't here. They get
+      // their own tiles so nothing is hidden — just not counted.
+      var repeats = (app.downloads_redownloads || 0) + (app.downloads_auto_downloads || 0)
+                  + (app.downloads_restores || 0);
+      var tileRows = [["Downloads", fmt(app.downloads),
+                       repeats ? "first-time only \u2014 " + fmt(repeats) + " repeats excluded"
+                               : "first-time downloads"],
                       ["Last 30 days", fmt(last(rows, 30)), "rolling window"],
                       ["Best day", fmt(best.installs), best.date || "—"],
                       ["Daily average", avg.toFixed(avg < 10 ? 1 : 0), "over " + fmt(rows.length) + " reported days"]];
@@ -633,8 +634,8 @@
       var engDays = rows.filter(function (r) { return r.page_views != null; });
       var engUnits = engDays.reduce(function (t, r) { return t + (r.installs || 0); }, 0);
       var engViews = engDays.reduce(function (t, r) { return t + (r.page_views || 0); }, 0);
-      if (app.downloads_redownloads) tileRows.push(["Redownloads", fmt(app.downloads_redownloads),
-        "same person, another device"]);
+      if (repeats) tileRows.push(["Repeat installs", fmt(repeats),
+        "not counted above"]);
       if (app.impressions) tileRows.push(["Impressions", fmt(app.impressions),
         "appeared in browse or search"]);
       if (app.page_views) tileRows.push(["Page views", fmt(app.page_views),
