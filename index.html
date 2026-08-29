@@ -43,7 +43,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@200;300;400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="assets/css/style.css?v=20260828-about2">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260829-show1">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
 <body class="theme-dark">
@@ -118,39 +118,50 @@
   </section>
 
   <!-- Stats strip. No top border: the research bar above already draws one,
-       and two adjacent rules read as a mistake rather than a divider. -->
+       and two adjacent rules read as a mistake rather than a divider.
+
+       These numbers are READ FROM THE COMMITTED SNAPSHOTS at load, not typed
+       in. Hardcoded counters rot silently — they were still claiming figures
+       from months ago — and on a site whose whole argument is "these are the
+       real numbers", a stale hero stat undermines every page behind it. The
+       data-count values below are the last known figures, kept as a fallback
+       so the strip is never blank if a fetch fails. -->
   <section class="bg-alt section-sm" style="border-bottom:1px solid var(--line);">
     <div class="container">
       <div class="row g-4">
         <div class="col-6 col-md-3">
-          <div class="highlight-item reveal">
+          <a class="highlight-item reveal" href="projects.html">
             <div class="highlight-number"><span class="count" data-count="7">0</span></div>
             <div class="highlight-label">Apps shipped</div>
-          </div>
+            <div class="highlight-sub">across three stores</div>
+          </a>
         </div>
         <div class="col-6 col-md-3">
-          <div class="highlight-item reveal reveal-delay-1">
-            <div class="highlight-number"><span class="count" data-count="30" data-suffix="+">0</span></div>
-            <div class="highlight-label">iOS Python libraries</div>
-          </div>
+          <a class="highlight-item reveal reveal-delay-1" href="store-stats.html">
+            <div class="highlight-number"><span class="count" data-count="2117" data-stat="app-downloads">0</span></div>
+            <div class="highlight-label">App downloads</div>
+            <div class="highlight-sub">real, first-time only</div>
+          </a>
         </div>
         <div class="col-6 col-md-3">
-          <div class="highlight-item reveal reveal-delay-2">
-            <div class="highlight-number"><span class="count" data-count="5">0</span></div>
-            <div class="highlight-label">PyPI packages</div>
-          </div>
+          <a class="highlight-item reveal reveal-delay-2" href="pypi-stats.html">
+            <div class="highlight-number"><span class="count" data-count="7177" data-stat="pypi-installs">0</span></div>
+            <div class="highlight-label">PyPI installs</div>
+            <div class="highlight-sub">mirrors excluded</div>
+          </a>
         </div>
         <div class="col-6 col-md-3">
-          <div class="highlight-item reveal reveal-delay-3">
-            <div class="highlight-number"><span class="count" data-count="2">0</span></div>
-            <div class="highlight-label">Science awards</div>
-          </div>
+          <a class="highlight-item reveal reveal-delay-3" href="store-stats.html">
+            <div class="highlight-number"><span class="count" data-count="59" data-stat="countries">0</span></div>
+            <div class="highlight-label">Countries reached</div>
+            <div class="highlight-sub">App Store territories</div>
+          </a>
         </div>
       </div>
-      <div class="text-center mt-4 reveal reveal-delay-4" data-live-downloads-wrap>
-        <span class="highlight-label">Live PyPI downloads&nbsp;·&nbsp;</span>
-        <span class="mono" id="live-downloads" style="color:var(--ink); font-weight:600;"></span>
-      </div>
+      <p class="text-center mt-4 mb-0 reveal reveal-delay-4 highlight-foot">
+        30+ native Python libraries cross-compiled for iOS &middot; 5 packages on PyPI &middot;
+        1 peer-reviewed paper &middot; 2 science awards
+      </p>
     </div>
   </section>
 
@@ -453,6 +464,83 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous" defer></script>
 
   <!-- Site motion / counters / live downloads -->
+  <!-- Fill the hero counters from the committed snapshots.
+       Runs BEFORE ui.js (which animates .count from data-count), so by the
+       time the count-up starts the target is the real figure rather than the
+       fallback baked into the markup. If any fetch fails the fallback stands
+       and nothing looks broken. -->
+  <script>
+  (function () {
+    var slots = document.querySelectorAll("[data-stat]");
+    if (!slots.length || !window.fetch) return;
+
+    function grab(url) {
+      return fetch(url + "?cb=" + Date.now())
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .catch(function () { return null; });
+    }
+    // ui.js animates .count elements on intersection, reading data-count at
+    // that moment — and these sit near the top of the page, so it usually
+    // fires before this fetch resolves. Two things are needed, not one:
+    // update the attribute (in case the observer has NOT run yet), and write
+    // the text after the animation window (in case it already has, since a
+    // running count-up would overwrite anything written mid-flight).
+    var started = Date.now();
+    function set(name, value) {
+      if (!(value > 0)) return;                 // never replace a real fallback with 0
+      var el = document.querySelector('[data-stat="' + name + '"]');
+      if (!el) return;
+      el.setAttribute("data-count", String(value));
+      var settle = Math.max(0, 2100 - (Date.now() - started));
+      setTimeout(function () {
+        var want = value.toLocaleString("en-US");
+        if (el.textContent !== want) el.textContent = want;
+      }, settle);
+    }
+
+    var MS = "assets/store-tracker/data/", AP = "assets/appstore-tracker/data/",
+        PY = "assets/pypi-tracker/data/";
+    var PKGS = ["rmt-denoise", "python-to-binary", "narrate", "ollama-installer", "cairometal"];
+
+    Promise.all([
+      grab(MS + "index.json").then(function (ix) {
+        if (!ix) return 0;
+        return Promise.all(ix.map(function (a) { return grab(MS + a.id + ".json"); }))
+          .then(function (ds) {
+            return ds.reduce(function (t, d) { return t + ((d && d.downloads) || 0); }, 0);
+          });
+      }),
+      grab(AP + "index.json").then(function (ix) {
+        if (!ix) return { units: 0, countries: 0 };
+        return Promise.all(ix.map(function (a) { return grab(AP + a.id + ".json"); }))
+          .then(function (ds) {
+            var units = 0, cc = {};
+            ds.forEach(function (d) {
+              if (!d) return;
+              // Same rule the Store Stats page uses: first-time downloads,
+              // falling back to the sales figure only where Apple's breakdown
+              // has not arrived. The hero must not claim a bigger number than
+              // the page it links to.
+              units += d.downloads_first_time != null ? d.downloads_first_time : (d.downloads || 0);
+              (d.territories || []).forEach(function (t) { cc[t.code] = 1; });
+            });
+            return { units: units, countries: Object.keys(cc).length };
+          });
+      }),
+      Promise.all(PKGS.map(function (n) { return grab(PY + n + ".json"); })).then(function (ds) {
+        return ds.reduce(function (t, d) {
+          if (!d || !d.rows) return t;
+          return t + d.rows.reduce(function (u, r) { return u + (r.without_mirrors || 0); }, 0);
+        }, 0);
+      })
+    ]).then(function (res) {
+      set("app-downloads", res[0] + res[1].units);
+      set("countries", res[1].countries);
+      set("pypi-installs", res[2]);
+    }).catch(function () { /* fallbacks stand */ });
+  })();
+  </script>
+
   <script src="assets/js/ui.js?v=20260828-countup" defer></script>
   <!-- Custom JavaScript (arcade easter egg) -->
   <script src="assets/js/main.js?v=20260813-lawn15" defer></script>
