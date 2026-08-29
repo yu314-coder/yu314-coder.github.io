@@ -176,12 +176,13 @@
     // Label the peak — the single most-asked question of a chart like this is
     // "what was the best day", and hunting for the tallest bar is a poor way
     // to answer it.
+    var peakLabel = null;
     if (series[peak].d > 0 && n > 4) {
       var px = x(peak), py = yD(series[peak].d) - 6;
-      var lbl = fmt(series[peak].d);
       var anchor = px < pad.l + 24 ? "start" : (px > W - pad.r - 24 ? "end" : "middle");
-      svg.appendChild(el("text", { x: px, y: Math.max(topY + 9, py), "text-anchor": anchor,
-        "font-size": 10.5, "font-weight": 700, fill: cPer }, lbl));
+      peakLabel = el("text", { x: px, y: Math.max(topY + 9, py), "text-anchor": anchor,
+        "font-size": 10.5, "font-weight": 700, fill: cPer }, fmt(series[peak].d));
+      svg.appendChild(peakLabel);
     }
 
     // 7-day centred mean over the bars.
@@ -225,7 +226,11 @@
     var trect = el("rect", { rx: 6, fill: "rgba(10,14,22,0.96)", stroke: "rgba(255,255,255,0.16)" });
     var tDate = el("text", { "font-size": 10.5, fill: "rgba(255,255,255,0.72)" });
     var tMain = el("text", { "font-size": 12, fill: "#fff", "font-weight": 700 });
-    [rule, dotD, dotC, trect, tDate, tMain].forEach(function (e) { tip.appendChild(e); });
+    // A separate run for the running total. Padding the two apart with spaces
+    // does not work — SVG collapses runs of whitespace, which is why this
+    // rendered as "0Σ5" with the numbers jammed against the sigma.
+    var tCum  = el("text", { "font-size": 11, fill: "rgba(255,255,255,0.62)" });
+    [rule, dotD, dotC, trect, tDate, tMain, tCum].forEach(function (e) { tip.appendChild(e); });
     svg.appendChild(tip);
 
     var hit = el("rect", { x: pad.l, y: topY, width: iw, height: botY + botH - topY, fill: "transparent" });
@@ -238,16 +243,29 @@
       dotD.setAttribute("cx", xi); dotD.setAttribute("cy", yD(s.d));
       dotC.setAttribute("cx", xi); dotC.setAttribute("cy", yC(s.c));
       tDate.textContent = s.date;
-      tMain.textContent = fmt(s.d) + "   \u03a3 " + fmt(s.c);
-      var w1 = tDate.getComputedTextLength ? tDate.getComputedTextLength() : 70;
-      var w2 = tMain.getComputedTextLength ? tMain.getComputedTextLength() : 110;
-      var tw = Math.max(w1, w2) + 18, th = 34;
+      tMain.textContent = fmt(s.d);
+      tCum.textContent = "\u03a3 " + fmt(s.c);
+      var wDate = tDate.getComputedTextLength ? tDate.getComputedTextLength() : 70;
+      var wMain = tMain.getComputedTextLength ? tMain.getComputedTextLength() : 28;
+      var wCum  = tCum.getComputedTextLength ? tCum.getComputedTextLength() : 44;
+      var GAP = 10;
+      var tw = Math.max(wDate, wMain + GAP + wCum) + 18, th = 34;
       var tx = Math.min(Math.max(xi - tw / 2, pad.l), W - pad.r - tw);
       var ty = topY + 2;
       trect.setAttribute("x", tx); trect.setAttribute("y", ty);
       trect.setAttribute("width", tw); trect.setAttribute("height", th);
       tDate.setAttribute("x", tx + 9); tDate.setAttribute("y", ty + 13);
       tMain.setAttribute("x", tx + 9); tMain.setAttribute("y", ty + 27);
+      tCum.setAttribute("x", tx + 9 + wMain + GAP); tCum.setAttribute("y", ty + 27);
+      // The tooltip sits in the same band as the peak label, so hovering near
+      // the peak would hide the very number it labels. The tooltip states the
+      // value anyway, so step the label aside while it is up.
+      if (peakLabel) {
+        var overlaps = tx < +peakLabel.getAttribute("x") + 18 &&
+                       +peakLabel.getAttribute("x") - 18 < tx + tw &&
+                       +peakLabel.getAttribute("y") < ty + th;
+        peakLabel.setAttribute("opacity", overlaps ? "0" : "1");
+      }
       tip.setAttribute("visibility", "visible");
     }
     function fromEvent(ev) {
@@ -257,7 +275,10 @@
     }
     hit.addEventListener("mousemove", fromEvent);
     hit.addEventListener("touchmove", function (ev) { fromEvent(ev); ev.preventDefault(); }, { passive: false });
-    hit.addEventListener("mouseleave", function () { tip.setAttribute("visibility", "hidden"); });
+    hit.addEventListener("mouseleave", function () {
+      tip.setAttribute("visibility", "hidden");
+      if (peakLabel) peakLabel.setAttribute("opacity", "1");
+    });
     svg.appendChild(hit);
     return svg;
   }
