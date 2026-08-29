@@ -614,8 +614,9 @@
       // arriving again; folding them in would inflate the number and is exactly
       // what "downloads" usually means elsewhere and shouldn't here. They get
       // their own tiles so nothing is hidden — just not counted.
-      var repeats = (app.downloads_redownloads || 0) + (app.downloads_auto_downloads || 0)
-                  + (app.downloads_restores || 0);
+      // Repeat INSTALLS only. App updates are a separate thing entirely and
+      // are never added to anything here.
+      var repeats = (app.downloads_redownloads || 0) + (app.downloads_restores || 0);
       var tileRows = [["Downloads", fmt(app.downloads),
                        repeats ? "first-time only \u2014 " + fmt(repeats) + " repeats excluded"
                                : "first-time downloads"],
@@ -635,7 +636,9 @@
       var engUnits = engDays.reduce(function (t, r) { return t + (r.installs || 0); }, 0);
       var engViews = engDays.reduce(function (t, r) { return t + (r.page_views || 0); }, 0);
       if (repeats) tileRows.push(["Repeat installs", fmt(repeats),
-        "not counted above"]);
+        "same people again \u2014 not counted above"]);
+      if (app.downloads_updates) tileRows.push(["App updates", fmt(app.downloads_updates),
+        "existing users, not installs"]);
       if (app.impressions) tileRows.push(["Impressions", fmt(app.impressions),
         "appeared in browse or search"]);
       if (app.page_views) tileRows.push(["Page views", fmt(app.page_views),

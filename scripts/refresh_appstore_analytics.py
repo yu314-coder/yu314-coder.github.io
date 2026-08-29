@@ -367,23 +367,30 @@ def download_breakdown(app_id, bearer):
                 kind = (row.get(c_type) or "").strip()
                 seen_types.add(kind)
                 slot = per_day.setdefault(d, {})
-                slot["total"] = slot.get("total", 0) + n
-                # "First-time download" is the only kind that means a new
-                # person. Redownload, auto-download and restore are all the
-                # same person arriving again, and are deliberately kept out of
-                # the headline rather than folded into it.
+                # Apple's observed Download Type values are:
+                #   First-time download, Redownload, Restore,
+                #   Auto-update, Manual update
+                #
+                # Only the first three are installs. The two update kinds are
+                # existing users receiving a new build — for any app with a
+                # userbase they dwarf the install counts, so summing everything
+                # into one "downloads" figure would be badly wrong. Matching on
+                # the word "auto" alone also caught Auto-update, which is how
+                # an update nearly ended up filed as a repeat install.
                 low = kind.lower()
-                if "first" in low:
-                    bucket = "first_time"
+                if "update" in low:
+                    bucket = "updates"          # not an install at all
+                elif "first" in low:
+                    bucket = "first_time"       # a new person
                 elif "redownload" in low or "re-download" in low:
-                    bucket = "redownloads"
-                elif "auto" in low:
-                    bucket = "auto_downloads"
+                    bucket = "redownloads"      # same person, again
                 elif "restore" in low:
-                    bucket = "restores"
+                    bucket = "restores"         # same person, from a backup
                 else:
                     bucket = "other"
                 slot[bucket] = slot.get(bucket, 0) + n
+                if bucket != "updates":
+                    slot["installs"] = slot.get("installs", 0) + n
     if seen_types:
         log(f"    download types seen: {', '.join(sorted(seen_types))}")
     return per_day
@@ -435,8 +442,8 @@ def main():
         if dl:
             # Keep all three so the page can show first-time downloads AND say
             # what it left out, instead of implying Units is the whole story.
-            KINDS = ("total", "first_time", "redownloads", "auto_downloads",
-                     "restores", "other")
+            KINDS = ("installs", "first_time", "redownloads", "restores",
+                     "updates", "other")
             for key in KINDS:
                 tot = sum(v.get(key, 0) for v in dl.values())
                 if tot:
