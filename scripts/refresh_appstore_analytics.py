@@ -306,34 +306,33 @@ def download_breakdown(app_id, bearer):
     and the headers actually seen are logged, since guessing at them is what
     makes this kind of code rot.
     """
-    req_id = None
+    # Read BOTH request kinds and merge. The snapshot carries the app's whole
+    # history but stops at the day it was generated; the ongoing one carries
+    # only the last day or two but keeps advancing. Using either alone gives a
+    # figure that is stale or truncated — EigenDenoise's snapshot ends three
+    # weeks before its sales data does.
+    instances = []
     for access in ("ONE_TIME_SNAPSHOT", "ONGOING"):
         rid, created = ensure_request(app_id, bearer, access)
-        if rid and not created:
-            req_id = rid
-            break
-    if not req_id:
-        return {}
-    reports = api(f"/analyticsReportRequests/{req_id}/reports"
-                  f"?filter[category]={DOWNLOAD_CATEGORY}&limit=200", bearer)
-    target = None
-    for r in reports.get("data", []):
-        n = (r.get("attributes", {}).get("name") or "").lower()
-        if "app downloads" in n and "standard" in n:
-            target = r
-            break
-    if target is None:
-        return {}
-    inst = api(f"/analyticsReports/{target['id']}/instances"
-               "?filter[granularity]=DAILY&limit=200", bearer)
-    if not inst.get("data"):
+        if not rid or created:
+            continue
+        reports = api(f"/analyticsReportRequests/{rid}/reports"
+                      f"?filter[category]={DOWNLOAD_CATEGORY}&limit=200", bearer)
+        for r in reports.get("data", []):
+            n = (r.get("attributes", {}).get("name") or "").lower()
+            if "app downloads" in n and "standard" in n:
+                inst = api(f"/analyticsReports/{r['id']}/instances"
+                           "?filter[granularity]=DAILY&limit=200", bearer)
+                instances.extend(inst.get("data", []))
+                break
+    if not instances:
         log("    App Downloads report not generated yet")
         return {}
 
-    per_day = {}
+    per_day, staging = {}, {}
     seen_types = set()
     logged_head = False
-    for i in inst["data"]:
+    for i in instances:
         day = i.get("attributes", {}).get("processingDate")
         segs = api(f"/analyticsReportInstances/{i['id']}/segments", bearer)
         for sgm in segs.get("data", []):
@@ -366,7 +365,10 @@ def download_breakdown(app_id, bearer):
                     continue
                 kind = (row.get(c_type) or "").strip()
                 seen_types.add(kind)
-                slot = per_day.setdefault(d, {})
+                # Both requests can report the same date. Keyed by (date,
+                # instance) first so a day seen twice replaces rather than
+                # doubles — the mistake that would silently double a total.
+                slot = staging.setdefault((d, i["id"]), {})
                 # Apple's observed Download Type values are:
                 #   First-time download, Redownload, Restore,
                 #   Auto-update, Manual update
@@ -391,6 +393,12 @@ def download_breakdown(app_id, bearer):
                 slot[bucket] = slot.get(bucket, 0) + n
                 if bucket != "updates":
                     slot["installs"] = slot.get("installs", 0) + n
+    # Collapse (date, instance) -> date, keeping the richest reading for a day
+    # rather than summing two reports of the same day together.
+    for (d, _inst), vals in staging.items():
+        cur = per_day.get(d)
+        if cur is None or sum(vals.values()) > sum(cur.values()):
+            per_day[d] = vals
     if seen_types:
         log(f"    download types seen: {', '.join(sorted(seen_types))}")
     return per_day

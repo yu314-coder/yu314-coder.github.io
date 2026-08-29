@@ -475,6 +475,14 @@
     var APPLE_DATA = "assets/appstore-tracker/data/";
     var asRoot = document.getElementById("as-app");
 
+    // One definition of "downloads" for the whole Apple side: first-time only,
+    // falling back to the sales figure just for apps whose analytics report has
+    // not landed. Every count, bar and total goes through this, so the tiles
+    // and the headline can never quietly disagree.
+    function appleDownloads(a) {
+      return a.downloads_first_time != null ? a.downloads_first_time : (a.downloads || 0);
+    }
+
     function last(rows, days) {
       return rows.slice(-days).reduce(function (t, r) { return t + (r.installs || 0); }, 0);
     }
@@ -491,7 +499,7 @@
           if (!data.length) return;
           // Busiest app first, so the tab that opens by default is the one worth
           // looking at rather than whichever the index happened to list first.
-          data.sort(function (a, b) { return (b.downloads || 0) - (a.downloads || 0); });
+          data.sort(function (a, b) { return appleDownloads(b) - appleDownloads(a); });
           STOREBTN.apple.hidden = false;   // the store is now worth offering
           renderApple(data);
           missingNote(asRoot, missing);
@@ -500,7 +508,7 @@
       .catch(function () { /* leave Apple off the switch; Microsoft still renders */ });
 
     function renderApple(apps) {
-      setStoreCount("apple", apps.reduce(function (t, a) { return t + (a.downloads || 0); }, 0), "units");
+      setStoreCount("apple", apps.reduce(function (t, a) { return t + appleDownloads(a); }, 0), "downloads");
       var overview = buildAppleOverview(apps);
       var tabs = document.createElement("div"); tabs.className = "ss-tabs";
       var body = document.createElement("div");
@@ -539,7 +547,7 @@
     function buildAppleOverview(apps) {
       var total = 0, last30 = 0, days = 0;
       apps.forEach(function (a) {
-        total += a.downloads || 0;
+        total += appleDownloads(a);
         last30 += last(a.rows, 30);
         days = Math.max(days, a.rows.length);
       });
@@ -552,7 +560,7 @@
       var impr = apps.reduce(function (t, a) { return t + (a.impressions || 0); }, 0);
       var views = apps.reduce(function (t, a) { return t + (a.page_views || 0); }, 0);
       var tiles = document.createElement("div"); tiles.className = "ss-ov-tiles";
-      var ovRows = [["Total units", fmt(total)],
+      var ovRows = [["First-time downloads", fmt(total)],
                     ["Last 30 days", fmt(last30)],
                     ["Days reported", fmt(days)]];
       var engSpan = apps.reduce(function (n, a) {
@@ -574,14 +582,15 @@
       wrap.appendChild(tiles);
 
       var cmp = document.createElement("div"); cmp.className = "ss-compare";
-      var maxD = Math.max.apply(null, apps.map(function (a) { return a.downloads || 0; }).concat([1]));
-      apps.slice().sort(function (a, b) { return (b.downloads || 0) - (a.downloads || 0); }).forEach(function (a) {
+      var maxD = Math.max.apply(null, apps.map(appleDownloads).concat([1]));
+      apps.slice().sort(function (a, b) { return appleDownloads(b) - appleDownloads(a); }).forEach(function (a) {
+        var n = appleDownloads(a);
         var row = document.createElement("button"); row.type = "button"; row.className = "ss-cmp-row";
         row.setAttribute("data-id", a.id);
         row.innerHTML = '<span class="ss-cmp-name">' + iconHtml(a.id, "app-icon-sm") + '<span>' + a.app + '</span></span>'
           + '<span class="ss-cmp-track"><span class="ss-cmp-bar" style="width:'
-          + Math.max(2, Math.round(100 * (a.downloads || 0) / maxD)) + '%"></span></span>'
-          + '<span class="ss-cmp-val">' + fmt(a.downloads) + '</span>';
+          + Math.max(2, Math.round(100 * n / maxD)) + '%"></span></span>'
+          + '<span class="ss-cmp-val">' + fmt(n) + '</span>';
         cmp.appendChild(row);
       });
       wrap.appendChild(cmp);
@@ -617,7 +626,22 @@
       // Repeat INSTALLS only. App updates are a separate thing entirely and
       // are never added to anything here.
       var repeats = (app.downloads_redownloads || 0) + (app.downloads_restores || 0);
-      var tileRows = [["Downloads", fmt(app.downloads), "first-time downloads"],
+      // THE headline number: first-time downloads and nothing else, which is
+      // what App Store Connect reports.
+      //
+      // This deliberately does NOT use the sales endpoint's Units. Measured
+      // over the days both reports cover, Units equals
+      // first-time + redownloads + restores + updates — exactly, for
+      // SidecarBridge (142 = 71+23+0+48), within one for ManimStudio. Apple's
+      // documentation says Units excludes those; the data says it does not, so
+      // the data wins. Using it would overstate ManimStudio by 50%.
+      //
+      // Falls back to Units only when the analytics report has not arrived for
+      // an app yet, where an inflated number beats no number.
+      var firstTime = app.downloads_first_time;
+      var tileRows = [["Downloads", fmt(firstTime != null ? firstTime : app.downloads),
+                       firstTime != null ? "first-time only, as App Store Connect counts it"
+                                         : "all download events \u2014 breakdown pending"],
                       ["Last 30 days", fmt(last(rows, 30)), "rolling window"],
                       ["Best day", fmt(best.installs), best.date || "—"],
                       ["Daily average", avg.toFixed(avg < 10 ? 1 : 0), "over " + fmt(rows.length) + " reported days"]];
@@ -631,7 +655,9 @@
       // dividing the full unit total by a short page-view total gives a rate
       // over 100% — which is what this did before, reporting 111%.
       var engDays = rows.filter(function (r) { return r.page_views != null; });
-      var engUnits = engDays.reduce(function (t, r) { return t + (r.installs || 0); }, 0);
+      var engUnits = engDays.reduce(function (t, r) {
+        return t + (r.dl_first_time != null ? r.dl_first_time : (r.installs || 0));
+      }, 0);
       var engViews = engDays.reduce(function (t, r) { return t + (r.page_views || 0); }, 0);
       // These come from Apple's App Downloads report, which spans a shorter
       // period than the sales history above and uses different day boundaries.
@@ -702,7 +728,7 @@
       }
       paintApple(metrics[0]);
 
-      var geo = geoBlock("downloads by country", app.territories, "units", "downloads");
+      var geo = geoBlock("download events by country", app.territories, "units", "download events");
       if (geo) body.appendChild(geo);
       var geoImpr = geoBlock("impressions by country", app.impression_territories,
                              "impressions", "impressions");
