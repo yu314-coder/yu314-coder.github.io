@@ -206,58 +206,52 @@ def harvest(app_id, bearer):
     report carries a Territory column, same as the sales report carries a
     Country Code, so impressions get a country split for free too.
     """
-    # Snapshot first: it carries history, which is what makes impressions line
-    # up with the download series rather than starting from today.
-    req_id = None
+    # Read BOTH request kinds and merge, exactly as the downloads breakdown
+    # does. This used to break on ONE_TIME_SNAPSHOT, which is a frozen
+    # historical snapshot — it never advances, so impressions and page views
+    # sat at the same value forever while downloads moved underneath them.
+    # ManimStudio reported 2,511 impressions on every run for days.
+    instances = []
+    offered = []
     for access in ("ONE_TIME_SNAPSHOT", "ONGOING"):
         rid, created = ensure_request(app_id, bearer, access)
         if created:
             log(f"    created a {access} report request — Apple takes about "
                 f"24-48h to generate the first one")
-        if rid and not created:
-            req_id = rid
-            break
-        if rid and req_id is None:
-            req_id = rid
-    if not req_id:
-        log("    no report request and could not create one")
-        return {}, {}
-
-    reports = api(f"/analyticsReportRequests/{req_id}/reports"
-                  f"?filter[category]={CATEGORY}&limit=200", bearer)
-    names = [r.get("attributes", {}).get("name", "?") for r in reports.get("data", [])]
-    if not names:
-        log(f"    no {CATEGORY} reports available yet")
-        return {}, {}
-    log(f"    reports offered: {', '.join(names)}")
-
-    # Prefer the standard discovery/engagement report; fall back to anything
-    # whose name mentions engagement or discovery.
-    target = None
-    for r in reports.get("data", []):
-        n = (r.get("attributes", {}).get("name") or "").lower()
-        if "discovery and engagement" in n:
-            target = r
-            break
-    if target is None:
-        for r in reports.get("data", []):
+            continue
+        if not rid:
+            continue
+        reports = api(f"/analyticsReportRequests/{rid}/reports"
+                      f"?filter[category]={CATEGORY}&limit=200", bearer)
+        rows = reports.get("data", [])
+        if not offered:
+            offered = [r.get("attributes", {}).get("name", "?") for r in rows]
+        target = None
+        for r in rows:
             n = (r.get("attributes", {}).get("name") or "").lower()
-            if "engagement" in n or "discovery" in n:
+            if "discovery and engagement" in n:
                 target = r
                 break
-    if target is None:
-        log("    none of the offered reports look like discovery/engagement")
-        return {}, {}
+        if target is None:
+            for r in rows:
+                n = (r.get("attributes", {}).get("name") or "").lower()
+                if "engagement" in n or "discovery" in n:
+                    target = r
+                    break
+        if target is None:
+            continue
+        inst = api(f"/analyticsReports/{target['id']}/instances"
+                   "?filter[granularity]=DAILY&limit=200", bearer)
+        instances.extend(inst.get("data", []))
 
-    inst = api(f"/analyticsReports/{target['id']}/instances"
-               "?filter[granularity]=DAILY&limit=200", bearer)
-    instances = inst.get("data", [])
+    if offered:
+        log(f"    reports offered: {', '.join(offered)}")
     if not instances:
-        log("    report exists but has no DAILY instances yet")
+        log(f"    no {CATEGORY} daily instances yet")
         return {}, {}
     log(f"    {len(instances)} daily instance(s)")
 
-    per_day, per_country = {}, {}
+    per_day, per_country, eng_staging = {}, {}, {}
     for i in instances:
         day = i.get("attributes", {}).get("processingDate")
         segs = api(f"/analyticsReportInstances/{i['id']}/segments", bearer)
@@ -285,7 +279,11 @@ def harvest(app_id, bearer):
                     n = int(float(row.get(c_count) or 0))
                 except ValueError:
                     continue
-                slot = per_day.setdefault(d, {"impressions": 0, "page_views": 0})
+                # Keyed by (date, instance) first. Now that both request kinds
+                # are read, the same date can arrive twice — and this branch
+                # ADDS, so an overlapping day would be counted double.
+                slot = eng_staging.setdefault((d, i["id"]),
+                                               {"impressions": 0, "page_views": 0, "cc": {}})
                 # Apple splits impressions into unique/total and page views by
                 # page type; sum the families rather than pinning exact strings.
                 if "impression" in ev:
@@ -293,9 +291,22 @@ def harvest(app_id, bearer):
                     if c_terr:
                         cc = (row.get(c_terr) or "").strip().upper()
                         if cc:
-                            per_country[cc] = per_country.get(cc, 0) + n
+                            # Per-day too, or an overlapping date would inflate
+                            # the country split the same way it would the total.
+                            slot["cc"][cc] = slot["cc"].get(cc, 0) + n
                 elif "page view" in ev or "page_view" in ev:
                     slot["page_views"] += n
+    # Collapse (date, instance) -> date, keeping the fuller reading for a day
+    # rather than summing two reports of the same day together.
+    best = {}
+    for (d, _inst), vals in eng_staging.items():
+        cur = best.get(d)
+        if cur is None or (vals["impressions"] + vals["page_views"]) > (cur["impressions"] + cur["page_views"]):
+            best[d] = vals
+    for d, vals in best.items():
+        per_day[d] = {"impressions": vals["impressions"], "page_views": vals["page_views"]}
+        for cc, nn in vals["cc"].items():
+            per_country[cc] = per_country.get(cc, 0) + nn
     return per_day, per_country
 
 
