@@ -1079,31 +1079,45 @@
     return RES_FINE;
   }
 
-  // Swap to the fast set as soon as an interaction starts, and back a beat
-  // after it stops. plotly_relayouting fires continuously during a drag or
-  // zoom; plotly_relayout fires once it settles.
+  // Swap on HOVER, not on drag.
+  //
+  // Two things rule out the obvious approaches. Plotly emits no events at all
+  // during a geo pan — plotly_relayouting is a cartesian-only signal, verified
+  // by listening for every plot event through a full drag and receiving none.
+  // And relayouting mid-gesture would be wrong even if it were possible: it
+  // rebuilds the drag layer under the pointer and kills the gesture in flight.
+  //
+  // Hover is the signal that works. A mouse always crosses the map before it
+  // presses, so the swap lands while nothing is being dragged, and by the time
+  // a drag starts the cheap coastlines are already in place. Touch has no
+  // hover, which is fine — those devices never take the fine set at all.
   var movingRes = false, resIdleTimer = null, resBound = false;
   function bindGeoResolutionSwap() {
-    if (resBound || !els.map || !els.map.on) return;
+    if (resBound || !els.map) return;
     resBound = true;
+    if (isTouchDevice()) return;          // already permanently on the fast set
+
     function toFast() {
-      if (movingRes || geoResolution() === RES_FAST) return;
+      clearTimeout(resIdleTimer);
+      if (movingRes) return;
       movingRes = true;
       try { Plotly.relayout(els.map, { "geo.resolution": RES_FAST }); } catch (e) {}
     }
     function toFineSoon() {
       clearTimeout(resIdleTimer);
+      // Long enough that crossing the map on the way somewhere else does not
+      // cost two relayouts.
       resIdleTimer = setTimeout(function () {
         if (!movingRes) return;
         movingRes = false;
-        if (isTouchDevice()) return;      // never pay for the fine set here
         try { Plotly.relayout(els.map, { "geo.resolution": RES_FINE }); } catch (e) {}
-      }, 350);
+      }, 900);
     }
-    try {
-      els.map.on("plotly_relayouting", function () { toFast(); toFineSoon(); });
-      els.map.on("plotly_relayout", toFineSoon);
-    } catch (e) { /* not a gd yet */ }
+    els.map.addEventListener("pointerenter", toFast);
+    els.map.addEventListener("mouseenter", toFast);
+    els.map.addEventListener("wheel", toFast, { passive: true });
+    els.map.addEventListener("pointerleave", toFineSoon);
+    els.map.addEventListener("mouseleave", toFineSoon);
   }
 
   function geoLayout() {
