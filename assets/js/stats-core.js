@@ -93,7 +93,14 @@
     var step = Math.max(1, Math.ceil(series.length / Math.min(maxTicks, series.length)));
     var out = [];
     for (var k = 0; k < series.length; k += step) out.push(k);
-    if (out[out.length - 1] !== series.length - 1) out.push(series.length - 1);
+    // Always end on the last point, but REPLACE a near neighbour rather than
+    // appending next to it — pushing the final index unconditionally is what
+    // produced "Aug 25" and "Aug 27" printed on top of each other.
+    var lastIdx = series.length - 1;
+    if (out[out.length - 1] !== lastIdx) {
+      if (lastIdx - out[out.length - 1] < step * 0.6) out[out.length - 1] = lastIdx;
+      else out.push(lastIdx);
+    }
     return out;
   }
 
@@ -208,7 +215,11 @@
       "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }));
 
     // x labels, shared by both panels.
-    dateTicks(series, 7).forEach(function (i, k, arr) {
+    // How many date labels fit is a function of width, not a constant. Seven
+    // labels need ~450px; a 402px chart on a tablet has ~330px of plot, and
+    // they ran into each other.
+    var maxTicks = Math.max(2, Math.min(8, Math.floor(iw / 64)));
+    dateTicks(series, maxTicks).forEach(function (i, k, arr) {
       var anchor = i === 0 ? "start" : (i === n - 1 ? "end" : "middle");
       svg.appendChild(el("text", { x: x(i), y: H - 8, "font-size": 10, fill: cAxis,
         "text-anchor": anchor }, shortDate(series[i].date)));
