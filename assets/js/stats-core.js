@@ -216,10 +216,25 @@
 
     // x labels, shared by both panels.
     // How many date labels fit is a function of width, not a constant. Seven
-    // labels need ~450px; a 402px chart on a tablet has ~330px of plot, and
-    // they ran into each other.
+    // labels need ~450px; a 402px chart on a tablet has ~330px of plot.
+    //
+    // Index spacing alone is not enough, though: the first and last labels are
+    // anchored start/end rather than centred, so the final one is pulled
+    // inward from the plot edge and can still land on its neighbour even when
+    // the indices look evenly spread. Filter on actual pixel positions, which
+    // is the thing that was overlapping.
     var maxTicks = Math.max(2, Math.min(8, Math.floor(iw / 64)));
-    dateTicks(series, maxTicks).forEach(function (i, k, arr) {
+    var MIN_GAP = 56;
+    var picked = [];
+    dateTicks(series, maxTicks).forEach(function (i) {
+      if (!picked.length || x(i) - x(picked[picked.length - 1]) >= MIN_GAP) picked.push(i);
+    });
+    // The last point always gets a label; drop whatever it would crowd.
+    if (picked[picked.length - 1] !== n - 1) {
+      while (picked.length && x(n - 1) - x(picked[picked.length - 1]) < MIN_GAP) picked.pop();
+      picked.push(n - 1);
+    }
+    picked.forEach(function (i, k, arr) {
       var anchor = i === 0 ? "start" : (i === n - 1 ? "end" : "middle");
       svg.appendChild(el("text", { x: x(i), y: H - 8, "font-size": 10, fill: cAxis,
         "text-anchor": anchor }, shortDate(series[i].date)));
