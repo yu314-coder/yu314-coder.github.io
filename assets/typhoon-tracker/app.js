@@ -799,6 +799,7 @@
       fitBound = true;
       try { els.map.on("plotly_afterplot", fitMapBoxToDrawing); } catch (e) { /* not a gd yet */ }
     }
+    bindGeoResolutionSwap();
     if (fitPending) return;
     fitPending = true;
     requestAnimationFrame(function () {
@@ -1047,13 +1048,62 @@
   // Touch devices pan constantly and have the least CPU headroom, so they get
   // the lighter set. A mouse pointer on a wide screen keeps the fine
   // coastlines, where the detail is both visible and affordable.
-  function geoResolution() {
+  // Two resolutions, chosen by what the map is doing.
+  //
+  // Measured on this page, warmed up, timing the render Plotly actually runs
+  // per drag frame: the 50m set is 48,404 path vertices at ~522ms a frame; the
+  // 110m set is 4,465 vertices at ~35ms. That is 2fps against 29fps. The fine
+  // coastlines are not merely slow on a tablet, they are unusable for dragging
+  // on any machine — the tablet just made an existing problem obvious.
+  //
+  // So: fine detail while the map sits still, coarse while it moves, swapping
+  // once per interaction rather than once per frame. Touch devices stay coarse
+  // throughout, since every interaction there is a drag and the swap would be
+  // constant.
+  var RES_FINE = 50, RES_FAST = 110;
+
+  function isTouchDevice() {
     try {
-      if (window.matchMedia &&
-          window.matchMedia("(pointer: coarse)").matches) return 110;
-      if (window.innerWidth < 900) return 110;
+      // maxTouchPoints matters as well as the media query: an iPad with a
+      // keyboard reports "pointer: fine" while still being a touch device
+      // that pans by dragging.
+      if (navigator.maxTouchPoints > 0) return true;
+      if (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) return true;
     } catch (e) {}
-    return 50;
+    return false;
+  }
+  function geoResolution() {
+    if (movingRes) return RES_FAST;
+    if (isTouchDevice()) return RES_FAST;
+    try { if (window.innerWidth < 900) return RES_FAST; } catch (e) {}
+    return RES_FINE;
+  }
+
+  // Swap to the fast set as soon as an interaction starts, and back a beat
+  // after it stops. plotly_relayouting fires continuously during a drag or
+  // zoom; plotly_relayout fires once it settles.
+  var movingRes = false, resIdleTimer = null, resBound = false;
+  function bindGeoResolutionSwap() {
+    if (resBound || !els.map || !els.map.on) return;
+    resBound = true;
+    function toFast() {
+      if (movingRes || geoResolution() === RES_FAST) return;
+      movingRes = true;
+      try { Plotly.relayout(els.map, { "geo.resolution": RES_FAST }); } catch (e) {}
+    }
+    function toFineSoon() {
+      clearTimeout(resIdleTimer);
+      resIdleTimer = setTimeout(function () {
+        if (!movingRes) return;
+        movingRes = false;
+        if (isTouchDevice()) return;      // never pay for the fine set here
+        try { Plotly.relayout(els.map, { "geo.resolution": RES_FINE }); } catch (e) {}
+      }, 350);
+    }
+    try {
+      els.map.on("plotly_relayouting", function () { toFast(); toFineSoon(); });
+      els.map.on("plotly_relayout", toFineSoon);
+    } catch (e) { /* not a gd yet */ }
   }
 
   function geoLayout() {
