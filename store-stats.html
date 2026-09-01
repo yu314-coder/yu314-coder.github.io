@@ -495,6 +495,24 @@
     function rowDownloads(r) {
       return r.dl_first_time != null ? r.dl_first_time : (r.installs || 0);
     }
+    // Days actually covered by the data: earliest date to latest, across every
+    // app. This used to be Math.max of the per-app row counts, which reports
+    // the longest SINGLE series — so it sat at 100 for days, pinned by
+    // GPS-location-app, whose window stopped advancing on 2026-08-27 while
+    // every other app reached 08-31. A number that freezes whenever one quiet
+    // app happens to hold the record is not measuring anything.
+    function spanDays(apps, field) {
+      var lo = null, hi = null;
+      apps.forEach(function (a) {
+        (a.rows || []).forEach(function (r) {
+          if (field && r[field] == null) return;
+          if (lo === null || r.date < lo) lo = r.date;
+          if (hi === null || r.date > hi) hi = r.date;
+        });
+      });
+      if (!lo || !hi) return 0;
+      return Math.round((Date.parse(hi) - Date.parse(lo)) / 86400000) + 1;
+    }
 
     function last(rows, days) {
       return rows.slice(-days).reduce(function (t, r) { return t + rowDownloads(r); }, 0);
@@ -562,8 +580,8 @@
       apps.forEach(function (a) {
         total += appleDownloads(a);
         last30 += last(appleRows(a), 30);
-        days = Math.max(days, appleRows(a).length);
       });
+      days = spanDays(apps, "dl_first_time") || spanDays(apps, null);
       var wrap = document.createElement("div"); wrap.className = "ss-overview";
       wrap.innerHTML = '<p class="ss-ov-head">all apple apps &middot; ' + apps.length + ' tracked</p>';
 
@@ -576,9 +594,7 @@
       var ovRows = [["First-time downloads", fmt(total)],
                     ["Last 30 days", fmt(last30)],
                     ["Days reported", fmt(days)]];
-      var engSpan = apps.reduce(function (n, a) {
-        return Math.max(n, (a.rows || []).filter(function (r) { return r.impressions != null || r.page_views != null; }).length);
-      }, 0);
+      var engSpan = spanDays(apps, "impressions");
       if (impr) ovRows.push(["Impressions &middot; " + engSpan + "d", fmt(impr)]);
       if (views) ovRows.push(["Page views &middot; " + engSpan + "d", fmt(views)]);
       // Countries across every app, deduplicated — the reach number.
