@@ -116,7 +116,38 @@ jobs:
           git add assets/appstore-tracker/data
           if git diff --cached --quiet; then
             echo "No change in App Store snapshots."
-          else
-            git commit -m "chore: refresh App Store download snapshots"
-            git push
+            exit 0
           fi
+          git commit -m "chore: refresh App Store download snapshots"
+
+          # main moves under this job. It runs hourly AND after three other
+          # workflows complete, so it frequently starts moments after one of
+          # them pushed — which is exactly how it failed: checked out, worked,
+          # then found main had advanced and the push was rejected. Making it
+          # run more often is what made a rare race routine.
+          #
+          # Two App Store runs cannot overlap (the concurrency group queues
+          # them), so whatever landed on main touched OTHER paths. Replaying
+          # our snapshots on top of it is safe and loses nothing.
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "main moved; replaying the snapshots on top of it (attempt $attempt)"
+            git fetch origin main
+            # --mixed, NOT --soft. --soft moves HEAD but keeps the index this
+            # runner built, so the next commit records a tree that predates
+            # whatever landed on main and silently deletes it. That happened
+            # once in this repo already — see the same guard in
+            # refresh-typhoon-forecast.yml. --mixed resets the index to main
+            # and leaves our files in the working tree, so the add below
+            # stages only ours.
+            git reset --mixed origin/main
+            git add assets/appstore-tracker/data
+            if git diff --staged --quiet; then
+              echo "main already has these snapshots"
+              exit 0
+            fi
+            git commit -m "chore: refresh App Store download snapshots"
+          done
+          echo "::warning title=Could not push::main kept moving; the next run refreshes it anyway"
