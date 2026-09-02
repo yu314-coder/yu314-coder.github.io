@@ -35,7 +35,33 @@ jobs:
           git add assets/pypi-tracker/data
           if git diff --cached --quiet; then
             echo "No change in pypistats snapshots."
-          else
-            git commit -m "chore: refresh pypistats snapshots"
-            git push
+            exit 0
           fi
+          git commit -m "chore: refresh pypistats snapshots"
+
+          # main moves under this job. Several scheduled workflows commit to
+          # this repo, so a run that checks out, works, then pushes can find
+          # main already advanced and be rejected non-fast-forward. The App
+          # Store job hit exactly that on 2026-09-02.
+          #
+          # Two of these cannot overlap (the concurrency group queues them), so
+          # whatever landed touched other paths and replaying ours loses nothing.
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "main moved; replaying on top of it (attempt $attempt)"
+            git fetch origin main
+            # --mixed, NOT --soft. --soft moves HEAD but keeps the index this
+            # runner built, so the next commit records a tree that predates
+            # whatever landed on main and silently deletes it. That happened
+            # once in this repo already; see refresh-typhoon-forecast.yml.
+            git reset --mixed origin/main
+            git add assets/pypi-tracker/data
+            if git diff --staged --quiet; then
+              echo "main already has this"
+              exit 0
+            fi
+            git commit -m "chore: refresh pypistats snapshots"
+          done
+          echo "::warning title=Could not push::main kept moving; the next run refreshes it anyway"
