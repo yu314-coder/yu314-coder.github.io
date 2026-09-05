@@ -90,7 +90,7 @@
           <div class="card-body d-flex flex-column">
             <div class="d-flex align-items-center gap-3 mb-3">
               <span class="app-icon app-icon--gh" role="img" aria-label="rmt-denoise on GitHub"></span>
-              <h5 class="card-title mb-0">rmt-denoise <span class="badge-neutral mono ms-1">v2.3.0</span></h5>
+              <h5 class="card-title mb-0">rmt-denoise <span class="badge-neutral mono ms-1 pkg-ver" data-pkg="rmt-denoise">v2.3.0</span></h5>
             </div>
             <p class="card-text flex-grow-1">Image denoising via Random Matrix Theory. Two denoisers — MP-Law thresholding (i.i.d. Gaussian) and GeneralizedCov (oracle search for (a, β) via differential evolution). The Python library counterpart to EigenDenoise.</p>
             <div class="d-flex gap-2 mt-auto">
@@ -431,6 +431,38 @@
                        (pkg.updated_utc || "").replace("T", " ").replace("Z", " UTC");
       body.appendChild(up);
     }
+  })();
+  </script>
+
+  <!-- Versions on the package cards, from the same committed snapshots the
+       panel below uses. rmt-denoise's was hand-typed and happened to be
+       right; the rest showed nothing. Cards opt in by linking to PyPI, so
+       nothing needs editing when a package is added. -->
+  <script>
+  (function () {
+    if (!window.fetch) return;
+    var cards = document.querySelectorAll(".card");
+    [].forEach.call(cards, function (card) {
+      var a = card.querySelector('a[href*="pypi.org/project/"]');
+      if (!a) return;
+      var m = /project\/([a-z0-9._-]+)/i.exec(a.getAttribute("href") || "");
+      if (!m) return;
+      var head = card.querySelector("h5, .card-title");
+      if (!head) return;
+      fetch("assets/pypi-tracker/data/" + m[1] + ".json?cb=" + Date.now())
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (!d || !d.version) return;
+          var b = head.querySelector(".pkg-ver");
+          if (b) { b.textContent = "v" + d.version; return; }
+          b = document.createElement("span");
+          b.className = "badge-neutral mono ms-1 pkg-ver";
+          b.textContent = "v" + d.version;
+          if (d.version_released) b.title = "Published " + d.version_released;
+          head.appendChild(b);
+        })
+        .catch(function () { /* keep whatever the markup says */ });
+    });
   })();
   </script>
 
