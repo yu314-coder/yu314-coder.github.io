@@ -41,7 +41,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@200;300;400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 
   <!-- Site stylesheet (single source of truth) -->
-  <link rel="stylesheet" href="assets/css/stats.css?v=20260828-stats1">
+  <link rel="stylesheet" href="assets/css/stats.css?v=20260904-ver1">
   <link rel="stylesheet" href="assets/css/style.css?v=20260829-show1">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
@@ -373,8 +373,11 @@
 
       var head = document.createElement("div"); head.className = "ss-panel-head";
       head.innerHTML =
-        '<div class="ss-panel-id"><div><h3>' + pkg.package + '</h3>' +
-        '<span class="ss-store-id">' + rows[0].date + " to " + rows[rows.length - 1].date + '</span></div></div>' +
+        '<div class="ss-panel-id"><div><h3>' + pkg.package +
+          (pkg.version ? ' <span class="ss-ver">v' + pkg.version + '</span>' : '') + '</h3>' +
+        '<span class="ss-store-id">' + rows[0].date + " to " + rows[rows.length - 1].date +
+          (pkg.version_released ? ' &middot; v' + pkg.version + ' published ' + pkg.version_released : '') +
+          '</span></div></div>' +
         '<a class="btn btn-ghost btn-sm" href="https://pypi.org/project/' + pkg.package +
         '/" target="_blank" rel="noopener noreferrer">View on PyPI</a>';
       body.appendChild(head);

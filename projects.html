@@ -1621,7 +1621,7 @@
               <h3 class="h2 mb-1 fw-bold">py2bin</h3>
               <div class="d-flex flex-wrap gap-2">
                 <span class="badge-neutral mono">python-to-binary</span>
-                <span class="badge-accent mono">v0.9.11 on PyPI</span>
+                <span class="badge-accent mono">v0.9.13 on PyPI</span>
                 <span class="badge-neutral mono">MIT</span>
               </div>
             </div>
@@ -1702,7 +1702,7 @@
           <div>
             <div class="sec-head">
               <h4 class="h5 fw-bold">Every target reached</h4>
-              <span class="sec-note">v0.9.11 &middot; and how far each is proven</span>
+              <span class="sec-note">v0.9.13 &middot; and how far each is proven</span>
             </div>
             <table class="matrix">
               <thead>
@@ -1941,7 +1941,7 @@
                 <tr><th scope="row">Language</th><td>Python, standard library only &middot; 51 modules</td></tr>
                 <tr><th scope="row">Requires</th><td>Python 3.10+ on the build machine</td></tr>
                 <tr><th scope="row">Licence</th><td>MIT</td></tr>
-                <tr><th scope="row">Status</th><td>v0.9.11 &mdash; <code>compile-capi</code> under active work</td></tr>
+                <tr><th scope="row">Status</th><td>v0.9.13 &mdash; <code>compile-capi</code> under active work</td></tr>
               </tbody>
             </table>
           </div>
@@ -2130,6 +2130,49 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous" defer></script>
 
   <!-- Site motion (scroll-reveal, counters, navbar frost) -->
+  <!-- Stamp the shipping version onto every card that links to the App Store.
+       Versions were hand-typed here and rotted — python-to-binary read 0.9.11
+       in three places against a published 0.9.13. Rather than retype them and
+       wait for the same thing to happen, read the numbers the nightly job
+       already records, and key off the store links that are in the markup
+       anyway so no card needs editing to opt in. -->
+  <script>
+  (function () {
+    var links = document.querySelectorAll('a[href*="apps.apple.com/app/"]');
+    if (!links.length || !window.fetch) return;
+    var DATA = "assets/appstore-tracker/data/";
+
+    var byId = {};
+    [].forEach.call(links, function (a) {
+      var m = /\/id(\d+)/.exec(a.getAttribute("href") || "");
+      if (!m) return;
+      // The heading of the card this link sits in.
+      var card = a.closest(".card, .card-body") || a.parentElement;
+      var h = card && card.querySelector("h3, h4, h5, .card-title");
+      if (h) (byId[m[1]] = byId[m[1]] || []).push(h);
+    });
+    var ids = Object.keys(byId);
+    if (!ids.length) return;
+
+    ids.forEach(function (id) {
+      fetch(DATA + id + ".json?cb=" + Date.now())
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (!d || !d.version) return;
+          byId[id].forEach(function (h) {
+            if (h.querySelector(".app-ver")) return;
+            var b = document.createElement("span");
+            b.className = "badge-neutral mono ms-1 app-ver";
+            b.textContent = "v" + d.version;
+            if (d.version_released) b.title = "Shipped " + d.version_released;
+            h.appendChild(b);
+          });
+        })
+        .catch(function () { /* no badge is better than a wrong one */ });
+    });
+  })();
+  </script>
+
   <script src="assets/js/ui.js?v=20260828-countup" defer></script>
 
   <!-- Custom JavaScript (arcade) -->

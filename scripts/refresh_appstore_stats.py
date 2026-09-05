@@ -178,6 +178,37 @@ def units_by_app(rows):
     return out, by_country
 
 
+def storefront_version(app_id):
+    """Current public version and release date, from Apple's lookup endpoint.
+
+    Not the Connect API — this is the same unauthenticated endpoint the App
+    Store website uses, so it needs no credentials and reports exactly what a
+    customer sees. Version numbers on the site were hand-typed and had rotted
+    (python-to-binary read 0.9.11 against a published 0.9.13); reading them
+    each run is the only way they stay true.
+
+    Returns {} on any failure — a stale version beats a blank one.
+    """
+    url = f"https://itunes.apple.com/lookup?id={app_id}"
+    try:
+        with urllib.request.urlopen(url, timeout=30) as r:
+            d = json.loads(r.read().decode("utf-8", "replace"))
+    except Exception as exc:                                  # noqa: BLE001
+        log(f"    version lookup failed: {type(exc).__name__}")
+        return {}
+    if not d.get("resultCount"):
+        return {}
+    r0 = d["results"][0]
+    out = {}
+    if r0.get("version"):
+        out["version"] = str(r0["version"])
+    if r0.get("currentVersionReleaseDate"):
+        out["version_released"] = r0["currentVersionReleaseDate"][:10]
+    if r0.get("minimumOsVersion"):
+        out["min_os"] = str(r0["minimumOsVersion"])
+    return out
+
+
 def load_existing(app_id):
     """Committed history for one app: ({date: units}, {date: {cc: units}})."""
     p = OUT / f"{app_id}.json"
@@ -274,6 +305,7 @@ def main():
                 totals[cc] = totals.get(cc, 0) + n
         territories = [{"code": cc, "units": n}
                        for cc, n in sorted(totals.items(), key=lambda kv: (-kv[1], kv[0]))]
+        meta = storefront_version(app_id)
         payload = {
             "app": name,
             "id": app_id,
@@ -285,6 +317,7 @@ def main():
             "territory_days": terr[app_id],
             "rows": rows,
         }
+        payload.update(meta)
         # Write only when something other than the clock moved. Apple publishes
         # once a day, so most runs find nothing new — and restamping
         # updated_utc every time would commit on every run, which at an hourly
@@ -294,6 +327,7 @@ def main():
         path = OUT / f"{app_id}.json"
         index.append({"id": app_id, "name": name})
         top = ", ".join(f"{t['code']} {t['units']}" for t in territories[:4]) or "no country data"
+        ver = (" v" + meta["version"]) if meta.get("version") else ""
         if path.exists():
             try:
                 prev = json.loads(path.read_text())
@@ -304,7 +338,7 @@ def main():
             except Exception:                                 # noqa: BLE001
                 pass                                          # unreadable: rewrite it
         path.write_text(json.dumps(payload, separators=(",", ":")))
-        log(f"  {name}: {payload['downloads']} units over {len(rows)} day(s) "
+        log(f"  {name}{ver}: {payload['downloads']} units over {len(rows)} day(s) "
             f"| {len(territories)} countries — {top}")
 
     (OUT / "index.json").write_text(json.dumps(index, separators=(",", ":")))

@@ -132,3 +132,13 @@
 .ss-geo-val{font:700 .85rem/1 JetBrains Mono,monospace;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
 .ss-geo-more{font:500 .78rem/1.3 Inter,sans-serif;color:var(--ink-3);margin:.6rem .5rem 0}
 .ss-empty{background:var(--bg-alt);border:1px dashed var(--line);border-radius:var(--r);padding:2rem;text-align:center;color:var(--ink-2)}
+
+/* Shipping version beside an app or package name. Deliberately quieter than
+   the name: it is context, not identity. */
+.ss-ver {
+  font: 600 .72rem/1 var(--font-mono), monospace;
+  letter-spacing: .02em; vertical-align: .18em;
+  padding: .18rem .42rem; border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+}

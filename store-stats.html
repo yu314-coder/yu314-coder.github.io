@@ -34,7 +34,7 @@
   <link rel="stylesheet" href="assets/css/style.css?v=20260829-show1">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 
-  <link rel="stylesheet" href="assets/css/stats.css?v=20260828-stats1">
+  <link rel="stylesheet" href="assets/css/stats.css?v=20260904-ver1">
 </head>
 <body class="theme-dark">
   <!-- Navigation -->
@@ -637,7 +637,10 @@
       var head = document.createElement("div"); head.className = "ss-panel-head";
       head.innerHTML =
         '<div class="ss-panel-id">' + iconHtml(app.id) +
-        '<div><h3>' + app.app + '</h3><span class="ss-store-id">Apple ID ' + app.id + '</span></div></div>' +
+        '<div><h3>' + app.app + (app.version ? ' <span class="ss-ver">v' + app.version + '</span>' : '') + '</h3>' +
+        '<span class="ss-store-id">Apple ID ' + app.id +
+          (app.version_released ? ' &middot; shipped ' + app.version_released : '') +
+          (app.min_os ? ' &middot; needs iOS ' + app.min_os : '') + '</span></div></div>' +
         '<a class="store-badge store-badge-sm" href="https://apps.apple.com/app/' + meta[0] + '/id' + app.id +
         '" target="_blank" rel="noopener noreferrer" aria-label="Download ' + app.app + ' on the ' + meta[2] + '">' +
         '<img src="assets/img/badges/' + meta[1] + '.svg" alt="Download on the ' + meta[2] + '"></a>';

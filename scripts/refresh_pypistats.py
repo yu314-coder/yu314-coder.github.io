@@ -53,6 +53,36 @@ def fetch(pkg):
             for d in sorted(per_day)]
 
 
+def latest_version(pkg):
+    """Current published version and its upload date, from PyPI's JSON API.
+
+    Versions on the site were hand-typed and had drifted — python-to-binary
+    read 0.9.11 in three places against a published 0.9.13. Reading them each
+    run is the only thing that keeps them true. Returns {} on failure, since a
+    stale version still beats a blank one.
+    """
+    try:
+        req = urllib.request.Request(
+            f"https://pypi.org/pypi/{pkg}/json",
+            headers={"User-Agent": "yu314-coder.github.io stats refresher"})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            d = json.load(r)
+    except Exception as exc:                                  # noqa: BLE001
+        print(f"{pkg}: version lookup failed ({type(exc).__name__})")
+        return {}
+    info = d.get("info") or {}
+    v = info.get("version")
+    if not v:
+        return {}
+    out = {"version": v}
+    files = (d.get("releases") or {}).get(v) or []
+    if files and files[0].get("upload_time"):
+        out["version_released"] = files[0]["upload_time"][:10]
+    if info.get("summary"):
+        out["summary"] = info["summary"]
+    return out
+
+
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
     for pkg in PACKAGES:
@@ -66,10 +96,12 @@ def main():
             "updated_utc": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "rows": rows,
         }
+        out.update(latest_version(pkg))
         with open(os.path.join(OUT_DIR, f"{pkg}.json"), "w") as f:
             json.dump(out, f, separators=(",", ":"))
         last = rows[-1] if rows else None
-        print(f"{pkg}: {len(rows)} days, latest "
+        print(f"{pkg}" + (" v" + out["version"] if out.get("version") else "")
+              + f": {len(rows)} days, latest "
               + (f"{last['date']} ({last['with_mirrors']} with mirrors, "
                  f"{last['without_mirrors']} without)" if last else "none"))
 
