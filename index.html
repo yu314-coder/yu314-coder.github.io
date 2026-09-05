@@ -541,6 +541,69 @@
   })();
   </script>
 
+  <!-- Shipping versions on the Selected work cards, read from the committed
+       snapshots rather than typed. Same source the stats pages use, so the
+       front page can never claim a version the rest of the site contradicts.
+
+       Cards are matched structurally — each store link's closest .card — not
+       by proximity in the markup, which mis-assigns: a scan that just looks
+       ahead from a heading hands python-ios-lib the EigenDenoise id. -->
+  <script>
+  (function () {
+    var links = document.querySelectorAll(
+      'a[href*="apps.apple.com/app/"], a[href*="apps.microsoft.com/detail/"]');
+    if (!links.length || !window.fetch) return;
+
+    // card element -> { apple: id, ms: id }
+    var cards = [];
+    function slotFor(card) {
+      for (var i = 0; i < cards.length; i++) if (cards[i].card === card) return cards[i];
+      var s = { card: card, apple: null, ms: null };
+      cards.push(s);
+      return s;
+    }
+    [].forEach.call(links, function (a) {
+      var href = a.getAttribute("href") || "";
+      var card = a.closest(".card");
+      if (!card) return;
+      var m;
+      if ((m = /\/id(\d+)/.exec(href))) slotFor(card).apple = m[1];
+      // Store IDs are written lower-case in some links here, and Pages is
+      // case-sensitive: the lower-case path 404s. Normalise before fetching.
+      else if ((m = /detail\/([A-Za-z0-9]+)/.exec(href))) slotFor(card).ms = m[1].toUpperCase();
+    });
+
+    function badge(head, label, version) {
+      if (!version) return;
+      var b = document.createElement("span");
+      b.className = "badge-neutral mono ms-1 app-ver";
+      b.textContent = (label ? label + " " : "") + "v" + version;
+      head.appendChild(b);
+    }
+    function get(url) {
+      return fetch(url + "?cb=" + Date.now())
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .catch(function () { return null; });
+    }
+
+    cards.forEach(function (slot) {
+      var head = slot.card.querySelector("h3, h4, h5, .card-title");
+      if (!head || head.querySelector(".app-ver")) return;
+      // A card can ship on both stores at different versions — ManimStudio is
+      // 1.4 on the App Store and 1.1.4.0 on Microsoft. Name the store when
+      // there are two, and leave it off when there is only one.
+      var both = !!(slot.apple && slot.ms);
+      Promise.all([
+        slot.apple ? get("assets/appstore-tracker/data/" + slot.apple + ".json") : null,
+        slot.ms ? get("assets/store-tracker/data/" + slot.ms + ".json") : null
+      ]).then(function (r) {
+        if (r[0] && r[0].version) badge(head, both ? "App Store" : "", r[0].version);
+        if (r[1] && r[1].version) badge(head, both ? "Microsoft" : "", r[1].version);
+      });
+    });
+  })();
+  </script>
+
   <script src="assets/js/ui.js?v=20260828-countup" defer></script>
   <!-- Custom JavaScript (arcade easter egg) -->
   <script src="assets/js/main.js?v=20260813-lawn15" defer></script>
