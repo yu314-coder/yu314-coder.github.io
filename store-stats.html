@@ -348,7 +348,8 @@
       var panelHead = document.createElement("div"); panelHead.className = "ss-panel-head";
       panelHead.innerHTML =
         '<div class="ss-panel-id">' + iconHtml(app.id) +
-        '<div><h3>' + app.app + '</h3><span class="ss-store-id">Store ID ' + app.id + '</span></div></div>' +
+        '<div><h3>' + app.app + (app.version ? ' <span class="ss-ver">v' + app.version + '</span>' : '') + '</h3>' +
+        '<span class="ss-store-id">Store ID ' + app.id + '</span></div></div>' +
         '<a class="store-badge store-badge-sm" href="https://apps.microsoft.com/detail/' + app.id +
         '" target="_blank" rel="noopener noreferrer" aria-label="Get ' + app.app + ' from the Microsoft Store">' +
         '<img src="assets/img/badges/microsoft-store.svg" alt="Get it from Microsoft"></a>';

@@ -101,6 +101,13 @@ jobs:
           APPSTORE_VENDOR_NUMBER: ${{ secrets.APPSTORE_VENDOR_NUMBER }}
         run: python3 scripts/refresh_appstore_analytics.py
 
+      # Microsoft Store versions are public even though its download numbers
+      # are not, so they ride along here rather than staying hand-typed. No
+      # credentials needed; this is the same catalog the store page reads.
+      - name: Stamp Microsoft Store versions
+        continue-on-error: true
+        run: python3 scripts/refresh_msstore_versions.py
+
       - name: Commit if changed
         run: |
           git config user.name "github-actions[bot]"
@@ -113,9 +120,9 @@ jobs:
             echo "No App Store snapshots yet (script is a no-op until the four secrets are set)."
             exit 0
           fi
-          git add assets/appstore-tracker/data
+          git add assets/appstore-tracker/data assets/store-tracker/data
           if git diff --cached --quiet; then
-            echo "No change in App Store snapshots."
+            echo "No change in the store snapshots."
             exit 0
           fi
           git commit -m "chore: refresh App Store download snapshots"
@@ -143,7 +150,7 @@ jobs:
             # and leaves our files in the working tree, so the add below
             # stages only ours.
             git reset --mixed origin/main
-            git add assets/appstore-tracker/data
+            git add assets/appstore-tracker/data assets/store-tracker/data
             if git diff --staged --quiet; then
               echo "main already has these snapshots"
               exit 0

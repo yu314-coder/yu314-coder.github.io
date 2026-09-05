@@ -128,7 +128,7 @@
                 <span class="app-icon"><picture><source srcset="assets/img/app-icons/manimstudio-win.webp" type="image/webp"><img src="assets/img/app-icons/manimstudio-win.png" alt="ManimStudio icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
                 <div class="text-start">
                   <h3 class="h2 mb-1 fw-bold">ManimStudio</h3>
-                  <span class="badge-neutral mono version">v1.1.4.0</span>
+                  <span class="badge-neutral mono version" data-msstore="9NZFT55DVCBS">v1.1.4.0</span>
                 </div>
               </div>
               <p class="lead mb-0">Create stunning mathematical animations with a powerful GUI application. Microsoft Store compatible — no administrator rights required.</p>
@@ -2152,6 +2152,18 @@
       if (h) (byId[m[1]] = byId[m[1]] || []).push(h);
     });
     var ids = Object.keys(byId);
+
+    // Microsoft badges are marked in the markup rather than inferred from a
+    // link, because the store link and the heading are not always in the same
+    // card here. The value in the HTML is the last known one and stands if the
+    // fetch fails.
+    [].forEach.call(document.querySelectorAll("[data-msstore]"), function (el) {
+      fetch("assets/store-tracker/data/" + el.getAttribute("data-msstore") + ".json?cb=" + Date.now())
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) { if (d && d.version) el.textContent = "v" + d.version; })
+        .catch(function () { /* keep what is in the markup */ });
+    });
+
     if (!ids.length) return;
 
     ids.forEach(function (id) {
