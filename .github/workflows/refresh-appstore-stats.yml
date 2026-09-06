@@ -108,6 +108,24 @@ jobs:
         continue-on-error: true
         run: python3 scripts/refresh_msstore_versions.py
 
+      # PyPI versions ride the hourly job for the same reason the Microsoft
+      # ones do: a release can land at any hour, while the twice-daily PyPI job
+      # runs on a schedule GitHub honours about a tenth of the time. Versions
+      # only — download history stays with that job, since it changes daily and
+      # is a much heavier pull.
+      - name: Stamp PyPI versions
+        continue-on-error: true
+        env:
+          PYPI_VERSIONS_ONLY: "1"
+        run: python3 scripts/refresh_pypistats.py
+
+      # Two version numbers are also written into the HTML as a fallback for a
+      # failed fetch. Re-sync them from the snapshots so the fallback is the
+      # last known good value rather than whatever was true when it was typed.
+      - name: Sync version fallbacks in the HTML
+        continue-on-error: true
+        run: python3 scripts/sync_version_fallbacks.py
+
       - name: Commit if changed
         run: |
           git config user.name "github-actions[bot]"
@@ -120,7 +138,8 @@ jobs:
             echo "No App Store snapshots yet (script is a no-op until the four secrets are set)."
             exit 0
           fi
-          git add assets/appstore-tracker/data assets/store-tracker/data
+          git add assets/appstore-tracker/data assets/store-tracker/data \
+                  assets/pypi-tracker/data index.html projects.html pypi-stats.html
           if git diff --cached --quiet; then
             echo "No change in the store snapshots."
             exit 0
@@ -150,7 +169,8 @@ jobs:
             # and leaves our files in the working tree, so the add below
             # stages only ours.
             git reset --mixed origin/main
-            git add assets/appstore-tracker/data assets/store-tracker/data
+            git add assets/appstore-tracker/data assets/store-tracker/data \
+                  assets/pypi-tracker/data index.html projects.html pypi-stats.html
             if git diff --staged --quiet; then
               echo "main already has these snapshots"
               exit 0

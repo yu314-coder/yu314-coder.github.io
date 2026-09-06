@@ -83,7 +83,43 @@ def latest_version(pkg):
     return out
 
 
+def versions_only():
+    """Refresh just the version fields on the existing snapshots.
+
+    Download history comes from pypistats and only changes daily, so pulling it
+    is worth a twice-daily job. A published version can land at any hour, and
+    that job runs on a schedule GitHub honours perhaps a tenth of the time. So
+    the hourly App Store job calls this instead: five cheap requests, no
+    download history touched.
+    """
+    if not os.path.isdir(OUT_DIR):
+        print("no pypi snapshots yet")
+        return 0
+    changed = 0
+    for pkg in PACKAGES:
+        path = os.path.join(OUT_DIR, f"{pkg}.json")
+        if not os.path.exists(path):
+            continue
+        meta = latest_version(pkg)
+        if not meta:
+            continue
+        with open(path) as f:
+            payload = json.load(f)
+        if all(payload.get(k) == v for k, v in meta.items()):
+            print(f"{pkg} v{meta['version']}: unchanged")
+            continue
+        payload.update(meta)
+        with open(path, "w") as f:
+            json.dump(payload, f, separators=(",", ":"))
+        changed += 1
+        print(f"{pkg}: v{meta['version']}")
+    print(f"updated {changed} package(s)")
+    return 0
+
+
 def main():
+    if os.environ.get("PYPI_VERSIONS_ONLY"):
+        return versions_only()
     os.makedirs(OUT_DIR, exist_ok=True)
     for pkg in PACKAGES:
         try:
