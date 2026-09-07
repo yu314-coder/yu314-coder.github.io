@@ -1084,9 +1084,25 @@
     var canHover = mq("(hover: hover)") && mq("(pointer: fine)");
     return hasTouch && !canHover;
   }
+  // A hybrid — iPad with a Magic Keyboard, a touchscreen laptop — can be
+  // driven by either input at any moment, and the two want opposite things.
+  // The fine set is only safe to use if we can swap away from it BEFORE a
+  // drag starts, which hover gives us and a finger does not: relayouting
+  // under a finger rebuilds the drag layer mid-gesture and kills it.
+  //
+  // So the fine set is earned, not assumed. A hybrid starts on the fast set
+  // and only becomes eligible once a real mouse pointer has entered the map,
+  // proving hover works here. A finger-only session never trips it and stays
+  // smooth throughout; a trackpad session gets the detail from the first time
+  // the cursor crosses the map.
+  var sawMousePointer = false;
+
   function geoResolution() {
     if (movingRes) return RES_FAST;
     if (isTouchDevice()) return RES_FAST;
+    var hasTouch = false;
+    try { hasTouch = navigator.maxTouchPoints > 0; } catch (e) {}
+    if (hasTouch && !sawMousePointer) return RES_FAST;
     try { if (window.innerWidth < 900) return RES_FAST; } catch (e) {}
     return RES_FINE;
   }
@@ -1109,7 +1125,10 @@
     resBound = true;
     if (isTouchDevice()) return;          // already permanently on the fast set
 
-    function toFast() {
+    function toFast(ev) {
+      // Never relayout under a finger: it rebuilds the drag layer mid-gesture.
+      if (ev && ev.pointerType && ev.pointerType !== "mouse") return;
+      if (ev) sawMousePointer = true;
       clearTimeout(resIdleTimer);
       if (movingRes) return;
       movingRes = true;
@@ -1122,7 +1141,8 @@
       resIdleTimer = setTimeout(function () {
         if (!movingRes) return;
         movingRes = false;
-        try { Plotly.relayout(els.map, { "geo.resolution": RES_FINE }); } catch (e) {}
+        // geoResolution() decides whether this device has earned the fine set.
+        try { Plotly.relayout(els.map, { "geo.resolution": geoResolution() }); } catch (e) {}
       }, 900);
     }
     els.map.addEventListener("pointerenter", toFast);
