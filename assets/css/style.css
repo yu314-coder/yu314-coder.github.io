@@ -688,10 +688,16 @@ a.highlight-item:hover .highlight-number { color: var(--accent); }
   .tracker-section > .tracker-shell,
   .tracker-section > .tracker-intro { max-width: none; }
   .tracker-section > .tracker-shell {
-    width: calc(100vw - 2rem);
-    margin-inline: calc(50% - 50vw + 1rem);
-    padding: 6px;
-    border-radius: var(--r);
+    /* Full width, with only enough padding to keep the frame off the bezel.
+       The margin here is not cosmetic: a classic 1024x768 tablet landed on
+       978px of iframe with 1rem of side margin — 22px short of the tracker's
+       999px threshold, so it fell back to the phone layout for want of a
+       hair. Total chrome is now 18px, which clears it at 1024. */
+    width: 100vw;
+    margin-inline: calc(50% - 50vw);
+    padding: 8px;
+    border-radius: 0;
+    border-inline: 0;
   }
 }
 .tracker-note { font-size: 0.85rem; color: var(--ink-3); }
