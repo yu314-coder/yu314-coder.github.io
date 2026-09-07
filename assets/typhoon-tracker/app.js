@@ -7,7 +7,7 @@
   "use strict";
 
   var DATA_BASE = "../data/typhoons/";
-  var DATA_V = "?v=daa562203";   // bump when the season/index JSON is regenerated (e.g. RMW added)
+  var DATA_V = "?v=d23a0cda8";   // bump when the season/index JSON is regenerated (e.g. RMW added)
   var DEFAULT_STORM = { name: "Haiyan", season: 2013 };
   var DEFAULT_GEO = { lon: 150, lat: 20, lonRange: [95, 205], latRange: [-2, 55], scale: 1 };
 
@@ -480,13 +480,49 @@
       hasRadius: hasRadius, ace: Math.round(computeACE(st.pts) * 10) / 10, live: true
     };
   }
+  // A storm the archive folded into an earlier record of the same system, as
+  // {absorbedSid: keeperSid}. refresh_typhoon_archive.py decides this — it
+  // needs the JTWC ATCF id, which only IBTrACS carries — and writes the answer
+  // into index.json as "was". Saudel 2026 is the live case: NOAA's ACTIVE feed
+  // keeps publishing its second half under 2026243N20110 for weeks after the
+  // storm ended, and without this the overlay would put the second Saudel back
+  // in the picker and undo the merge in the browser.
+  function absorbedInto(sid) {
+    for (var i = 0; i < indexData.length; i++) {
+      var was = indexData[i].was;
+      if (was && was.indexOf(sid) !== -1) return indexData[i].sid;
+    }
+    return null;
+  }
+
   // Overlay live storms onto a fetched shard (also used when a shard has no
   // static file yet — e.g. the first storm of a brand-new season).
   function applyLiveToShard(season, shard) {
     Object.keys(liveStorms).forEach(function (sid) {
-      if (liveStorms[sid].season === Number(season)) shard[sid] = liveStorms[sid].storm;
+      if (liveStorms[sid].season !== Number(season)) return;
+      var keeper = absorbedInto(sid);
+      if (keeper) {
+        // Same storm: graft any fix the shard has not got onto the keeper
+        // rather than adding a second entry for it.
+        if (shard[keeper]) mergeLivePts(shard[keeper], liveStorms[sid].storm.pts);
+        return;
+      }
+      shard[sid] = liveStorms[sid].storm;
     });
     return shard;
+  }
+
+  // Add points the storm does not already have at that timestamp, then re-time.
+  function mergeLivePts(st, pts) {
+    var have = {};
+    st.pts.forEach(function (p) { have[p.t] = true; });
+    var added = 0;
+    pts.forEach(function (p) { if (!have[p.t]) { st.pts.push(p); added++; } });
+    if (!added) return false;
+    st.pts.sort(function (a, b) { return a.t < b.t ? -1 : a.t > b.t ? 1 : 0; });
+    var t0 = Date.parse(st.pts[0].t + "Z");
+    st.pts.forEach(function (p) { p.h = (Date.parse(p.t + "Z") - t0) / 3600000; });
+    return true;
   }
   function mergeLiveStorms(storms) {
     var affected = {};
@@ -497,6 +533,15 @@
                                 // appended points interpolate / carry nearest)
       liveStorms[sid] = { season: st.season, storm: st };
       affected[st.season] = true;
+      var keeper = absorbedInto(sid);
+      if (keeper) {
+        // Half of a storm the archive already rejoined. It gets no index entry
+        // and no picker row of its own; its fixes go to the record that owns
+        // them, in whichever shard is already loaded.
+        var host = seasonCache[st.season] && seasonCache[st.season][keeper];
+        if (host) mergeLivePts(host, st.pts);
+        return;
+      }
       var entry = liveIndexEntry(sid, st);
       var existing = null;
       for (var i = 0; i < indexData.length; i++) { if (indexData[i].sid === sid) { existing = indexData[i]; break; } }
@@ -617,8 +662,11 @@
           if (!bpts || !mergeBdeckPts(st, bpts)) return;
           var single = {}; single[sid] = st;
           mergeLiveStorms(single);   // refresh index entry, shard patch, pickers
-          // if that storm is on screen, redraw it with the fresher track
-          if (appMode === "track" && viewMode === "storm" && currentSid === sid) loadStorm(st.season, sid);
+          // if that storm is on screen, redraw it with the fresher track --
+          // under the id it is filed as, which for an absorbed half is the
+          // record that swallowed it, not the id the b-deck came in under.
+          var shown = absorbedInto(sid) || sid;
+          if (appMode === "track" && viewMode === "storm" && currentSid === shown) loadStorm(st.season, shown);
         })
         .catch(function () { /* best-effort */ });
     });
@@ -729,14 +777,14 @@
     });
     var pad = String(storms.length).length;
 
-    // A name can appear twice in one season. IBTrACS lists two 2026 storms as
-    // SAUDEL: one from 18-28 Aug that ended heading west into China at 28N,
-    // and one from 31 Aug-3 Sep that formed off Hainan at 19.5N and moved
-    // east. Their tracks are physically incompatible, so they are not one
-    // storm split in two and must not be merged — but rendered as bare names
-    // they were indistinguishable in the picker, which is what made them look
-    // like a duplicate. Date-stamp only the names that actually collide, so
-    // every other entry stays clean.
+    // A name can still appear twice in one season, so keep telling colliding
+    // names apart by start date. Saudel 2026 used to be such a pair and is no
+    // longer one: IBTrACS filed it as two records because JTWC stopped issuing
+    // when it dissipated inland over China on 28 Aug and resumed on 31 Aug,
+    // but both halves carry ATCF id WP172026 and CMA files the whole thing as
+    // 2618 — one storm, so the archive now joins it. What remains are genuine
+    // collisions such as the concurrent duplicate tracks IBTrACS keeps for
+    // Haitang 2022, where two entries are correct and need distinguishing.
     var nameCount = {};
     storms.forEach(function (s) { nameCount[s.name] = (nameCount[s.name] || 0) + 1; });
     function startedOn(s) {
@@ -860,7 +908,9 @@
      ------------------------------------------------------------------------- */
   function buildStats() {
     var pts = currentStorm.pts;
-    var maxWind = Math.max.apply(null, pts.map(function (p) { return p.w || 0; }));
+    var maxWind = Math.max.apply(null, pts.map(function (p) {
+      return p.src ? 0 : (p.w || 0);   // JTWC basis, as with ACE above
+    }));
     var pressures = pts.map(function (p) { return p.p; }).filter(function (p) { return p != null; });
     var minPres = pressures.length ? Math.min.apply(null, pressures) : null;
     var start = pts[0].t ? pts[0].t.slice(0, 10) : "?";
@@ -938,6 +988,11 @@
     var total = 0;
     for (var i = 0; i < pts.length; i++) {
       var w = pts[i].w, t = pts[i].t || "";
+      // Gap fixes borrowed from another agency are left out: CMA reports a
+      // 2-minute mean and JTWC a 1-minute peak, and this number is meant to be
+      // comparable with every other storm in the archive. Matches the value
+      // index.json carries, which refresh_typhoon_archive.py computes the same way.
+      if (pts[i].src) continue;
       if (w == null || w < 34) continue;
       var hh = t.slice(11, 13);
       if (hh !== "00" && hh !== "06" && hh !== "12" && hh !== "18") continue;
@@ -1033,14 +1088,40 @@
     var colors = pts.map(function (p) { return p[f.color] || "rgb(150,190,215)"; });
     var hover = pts.map(function (p) {
       return (p.t || "").replace("T", " ") + "<br>" + (p.w != null ? p.w + " kt" : "n/a") +
-        (p.p != null ? " · " + p.p + " mb" : "") + "<br>" + (p[f.label] || "");
+        (p.p != null ? " · " + p.p + " mb" : "") + "<br>" + (p[f.label] || "") +
+        // Say so when a fix came from somewhere other than the JTWC best track
+        // the rest of the line is drawn from: CMA reports a 2-minute mean wind
+        // where JTWC reports a 1-minute peak, so the kt figure beside it is
+        // not measuring quite the same thing as its neighbours.
+        (p.src ? "<br><i>" + p.src + " fix</i>" : "");
     });
+
+    // Draw a stretch nobody fixed as a dashed bridge rather than as track.
+    // Between two fixes 24 hours apart the line is an artefact of joining
+    // them, not a path anything was observed to take — Saudel 2026 spends a
+    // day inland between Guangdong and the Gulf of Tonkin with no agency
+    // fixing it, and drawn solid that day reads as a measured route.
+    var GAP_H = 9;
+    var runLat = [], runLon = [], gapLat = [], gapLon = [];
+    for (var gi = 0; gi < pts.length; gi++) {
+      runLat.push(pts[gi].la); runLon.push(pts[gi].lo);
+      if (gi + 1 < pts.length && pts[gi + 1].h - pts[gi].h > GAP_H) {
+        runLat.push(null); runLon.push(null);
+        gapLat.push(pts[gi].la, pts[gi + 1].la, null);
+        gapLon.push(pts[gi].lo, pts[gi + 1].lo, null);
+      }
+    }
 
     var traces = [
       { // connecting line
-        type: "scattergeo", mode: "lines", lat: lats, lon: lons,
+        type: "scattergeo", mode: "lines", lat: runLat, lon: runLon,
         line: { color: "rgba(255,255,255,0.45)", width: 1.6 },
-        hoverinfo: "skip", showlegend: false
+        connectgaps: false, hoverinfo: "skip", showlegend: false
+      },
+      { // the bridge; emitted even when empty so trace indices stay fixed
+        type: "scattergeo", mode: "lines", lat: gapLat, lon: gapLon,
+        line: { color: "rgba(255,255,255,0.28)", width: 1.2, dash: "dot" },
+        connectgaps: false, hoverinfo: "skip", showlegend: false
       },
       { // per-point intensity markers
         type: "scattergeo", mode: "markers", lat: lats, lon: lons,
@@ -1303,7 +1384,7 @@
     return radiusTraces(pt).concat([currentPositionTrace(pt)]);
   }
 
-  var STATIC_TRACES = 2; // track line, intensity markers
+  var STATIC_TRACES = 3; // track line, unfixed-stretch bridge, intensity markers
   // buildMap appends exactly four dynamic traces — the three wind-radius rings
   // then the current-position marker — and they persist for the storm's whole
   // life. So the scrubber updates them IN PLACE with Plotly.restyle instead of

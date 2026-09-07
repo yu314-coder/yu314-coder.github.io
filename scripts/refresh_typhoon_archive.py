@@ -179,6 +179,58 @@ def read_storms(text):
             if any(r.get("BASIN") == "WP" for r in rows)}
 
 
+def merge_regenerations(by_storm):
+    """Rejoin a storm IBTrACS filed twice because it died and came back.
+
+    JTWC issues one ATCF id per system, so two records sharing an id *and* a
+    name are one storm by the issuing agency's own reckoning. Saudel 2026 is
+    the case in hand: WP172026 ran 18-28 Aug, dissipated inland over China, and
+    was reissued under the same id and name on 31 Aug when it re-emerged south
+    of Hainan. IBTrACS keyed the second half as a new SID, so the tracker
+    listed two Saudels. CMA agrees it is one storm -- it files the whole thing
+    as 2618.
+
+    A shared id alone is not enough. Across all 82 WP seasons 20 ids map to
+    more than one SID, and 14 pair a real storm with a concurrent UNNAMED spur:
+    different systems that merely overlap. Of the six same-name pairs, three
+    (Haitang 2022, Ernie 1996, Faye:Gloria 1971) run *simultaneously* -- they
+    are duplicate tracks of one system, and concatenating them by time would
+    zig-zag between two contemporaneous sets of fixes. Requiring the records to
+    be disjoint in time leaves those three alone and fires on exactly one pair
+    in the whole archive, which is the one that is real.
+    """
+    groups = {}
+    for sid, rows in by_storm.items():
+        atcf = (rows[0].get("USA_ATCF_ID") or "").strip()
+        name = (rows[0].get("NAME") or "").strip().upper()
+        if atcf and is_named(name):
+            groups.setdefault((atcf, name), []).append(sid)
+
+    merged, absorbed = dict(by_storm), {}
+    for (atcf, name), sids in groups.items():
+        if len(sids) < 2:
+            continue
+        spans = {}
+        for sid in sids:
+            ts = sorted(r["ISO_TIME"] for r in by_storm[sid])
+            spans[sid] = (ts[0], ts[-1])
+        order = sorted(sids, key=lambda s: spans[s][0])
+        keep, rows = order[0], list(by_storm[order[0]])
+        for sid in order[1:]:
+            if spans[sid][0] <= max(r["ISO_TIME"] for r in rows):
+                continue                      # concurrent, not a regeneration
+            rows += by_storm[sid]
+            del merged[sid]
+            absorbed[sid] = keep
+            sys.stderr.write(
+                "%s: %s absorbs %s (same ATCF %s, %s -> %s)\n"
+                % (name, keep, sid, atcf, spans[sid][0][:10], spans[sid][1][:10])
+            )
+        rows.sort(key=lambda r: r["ISO_TIME"])
+        merged[keep] = rows
+    return merged, absorbed
+
+
 def build_points(rows):
     base = parse_time(rows[0]["ISO_TIME"])
     pts = []
@@ -210,10 +262,39 @@ def build_points(rows):
     return pts
 
 
+def keep_gap_fills(pts, previous):
+    """Carry forward fixes another agency supplied to bridge a gap.
+
+    IBTrACS is the only thing this script downloads, so a plain rebuild would
+    drop whatever scripts/fill_track_gaps_cma.py added and re-open the hole.
+    A fix is re-added only where IBTrACS still has nothing at that timestamp,
+    so on the day NCEI ingests a season's CMA columns its own fixes win and the
+    borrowed ones fall away by themselves.
+    """
+    fills = [p for p in previous if p.get("src")]
+    if not fills:
+        return pts
+    have = {p["t"] for p in pts}
+    lo, hi = pts[0]["t"], pts[-1]["t"]
+    add = [p for p in fills if p["t"] not in have and lo < p["t"] < hi]
+    if not add:
+        return pts
+    pts = sorted(pts + add, key=lambda p: p["t"])
+    base = parse_time(pts[0]["t"].replace("T", " "))
+    for p in pts:
+        p["h"] = (parse_time(p["t"].replace("T", " ")) - base).total_seconds() / 3600.0
+    return pts
+
+
 def ace_of(pts):
     """Accumulated cyclone energy: sum of v^2 over 6-hourly fixes at >=34 kt."""
     total = 0.0
     for p in pts:
+        # Gap fixes borrowed from another agency use a different averaging
+        # convention (CMA reports a 2-minute mean, JTWC a 1-minute peak), so
+        # they stay out of a number meant to be comparable across 4,246 storms.
+        if p.get("src"):
+            continue
         if parse_time(p["t"].replace("T", " ")).hour % 6:
             continue
         w = p.get("w")
@@ -306,7 +387,8 @@ def main():
     ap.add_argument("--check", action="store_true", help="report differences, write nothing")
     args = ap.parse_args()
 
-    by_storm = read_storms(fetch(FULL if args.full else LAST3))
+    by_storm, absorbed = merge_regenerations(
+        read_storms(fetch(FULL if args.full else LAST3)))
 
     zh = zh_lookup()
     seasons = {}
@@ -352,7 +434,8 @@ def main():
         existing = load_json(path, {})
         out = {}
         for sid, meta in sorted(seasons[season].items()):
-            pts = build_points(meta["rows"])
+            pts = keep_gap_fills(build_points(meta["rows"]),
+                                 (existing.get(sid) or {}).get("pts") or [])
             # Never invent a Chinese name, and never churn an existing one:
             # a storm already in the archive keeps exactly what it had (null
             # included), and only a genuinely new storm gets looked up, from the
@@ -367,6 +450,16 @@ def main():
                 "season": season,
                 "pts": pts,
             }
+            # The ids this record swallowed. NOAA's ACTIVE feed still publishes
+            # the absorbed half under its own id for a while after the storm
+            # ends, and the tracker overlays that feed on the shard -- without
+            # this it would re-add the second Saudel as a separate storm and
+            # undo the merge in the browser. Deciding that client-side would
+            # mean re-deriving a rule that needs the ATCF id, which the shard
+            # does not carry, so the answer is recorded here instead.
+            was = sorted(o for o, k in absorbed.items() if k == sid)
+            if was:
+                out[sid]["was"] = was
 
         added = [s for s in out if s not in existing]
         dropped = [s for s in existing if s not in out]
@@ -375,8 +468,16 @@ def main():
         # day boundary -- Wutip 2025 went 2025162N15114 -> 2025161N15114 when its
         # track was extended six hours earlier. Same storm, new id: retire the
         # old record rather than ending up with two Wutips.
-        renamed = {}
+        renamed, why = {}, {}
         for old in list(dropped):
+            # A record merge_regenerations folded into its earlier half is gone
+            # for the same reason a renumbered one is: it still exists, under
+            # another id. Retire it instead of refusing the whole season.
+            if absorbed.get(old) in out:
+                renamed[old] = absorbed[old]
+                why[old] = "rejoined"
+                dropped.remove(old)
+                continue
             o = existing[old]
             for new in added:
                 n = out[new]
@@ -399,7 +500,8 @@ def main():
             continue
 
         for old, new in renamed.items():
-            print("season %d: %s renumbered %s -> %s" % (season, out[new]["name"], old, new))
+            print("season %d: %s %s %s -> %s"
+                  % (season, out[new]["name"], why.get(old, "renumbered"), old, new))
             i = index_pos.pop(old, None)
             if i is not None:
                 index.pop(i)
@@ -421,10 +523,14 @@ def main():
 
         for sid, storm in out.items():
             pts = storm["pts"]
-            winds = [p["w"] for p in pts if p.get("w") is not None]
+            # Peak wind, like ACE, stays on the JTWC basis the whole archive
+            # is built on; a borrowed fix reports a different average.
+            winds = [p["w"] for p in pts
+                     if p.get("w") is not None and not p.get("src")]
             put_index(sid, {
                 "sid": sid,
                 "name": storm["name"],
+                **({"was": storm["was"]} if storm.get("was") else {}),
                 "nameZh": storm["nameZh"],
                 "season": season,
                 "start": pts[0]["t"],
