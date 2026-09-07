@@ -728,10 +728,30 @@
       return d !== 0 ? d : String(a.sid).localeCompare(String(b.sid));
     });
     var pad = String(storms.length).length;
+
+    // A name can appear twice in one season. IBTrACS lists two 2026 storms as
+    // SAUDEL: one from 18-28 Aug that ended heading west into China at 28N,
+    // and one from 31 Aug-3 Sep that formed off Hainan at 19.5N and moved
+    // east. Their tracks are physically incompatible, so they are not one
+    // storm split in two and must not be merged — but rendered as bare names
+    // they were indistinguishable in the picker, which is what made them look
+    // like a duplicate. Date-stamp only the names that actually collide, so
+    // every other entry stays clean.
+    var nameCount = {};
+    storms.forEach(function (s) { nameCount[s.name] = (nameCount[s.name] || 0) + 1; });
+    function startedOn(s) {
+      var t = String(s.start || "");
+      var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(t);
+      if (!m) return "";
+      var MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      return " (" + (MON[+m[2] - 1] || m[2]) + " " + (+m[3]) + ")";
+    }
+
     els.storm.innerHTML = storms.map(function (s, i) {
       var n = String(i + 1);
       while (n.length < pad) n = "0" + n;
-      return '<option value="' + s.sid + '">' + n + " · " + s.name + (s.nameZh ? " " + s.nameZh : "") +
+      var dup = nameCount[s.name] > 1 ? startedOn(s) : "";
+      return '<option value="' + s.sid + '">' + n + " · " + s.name + dup + (s.nameZh ? " " + s.nameZh : "") +
         " — " + s.cat + " (" + Math.round(s.maxWind || 0) + "kt" +
         (s.ace != null ? " · ACE " + s.ace : "") + ")" +
         (s.live ? " · LIVE" : "") +
