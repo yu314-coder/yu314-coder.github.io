@@ -673,6 +673,27 @@ a.highlight-item:hover .highlight-number { color: var(--accent); }
 }
 #pypi-frame { width: 100%; border: 0; border-radius: var(--r); display: block; min-height: 1200px; background: transparent; }
 #typhoon-frame { width: 100%; border: 0; border-radius: var(--r); display: block; min-height: 1500px; background: transparent; }
+
+/* Give the tracker the window on tablets.
+   The explorer switches to its compact phone layout below 999px of IFRAME
+   width, and the page container was taking 280px off every window before the
+   iframe saw it — so an iPad Pro 11" in landscape (1194px, the Magic Keyboard
+   setup) handed the tracker 914px and got a bottom-sheet FAB designed for a
+   phone, on a screen wider than most laptops of a few years ago.
+   Between tablet and laptop widths the tracker breaks out of the container so
+   the iframe gets nearly the whole window, which puts every iPad in landscape
+   into the real side-by-side layout. Above 1280px the container is already
+   wide enough and the normal margins look better. */
+@media (min-width: 768px) and (max-width: 1279.98px) {
+  .tracker-section > .tracker-shell,
+  .tracker-section > .tracker-intro { max-width: none; }
+  .tracker-section > .tracker-shell {
+    width: calc(100vw - 2rem);
+    margin-inline: calc(50% - 50vw + 1rem);
+    padding: 6px;
+    border-radius: var(--r);
+  }
+}
 .tracker-note { font-size: 0.85rem; color: var(--ink-3); }
 .tracker-note a { color: var(--accent); }
 

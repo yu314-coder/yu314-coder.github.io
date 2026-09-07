@@ -1062,15 +1062,27 @@
   // constant.
   var RES_FINE = 50, RES_FAST = 110;
 
+  function mq(q) {
+    try { return !!(window.matchMedia && window.matchMedia(q).matches); }
+    catch (e) { return false; }
+  }
+
+  // Touch-ONLY, which is a different question from "has a touchscreen".
+  //
+  // This used to return true for anything with maxTouchPoints, which is right
+  // for a phone and wrong for an iPad with a Magic Keyboard: that has a
+  // trackpad, hovers, and never got the fine coastlines or the hover swap even
+  // though it has the pointer and the headroom for both. A touchscreen laptop
+  // was miscategorised the same way.
+  //
+  // A device that can hover with a fine pointer is treated as a pointer
+  // device, whatever else it can also do.
   function isTouchDevice() {
-    try {
-      // maxTouchPoints matters as well as the media query: an iPad with a
-      // keyboard reports "pointer: fine" while still being a touch device
-      // that pans by dragging.
-      if (navigator.maxTouchPoints > 0) return true;
-      if (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) return true;
-    } catch (e) {}
-    return false;
+    var hasTouch = false;
+    try { hasTouch = navigator.maxTouchPoints > 0; } catch (e) {}
+    hasTouch = hasTouch || mq("(pointer: coarse)");
+    var canHover = mq("(hover: hover)") && mq("(pointer: fine)");
+    return hasTouch && !canHover;
   }
   function geoResolution() {
     if (movingRes) return RES_FAST;
@@ -4095,6 +4107,49 @@
       "geo.lataxis.range": geoWindow().latRange.slice()
     });
   });
+
+  /* Keyboard control of the map.
+     There was none: on an iPad with a Magic Keyboard, or any laptop, the
+     arrow keys did nothing over the map and the only way to pan was to drag.
+     A pointer device that has a keyboard should be able to use it.
+
+     The map takes focus so the keys have somewhere to land, and the handler
+     is scoped to it so arrows still scroll the page everywhere else. */
+  (function bindMapKeys() {
+    if (!els.map) return;
+    els.map.setAttribute("tabindex", "0");
+    els.map.setAttribute("role", "application");
+    els.map.setAttribute("aria-label",
+      "Storm track map. Arrow keys pan, plus and minus zoom, 0 resets.");
+
+    function pan(dLon, dLat) {
+      var g = (els.map._fullLayout && els.map._fullLayout.geo) || null;
+      if (!g || !g.center) return;
+      // Step with the zoom: a fixed step crawls when zoomed in and leaps
+      // across the basin when zoomed out.
+      var step = 8 / Math.max(0.35, currentGeoScale);
+      userZoomed = true;
+      Plotly.relayout(els.map, {
+        "geo.center.lon": g.center.lon + dLon * step,
+        "geo.center.lat": Math.max(-85, Math.min(85, g.center.lat + dLat * step))
+      });
+    }
+
+    els.map.addEventListener("keydown", function (ev) {
+      // Leave the browser's own shortcuts alone.
+      if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+      var k = ev.key, handled = true;
+      if (k === "ArrowLeft") pan(-1, 0);
+      else if (k === "ArrowRight") pan(1, 0);
+      else if (k === "ArrowUp") pan(0, 1);
+      else if (k === "ArrowDown") pan(0, -1);
+      else if (k === "+" || k === "=") zoomBy(1.5);
+      else if (k === "-" || k === "_") zoomBy(1 / 1.5);
+      else if (k === "0") { if (els.zoomReset) els.zoomReset.click(); }
+      else handled = false;
+      if (handled) { ev.preventDefault(); ev.stopPropagation(); }
+    });
+  })();
 
   // Every storm plays out in the same real-world duration (~18s) regardless
   // of how many days it actually lasted, so short and long-lived storms
