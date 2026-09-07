@@ -179,6 +179,50 @@ def read_storms(text):
             if any(r.get("BASIN") == "WP" for r in rows)}
 
 
+def drop_spur_tracks(by_storm):
+    """Drop records IBTrACS itself marks as fragments of another storm's track.
+
+    TRACK_TYPE says what a record is: "main" for a storm's own track, and
+    "spur-merge" / "spur-split" / "spur-other" for a piece belonging to another
+    system -- a secondary centre, or one agency's separate analysis of a storm
+    another record already carries. This archive published those as storms in
+    their own right, which is why Haitang 2022 appeared twice: its 75-fix main
+    track, and an 18-fix spur sitting on top of it at the same time and place.
+    Same visible fault as the two Saudels, different cause, and IBTrACS has
+    already labelled every instance of it.
+
+    Deduplicating, never erasing: a record goes only if it is spur throughout
+    *and* a main record of the same name and season survives it. That drops 35
+    of 2,121 published storms and keeps Helena 1947, Ivy 1952 and Bess 1978,
+    which are spurs with nothing else carrying their name.
+
+    PROVISIONAL and US-PROVISIONAL are not spurs. That is every 2025 and 2026
+    storm, still awaiting reanalysis, and they must pass through untouched.
+    """
+    def kinds(rows):
+        return {(r.get("TRACK_TYPE") or "").strip() for r in rows}
+
+    def key(rows):
+        return ((rows[0].get("SEASON") or "").strip(),
+                (rows[0].get("NAME") or "").strip().upper())
+
+    spur = {sid for sid, rows in by_storm.items()
+            if kinds(rows) and all(k.startswith("spur") for k in kinds(rows))}
+    survives = {key(rows) for sid, rows in by_storm.items()
+                if sid not in spur and "main" in kinds(rows)}
+    drop = {sid for sid in spur if key(by_storm[sid]) in survives}
+    for sid in sorted(drop):
+        rows = by_storm[sid]
+        sys.stderr.write("spur: %s %s (%s) is %s of another track -- dropped\n"
+                         % (rows[0].get("SEASON"), (rows[0].get("NAME") or "").strip(),
+                            sid, "/".join(sorted(kinds(rows)))))
+    kept = {sid for sid in spur if sid not in drop}
+    if kept:
+        sys.stderr.write("spur: keeping %d spur record(s) with no main of that "
+                         "name: %s\n" % (len(kept), ", ".join(sorted(kept))))
+    return {sid: rows for sid, rows in by_storm.items() if sid not in drop}, drop
+
+
 def merge_regenerations(by_storm):
     """Rejoin a storm IBTrACS filed twice because it died and came back.
 
@@ -335,6 +379,37 @@ def write_json(path, obj):
 TRACKER = os.path.join(ROOT, "assets", "typhoon-tracker")
 
 
+def sync_archive_counts():
+    """Keep the "N named storms" line on typhoon-tracks.html true.
+
+    It was hand-typed, and by the time anyone looked it read 2,112 against an
+    archive of 2,121 -- wrong before this run and wronger after it. Same lesson
+    as the cache tokens: a number that describes the data should be read off
+    the data.
+    """
+    shell = os.path.join(ROOT, "typhoon-tracks.html")
+    if not os.path.exists(shell):
+        return
+    storms = points = 0
+    for name in sorted(os.listdir(SEASONS)):
+        if not name.endswith(".json"):
+            continue
+        with io.open(os.path.join(SEASONS, name), encoding="utf-8") as f:
+            season = json.load(f)
+        storms += len(season)
+        points += sum(len(st["pts"]) for st in season.values())
+    with io.open(shell, encoding="utf-8") as f:
+        text = f.read()
+    new = re.sub(r"([\d,]+) named storms, ~[\d,]+ track observations",
+                 "{:,} named storms, ~{:,} track observations".format(
+                     storms, int(round(points, -3))),
+                 text)
+    if new != text:
+        with io.open(shell, "w", encoding="utf-8") as f:
+            f.write(new)
+        print("archive counts -> %d storms, %d track points" % (storms, points))
+
+
 def bump_tracker_tokens():
     """Version the tracker's own code, and the iframe that loads it.
 
@@ -451,8 +526,8 @@ def main():
     ap.add_argument("--check", action="store_true", help="report differences, write nothing")
     args = ap.parse_args()
 
-    by_storm, absorbed = merge_regenerations(
-        read_storms(fetch(FULL if args.full else LAST3)))
+    raw, spurs = drop_spur_tracks(read_storms(fetch(FULL if args.full else LAST3)))
+    by_storm, absorbed = merge_regenerations(raw)
 
     zh = zh_lookup()
     seasons = {}
@@ -532,8 +607,14 @@ def main():
         # day boundary -- Wutip 2025 went 2025162N15114 -> 2025161N15114 when its
         # track was extended six hours earlier. Same storm, new id: retire the
         # old record rather than ending up with two Wutips.
-        renamed, why = {}, {}
+        renamed, why, retired = {}, {}, []
         for old in list(dropped):
+            # A record IBTrACS calls a spur of another track is not a storm.
+            # It leaves without a forwarding id, unlike an absorbed half.
+            if old in spurs:
+                retired.append(old)
+                dropped.remove(old)
+                continue
             # A record merge_regenerations folded into its earlier half is gone
             # for the same reason a renumbered one is: it still exists, under
             # another id. Retire it instead of refusing the whole season.
@@ -563,15 +644,23 @@ def main():
             )
             continue
 
+        def retire(old):
+            i = index_pos.pop(old, None)
+            if i is None:
+                return
+            index.pop(i)
+            for sid2, j in list(index_pos.items()):
+                if j > i:
+                    index_pos[sid2] = j - 1
+
         for old, new in renamed.items():
             print("season %d: %s %s %s -> %s"
                   % (season, out[new]["name"], why.get(old, "renumbered"), old, new))
-            i = index_pos.pop(old, None)
-            if i is not None:
-                index.pop(i)
-                for sid2, j in list(index_pos.items()):
-                    if j > i:
-                        index_pos[sid2] = j - 1
+            retire(old)
+        for old in retired:
+            print("season %d: %s (%s) dropped -- IBTrACS marks it a spur of another track"
+                  % (season, existing[old]["name"], old))
+            retire(old)
         if out == existing:
             continue
 
@@ -627,6 +716,7 @@ def main():
     # code, still has to reach a browser holding the old copy. Each token is a
     # content hash, so a run that changed nothing rewrites nothing.
     bump_cache_token()
+    sync_archive_counts()
     bump_tracker_tokens()
 
     if not changed:
