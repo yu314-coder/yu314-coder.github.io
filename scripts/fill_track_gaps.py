@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bridge holes in an archived track with China Meteorological Administration fixes.
+"""Bridge holes in an archived track with other agencies' fixes.
 
 Why this exists
 ---------------
@@ -13,9 +13,16 @@ leaves a hole in the middle of its own track.
 Saudel 2026 is the case in hand. JTWC quit at 28.1N 121.0E as it came ashore in
 Zhejiang on 28 Aug and picked it up again on 31 Aug south of Hainan, 78 hours
 and 1,100 km later -- drawn as a track, a straight line through inland China.
-CMA never stopped: it files the storm as 2618, one continuous record, and it
-kept fixing the depression as it decayed southwest across Fujian, Jiangxi and
-Guangdong.
+
+No single agency covers that. CMA files the storm as 2618, one continuous
+record, and keeps fixing the depression as it decays southwest across Fujian,
+Jiangxi and Guangdong -- then stops at 30 Aug 06:00 over western Guangdong.
+JMA's record has the opposite shape: it stops on 28 Aug and resumes at 30 Aug
+21:00 over Zhanjiang, on the Leizhou peninsula, carrying the system down to
+Hainan. Between them they leave 15 hours unfixed instead of 78. So sources are
+tried in order, each filling only what the ones before it could not: CMA first,
+because over the Chinese mainland it is both the responsible agency and the
+detailed one.
 
 What it does and does not do
 ----------------------------
@@ -27,15 +34,15 @@ would be a number nobody measured. Every borrowed fix is tagged "src": "CMA" so
 the site can say where it came from, refresh_typhoon_archive.py can carry it
 across a rebuild, and ACE stays on a single-agency basis.
 
-Where CMA has no fix either, the hole stays open. It is not this script's job to
-invent a position: for Saudel that leaves 30 Aug 06:00 -> 31 Aug 06:00 empty,
-the day the circulation was over land between Guangdong and the Gulf of Tonkin
-and no agency was fixing it.
+Where no source has a fix, the hole stays open. It is not this script's job to
+invent a position: for Saudel that leaves 30 Aug 06:00 -> 30 Aug 21:00 empty,
+the stretch across Guangdong towards the Leizhou peninsula that nobody fixed.
 
 Usage
 -----
-    python scripts/fill_track_gaps_cma.py --season 2026 --name Saudel
-    python scripts/fill_track_gaps_cma.py --season 2026 --name Saudel --check
+    python scripts/fill_track_gaps.py --season 2026 --name Saudel
+    python scripts/fill_track_gaps.py --season 2026 --name Saudel --check
+    python scripts/fill_track_gaps.py --season 2026 --name Saudel --sources cma
 """
 
 import argparse
@@ -109,6 +116,42 @@ def cma_points(storm_id):
     return out
 
 
+DIGITAL_TYPHOON = "http://agora.ex.nii.ac.jp/digital-typhoon/summary/wnp/l/%s.html.en"
+
+
+def jma_points(season, name, listing_hint=None):
+    """[(utc, lat, lon, pressure mb, wind kt)] from JMA's record of the storm.
+
+    JMA's own best track for a current season is not published until the year
+    is closed, so this reads NII's Digital Typhoon archive of JMA's operational
+    analyses, which is 3-hourly and keyed by JMA's international number -- 2618
+    for Saudel, the same number CMA files it under.
+
+    A wind of 0 is JMA declining to assign one, which it does for a depression;
+    that is missing, not calm, and is carried through as None.
+    """
+    if not listing_hint:
+        return []
+    # JMA's international number is 2 digits of year + 2 of sequence (2618);
+    # Digital Typhoon keys on the same storm with the year written out (202618).
+    page = get(DIGITAL_TYPHOON % ("%d%s" % (season, str(listing_hint)[-2:])))
+    out = []
+    for row in re.findall(r"<tr.*?</tr>", page, re.S):
+        cells = [re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", c)).strip()
+                 for c in re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", row, re.S)]
+        if len(cells) < 8 or not re.match(r"^\d{4}$", cells[0] or ""):
+            continue
+        try:
+            t = dt.datetime(int(cells[0]), int(cells[1]), int(cells[2]), int(cells[3]))
+            lat, lon, pres = float(cells[4]), float(cells[5]), float(cells[6])
+            wind = float(cells[7])
+        except (ValueError, IndexError):
+            continue
+        out.append((t, lat, lon, pres or None, wind or None))
+    out.sort(key=lambda p: p[0])
+    return out
+
+
 def parse_t(s):
     return dt.datetime.strptime(s.replace("T", " "), "%Y-%m-%d %H:%M:%S")
 
@@ -127,6 +170,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--season", type=int, required=True)
     ap.add_argument("--name", required=True, help="storm name as IBTrACS spells it")
+    ap.add_argument("--sources", default="cma,jma",
+                    help="comma-separated, in priority order (default cma,jma)")
     ap.add_argument("--check", action="store_true", help="report, write nothing")
     args = ap.parse_args()
 
@@ -142,59 +187,83 @@ def main():
                             " -- merge them first" if len(sids) > 1 else ""))
     sid = sids[0]
     storm = shard[sid]
-    pts = storm["pts"]
-
-    holes = gaps_in(pts)
-    if not holes:
-        print("%s (%s): no gap wider than %gh" % (args.name, sid, GAP_HOURS))
-        return
-    for a, b in holes:
-        print("gap: %s -> %s  (%.0fh)" % (a, b, (b - a).total_seconds() / 3600.0))
+    # Start from what IBTrACS itself supplied, so re-running replaces a
+    # previous fill rather than layering on top of it.
+    pts = [p for p in storm["pts"] if not p.get("src")]
+    if len(pts) != len(storm["pts"]):
+        print("dropping %d previously borrowed fix(es) and re-filling"
+              % (len(storm["pts"]) - len(pts)))
 
     entry = find_storm(args.season, args.name)
     print("CMA: %s %s (%s), id %s, intl %s"
           % (entry[1], entry[2], args.name, entry[0], entry[3]))
-    cma = cma_points(entry[0])
-    print("CMA track: %d fixes, %s -> %s" % (len(cma), cma[0][0], cma[-1][0]))
+    intl = str(entry[3])
 
-    have = {p["t"] for p in pts}
-    base = parse_t(pts[0]["t"])
+    fetchers = {
+        "cma": lambda: cma_points(entry[0]),
+        "jma": lambda: jma_points(args.season, args.name, intl),
+    }
+
     added = []
-    for a, b in holes:
-        for t, lat, lon, pres, wind in cma:
-            if not (a < t < b) or t.isoformat() in have:
-                continue
-            p = {"t": t.isoformat(),
-                 "h": (t - base).total_seconds() / 3600.0,
-                 "la": round(lat, 2), "lo": round(lon, 2),
-                 "w": wind, "p": pres, "src": "CMA"}
-            added.append(p)
+    for src in [x.strip().lower() for x in args.sources.split(",") if x.strip()]:
+        if src not in fetchers:
+            raise SystemExit("unknown source %r" % src)
+        holes = gaps_in(pts)
+        if not holes:
+            break
+        try:
+            fixes = fetchers[src]()
+        except Exception as exc:                      # a source being down is not fatal
+            print("%s: unavailable (%s)" % (src.upper(), exc))
+            continue
+        if not fixes:
+            print("%s: no track returned" % src.upper())
+            continue
+        print("%s: %d fixes, %s -> %s"
+              % (src.upper(), len(fixes), fixes[0][0], fixes[-1][0]))
+        have = {p["t"] for p in pts}
+        took = []
+        for a, b in holes:
+            for t, lat, lon, pres, wind in fixes:
+                if not (a < t < b) or t.isoformat() in have:
+                    continue
+                took.append({"t": t.isoformat(), "h": 0.0,
+                             "la": round(lat, 2), "lo": round(lon, 2),
+                             "w": wind, "p": pres, "src": src.upper()})
+        if not took:
+            print("   nothing inside the remaining hole(s)")
+            continue
+        print("   taking %d fix(es): %s -> %s"
+              % (len(took), took[0]["t"], took[-1]["t"]))
+        pts = sorted(pts + took, key=lambda p: p["t"])
+        added += took
 
-    if not added:
-        print("CMA has no fix inside the gap either -- nothing to add")
+    if not added and len(pts) == len(storm["pts"]):
+        print("\nnothing to change")
         return
 
-    merged = sorted(pts + added, key=lambda p: p["t"])
-    base = parse_t(merged[0]["t"])
-    for p in merged:
+    base = parse_t(pts[0]["t"])
+    for p in pts:
         p["h"] = (parse_t(p["t"]) - base).total_seconds() / 3600.0
 
-    print("\nadding %d CMA fixes:" % len(added))
-    for p in added:
-        print("   %s  %5.1fN %6.1fE  %s mb  %s kt"
-              % (p["t"], p["la"], p["lo"], p["p"], p["w"]))
-    left = gaps_in(merged)
+    print("\nborrowed fixes now in the track:")
+    for p in [x for x in pts if x.get("src")]:
+        print("   %s  %5.1fN %6.1fE  %-7s %-7s %s"
+              % (p["t"], p["la"], p["lo"],
+                 ("%g mb" % p["p"]) if p["p"] is not None else "-",
+                 ("%g kt" % p["w"]) if p["w"] is not None else "-", p["src"]))
+    left = gaps_in(pts)
     print("\ngaps remaining: %s"
           % ("none" if not left else
              ", ".join("%s -> %s (%.0fh)" % (a, b, (b - a).total_seconds() / 3600.0)
                        for a, b in left)))
-    print("track: %d fixes -> %d" % (len(pts), len(merged)))
+    print("track: %d fixes -> %d" % (len(storm["pts"]), len(pts)))
 
     if args.check:
         print("\n--check: nothing written")
         return
 
-    storm["pts"] = merged
+    storm["pts"] = pts
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as fh:
         json.dump(shard, fh, ensure_ascii=False, separators=(",", ":"))

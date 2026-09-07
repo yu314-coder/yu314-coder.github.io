@@ -335,16 +335,80 @@ def write_json(path, obj):
 TRACKER = os.path.join(ROOT, "assets", "typhoon-tracker")
 
 
+def bump_tracker_tokens():
+    """Version the tracker's own code, and the iframe that loads it.
+
+    typhoon-tracks.html embeds the tracker as
+    <iframe src="assets/typhoon-tracker/index.html?v=...">, and that token is
+    what a browser keys the cached page on. Re-versioning things *inside* the
+    tracker is not enough: leave the iframe URL alone and the browser keeps
+    serving the shell it already has, which asks for the old app.js, which
+    carries the old data token -- so a corrected archive renders exactly as it
+    did before. That is what happened to the Saudel merge: the data, the code
+    and the tracker's own page were all correct and published, and the tab
+    still showed two Saudels.
+
+    Every token here is a content hash, so none of them can be forgotten, and
+    re-running when nothing moved rewrites nothing.
+    """
+    def digest(*paths):
+        h = hashlib.sha1()
+        for path in paths:
+            with io.open(path, "rb") as f:
+                h.update(f.read())
+        return h.hexdigest()[:8]
+
+    def retoken(path, pattern, token):
+        if not os.path.exists(path):
+            return False
+        with io.open(path, encoding="utf-8") as f:
+            text = f.read()
+        new = re.sub(pattern, lambda m: m.group(1) + token, text)
+        if new == text:
+            return False
+        with io.open(path, "w", encoding="utf-8") as f:
+            f.write(new)
+        return True
+
+    app = os.path.join(TRACKER, "app.js")
+    css = os.path.join(TRACKER, "styles.css")
+    page = os.path.join(TRACKER, "index.html")
+    shell = os.path.join(ROOT, "typhoon-tracks.html")
+    if not all(os.path.exists(x) for x in (app, css, page)):
+        return False
+
+    hit = retoken(page, r'(app\.js\?v=)[\w.-]+', digest(app))
+    hit |= retoken(page, r'(styles\.css\?v=)[\w.-]+', digest(css))
+    # the iframe token last, so it covers the tracker page as just rewritten
+    hit |= retoken(shell, r'(assets/typhoon-tracker/index\.html\?v=)[\w.-]+',
+                   digest(page, app, css))
+    if hit:
+        print("tracker assets re-versioned (app.js/styles.css/iframe)")
+    return hit
+
+
 def bump_cache_token():
     """Point the tracker at the new data.
 
     The tracker requests these files with a ?v= token, so a browser holding the
-    old index.json would keep serving it. The token is derived from the data
-    itself, so it changes exactly when the archive does and not otherwise.
+    old copy would keep serving it. The token is derived from the data itself,
+    so it changes exactly when the archive does and not otherwise.
+
+    Every data file the tracker fetches goes into the hash, not just
+    index.json. A season shard can change while the index does not -- which is
+    what fill_track_gaps.py does when it adds fixes that are deliberately kept
+    out of peak wind and ACE -- and hashing only the index would leave those
+    browsers on the shard they already had.
     """
-    with io.open(os.path.join(DATA, "index.json"), "rb") as f:
-        digest = hashlib.sha1(f.read()).hexdigest()[:8]
-    token = "?v=d" + digest
+    files = [os.path.join(DATA, "index.json"), os.path.join(DATA, "climatology.json")]
+    files += sorted(os.path.join(SEASONS, n) for n in os.listdir(SEASONS)
+                    if n.endswith(".json"))
+    h = hashlib.sha1()
+    for path in files:
+        if os.path.exists(path):
+            with io.open(path, "rb") as f:
+                h.update(f.read())
+    token = "?v=d" + h.hexdigest()[:8]
     changed = []
     for rel in ("app.js", "index.html"):
         path = os.path.join(TRACKER, rel)
@@ -550,17 +614,24 @@ def main():
         entry["strongest"] = {"name": strongest["name"], "nameZh": strongest["nameZh"], "maxWind": sw}
         climo[str(season)] = entry
 
+    if args.check:
+        print("archive already current" if not changed else "\n--check: nothing written")
+        return 0
+
+    if changed:
+        write_json(os.path.join(DATA, "index.json"), index)
+        write_json(os.path.join(DATA, "climatology.json"), climo)
+
+    # Both run every time, not just when this script changed something: a
+    # shard edited by fill_track_gaps.py, or a hand edit to the tracker's own
+    # code, still has to reach a browser holding the old copy. Each token is a
+    # content hash, so a run that changed nothing rewrites nothing.
+    bump_cache_token()
+    bump_tracker_tokens()
+
     if not changed:
         print("archive already current")
         return 0
-
-    if args.check:
-        print("\n--check: nothing written")
-        return 0
-
-    write_json(os.path.join(DATA, "index.json"), index)
-    write_json(os.path.join(DATA, "climatology.json"), climo)
-    bump_cache_token()
     print("\nupdated seasons %s; index now %d storms (+%d)" % (changed, len(index), added_total))
     return 0
 
