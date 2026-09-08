@@ -113,7 +113,7 @@
     </div>
 
     <div class="tracker-shell reveal">
-      <iframe id="typhoon-frame" src="assets/typhoon-tracker/index.html?v=752bad36" title="Typhoon Track and Wind Radius Explorer" loading="lazy"></iframe>
+      <iframe id="typhoon-frame" src="assets/typhoon-tracker/index.html?v=d7535fb1" title="Typhoon Track and Wind Radius Explorer" loading="lazy"></iframe>
     </div>
   </section>
 
@@ -179,15 +179,28 @@
       // FRAME, and the frame is sized to the tracker's content -- each would
       // chase the other. So the host, which can see the real viewport, measures
       // it once and hands the tracker a plain pixel value.
+      // The map height is measured once per orientation, not on every call.
+      // This runs every second and on every content change, and on a phone
+      // window.innerHeight is not a constant: Safari's toolbar folds away as
+      // you scroll and comes back as you stop, moving innerHeight by 60-100px
+      // each time. Handing the tracker the live value made the map grow and
+      // shrink by that much under the reader's thumb -- the "jumping up and
+      // down" -- and every change re-sized the frame, which fed the tracker
+      // another resize. The width only changes when the phone turns, so key
+      // the measurement to that and let the toolbar do what it likes.
+      var mapHForWidth = 0;
       function markPinned() {
         try {
           var doc = frame.contentDocument || frame.contentWindow.document;
           if (!doc) return;
           doc.documentElement.classList.toggle('tt-pinned', pinned.matches);
-          var navEl = document.querySelector('.navbar');
-          var navH = navEl ? Math.round(navEl.getBoundingClientRect().height) : 71;
-          doc.documentElement.style.setProperty('--tt-map-h',
-            Math.max(320, Math.round(window.innerHeight - navH)) + 'px');
+          if (window.innerWidth !== mapHForWidth) {
+            mapHForWidth = window.innerWidth;
+            var navEl = document.querySelector('.navbar');
+            var navH = navEl ? Math.round(navEl.getBoundingClientRect().height) : 71;
+            doc.documentElement.style.setProperty('--tt-map-h',
+              Math.max(320, Math.round(window.innerHeight - navH)) + 'px');
+          }
         } catch (e) { /* cross-origin: the tracker keeps its scrolling layout */ }
       }
       function sizeFrame() {

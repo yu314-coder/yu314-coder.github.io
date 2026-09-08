@@ -7,7 +7,7 @@
   "use strict";
 
   var DATA_BASE = "../data/typhoons/";
-  var DATA_V = "?v=d43e1185b";   // bump when the season/index JSON is regenerated (e.g. RMW added)
+  var DATA_V = "?v=d3cf86f9f";   // bump when the season/index JSON is regenerated (e.g. RMW added)
   var DEFAULT_STORM = { name: "Haiyan", season: 2013 };
   var DEFAULT_GEO = { lon: 150, lat: 20, lonRange: [95, 205], latRange: [-2, 55], scale: 1 };
 
@@ -4140,16 +4140,30 @@
     }, 120);
   }
   if (window.ResizeObserver && els.map) new ResizeObserver(mapBoxChanged).observe(els.map);
+  // A height fitted for the last box must not survive into a new one. After
+  // a rotation the map kept its portrait height as an inline style, which
+  // beats the stylesheet's height for the new orientation, and the fit then
+  // saw a box that already matched its drawing and closed nothing -- a 534px
+  // map on a 242px watch face. Clearing it hands the box back to CSS and the
+  // observer refits from there.
+  //
+  // But only when the WIDTH changed. On a phone the height changes constantly
+  // without a rotation: Safari's toolbar folds away as you scroll, and inside
+  // the host's iframe every re-measure of our content resizes the frame. The
+  // first version of this cleared on every resize, so each of those threw the
+  // map back to its stylesheet height for a frame, the fit pulled it down
+  // again, the content height changed, the host resized the frame, and that
+  // fired the next resize -- the page "kept jumping up and down". A rotation
+  // is the one case that needs the reset, and a rotation changes the width.
+  var lastResizeWidth = window.innerWidth;
   window.addEventListener("resize", function () {
-    // A height fitted for the last box must not survive into a new one. After
-    // a rotation the map kept its portrait height as an inline style, which
-    // beats the stylesheet's height for the new orientation, and the fit then
-    // saw a box that already matched its drawing and closed nothing -- a
-    // 534px map on a 242px watch face, 552px on a phone turned sideways.
-    // Clearing it hands the box back to CSS; the observer refits from there.
-    if (els.map) els.map.style.height = "";
-    var shell = els.map && els.map.parentElement;
-    if (shell && shell.classList.contains("tt-map-shell")) shell.style.height = "";
+    var w = window.innerWidth;
+    if (Math.abs(w - lastResizeWidth) >= 2) {
+      lastResizeWidth = w;
+      if (els.map) els.map.style.height = "";
+      var shell = els.map && els.map.parentElement;
+      if (shell && shell.classList.contains("tt-map-shell")) shell.style.height = "";
+    }
     mapBoxChanged();
   });
 
