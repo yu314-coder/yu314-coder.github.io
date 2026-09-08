@@ -891,8 +891,16 @@
       // its content, so leave it alone.
       var shell = els.map.parentElement;
       if (shell && shell.classList.contains("tt-map-shell")) {
-        shell.style.height = document.documentElement.classList.contains("tt-pinned")
-          ? "" : drawn + "px";
+        // Pinned or not is the wrong question; the right one is whether the
+        // timeline floats over the map or sits in flow inside the shell. In
+        // the touch layout it is in flow, so the shell has to wrap its
+        // content: pinning the shell to the drawn height there (on the
+        // standalone page, where nothing pins the frame) left the map, held
+        // at its CSS height, painting 358px past the shell and over the
+        // stats and chart that follow it.
+        var inFlow = false;
+        try { inFlow = window.matchMedia(TOUCH_LAYOUT).matches; } catch (e) {}
+        shell.style.height = inFlow ? "" : drawn + "px";
       }
       try { Plotly.Plots.resize(els.map); } catch (e) { /* not built yet */ }
     });
@@ -4132,7 +4140,18 @@
     }, 120);
   }
   if (window.ResizeObserver && els.map) new ResizeObserver(mapBoxChanged).observe(els.map);
-  window.addEventListener("resize", mapBoxChanged);
+  window.addEventListener("resize", function () {
+    // A height fitted for the last box must not survive into a new one. After
+    // a rotation the map kept its portrait height as an inline style, which
+    // beats the stylesheet's height for the new orientation, and the fit then
+    // saw a box that already matched its drawing and closed nothing -- a
+    // 534px map on a 242px watch face, 552px on a phone turned sideways.
+    // Clearing it hands the box back to CSS; the observer refits from there.
+    if (els.map) els.map.style.height = "";
+    var shell = els.map && els.map.parentElement;
+    if (shell && shell.classList.contains("tt-map-shell")) shell.style.height = "";
+    mapBoxChanged();
+  });
 
   if (els.legendToggle) {
     els.legendToggle.addEventListener("click", function () {
@@ -4241,7 +4260,15 @@
     els.map.setAttribute("tabindex", "0");
     els.map.setAttribute("role", "application");
     els.map.setAttribute("aria-label",
-      "Storm track map. Arrow keys pan, plus and minus zoom, 0 resets.");
+      "Storm track map. Arrow keys pan, plus and minus zoom, 0 resets, ? lists every key.");
+
+    // Plotly's drag layer preventDefaults the mousedown, and that also cancels
+    // the focus a click would have given this element -- so after clicking the
+    // map the arrows still went to the page. Take focus ourselves, without
+    // scrolling the frame to do it.
+    els.map.addEventListener("pointerdown", function () {
+      try { els.map.focus({ preventScroll: true }); } catch (e) { els.map.focus(); }
+    }, true);
 
     function pan(dLon, dLat) {
       var g = (els.map._fullLayout && els.map._fullLayout.geo) || null;
@@ -4269,6 +4296,84 @@
       else if (k === "0") { if (els.zoomReset) els.zoomReset.click(); }
       else handled = false;
       if (handled) { ev.preventDefault(); ev.stopPropagation(); }
+    });
+  })();
+
+  /* Page-wide keys. Everything a pointer does with the play button, the slider
+     and the two pickers, a keyboard can do without reaching for it -- an iPad
+     with a Magic Keyboard as much as a desktop. Scoped away from form fields
+     so a select's own type-ahead and the slider's own arrow handling are never
+     hijacked; the one exception is Space on the slider, which there would do
+     nothing, so it plays. Buttons keep Space too, or the play button would
+     toggle twice. The map's own handler (above) takes the arrows and stops
+     propagation, so nothing here fires twice. */
+  (function bindGlobalKeys() {
+    var help = document.getElementById("tt-kbd-help");
+    var helpBtn = document.getElementById("tt-kbd-btn");
+    var helpClose = document.getElementById("tt-kbd-close");
+
+    function tagOf(t) { return t && t.tagName ? t.tagName.toLowerCase() : ""; }
+    function inField(t) {
+      var tag = tagOf(t);
+      if (tag === "select" || tag === "textarea" || (t && t.isContentEditable)) return true;
+      return tag === "input" && t.type !== "range";
+    }
+    function showHelp(on) {
+      if (!help) return;
+      help.hidden = !on;
+      if (on && helpClose) helpClose.focus();
+    }
+    if (helpBtn) helpBtn.addEventListener("click", function () { showHelp(help.hidden); });
+    if (helpClose) helpClose.addEventListener("click", function () { showHelp(false); });
+    if (help) help.addEventListener("click", function (ev) { if (ev.target === help) showHelp(false); });
+
+    function stepHours(dh) {
+      if (!currentStorm) return;
+      stopPlay();
+      var max = Number(els.slider.max) || 0;
+      currentHour = Math.max(0, Math.min(max, currentHour + dh));
+      els.slider.value = currentHour;
+      renderScrub();
+      hindcastFollowTick(true);
+      consensusFollowTick(true);
+    }
+    function pick(sel, dir) {
+      if (!sel || !sel.options.length) return;
+      var i = sel.selectedIndex + dir;
+      if (i < 0 || i >= sel.options.length) return;
+      sel.selectedIndex = i;
+      sel.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+
+    document.addEventListener("keydown", function (ev) {
+      if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+      // Any key at all means there is a keyboard: reveal the "?" button.
+      if (els.app && !els.app.classList.contains("has-keyboard")) els.app.classList.add("has-keyboard");
+      var k = ev.key, tag = tagOf(ev.target);
+      if (k === "Escape") {
+        if (help && !help.hidden) { showHelp(false); ev.preventDefault(); }
+        return;
+      }
+      if (inField(ev.target)) return;
+      if (k === "?") { showHelp(help && help.hidden); ev.preventDefault(); return; }
+      if (k === " " && (tag === "button" || tag === "a")) return;   // theirs
+      var track = els.app && els.app.classList.contains("mode-track");
+      var handled = true;
+      if (k === " " || k === "Spacebar") { if (track && viewMode === "storm") togglePlay(); else handled = false; }
+      else if (k === "." || k === ">") stepHours(ev.shiftKey ? 24 : 3);
+      else if (k === "," || k === "<") stepHours(ev.shiftKey ? -24 : -3);
+      else if (k === "Home") stepHours(-1e9);
+      else if (k === "End") stepHours(1e9);
+      else if (k === "n" || k === "N") pick(ev.shiftKey ? els.season : els.storm, 1);
+      else if (k === "p" || k === "P") pick(ev.shiftKey ? els.season : els.storm, -1);
+      else if (k === "v" || k === "V") { if (track) setViewMode(viewMode === "season" ? "storm" : "season"); else handled = false; }
+      else if (k === "c" || k === "C") setControlsHidden(!(els.app && els.app.classList.contains("controls-hidden")));
+      else if (k === "l" || k === "L") { if (els.legendToggle) els.legendToggle.click(); else handled = false; }
+      else if (k === "+" || k === "=") zoomBy(1.5);
+      else if (k === "-" || k === "_") zoomBy(1 / 1.5);
+      else if (k === "0") { if (els.zoomReset) els.zoomReset.click(); }
+      else handled = false;
+      if (handled) ev.preventDefault();
     });
   })();
 
