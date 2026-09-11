@@ -45,10 +45,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@200;300;400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 
   <!-- Site stylesheet (single source of truth) -->
-  <link rel="stylesheet" href="assets/css/style.css?v=20260907-tab3">
+  <link rel="stylesheet" href="assets/css/style.css?v=20260911-privacy1">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
-<body class="theme-dark">
+<body class="theme-dark privacy-page" id="top">
   <!-- Navigation -->
   <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
     <div class="container">
@@ -71,45 +71,110 @@
   </nav>
 
   <!-- Header Section -->
-  <header class="page-header">
+  <header class="page-header pv-header">
     <div class="container">
       <p class="eyebrow eyebrow--rule">Privacy</p>
       <h1>Privacy policies</h1>
-      <p class="lead-2">Your privacy is important. Learn how each of my applications handles your data.</p>
+      <p class="lead-2">One policy per app, in plain language. Each one says what stays on your device, what &mdash; if anything &mdash; the app fetches from the network, and which system permissions it asks for.</p>
+      <div class="pv-facts">
+        <span><b>9</b> applications</span>
+        <span>Latest revision <b>July 24, 2026</b></span>
+        <span>Questions <a href="mailto:euler.yu@gmail.com">euler.yu@gmail.com</a></span>
+      </div>
     </div>
   </header>
 
-  <!-- Privacy Content -->
-  <section class="section container">
+  <!-- At a glance: one card per app, linking to its full policy -->
+  <section class="container section-sm pv-glance" aria-labelledby="pv-glance-title">
+    <div class="reveal">
+      <p class="eyebrow eyebrow--rule">at a glance</p>
+      <h2 class="h3" id="pv-glance-title">What each app does with your data</h2>
+      <p class="lead-2 pv-glance-lead">The short version of every policy on this page. Each line is drawn from the full text below &mdash; open a card to read it.</p>
+    </div>
+    <div class="pv-grid reveal">
+      <a class="pv-card" href="#tsne">
+        <div class="pv-card-top"><span class="app-icon app-icon-sm"><picture><source srcset="assets/img/app-icons/t-sne.webp" type="image/webp"><img src="assets/img/app-icons/t-sne.png" alt="" width="96" height="96" loading="lazy" decoding="async"></picture></span><div><h3>t-SNE Explorer</h3><span class="pv-platform">Windows · Microsoft Store</span></div></div>
+        <p>Everything runs on your PC; internet only for the optional MNIST download.</p>
+        <div class="pv-tags"><span class="pv-tag pv-tag--ok">On-device</span><span class="pv-tag pv-tag--ok">No analytics</span><span class="pv-tag pv-tag--ok">No ads</span><span class="pv-tag pv-tag--net">Network: MNIST download, on request</span><span class="pv-tag pv-tag--ok">Open source</span></div>
+      </a>
+      <a class="pv-card" href="#manim-studio">
+        <div class="pv-card-top"><span class="app-icon app-icon-sm"><picture><source srcset="assets/img/app-icons/manimstudio-win.webp" type="image/webp"><img src="assets/img/app-icons/manimstudio-win.png" alt="" width="96" height="96" loading="lazy" decoding="async"></picture></span><div><h3>Manim Studio</h3><span class="pv-platform">Windows · desktop app</span></div></div>
+        <p>Works entirely offline — your code and renders stay on your computer.</p>
+        <div class="pv-tags"><span class="pv-tag pv-tag--ok">Offline</span><span class="pv-tag pv-tag--ok">No analytics</span><span class="pv-tag pv-tag--ok">No accounts</span><span class="pv-tag pv-tag--ok">No third-party services</span></div>
+      </a>
+      <a class="pv-card" href="#random-matrix">
+        <div class="pv-card-top"><span class="app-icon app-icon-sm"><picture><source srcset="assets/img/app-icons/generalized-covariance.webp" type="image/webp"><img src="assets/img/app-icons/generalized-covariance.png" alt="" width="96" height="96" loading="lazy" decoding="async"></picture></span><div><h3>Generalized Covariance Matrix</h3><span class="pv-platform">Windows · Microsoft Store</span></div></div>
+        <p>Runs locally; results and temporary files live in your user folder, under your control.</p>
+        <div class="pv-tags"><span class="pv-tag pv-tag--ok">On-device</span><span class="pv-tag pv-tag--ok">No analytics</span><span class="pv-tag pv-tag--ok">No tracking</span><span class="pv-tag pv-tag--ok">Open source</span></div>
+      </a>
+      <a class="pv-card" href="#eigendenoise">
+        <div class="pv-card-top"><span class="app-icon app-icon-sm"><picture><source srcset="assets/img/app-icons/eigendenoise.webp" type="image/webp"><img src="assets/img/app-icons/eigendenoise.png" alt="" width="96" height="96" loading="lazy" decoding="async"></picture></span><div><h3>EigenDenoise</h3><span class="pv-platform">macOS · Mac App Store</span></div></div>
+        <p>All computation on your Mac; network only when you fetch a dataset preset.</p>
+        <div class="pv-tags"><span class="pv-tag pv-tag--ok">On-device</span><span class="pv-tag pv-tag--ok">No analytics</span><span class="pv-tag pv-tag--ok">No accounts</span><span class="pv-tag pv-tag--net">Network: dataset downloads, on request</span></div>
+      </a>
+      <a class="pv-card" href="#manim-studio-ios">
+        <div class="pv-card-top"><span class="app-icon app-icon-sm"><picture><source srcset="assets/img/app-icons/manimstudio-ios.webp" type="image/webp"><img src="assets/img/app-icons/manimstudio-ios.png" alt="" width="96" height="96" loading="lazy" decoding="async"></picture></span><div><h3>ManimStudio (iOS)</h3><span class="pv-platform">iPadOS · App Store</span></div></div>
+        <p>Offline iPad app — source files and rendered media stay in its Documents folder.</p>
+        <div class="pv-tags"><span class="pv-tag pv-tag--ok">Offline</span><span class="pv-tag pv-tag--ok">No analytics</span><span class="pv-tag pv-tag--ok">No servers</span><span class="pv-tag pv-tag--perm">Photos: add-only, on export</span></div>
+      </a>
+      <a class="pv-card" href="#gps-location-app">
+        <div class="pv-card-top"><span class="app-icon app-icon-sm"><picture><source srcset="assets/img/app-icons/gps-location-app.webp" type="image/webp"><img src="assets/img/app-icons/gps-location-app.png" alt="" width="96" height="96" loading="lazy" decoding="async"></picture></span><div><h3>GPS-location-app</h3><span class="pv-platform">iOS · App Store</span></div></div>
+        <p>Records workout routes on your device; syncs with Apple Health only when you allow it.</p>
+        <div class="pv-tags"><span class="pv-tag pv-tag--ok">On-device</span><span class="pv-tag pv-tag--ok">Not sold</span><span class="pv-tag pv-tag--ok">Not used for ads</span><span class="pv-tag pv-tag--perm">Location, for routes</span><span class="pv-tag pv-tag--perm">HealthKit: opt-in</span></div>
+      </a>
+      <a class="pv-card" href="#whisper">
+        <div class="pv-card-top"><span class="app-icon app-icon-sm"><picture><source srcset="assets/img/app-icons/whisperkit.webp" type="image/webp"><img src="assets/img/app-icons/whisperkit.png" alt="" width="96" height="96" loading="lazy" decoding="async"></picture></span><div><h3>Whisper (WhisperKit)</h3><span class="pv-platform">iOS &amp; iPadOS · App Store</span></div></div>
+        <p>Transcribes entirely on-device; downloads the model weights you choose, once.</p>
+        <div class="pv-tags"><span class="pv-tag pv-tag--ok">On-device</span><span class="pv-tag pv-tag--ok">No analytics</span><span class="pv-tag pv-tag--ok">No accounts</span><span class="pv-tag pv-tag--net">Network: model download only</span><span class="pv-tag pv-tag--perm">Microphone, on request</span></div>
+      </a>
+      <a class="pv-card" href="#benchcode">
+        <div class="pv-card-top"><span class="app-icon app-icon-sm"><picture><source srcset="assets/img/app-icons/benchcode.webp" type="image/webp"><img src="assets/img/app-icons/benchcode.png" alt="" width="96" height="96" loading="lazy" decoding="async"></picture></span><div><h3>BenchCode</h3><span class="pv-platform">iOS · App Store</span></div></div>
+        <p>An offline Python IDE — code, files and output never leave your device.</p>
+        <div class="pv-tags"><span class="pv-tag pv-tag--ok">Offline</span><span class="pv-tag pv-tag--ok">No analytics</span><span class="pv-tag pv-tag--ok">No accounts</span><span class="pv-tag pv-tag--perm">Apple crash data only if you opt in</span></div>
+      </a>
+      <a class="pv-card" href="#sidecarbridge">
+        <div class="pv-card-top"><span class="app-icon app-icon-sm"><picture><source srcset="assets/img/app-icons/sidecarbridge.webp" type="image/webp"><img src="assets/img/app-icons/sidecarbridge.png" alt="" width="96" height="96" loading="lazy" decoding="async"></picture></span><div><h3>SidecarBridge</h3><span class="pv-platform">macOS + iPadOS</span></div></div>
+        <p>Screen and input travel only between your Mac and iPad, over an encrypted local link.</p>
+        <div class="pv-tags"><span class="pv-tag pv-tag--net">Local network only</span><span class="pv-tag pv-tag--ok">Encrypted transport</span><span class="pv-tag pv-tag--ok">No analytics</span><span class="pv-tag pv-tag--ok">No cloud</span></div>
+      </a>
+    </div>
+  </section>
+
+  <!-- Full policies -->
+  <section class="container section-sm pv-policies">
     <div class="row">
       <div class="col-lg-3 mb-4">
-        <nav class="policy-nav sticky-top" style="top: 100px;" aria-label="Privacy policy quick navigation">
-          <p class="eyebrow">Jump to</p>
-          <a href="#tsne">t-SNE Explorer</a>
-          <a href="#manim-studio">Manim Studio (Windows)</a>
-          <a href="#random-matrix">Generalized Covariance Matrix</a>
-          <a href="#eigendenoise">EigenDenoise</a>
-          <a href="#manim-studio-ios">ManimStudio (iOS)</a>
-          <a href="#gps-location-app">GPS-location-app</a>
-          <a href="#whisper">Whisper (WhisperKit)</a>
-          <a href="#benchcode">BenchCode</a>
-          <a href="#sidecarbridge">SidecarBridge</a>
+        <nav class="pv-nav" aria-label="Privacy policy quick navigation">
+          <p class="eyebrow pv-nav-label">Jump to</p>
+          <a href="#tsne"><img src="assets/img/app-icons/t-sne.webp" alt="" width="22" height="22" loading="lazy" decoding="async">t-SNE Explorer</a>
+          <a href="#manim-studio"><img src="assets/img/app-icons/manimstudio-win.webp" alt="" width="22" height="22" loading="lazy" decoding="async">Manim Studio</a>
+          <a href="#random-matrix"><img src="assets/img/app-icons/generalized-covariance.webp" alt="" width="22" height="22" loading="lazy" decoding="async">Generalized Covariance Matrix</a>
+          <a href="#eigendenoise"><img src="assets/img/app-icons/eigendenoise.webp" alt="" width="22" height="22" loading="lazy" decoding="async">EigenDenoise</a>
+          <a href="#manim-studio-ios"><img src="assets/img/app-icons/manimstudio-ios.webp" alt="" width="22" height="22" loading="lazy" decoding="async">ManimStudio (iOS)</a>
+          <a href="#gps-location-app"><img src="assets/img/app-icons/gps-location-app.webp" alt="" width="22" height="22" loading="lazy" decoding="async">GPS-location-app</a>
+          <a href="#whisper"><img src="assets/img/app-icons/whisperkit.webp" alt="" width="22" height="22" loading="lazy" decoding="async">Whisper (WhisperKit)</a>
+          <a href="#benchcode"><img src="assets/img/app-icons/benchcode.webp" alt="" width="22" height="22" loading="lazy" decoding="async">BenchCode</a>
+          <a href="#sidecarbridge"><img src="assets/img/app-icons/sidecarbridge.webp" alt="" width="22" height="22" loading="lazy" decoding="async">SidecarBridge</a>
+          <a class="pv-nav-top" href="#top">&uarr; Back to top</a>
         </nav>
       </div>
 
       <div class="col-lg-9">
-        <!-- t-SNE Explorer Privacy Policy -->
-        <div id="tsne" class="privacy-content reveal">
-          <div class="d-flex align-items-center gap-3 mb-2">
-            <span class="app-icon"><picture><source srcset="assets/img/app-icons/t-sne.webp" type="image/webp"><img src="assets/img/app-icons/t-sne.png" alt="t-SNE Explorer icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
-            <h2 class="mb-0">t-SNE Explorer Privacy Policy</h2>
+        <article id="tsne" class="pv-policy reveal">
+          <div class="pv-policy-head">
+            <span class="app-icon"><picture><source srcset="assets/img/app-icons/t-sne.webp" type="image/webp"><img src="assets/img/app-icons/t-sne.png" alt="" width="256" height="256" loading="lazy" decoding="async"></picture></span>
+            <div class="pv-policy-title">
+              <h2>t-SNE Explorer Privacy Policy <a class="pv-anchor" href="#tsne" aria-label="Link to this policy">#</a></h2>
+              <span class="pv-updated"><span class="pv-updated-label">Last Updated</span> January 14, 2026</span>
+            </div>
           </div>
-          <p class="last-updated">Last Updated: January 14, 2026</p>
-
-          <p><strong>Developer:</strong> Yu, Yao-hsing<br>
-          <strong>Application:</strong> t-SNE Explorer<br>
-          <strong>Store ID:</strong> 9P969D6N7P6J</p>
-
+          <dl class="pv-meta">
+            <div><dt>Platform</dt><dd>Windows · Microsoft Store</dd></div>
+            <div><dt>Developer</dt><dd>Yu, Yao-Hsing 尤耀星</dd></div>
+            <div><dt>Store ID</dt><dd><code>9P969D6N7P6J</code></dd></div>
+            <div><dt>Contact</dt><dd><a href="mailto:euler.yu@gmail.com">euler.yu@gmail.com</a></dd></div>
+          </dl>
+          <div class="pv-body">
           <h3>1. OVERVIEW</h3>
           <p>t-SNE Explorer is a transparent t-SNE (t-Distributed Stochastic Neighbor Embedding) visualization tool designed to help users analyze and visualize high-dimensional data in 2D space. This privacy policy explains our data handling practices.</p>
 
@@ -216,18 +281,24 @@
             <li>Requires internet only for optional MNIST download</li>
           </ul>
           <p>Your privacy is important to us. t-SNE Explorer is designed to be completely transparent and respect your data privacy at all times.</p>
-        </div>
 
-        <hr class="app-divider">
-
-        <!-- Manim Studio Privacy Policy -->
-        <div id="manim-studio" class="privacy-content reveal">
-          <div class="d-flex align-items-center gap-3 mb-2">
-            <span class="app-icon"><picture><source srcset="assets/img/app-icons/manimstudio-win.webp" type="image/webp"><img src="assets/img/app-icons/manimstudio-win.png" alt="Manim Studio icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
-            <h2 class="mb-0">Manim Studio Privacy Policy</h2>
           </div>
-          <p class="last-updated">Last Updated: January 2025</p>
+        </article>
 
+        <article id="manim-studio" class="pv-policy reveal">
+          <div class="pv-policy-head">
+            <span class="app-icon"><picture><source srcset="assets/img/app-icons/manimstudio-win.webp" type="image/webp"><img src="assets/img/app-icons/manimstudio-win.png" alt="" width="256" height="256" loading="lazy" decoding="async"></picture></span>
+            <div class="pv-policy-title">
+              <h2>Manim Studio Privacy Policy <a class="pv-anchor" href="#manim-studio" aria-label="Link to this policy">#</a></h2>
+              <span class="pv-updated"><span class="pv-updated-label">Last Updated</span> January 2025</span>
+            </div>
+          </div>
+          <dl class="pv-meta">
+            <div><dt>Platform</dt><dd>Windows · desktop app</dd></div>
+            <div><dt>Developer</dt><dd>Yu, Yao-Hsing 尤耀星</dd></div>
+            <div><dt>Contact</dt><dd><a href="mailto:euler.yu@gmail.com">euler.yu@gmail.com</a></dd></div>
+          </dl>
+          <div class="pv-body">
           <h3>1. INTRODUCTION</h3>
           <p>Manim Studio is a desktop application for creating mathematical animations using the Manim library. This privacy policy explains how the application handles your data.</p>
 
@@ -277,18 +348,25 @@
 
           <hr>
           <p><em>This application respects your privacy by design. Your code, animations, and creative work remain entirely yours.</em></p>
-        </div>
 
-        <hr class="app-divider">
-
-        <!-- Generalized Covariance Matrix Privacy Policy -->
-        <div id="random-matrix" class="privacy-content reveal">
-          <div class="d-flex align-items-center gap-3 mb-2">
-            <span class="app-icon"><picture><source srcset="assets/img/app-icons/generalized-covariance.webp" type="image/webp"><img src="assets/img/app-icons/generalized-covariance.png" alt="Generalized Covariance Matrix icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
-            <h2 class="mb-0">Generalized Covariance Matrix Privacy Policy</h2>
           </div>
-          <p class="last-updated">Last Updated: November 26, 2025</p>
+        </article>
 
+        <article id="random-matrix" class="pv-policy reveal">
+          <div class="pv-policy-head">
+            <span class="app-icon"><picture><source srcset="assets/img/app-icons/generalized-covariance.webp" type="image/webp"><img src="assets/img/app-icons/generalized-covariance.png" alt="" width="256" height="256" loading="lazy" decoding="async"></picture></span>
+            <div class="pv-policy-title">
+              <h2>Generalized Covariance Matrix Privacy Policy <a class="pv-anchor" href="#random-matrix" aria-label="Link to this policy">#</a></h2>
+              <span class="pv-updated"><span class="pv-updated-label">Last Updated</span> November 26, 2025</span>
+            </div>
+          </div>
+          <dl class="pv-meta">
+            <div><dt>Platform</dt><dd>Windows · Microsoft Store</dd></div>
+            <div><dt>Developer</dt><dd>Yu, Yao-Hsing 尤耀星</dd></div>
+            <div><dt>Source</dt><dd><a href="https://github.com/yu314-coder/random_matrix_ESD" target="_blank" rel="noopener noreferrer">yu314-coder/random_matrix_ESD</a></dd></div>
+            <div><dt>Contact</dt><dd><a href="mailto:euler.yu@gmail.com">euler.yu@gmail.com</a></dd></div>
+          </dl>
+          <div class="pv-body">
           <h3>1. INTRODUCTION</h3>
           <p>This Privacy Policy describes how Generalized Covariance Matrix ("we", "our", or "the App") handles your information. We are committed to protecting your privacy and ensuring transparency about our data practices.</p>
 
@@ -364,18 +442,25 @@
 
           <hr>
           <p><em>This Privacy Policy applies to the Generalized Covariance Matrix application available on the Microsoft Store and other distribution platforms.</em></p>
-        </div>
 
-        <hr class="app-divider">
-
-        <!-- EigenDenoise Privacy Policy -->
-        <div id="eigendenoise" class="privacy-content reveal">
-          <div class="d-flex align-items-center gap-3 mb-2">
-            <span class="app-icon"><picture><source srcset="assets/img/app-icons/eigendenoise.webp" type="image/webp"><img src="assets/img/app-icons/eigendenoise.png" alt="EigenDenoise icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
-            <h2 class="mb-0">EigenDenoise Privacy Policy</h2>
           </div>
-          <p class="last-updated">Last Updated: May 4, 2026</p>
+        </article>
 
+        <article id="eigendenoise" class="pv-policy reveal">
+          <div class="pv-policy-head">
+            <span class="app-icon"><picture><source srcset="assets/img/app-icons/eigendenoise.webp" type="image/webp"><img src="assets/img/app-icons/eigendenoise.png" alt="" width="256" height="256" loading="lazy" decoding="async"></picture></span>
+            <div class="pv-policy-title">
+              <h2>EigenDenoise Privacy Policy <a class="pv-anchor" href="#eigendenoise" aria-label="Link to this policy">#</a></h2>
+              <span class="pv-updated"><span class="pv-updated-label">Last Updated</span> May 4, 2026</span>
+            </div>
+          </div>
+          <dl class="pv-meta">
+            <div><dt>Platform</dt><dd>macOS · Mac App Store</dd></div>
+            <div><dt>Developer</dt><dd>Yu, Yao-Hsing 尤耀星</dd></div>
+            <div><dt>Source</dt><dd><a href="https://github.com/yu314-coder/EigenDenoise" target="_blank" rel="noopener noreferrer">yu314-coder/EigenDenoise</a></dd></div>
+            <div><dt>Contact</dt><dd><a href="mailto:euler.yu@gmail.com">euler.yu@gmail.com</a></dd></div>
+          </dl>
+          <div class="pv-body">
           <p>EigenDenoise ("the App") is a native macOS application developed by Yao-Hsing Yu ("we", "I"). This policy explains, in plain language, exactly what the App does and does not do with your information.</p>
 
           <h3>TL;DR</h3>
@@ -429,18 +514,24 @@
 
           <hr>
           <p><em>EigenDenoise is a privacy-respecting macOS application. All processing happens on your Mac, with no telemetry or analytics of any kind.</em></p>
-        </div>
 
-        <hr class="app-divider">
-
-        <!-- ManimStudio iOS Privacy Policy -->
-        <div id="manim-studio-ios" class="privacy-content reveal">
-          <div class="d-flex align-items-center gap-3 mb-2">
-            <span class="app-icon"><picture><source srcset="assets/img/app-icons/manimstudio-ios.webp" type="image/webp"><img src="assets/img/app-icons/manimstudio-ios.png" alt="ManimStudio iOS icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
-            <h2 class="mb-0">ManimStudio (iOS) Privacy Policy</h2>
           </div>
-          <p class="last-updated">Effective date: May 6, 2026</p>
+        </article>
 
+        <article id="manim-studio-ios" class="pv-policy reveal">
+          <div class="pv-policy-head">
+            <span class="app-icon"><picture><source srcset="assets/img/app-icons/manimstudio-ios.webp" type="image/webp"><img src="assets/img/app-icons/manimstudio-ios.png" alt="" width="256" height="256" loading="lazy" decoding="async"></picture></span>
+            <div class="pv-policy-title">
+              <h2>ManimStudio (iOS) Privacy Policy <a class="pv-anchor" href="#manim-studio-ios" aria-label="Link to this policy">#</a></h2>
+              <span class="pv-updated"><span class="pv-updated-label">Effective date</span> May 6, 2026</span>
+            </div>
+          </div>
+          <dl class="pv-meta">
+            <div><dt>Platform</dt><dd>iPadOS · App Store</dd></div>
+            <div><dt>Developer</dt><dd>Yu, Yao-Hsing 尤耀星</dd></div>
+            <div><dt>Contact</dt><dd><a href="mailto:euler.yu@gmail.com">euler.yu@gmail.com</a></dd></div>
+          </dl>
+          <div class="pv-body">
           <p>ManimStudio is an offline iPad app for editing and rendering Python/manim animations.</p>
 
           <h3>Data we collect: None.</h3>
@@ -474,18 +565,25 @@
 
           <hr>
           <p><em>ManimStudio (iOS) is fully offline by design. Your code, animations, and rendered media stay on your iPad.</em></p>
-        </div>
 
-        <hr class="app-divider">
-
-        <!-- GPS-location-app Privacy Policy -->
-        <div id="gps-location-app" class="privacy-content reveal">
-          <div class="d-flex align-items-center gap-3 mb-2">
-            <span class="app-icon"><picture><source srcset="assets/img/app-icons/gps-location-app.webp" type="image/webp"><img src="assets/img/app-icons/gps-location-app.png" alt="GPS-location-app icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
-            <h2 class="mb-0">GPS-location-app Privacy Policy</h2>
           </div>
-          <p class="last-updated">Effective date: May 13, 2026</p>
+        </article>
 
+        <article id="gps-location-app" class="pv-policy reveal">
+          <div class="pv-policy-head">
+            <span class="app-icon"><picture><source srcset="assets/img/app-icons/gps-location-app.webp" type="image/webp"><img src="assets/img/app-icons/gps-location-app.png" alt="" width="256" height="256" loading="lazy" decoding="async"></picture></span>
+            <div class="pv-policy-title">
+              <h2>GPS-location-app Privacy Policy <a class="pv-anchor" href="#gps-location-app" aria-label="Link to this policy">#</a></h2>
+              <span class="pv-updated"><span class="pv-updated-label">Effective date</span> May 13, 2026</span>
+            </div>
+          </div>
+          <dl class="pv-meta">
+            <div><dt>Platform</dt><dd>iOS · App Store</dd></div>
+            <div><dt>Developer</dt><dd>Yu, Yao-Hsing 尤耀星</dd></div>
+            <div><dt>Source</dt><dd><a href="https://github.com/yu314-coder/GPS-location-app" target="_blank" rel="noopener noreferrer">yu314-coder/GPS-location-app</a></dd></div>
+            <div><dt>Contact</dt><dd><a href="mailto:euler.yu@gmail.com">euler.yu@gmail.com</a></dd></div>
+          </dl>
+          <div class="pv-body">
           <p>GPS-location-app respects your privacy. This app is designed to record workout routes and related workout metrics on your device and, where you allow it, through Apple Health / HealthKit.</p>
 
           <h3>Information We Collect</h3>
@@ -540,18 +638,25 @@
 
           <hr>
           <p><em>GPS-location-app keeps your route and workout data on your device, syncing with Apple Health only when you explicitly grant permission.</em></p>
-        </div>
 
-        <hr class="app-divider">
-
-        <!-- Whisper Privacy Policy -->
-        <div id="whisper" class="privacy-content reveal">
-          <div class="d-flex align-items-center gap-3 mb-2">
-            <span class="app-icon"><picture><source srcset="assets/img/app-icons/whisperkit.webp" type="image/webp"><img src="assets/img/app-icons/whisperkit.png" alt="WhisperKit icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
-            <h2 class="mb-0">Whisper Privacy Policy</h2>
           </div>
-          <p class="last-updated">Last updated: May 16, 2026</p>
+        </article>
 
+        <article id="whisper" class="pv-policy reveal">
+          <div class="pv-policy-head">
+            <span class="app-icon"><picture><source srcset="assets/img/app-icons/whisperkit.webp" type="image/webp"><img src="assets/img/app-icons/whisperkit.png" alt="" width="256" height="256" loading="lazy" decoding="async"></picture></span>
+            <div class="pv-policy-title">
+              <h2>Whisper Privacy Policy <a class="pv-anchor" href="#whisper" aria-label="Link to this policy">#</a></h2>
+              <span class="pv-updated"><span class="pv-updated-label">Last updated</span> May 16, 2026</span>
+            </div>
+          </div>
+          <dl class="pv-meta">
+            <div><dt>Platform</dt><dd>iOS &amp; iPadOS · App Store</dd></div>
+            <div><dt>Developer</dt><dd>Yu, Yao-Hsing 尤耀星</dd></div>
+            <div><dt>App Store</dt><dd><a href="https://apps.apple.com/app/whisperkit/id6764759491" target="_blank" rel="noopener noreferrer">WhisperKit</a></dd></div>
+            <div><dt>Contact</dt><dd><a href="mailto:euler.yu@gmail.com">euler.yu@gmail.com</a></dd></div>
+          </dl>
+          <div class="pv-body">
           <p>Whisper ("the app") is designed with privacy as a foundational principle. This policy explains, in plain language, what data the app handles and what it does not.</p>
 
           <h3>The short version</h3>
@@ -615,18 +720,25 @@
 
           <hr>
           <p><em>Whisper (released on the App Store as <a href="https://apps.apple.com/app/whisperkit/id6764759491" target="_blank" rel="noopener noreferrer">WhisperKit</a>) transcribes speech entirely on-device using Apple's Neural Engine. Your audio and transcripts never leave your iPhone or iPad.</em></p>
-        </div>
 
-        <hr class="app-divider">
-
-        <!-- BenchCode Privacy Policy -->
-        <div id="benchcode" class="privacy-content reveal">
-          <div class="d-flex align-items-center gap-3 mb-2">
-            <span class="app-icon"><picture><source srcset="assets/img/app-icons/benchcode.webp" type="image/webp"><img src="assets/img/app-icons/benchcode.png" alt="BenchCode icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
-            <h2 class="mb-0">BenchCode Privacy Policy</h2>
           </div>
-          <p class="last-updated">Effective date: June 8, 2026</p>
+        </article>
 
+        <article id="benchcode" class="pv-policy reveal">
+          <div class="pv-policy-head">
+            <span class="app-icon"><picture><source srcset="assets/img/app-icons/benchcode.webp" type="image/webp"><img src="assets/img/app-icons/benchcode.png" alt="" width="256" height="256" loading="lazy" decoding="async"></picture></span>
+            <div class="pv-policy-title">
+              <h2>BenchCode Privacy Policy <a class="pv-anchor" href="#benchcode" aria-label="Link to this policy">#</a></h2>
+              <span class="pv-updated"><span class="pv-updated-label">Effective date</span> June 8, 2026</span>
+            </div>
+          </div>
+          <dl class="pv-meta">
+            <div><dt>Platform</dt><dd>iOS · App Store</dd></div>
+            <div><dt>Developer</dt><dd>Yu, Yao-Hsing 尤耀星</dd></div>
+            <div><dt>Source</dt><dd><a href="https://github.com/yu314-coder/CodeBench" target="_blank" rel="noopener noreferrer">yu314-coder/CodeBench</a></dd></div>
+            <div><dt>Contact</dt><dd><a href="mailto:euler.yu@gmail.com">euler.yu@gmail.com</a></dd></div>
+          </dl>
+          <div class="pv-body">
           <p>BenchCode ("the app") is a Python development environment that runs entirely on your device. This policy explains how the app handles your information. In short: BenchCode does not collect, store, or transmit your personal data.</p>
 
           <h3>Information We Collect</h3>
@@ -662,17 +774,24 @@
 
           <hr>
           <p><em>BenchCode (the App Store release of CodeBench) is a fully offline, on-device Python IDE. Your code, files, and output never leave your device.</em></p>
-        </div>
 
-        <hr class="app-divider">
-
-        <!-- SidecarBridge Privacy Policy -->
-        <div id="sidecarbridge" class="privacy-content reveal">
-          <div class="d-flex align-items-center gap-3 mb-2">
-            <h2 class="mb-0">SidecarBridge Privacy Policy</h2>
           </div>
-          <p class="last-updated">Effective date: July 24, 2026</p>
+        </article>
 
+        <article id="sidecarbridge" class="pv-policy reveal">
+          <div class="pv-policy-head">
+            <span class="app-icon"><picture><source srcset="assets/img/app-icons/sidecarbridge.webp" type="image/webp"><img src="assets/img/app-icons/sidecarbridge.png" alt="" width="256" height="256" loading="lazy" decoding="async"></picture></span>
+            <div class="pv-policy-title">
+              <h2>SidecarBridge Privacy Policy <a class="pv-anchor" href="#sidecarbridge" aria-label="Link to this policy">#</a></h2>
+              <span class="pv-updated"><span class="pv-updated-label">Effective date</span> July 24, 2026</span>
+            </div>
+          </div>
+          <dl class="pv-meta">
+            <div><dt>Platform</dt><dd>macOS + iPadOS</dd></div>
+            <div><dt>Developer</dt><dd>Yu, Yao-Hsing 尤耀星</dd></div>
+            <div><dt>Contact</dt><dd><a href="mailto:euler.yu@gmail.com">euler.yu@gmail.com</a></dd></div>
+          </dl>
+          <div class="pv-body">
           <p>SidecarBridge does not collect, sell, track, or transmit personal information to the developer, advertising networks, analytics providers, or external servers.</p>
 
           <h3>Information Processed Locally</h3>
@@ -708,6 +827,15 @@
           <ul>
             <li><a href="mailto:euler.yu@gmail.com">euler.yu@gmail.com</a></li>
           </ul>
+          </div>
+          </div>
+
+          </div>
+        </article>
+
+        <div class="pv-contact reveal">
+          <p class="eyebrow eyebrow--rule">questions</p>
+          <p class="mb-0">Anything unclear in a policy, or a question about how one of these apps behaves: <a href="mailto:euler.yu@gmail.com">euler.yu@gmail.com</a>. Every policy above is also the one linked from its store listing.</p>
         </div>
       </div>
     </div>
@@ -739,5 +867,33 @@
 
   <!-- Custom JavaScript -->
   <script src="assets/js/main.js?v=20260813-lawn15" defer></script>
+
+  <!-- Side nav follows the policy being read; on a phone the chip row scrolls
+       to keep the current one in view. Enhancement only: the links work as
+       plain anchors without it. -->
+  <script>
+  (function () {
+    var nav = document.querySelector('.pv-nav');
+    if (!nav || !('IntersectionObserver' in window)) return;
+    var links = [].slice.call(nav.querySelectorAll('a[href^="#"]:not(.pv-nav-top)'));
+    var byId = {};
+    links.forEach(function (a) { byId[a.getAttribute('href').slice(1)] = a; });
+    var sections = Object.keys(byId).map(function (id) { return document.getElementById(id); }).filter(Boolean);
+    var current = null;
+    function activate(id) {
+      if (current === id) return;
+      current = id;
+      links.forEach(function (a) { a.classList.toggle('is-active', a === byId[id]); });
+      var a = byId[id];
+      if (a && window.innerWidth < 992 && nav.scrollWidth > nav.clientWidth) {
+        nav.scrollTo({ left: a.offsetLeft - nav.clientWidth / 2 + a.offsetWidth / 2, behavior: 'smooth' });
+      }
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) activate(e.target.id); });
+    }, { rootMargin: '-22% 0px -68% 0px', threshold: 0 });
+    sections.forEach(function (s) { io.observe(s); });
+  })();
+  </script>
 </body>
 </html>

@@ -258,6 +258,23 @@ body.theme-dark {
   --shadow-sm: 0 1px 2px rgba(0,0,0,.4);
   --shadow-md: 0 16px 40px rgba(0,0,0,.45);
   --bs-body-color-rgb: 242, 244, 248;
+  /* The :root bridge declares --bs-heading-color: var(--ink) and friends, and
+     a custom property resolves where it is declared -- so those were fixed to
+     the LIGHT ink on :root before this block ever swapped --ink. Anything
+     styled by a Bootstrap utility that reads them (h2.h3, .text-muted, .card
+     text) then came out near-black on the dark ground: the "What each app
+     does with your data" and "Path, strength, and now" headings were
+     unreadable on every dark page. Re-declaring the bridge here makes it
+     resolve against this block's tokens. */
+  --bs-body-color: var(--ink);
+  --bs-body-bg: var(--bg);
+  --bs-emphasis-color: var(--ink);
+  --bs-secondary-color: var(--ink-2);
+  --bs-tertiary-color: var(--ink-3);
+  --bs-heading-color: var(--ink);
+  --bs-link-color: var(--accent);
+  --bs-link-hover-color: var(--accent-press);
+  --bs-border-color: var(--line);
   --accent-2:  #a78bfa;
   --accent-3:  #22d3ee;
   /* Leads with white so the name reads as light rather than as a blue wash —
@@ -703,26 +720,173 @@ a.highlight-item:hover .highlight-number { color: var(--accent); }
 .tracker-note { font-size: 0.85rem; color: var(--ink-3); }
 .tracker-note a { color: var(--accent); }
 
-.privacy-content {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--r-lg);
-  padding: clamp(1.5rem, 4vw, 2.5rem);
-  margin-bottom: 1.5rem;
+/* --- Privacy page --------------------------------------------------------
+   A reader arrives here from a store listing wanting one answer -- what does
+   this app do with my data -- and the page used to open on 700 lines of
+   numbered legal text. So: the header states the ground rules, a card per
+   app gives the short version with the platform and the permissions it asks
+   for, and the full policies follow with a nav that tracks the one being
+   read. The policy text itself is untouched; only its frame changed. */
+:root { --pv-ok: #178a5f; --pv-net: #0a8fa8; --pv-perm: #a86a05; }
+body.theme-dark { --pv-ok: #7ee2b8; --pv-net: #67dcef; --pv-perm: #f5c26b; }
+
+.pv-header .lead-2 { max-width: 62ch; }
+.pv-facts {
+  display: flex; flex-wrap: wrap; gap: 0.5rem 1.8rem; margin-top: 1.4rem;
+  font-family: var(--font-mono); font-size: 0.8rem; letter-spacing: 0.02em; color: var(--ink-3);
 }
-.privacy-content h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-.privacy-content h3 { font-size: 1.05rem; margin: 1.6rem 0 0.5rem; color: var(--ink); }
-.privacy-content p, .privacy-content li { color: var(--ink-2); }
-.privacy-content ul { padding-left: 1.2rem; }
-.last-updated { font-family: var(--font-mono); font-size: 0.82rem; color: var(--ink-3); }
-.app-divider { border: 0; border-top: 1px solid var(--line); margin: 2.5rem 0; }
-.policy-nav { position: sticky; top: 90px; }
-.policy-nav h5 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); margin-bottom: 0.6rem; font-family: var(--font-mono); font-weight: 500; }
-.policy-nav a {
-  display: block; padding: 0.4rem 0.7rem; border-radius: 8px;
-  color: var(--ink-2); font-size: 0.9rem; transition: background .2s, color .2s;
+.pv-facts b { color: var(--ink); font-weight: 600; }
+.pv-facts a { color: var(--accent); }
+
+/* at a glance */
+.pv-glance { padding-top: 0; }
+.pv-glance-lead { max-width: 62ch; margin-bottom: 1.6rem; }
+.pv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); gap: 1rem; }
+.pv-card {
+  position: relative; overflow: hidden; isolation: isolate;
+  display: flex; flex-direction: column; gap: 0.75rem;
+  padding: 1.1rem 1.15rem 1.2rem;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+  color: inherit; text-decoration: none;
+  transition: transform .3s var(--ease), border-color .3s var(--ease), box-shadow .3s var(--ease);
 }
-.policy-nav a:hover { background: var(--accent-tint); color: var(--accent-press); }
+.pv-card::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: var(--grad-soft); opacity: 0; transition: opacity .35s var(--ease);
+}
+.pv-card:hover, .pv-card:focus-visible { transform: translateY(-3px); border-color: var(--line-2); box-shadow: var(--shadow-md); color: inherit; }
+.pv-card:hover::after, .pv-card:focus-visible::after { opacity: 1; }
+.pv-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pv-card-top { display: flex; align-items: center; gap: 0.8rem; min-width: 0; }
+.pv-card-top > div { min-width: 0; }
+.pv-card h3 { font-size: 1.02rem; margin: 0 0 0.1rem; line-height: 1.25; }
+.pv-platform {
+  display: block; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.pv-card > p { margin: 0; font-size: 0.9rem; line-height: 1.5; color: var(--ink-2); }
+.pv-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: auto; }
+.pv-tag {
+  font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.02em; line-height: 1.2;
+  padding: 0.28rem 0.55rem; border-radius: var(--r-pill);
+  border: 1px solid var(--line); color: var(--ink-2);
+}
+.pv-tag--ok   { color: var(--pv-ok);   border-color: color-mix(in srgb, var(--pv-ok) 40%, transparent);   background: color-mix(in srgb, var(--pv-ok) 9%, transparent); }
+.pv-tag--net  { color: var(--pv-net);  border-color: color-mix(in srgb, var(--pv-net) 40%, transparent);  background: color-mix(in srgb, var(--pv-net) 9%, transparent); }
+.pv-tag--perm { color: var(--pv-perm); border-color: color-mix(in srgb, var(--pv-perm) 40%, transparent); background: color-mix(in srgb, var(--pv-perm) 9%, transparent); }
+
+/* side nav: tracks the policy in view */
+.pv-policies { padding-top: 0; }
+.pv-nav { position: sticky; top: 92px; display: flex; flex-direction: column; gap: 0.1rem; }
+.pv-nav-label { margin-bottom: 0.5rem; }
+.pv-nav a {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.42rem 0.7rem; border-radius: 10px; border-left: 2px solid transparent;
+  color: var(--ink-2); font-size: 0.88rem; line-height: 1.3; text-decoration: none;
+  transition: background .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease);
+}
+.pv-nav a img { width: 22px; height: 22px; border-radius: 6px; flex: none; }
+.pv-nav a:hover { background: var(--accent-tint); color: var(--ink); }
+.pv-nav a.is-active { color: var(--accent); border-left-color: var(--accent); background: var(--accent-tint); }
+.pv-nav .pv-nav-top { margin-top: 0.7rem; font-family: var(--font-mono); font-size: 0.74rem; color: var(--ink-3); border-left: 0; }
+@media (max-width: 991.98px) {
+  /* One scrolling row of chips, pinned under the navbar. The COLUMN is what
+     sticks here, not the nav: a sticky box only holds within its parent, and
+     stacked above the policies the nav's own column is exactly one row tall,
+     so the nav scrolled straight off with it. The column's parent is the
+     .row, which runs the full length of the policies. */
+  .pv-policies .col-lg-3 { position: sticky; top: 62px; z-index: 5; margin-bottom: 1rem !important; }
+  .pv-nav {
+    position: static; flex-direction: row; align-items: center; gap: 0.4rem;
+    overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    margin: 0 -0.75rem; padding: 0.55rem 0.75rem;
+    background: color-mix(in srgb, var(--bg) 86%, transparent);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line);
+  }
+  .pv-nav::-webkit-scrollbar { display: none; }
+  .pv-nav-label, .pv-nav .pv-nav-top { display: none; }
+  .pv-nav a {
+    flex: none; white-space: nowrap; padding: 0.35rem 0.7rem 0.35rem 0.45rem;
+    border: 1px solid var(--line); border-radius: var(--r-pill); font-size: 0.8rem;
+  }
+  .pv-nav a img { width: 18px; height: 18px; }
+  .pv-nav a.is-active { border-color: var(--accent); }
+}
+
+/* the policies themselves */
+.pv-policy {
+  position: relative;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+  padding: clamp(1.4rem, 4vw, 2.4rem); margin-bottom: 1.5rem;
+  scroll-margin-top: 96px;
+}
+.pv-policy-head { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.1rem; }
+.pv-policy-title { min-width: 0; display: flex; flex-direction: column; gap: 0.35rem; align-items: flex-start; }
+.pv-policy h2 { font-size: clamp(1.3rem, 2.3vw, 1.65rem); margin: 0; line-height: 1.2; }
+.pv-anchor {
+  font-family: var(--font-mono); font-weight: 500; font-size: 0.85em; color: var(--ink-3);
+  text-decoration: none; opacity: 0; transition: opacity .2s var(--ease), color .2s var(--ease);
+}
+.pv-policy:hover .pv-anchor, .pv-anchor:focus-visible { opacity: 1; }
+.pv-anchor:hover { color: var(--accent); }
+.pv-updated {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  font-family: var(--font-mono); font-size: 0.74rem; color: var(--ink-2);
+  padding: 0.22rem 0.6rem; border: 1px solid var(--line); border-radius: var(--r-pill);
+}
+.pv-updated-label { color: var(--ink-3); }
+.pv-meta {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.7rem 1.2rem;
+  margin: 0 0 1.5rem; padding: 0.85rem 1rem;
+  border: 1px solid var(--line); border-radius: var(--r); background: var(--bg-alt);
+}
+.pv-meta > div { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.pv-meta dt { margin: 0; font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+.pv-meta dd { margin: 0; font-size: 0.88rem; color: var(--ink); overflow-wrap: anywhere; }
+.pv-meta dd a { color: var(--accent); }
+.pv-meta dd code { font-family: var(--font-mono); font-size: 0.84em; }
+/* The nine policies were written across two years and head their sections
+   differently -- "3. LOCAL DATA STORAGE" here, "Files on your device" there.
+   Set every section heading the same way, as the site's mono eyebrow, so they
+   read as one document without a word of them changing. */
+.pv-body h3 {
+  font-family: var(--font-mono); font-size: 0.78rem; font-weight: 600; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--accent); margin: 1.8rem 0 0.55rem;
+}
+.pv-body h3:first-child { margin-top: 0.4rem; }
+.pv-body h4 { font-size: 0.95rem; font-weight: 600; color: var(--ink); margin: 1.1rem 0 0.4rem; }
+.pv-body p, .pv-body li { color: var(--ink-2); line-height: 1.65; }
+.pv-body p { margin-bottom: 0.8rem; }
+.pv-body ul { padding-left: 1.2rem; margin-bottom: 0.9rem; }
+.pv-body li { margin-bottom: 0.3rem; }
+.pv-body li::marker { color: var(--ink-3); }
+.pv-body strong { color: var(--ink); font-weight: 600; }
+.pv-body a { color: var(--accent); overflow-wrap: anywhere; }
+.pv-body code {
+  font-family: var(--font-mono); font-size: 0.84em; color: var(--ink);
+  background: var(--accent-tint); border-radius: 6px; padding: 0.1em 0.4em;
+}
+.pv-body hr { border: 0; border-top: 1px solid var(--line); margin: 1.5rem 0 1rem; }
+.pv-body > p:last-child { margin-bottom: 0; }
+.pv-body > hr + p em { color: var(--ink-3); }
+.pv-contact {
+  padding: 1.3rem 1.4rem; border: 1px dashed var(--line-2); border-radius: var(--r-lg);
+  color: var(--ink-2);
+}
+.pv-contact a { color: var(--accent); }
+@media (max-width: 575.98px) {
+  .pv-policy-head { align-items: flex-start; }
+  .pv-policy-head .app-icon { width: 44px; height: 44px; border-radius: 11px; }
+}
+@media print {
+  .navbar, .site-footer, .pv-nav, .pv-glance, .pv-anchor, .pv-contact { display: none !important; }
+  body, body.theme-dark { background: #fff !important; color: #000 !important; }
+  .pv-policy { border: 0; padding: 0 0 1.5rem; break-inside: avoid; margin-bottom: 1.5rem; border-bottom: 1px solid #ccc; }
+  .pv-body p, .pv-body li, .pv-meta dd { color: #111 !important; }
+  .pv-body h3 { color: #000 !important; }
+  .pv-meta { background: none; border-color: #ccc; }
+}
 
 /* ---------------------------------------------------------------------------
    16. Footer
