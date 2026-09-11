@@ -449,9 +449,30 @@
       // Re-exporting just the trend and rebuilding used to restamp these figures
       // with today's date, which claimed a freshness they did not have.
       var readAt = app.funnel_read_utc || app.updated_utc || "";
+      // Say exactly what the trend covers. Partner Center's over-time export is
+      // whole buckets labelled by their first day, so a weekly series whose last
+      // row reads "Aug 31" runs to Sep 6, and the week in progress is not in it
+      // at all -- while the dashboard that produced it draws through today. A
+      // reader comparing the two saw "Aug 31" here and "Sep 11" there and asked
+      // which was right; both are, and this says how.
+      var span = "";
+      if (metrics.length) {
+        var rows0 = (app.rows && app.rows.length) ? app.rows : app.page_view_rows;
+        var first = rows0[0].date, last = rows0[rows0.length - 1].date, gran = metrics[0].gran;
+        var plusDays = function (d, n) { var t = new Date(d + "T00:00:00Z"); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
+        var DAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        if (gran === "week") {
+          span = " · trend: whole weeks, each labelled by the " + DAY[new Date(first + "T00:00:00Z").getUTCDay()] +
+                 " it starts, " + first + " to " + last + " (that last week runs to " + plusDays(last, 6) +
+                 "); the week in progress is not in Partner Center's export";
+        } else if (gran === "month") {
+          span = " · trend: whole months, " + first.slice(0, 7) + " to " + last.slice(0, 7);
+        } else if (gran === "day") {
+          span = " · trend: daily, " + first + " to " + last;
+        }
+      }
       up.textContent = "Funnel and headline figures: last 12 months, read from Partner Center " +
-                       readAt.replace("T", " ").replace("Z", " UTC") +
-                       (metrics.length ? " · the trend above carries its own dates on the axis" : "") +
+                       readAt.replace("T", " ").replace("Z", " UTC") + span +
                        (prev && prev.funnel_read_utc ? " · previous reading " + prev.funnel_read_utc.replace("T", " ").replace("Z", " UTC") : "");
       body.appendChild(up);
     }
