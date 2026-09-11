@@ -105,6 +105,41 @@ def weekly_series(app, previous, args, field, csv_key, json_key):
     return []
 
 
+def assign_funnels(args, previous_by_id):
+    """Match each funnel CSV to its app by size, not by download order.
+
+    Same hazard the over-time files have -- Partner Center names them all the
+    same and suffixes by download order -- but worse if it goes wrong, because
+    the funnel is the headline. The apps are orders of magnitude apart (1,491
+    downloads against 34 against 12), so matching each file to the app whose
+    last reading it resembles is unambiguous. With no previous snapshot,
+    filename order stands.
+    """
+    import itertools
+    names = [a["funnel_csv"] for a in APPS]
+    paths = {n: os.path.join(args.downloads, n) for n in names}
+    present = [n for n in names if os.path.exists(paths[n])]
+    if len(present) < 2:
+        return {a["id"]: a["funnel_csv"] for a in APPS}
+    counts = {n: read_funnel(paths[n]).get("Successful installs", 0) for n in present}
+    refs = {a["id"]: (previous_by_id.get(a["id"]) or {}).get("downloads") for a in APPS}
+    slots = [a for a in APPS if a["funnel_csv"] in present]
+    if any(refs[a["id"]] in (None, 0) for a in slots):
+        return {a["id"]: a["funnel_csv"] for a in APPS}
+    best, best_err = None, None
+    for perm in itertools.permutations(present, len(slots)):
+        err = sum(abs(counts[n] - refs[a["id"]]) / max(refs[a["id"]], 1) for a, n in zip(slots, perm))
+        if best is None or err < best_err:
+            best, best_err = perm, err
+    out = {a["id"]: a["funnel_csv"] for a in APPS}
+    for a, n in zip(slots, best):
+        out[a["id"]] = n
+        if n != a["funnel_csv"]:
+            print("  NOTE funnel_csv: %s takes %r (%d installs vs %d last time), not %r"
+                  % (a["name"], n, counts[n], refs[a["id"]], a["funnel_csv"]))
+    return out
+
+
 def assign_by_totals(field, csv_key, reference_key, args, previous_by_id):
     """Decide which over-time CSV belongs to which app by its totals, not its name.
 
@@ -165,11 +200,13 @@ def main():
                 previous_by_id[app["id"]] = json.load(f)
     installs_file = assign_by_totals("installs_csv", "installs", "downloads", args, previous_by_id)
     views_file = assign_by_totals("page_views_csv", "views", "page_views", args, previous_by_id)
+    funnel_file = assign_funnels(args, previous_by_id)
 
     for app in APPS:
         out_path = os.path.join(OUT_DIR, app["id"] + ".json")
         previous = previous_by_id.get(app["id"])
-        app = dict(app, installs_csv=installs_file[app["id"]], page_views_csv=views_file[app["id"]])
+        app = dict(app, installs_csv=installs_file[app["id"]],
+                   page_views_csv=views_file[app["id"]], funnel_csv=funnel_file[app["id"]])
 
         funnel_path = os.path.join(args.downloads, app["funnel_csv"])
         if os.path.exists(funnel_path):
@@ -226,6 +263,18 @@ def main():
                     "updated_utc": previous.get("updated_utc"),
                     "funnel_read_utc": previous.get("funnel_read_utc"),
                 }
+
+        # The funnel and the trend are two exports of the same thing, so over a
+        # shared window they must agree. They do, exactly, on every app in the
+        # 2026-09-11 read. Treat a disagreement as a mis-assigned file rather
+        # than shipping an app whose headline contradicts its own chart.
+        if rows and os.path.exists(os.path.join(args.downloads, app["funnel_csv"])):
+            span = sum(r["installs"] for r in rows)
+            if out["downloads"] and abs(span - out["downloads"]) > max(3, out["downloads"] * 0.05):
+                raise SystemExit(
+                    "%s: funnel says %d installs but its weekly series sums to %d -- "
+                    "these are almost certainly different apps' files"
+                    % (app["name"], out["downloads"], span))
 
         # Anything another job maintains in this file -- the hourly workflow's
         # "version" fields -- rides along untouched rather than vanishing until
