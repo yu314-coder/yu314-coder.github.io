@@ -105,6 +105,49 @@ def weekly_series(app, previous, args, field, csv_key, json_key):
     return []
 
 
+def assign_by_totals(field, csv_key, reference_key, args, previous_by_id):
+    """Decide which over-time CSV belongs to which app by its totals, not its name.
+
+    Partner Center names every export the same and suffixes " (1)", " (2)" by
+    download order, and APPS assumes one order. A session that exported the
+    two small apps the other way round hands t-SNE a series summing to 12
+    installs against a funnel of 31, and Generalized Covariance one summing to
+    34 against 11 -- each off by a factor of three from its own headline, and
+    the page would have shown them anyway. The year's series has to agree with
+    the year's funnel to within a modest margin (the trend export runs a few
+    weeks longer than "last 12 months", so a little over is normal). So try
+    every way of dealing the files out and take the one with the least total
+    disagreement; say so when that is not the filename order. Without a
+    previous snapshot to check against, filename order stands.
+    """
+    import itertools
+    names = [a[field] for a in APPS]
+    paths = [os.path.join(args.downloads, n) if n else None for n in names]
+    present = [p for p in paths if p and os.path.exists(p)]
+    if len(present) < 2:
+        return {a["id"]: a[field] for a in APPS}
+    sums = {}
+    for p in present:
+        sums[p] = sum(r[csv_key] for r in read_weekly(p, csv_key))
+    refs = {a["id"]: (previous_by_id.get(a["id"]) or {}).get(reference_key) for a in APPS}
+    if any(not refs[a["id"]] for a in APPS if a[field]):
+        return {a["id"]: a[field] for a in APPS}
+    slots = [a for a in APPS if a[field] and os.path.join(args.downloads, a[field]) in present]
+    best, best_err = None, None
+    for perm in itertools.permutations(present, len(slots)):
+        err = sum(abs(sums[p] - refs[a["id"]]) / max(refs[a["id"]], 1) for a, p in zip(slots, perm))
+        if best is None or err < best_err:
+            best, best_err = perm, err
+    out = {a["id"]: a[field] for a in APPS}
+    for a, p in zip(slots, best):
+        out[a["id"]] = os.path.basename(p)
+        if os.path.basename(p) != a[field]:
+            print(f"  NOTE {field}: {a['name']} takes {os.path.basename(p)!r} "
+                  f"(sum {sums[p]} vs funnel {refs[a['id']]}), not {a[field]!r} "
+                  f"(sum {sums[os.path.join(args.downloads, a[field])]}) -- files were exported in a different order")
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--downloads", default=os.path.expanduser("~/Downloads"),
@@ -114,22 +157,41 @@ def main():
     os.makedirs(OUT_DIR, exist_ok=True)
     now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     index = []
+    previous_by_id = {}
     for app in APPS:
         out_path = os.path.join(OUT_DIR, app["id"] + ".json")
-        previous = None
         if os.path.exists(out_path):
             with open(out_path) as f:
-                previous = json.load(f)
+                previous_by_id[app["id"]] = json.load(f)
+    installs_file = assign_by_totals("installs_csv", "installs", "downloads", args, previous_by_id)
+    views_file = assign_by_totals("page_views_csv", "views", "page_views", args, previous_by_id)
+
+    for app in APPS:
+        out_path = os.path.join(OUT_DIR, app["id"] + ".json")
+        previous = previous_by_id.get(app["id"])
+        app = dict(app, installs_csv=installs_file[app["id"]], page_views_csv=views_file[app["id"]])
 
         funnel_path = os.path.join(args.downloads, app["funnel_csv"])
-        funnel = read_funnel(funnel_path)
-        # When the funnel CSV was actually exported, which is NOT the same as when
-        # this script ran. Re-exporting only the page-views trend and rebuilding
-        # would otherwise stamp today's date on funnel figures read weeks ago, and
-        # the page would claim they are current.
-        funnel_read_utc = datetime.datetime.fromtimestamp(
-            os.path.getmtime(funnel_path), datetime.timezone.utc
-        ).strftime("%Y-%m-%dT%H:%M:%SZ")
+        if os.path.exists(funnel_path):
+            funnel = read_funnel(funnel_path)
+            # When the funnel CSV was actually exported, which is NOT the same as
+            # when this script ran. Re-exporting only the trends and rebuilding
+            # would otherwise stamp today's date on funnel figures read weeks
+            # ago, and the page would claim they are current.
+            funnel_read_utc = datetime.datetime.fromtimestamp(
+                os.path.getmtime(funnel_path), datetime.timezone.utc
+            ).strftime("%Y-%m-%dT%H:%M:%SZ")
+        elif previous:
+            # Trend-only refresh: the headline funnel stays exactly what the last
+            # export said, dated when it was read, rather than failing the run.
+            funnel = {"Successful installs": previous.get("downloads", 0),
+                      "Install attempts": previous.get("install_attempts", 0),
+                      "Page views": previous.get("page_views", 0),
+                      "First time launches from Store": previous.get("first_launches", 0)}
+            funnel_read_utc = previous.get("funnel_read_utc") or previous.get("updated_utc")
+            print(f"  ({app['name']}: no {app['funnel_csv']} this run -- funnel kept from {funnel_read_utc[:10]})")
+        else:
+            raise SystemExit(f"{app['name']}: no funnel CSV and no previous snapshot to keep")
         rows = weekly_series(app, previous, args, "installs_csv", "installs", "rows")
         page_view_rows = weekly_series(app, previous, args, "page_views_csv", "views", "page_view_rows")
 
@@ -164,6 +226,13 @@ def main():
                     "updated_utc": previous.get("updated_utc"),
                     "funnel_read_utc": previous.get("funnel_read_utc"),
                 }
+
+        # Anything another job maintains in this file -- the hourly workflow's
+        # "version" fields -- rides along untouched rather than vanishing until
+        # that job next runs.
+        if previous:
+            for k, v in previous.items():
+                out.setdefault(k, v)
 
         with open(out_path, "w") as f:
             json.dump(out, f, separators=(",", ":"))
