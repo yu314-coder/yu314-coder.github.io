@@ -449,12 +449,14 @@
       // Re-exporting just the trend and rebuilding used to restamp these figures
       // with today's date, which claimed a freshness they did not have.
       var readAt = app.funnel_read_utc || app.updated_utc || "";
-      // Say exactly what the trend covers. Partner Center's over-time export is
-      // whole buckets labelled by their first day, so a weekly series whose last
-      // row reads "Aug 31" runs to Sep 6, and the week in progress is not in it
-      // at all -- while the dashboard that produced it draws through today. A
-      // reader comparing the two saw "Aug 31" here and "Sep 11" there and asked
-      // which was right; both are, and this says how.
+      // Say exactly what the trend covers. Partner Center's weekly buckets run
+      // Sunday to Saturday but are labelled with the Monday inside them, so a row
+      // reading "Aug 31" actually holds Aug 30 - Sep 5. (Checked against the daily
+      // charts: Aug 30 - Sep 5 reproduces that row's installs exactly, Aug 31 -
+      // Sep 6 does not.) A reader comparing this page with the dashboard saw
+      // "Aug 31" here and "Sep 11" there and asked which was right; both are.
+      // daily_read_through marks how far the newest rows were filled in by hand
+      // from the daily charts, so the last week can be flagged as still partial.
       var span = "";
       if (metrics.length) {
         var rows0 = (app.rows && app.rows.length) ? app.rows : app.page_view_rows;
@@ -462,9 +464,15 @@
         var plusDays = function (d, n) { var t = new Date(d + "T00:00:00Z"); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
         var DAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         if (gran === "week") {
-          span = " · trend: whole weeks, each labelled by the " + DAY[new Date(first + "T00:00:00Z").getUTCDay()] +
-                 " it starts, " + first + " to " + last + " (that last week runs to " + plusDays(last, 6) +
-                 "); the week in progress is not in Partner Center's export";
+          var wStart = plusDays(last, -1), wEnd = plusDays(last, 5);
+          var through = app.daily_read_through || "";
+          span = " · trend: weeks running " + DAY[new Date(plusDays(first, -1) + "T00:00:00Z").getUTCDay()] +
+                 " to " + DAY[new Date(plusDays(first, 5) + "T00:00:00Z").getUTCDay()] +
+                 ", each labelled by the " + DAY[new Date(first + "T00:00:00Z").getUTCDay()] + " inside it, " +
+                 first + " to " + last + " (that last week is " + wStart + " to " + wEnd + ")" +
+                 (through && through < wEnd
+                   ? "; it is still filling — Partner Center has days through " + through + " only"
+                   : "; the week in progress is not in Partner Center's export");
         } else if (gran === "month") {
           span = " · trend: whole months, " + first.slice(0, 7) + " to " + last.slice(0, 7);
         } else if (gran === "day") {
