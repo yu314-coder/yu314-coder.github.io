@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-09-15T22:59:52Z",
+  "generated_at": "2026-09-16T01:21:39Z",
   "storms": {
     "TC2630": {
-      "issue_time": "2026-09-15T21:00",
+      "issue_time": "2026-09-16T00:00",
       "base_lat": 15.6,
       "base_lon": 148.8,
       "lead_hours": [
@@ -169,7 +169,7 @@
           141.143
         ],
         "analysis_cycle": "20260915_18",
-        "analysis_lag_hours": 3.0,
+        "analysis_lag_hours": 6.0,
         "cycles_used": [
           "20260913_18",
           "20260914_06",
@@ -844,17 +844,17 @@
         "member_count": 189
       },
       "causality": {
-        "issue_time_utc": "2026-09-15T21:00:00Z",
+        "issue_time_utc": "2026-09-16T00:00:00Z",
         "inputs_opened": [
           {
             "kind": "jma_analysis",
             "name": "TC2630/specifications.json[1]",
-            "valid_time_utc": "2026-09-15T21:00:00Z"
+            "valid_time_utc": "2026-09-16T00:00:00Z"
           },
           {
             "kind": "observed_fix",
-            "name": "2026-09-15T21:00Z",
-            "valid_time_utc": "2026-09-15T21:00:00Z"
+            "name": "2026-09-16T00:00Z",
+            "valid_time_utc": "2026-09-16T00:00:00Z"
           },
           {
             "kind": "gfs_f000_analysis",
@@ -882,7 +882,7 @@
             "valid_time_utc": "2026-09-15T06:00:00Z"
           }
         ],
-        "latest_input_valid_time_utc": "2026-09-15T21:00:00Z",
+        "latest_input_valid_time_utc": "2026-09-16T00:00:00Z",
         "future_rows_used_for_inference": 0,
         "official_forecasts_used_for_inference": false,
         "forecast_products_used": [],
