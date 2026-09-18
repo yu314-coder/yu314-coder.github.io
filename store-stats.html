@@ -34,7 +34,7 @@
   <link rel="stylesheet" href="assets/css/style.css?v=20260911-privacy1">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 
-  <link rel="stylesheet" href="assets/css/stats.css?v=20260918-marks2">
+  <link rel="stylesheet" href="assets/css/stats.css?v=20260918-marks3">
 </head>
 <body class="theme-dark">
   <!-- Navigation -->
@@ -161,7 +161,7 @@
 
   <!-- Shared stats primitives, then the store-specific renderer. Not deferred:
        the renderer below runs at parse time and needs StatsUI present. -->
-  <script src="assets/js/stats-core.js?v=20260918-marks2"></script>
+  <script src="assets/js/stats-core.js?v=20260918-marks3"></script>
   <script>
   (function () {
     var DATA = "assets/store-tracker/data/", root = document.getElementById("ss-app");
@@ -261,8 +261,17 @@
        and the chart's note says so rather than implying these apps updated once.
 
        One colour per app, named once in the legend, so the marks can be short. */
-    var MARK_COLORS = ["#6b9bff", "#a78bfa", "#22d3ee", "#f5c26b", "#ff8a8f",
-                       "#7ee787", "#ff9bd2", "#9fb4ff"];
+    // Hues roughly 45 degrees apart, so neighbouring apps never read as the same colour. The
+    // first palette ran blue / violet / cyan / gold, and blue-violet-cyan were three shades of
+    // one thing once they were thin dashed lines a few pixels apart.
+    var MARK_COLORS = ["#4da3ff",   // blue
+                       "#3ddc97",   // green
+                       "#ff7ab6",   // pink
+                       "#ffb02e",   // amber
+                       "#b980ff",   // violet
+                       "#35e0e8",   // cyan
+                       "#ff5f5f",   // red
+                       "#d6e04a"];  // lime
     function releaseMarks(apps) {
       var marks = [];
       apps.forEach(function (a, i) {
@@ -272,8 +281,14 @@
           : (a.version_released ? [{ version: a.version, released: a.version_released }] : []);
         hist.forEach(function (v) {
           if (!v.released) return;
-          marks.push({ date: v.released, label: v.version || "", color: col,
-                       full: a.app + (v.version ? " " + v.version : "") });
+          // "launch" is the app going on sale, which both stores publish exactly; a version
+          // number is a later update. approx marks are dated by submission, not release.
+          marks.push({ date: v.released,
+                       label: v.launch ? "launch" : (v.version || ""),
+                       color: col, launch: !!v.launch, approx: !!v.approx,
+                       full: a.app + (v.launch ? " \u2014 went on sale"
+                                               : (v.version ? " " + v.version : ""))
+                             + (v.approx ? " (submitted; released within days)" : "") });
         });
       });
       return marks.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
@@ -312,15 +327,26 @@
       if (note && series.length) {
         var n2 = box.querySelector(".ss-updated");
         var shown = marks.filter(function (mk) { return mk.date >= series[0].date; }).length;
-        var full = apps.filter(function (a) { return a.versions && a.versions.length; }).length;
+        // Which caveat applies is about the MARKS, not about whether a versions array exists.
+        // Keying it off the array put Apple's "dates in between are submission dates" note on
+        // the Microsoft chart, which has no in-between dates at all.
+        var approx = marks.some(function (mk) { return mk.approx; });
+        var history = apps.some(function (a) {
+          return (a.versions || []).filter(function (v) { return !v.launch; }).length > 1;
+        });
         if (n2) n2.textContent = note + " One bar per " + gran + ", covering " + series[0].date +
           " to " + series[series.length - 1].date + " (" + series.length + " " + gran + "s)." +
           (marks.length
-            ? " Dashed lines are releases, " + shown + " of " + marks.length + " inside this range"
-              + (full === apps.length
-                  ? ", every version each app has shipped."
-                  : "; the store publishes no version history, so this is each app's current "
-                    + "version only.")
+            ? " Lines are releases, " + shown + " of " + marks.length + " inside this range; a "
+              + "solid line is an app going on sale, dashed is an update"
+              + (history
+                  ? "." + (approx
+                      ? " Dates in between come from the submission record and can be a few days "
+                        + "early; the launch and the current version are the store's own "
+                        + "published dates."
+                      : "")
+                  : ". The store publishes no version history, so between going on sale and the "
+                    + "current version there is nothing to mark.")
             : "");
       }
       function paint() {

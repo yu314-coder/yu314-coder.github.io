@@ -5,12 +5,18 @@ store-stats.html marks every release on the all-apps chart, so a jump in downloa
 against whether something shipped. The public iTunes lookup only knows the CURRENT version, so
 this uses App Store Connect, which lists them all.
 
-Dates: App Store Connect exposes only `createdDate` on a version -- when the version record was
-made, which is a day or two before it goes live. The newest entry is therefore overridden with
-`version_released` (Apple's published currentVersionReleaseDate, already on the snapshot) when
-that is present, so the latest mark agrees with the date shown everywhere else on the page.
-Older marks keep createdDate and are within a couple of days. Both are labelled as "released"
-because at chart resolution the difference does not survive rounding to a bar.
+DATES ARE THE CAREFUL PART. App Store Connect exposes only `createdDate` on a version -- when
+the version RECORD was made, which is submission, not public release. Usually that is a day or
+two early, but not always: ManimStudio 1.0 was created 2026-04-28 and went public 2026-06-05,
+thirty-eight days later. So both ends are anchored to Apple's own published dates, which are
+authoritative:
+
+  * the FIRST version takes `releaseDate` from the iTunes lookup -- the day the app itself
+    became available, the figure the store shows;
+  * the NEWEST takes `version_released` (currentVersionReleaseDate, already on the snapshot);
+  * versions in between keep createdDate, and are marked `approx: true` so the page can say so.
+
+That leaves the two marks anyone actually looks for exact, and the middles within a few days.
 
 Credentials, same three as refresh_appstore_stats.py:
   APPSTORE_ISSUER_ID / APPSTORE_KEY_ID / APPSTORE_PRIVATE_KEY
@@ -78,8 +84,21 @@ def versions_for(app_id, bearer):
         # a version can have several records (resubmissions); keep the earliest
         if ver not in out or day < out[ver]:
             out[ver] = day
-    return sorted(({"version": k, "released": v} for k, v in out.items()),
+    return sorted(({"version": k, "released": v, "approx": True} for k, v in out.items()),
                   key=lambda r: r["released"])
+
+
+def first_release(app_ids):
+    """The day each app itself became available, from Apple's public lookup."""
+    url = "https://itunes.apple.com/lookup?id=%s&country=us" % ",".join(app_ids)
+    try:
+        with urllib.request.urlopen(url, timeout=30) as r:
+            data = json.load(r)
+    except (urllib.error.URLError, ValueError) as exc:
+        log("  first-release lookup failed (%s)" % type(exc).__name__)
+        return {}
+    return {str(x["trackId"]): (x.get("releaseDate") or "")[:10]
+            for x in data.get("results") or [] if x.get("trackId")}
 
 
 def main():
@@ -88,6 +107,7 @@ def main():
         return 0
     bearer = token(*c)
     index = json.loads((OUT / "index.json").read_text())
+    firsts = first_release([a["id"] for a in index])
     touched = 0
     for app in index:
         path = OUT / ("%s.json" % app["id"])
@@ -96,10 +116,20 @@ def main():
         hist = versions_for(app["id"], bearer)
         if not hist:
             continue
-        # the newest mark uses the store's own published release date where we have it
         cur = json.loads(path.read_text())
-        if cur.get("version_released") and hist[-1]["version"] == cur.get("version"):
+        launch = firsts.get(app["id"])
+        if cur.get("version_released") and hist and hist[-1]["version"] == cur.get("version"):
             hist[-1]["released"] = cur["version_released"]
+            hist[-1].pop("approx", None)
+        if launch:
+            # Versions created BEFORE the app was public never had a release of their own --
+            # ManimStudio had 1.0, 1.1 and 1.2 on file before it launched on 2026-06-05. Dating
+            # them by createdDate would put releases before the app existed, and moving them to
+            # the launch date would invent three releases on one day. They collapse into the one
+            # thing that is true: the app went on sale.
+            hist = [v for v in hist if v["released"] > launch]
+            hist.insert(0, {"version": "launch", "released": launch, "launch": True})
+        cur["first_released"] = launch or cur.get("first_released")
         if cur.get("versions") == hist:
             log("  %s: %d versions, unchanged" % (app["name"], len(hist)))
             continue

@@ -15,8 +15,10 @@ down. That encoding is the only reason this is not a one-liner.
 
 Writes nothing but the version fields, leaving the hand-read download figures
 untouched. Fails soft: a stale version beats a blank one. version_released is the
-store's LastUpdateDate for the published SKU -- store-stats.html marks it on the
-all-apps chart, so each app's latest update is visible against the downloads.
+store's LastUpdateDate for the published SKU and first_released its OriginalReleaseDate;
+store-stats.html marks both on the all-apps chart, so an app going on sale and its
+latest update are visible against the downloads. There is no version history in
+between: the catalogue returns one version per app.
 """
 import json
 import os
@@ -75,6 +77,16 @@ def fetch(store_id):
     out = {"version": unpack(max(versions))}
     if updated:
         out["version_released"] = str(updated)[:10]
+    # The day the app itself went on sale. The catalogue publishes no version history, so this
+    # plus the current version is the whole of what the Microsoft side can honestly mark.
+    mp = (p.get("MarketProperties") or [{}])[0]
+    if mp.get("OriginalReleaseDate"):
+        out["first_released"] = str(mp["OriginalReleaseDate"])[:10]
+    if out.get("first_released") and out.get("version_released"):
+        out["versions"] = [{"version": "launch", "released": out["first_released"], "launch": True},
+                           {"version": out["version"], "released": out["version_released"]}]
+        if out["first_released"] == out["version_released"]:      # never updated since launch
+            out["versions"] = out["versions"][:1]
     return out
 
 

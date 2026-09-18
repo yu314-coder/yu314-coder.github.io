@@ -331,11 +331,17 @@
         row = (q.x - lastX) < w ? (row + 1) % ROWS : 0;    // only step down when it would collide
         lastX = q.x;
         var col = q.mk.color || "rgba(203,210,255,0.55)";
-        g.appendChild(el("line", { x1: q.x, y1: topY, x2: q.x, y2: topY + topH,
-          stroke: col, "stroke-width": 1, "stroke-dasharray": "3 3", "stroke-opacity": 0.55 }));
+        // an app going on sale gets a solid, slightly stronger line; an update is dashed
+        var lineAttrs = { x1: q.x, y1: topY, x2: q.x, y2: topY + topH, stroke: col,
+                          "stroke-width": q.mk.launch ? 1.4 : 1,
+                          "stroke-opacity": q.mk.launch ? 0.8 : 0.5 };
+        if (!q.mk.launch) lineAttrs["stroke-dasharray"] = "3 3";
+        g.appendChild(el("line", lineAttrs));
         var ty = topY + 9 + row * ROW_H;
         var t = el("text", { x: q.x + 3, y: ty, "font-size": 9,
-          "font-family": "JetBrains Mono, monospace", fill: col }, q.mk.label || "");
+          "font-family": "JetBrains Mono, monospace", fill: col,
+          "font-weight": q.mk.launch ? 600 : 400,
+          "fill-opacity": q.mk.approx ? 0.75 : 1 }, q.mk.label || "");
         t.appendChild(el("title", {}, (q.mk.full || q.mk.label || "") + " \u00b7 " + q.mk.date));
         g.appendChild(t);
       });
