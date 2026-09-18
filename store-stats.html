@@ -192,6 +192,7 @@
       // floor. Re-click the active app tab to redraw it at the real width.
       var active = PANES[which].querySelector(".ss-tab.is-active");
       if (active) active.click();
+      if (REPAINT[which]) REPAINT[which]();
     }
 
     function setStoreCount(which, n, unit) {
@@ -217,6 +218,71 @@
         set('[data-grand-apps="all"]', "  ·  " + (GRAND.msApps + GRAND.appleApps) + " apps");
       }
     }
+    /* ---- every app at once, over time ---------------------------------
+       Both stores had per-app trend charts and nothing that showed the whole
+       shelf together, so "are downloads growing?" could only be answered one
+       app at a time. This sums every app into one weekly series.
+
+       Weekly for both stores, deliberately. Microsoft's rows are already weekly
+       (labelled by the Monday inside a Sunday-to-Saturday week, so snapping to
+       that Monday leaves them untouched), while Apple's are daily -- 380-odd
+       daily bars would be a smear. Bucketing Apple the same way puts the two
+       stores on one comparable footing. */
+    function mondayOf(date) {
+      var d = new Date(date + "T00:00:00Z");
+      d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+      return d.toISOString().slice(0, 10);
+    }
+    function combinedWeekly(apps, rowsOf, valueOf) {
+      var byWeek = {};
+      apps.forEach(function (a) {
+        (rowsOf(a) || []).forEach(function (r) {
+          if (!r || !r.date) return;
+          var k = mondayOf(r.date);
+          byWeek[k] = (byWeek[k] || 0) + (valueOf(r) || 0);
+        });
+      });
+      var keys = Object.keys(byWeek).sort();
+      var cum = 0;
+      return keys.map(function (k) { cum += byWeek[k]; return { date: k, d: byWeek[k], c: cum }; });
+    }
+    /* Returns the block and a paint(). A chart measures its wrapper to size
+       itself, and a wrapper that is not in the document yet measures 0 -- so
+       painting is separate from building, and is called again after the block
+       is in the page, on resize, and when its store is switched to. */
+    function combinedTrend(apps, rowsOf, valueOf, unit, note) {
+      var box = document.createElement("div"); box.className = "ss-combined";
+      var head = document.createElement("div"); head.className = "ss-trend-head";
+      var eyebrow = document.createElement("p"); eyebrow.className = "eyebrow eyebrow--rule";
+      eyebrow.textContent = "all apps together \u00b7 weekly";
+      head.appendChild(eyebrow);
+      box.appendChild(head);
+      var wrap = document.createElement("div"); wrap.className = "ss-chartwrap"; box.appendChild(wrap);
+      var legend = document.createElement("div"); legend.className = "ss-legend"; box.appendChild(legend);
+      if (note) {
+        var n = document.createElement("p"); n.className = "ss-updated"; n.textContent = note;
+        box.appendChild(n);
+      }
+      var series = combinedWeekly(apps, rowsOf, valueOf);
+      // Say what the bars actually span. Apple only reports first-time downloads for part of its
+      // sales window, so this chart starts months after the total above it does -- unlabelled,
+      // that reads as a gap in the apps rather than a gap in what the store publishes.
+      if (note && series.length) {
+        var n2 = box.querySelector(".ss-updated");
+        if (n2) n2.textContent = note + " Bars cover " + series[0].date + " to " +
+          series[series.length - 1].date + " (" + series.length + " weeks).";
+      }
+      function paint() {
+        wrap.innerHTML = "";
+        wrap.appendChild(chart(series, unit, wrap));
+        legend.innerHTML = '<span><b style="background:' + cssVar("--ss-series-1") + '"></b>' + unit +
+                           '</span><span><b style="background:' + cssVar("--ss-series-2") + '"></b>' +
+                           'cumulative total</span>';
+      }
+      return { node: box, paint: paint, series: series };
+    }
+    var REPAINT = {};          // per-store repaint hook, called on resize and on store switch
+
     // Store-ID -> app-icon asset, so tabs and panel headers show the real icon
     // used everywhere else on the site (privacy.html, projects.html, index.html).
     var ICONS = {
@@ -306,7 +372,16 @@
       var overview = buildOverview(apps);
       var tabs = document.createElement("div"); tabs.className = "ss-tabs";
       var body = document.createElement("div");
-      root.innerHTML = ""; root.appendChild(overview); root.appendChild(tabs); root.appendChild(body);
+      var msTrend = combinedTrend(apps,
+        function (a) { return a.rows; },
+        function (r) { return r.installs; },
+        "installs / week",
+        "Every Microsoft app summed. Weeks run Sunday to Saturday, labelled by the Monday inside "
+        + "them; the newest week is still filling.");
+      root.innerHTML = ""; root.appendChild(overview); root.appendChild(msTrend.node);
+      root.appendChild(tabs); root.appendChild(body);
+      msTrend.paint();
+      REPAINT.ms = msTrend.paint;
 
       function activate(app, btn) {
         [].forEach.call(tabs.children, function (c) { c.classList.remove("is-active"); });
@@ -646,8 +721,16 @@
       var overview = buildAppleOverview(apps);
       var tabs = document.createElement("div"); tabs.className = "ss-tabs";
       var body = document.createElement("div");
+      // Apple reports daily; bucketing to the same weeks the Microsoft side uses makes the two
+      // charts read as one pair rather than two unrelated pictures.
+      var apTrend = combinedTrend(apps, appleRows, rowDownloads, "downloads / week",
+        "Every App Store app summed, first-time downloads only. Weeks run Monday to Sunday; the "
+        + "newest week is still filling.");
       asRoot.innerHTML = "";
-      asRoot.appendChild(overview); asRoot.appendChild(tabs); asRoot.appendChild(body);
+      asRoot.appendChild(overview); asRoot.appendChild(apTrend.node);
+      asRoot.appendChild(tabs); asRoot.appendChild(body);
+      apTrend.paint();
+      REPAINT.apple = apTrend.paint;
 
       function activate(app, btn) {
         [].forEach.call(tabs.children, function (c) { c.classList.remove("is-active"); });
