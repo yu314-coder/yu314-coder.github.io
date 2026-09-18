@@ -228,9 +228,13 @@
        that Monday leaves them untouched), while Apple's are daily -- 380-odd
        daily bars would be a smear. Bucketing Apple the same way puts the two
        stores on one comparable footing. */
-    function mondayOf(date) {
+    /* One week definition for both stores: Sunday to Saturday, labelled by the Monday inside it.
+       That is Partner Center's, inherited rather than chosen, and Apple's daily rows are bucketed
+       to match so the two charts line up week for week instead of being a day out. A Microsoft
+       row is already such a Monday and maps to itself, so its bars do not move. */
+    function weekLabel(date) {
       var d = new Date(date + "T00:00:00Z");
-      d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+      d.setUTCDate(d.getUTCDate() - d.getUTCDay() + 1);   // back to Sunday, then its Monday
       return d.toISOString().slice(0, 10);
     }
     function combinedWeekly(apps, rowsOf, valueOf) {
@@ -238,7 +242,7 @@
       apps.forEach(function (a) {
         (rowsOf(a) || []).forEach(function (r) {
           if (!r || !r.date) return;
-          var k = mondayOf(r.date);
+          var k = weekLabel(r.date);
           byWeek[k] = (byWeek[k] || 0) + (valueOf(r) || 0);
         });
       });
@@ -724,8 +728,9 @@
       // Apple reports daily; bucketing to the same weeks the Microsoft side uses makes the two
       // charts read as one pair rather than two unrelated pictures.
       var apTrend = combinedTrend(apps, appleRows, rowDownloads, "downloads / week",
-        "Every App Store app summed, first-time downloads only. Weeks run Monday to Sunday; the "
-        + "newest week is still filling.");
+        "Every App Store app summed, first-time downloads only. Weeks run Sunday to Saturday, "
+        + "labelled by the Monday inside them, the same as the Microsoft chart; the newest week "
+        + "is still filling.");
       asRoot.innerHTML = "";
       asRoot.appendChild(overview); asRoot.appendChild(apTrend.node);
       asRoot.appendChild(tabs); asRoot.appendChild(body);
