@@ -228,37 +228,34 @@
        that Monday leaves them untouched), while Apple's are daily -- 380-odd
        daily bars would be a smear. Bucketing Apple the same way puts the two
        stores on one comparable footing. */
-    /* One week definition for both stores: Sunday to Saturday, labelled by the Monday inside it.
-       That is Partner Center's, inherited rather than chosen, and Apple's daily rows are bucketed
-       to match so the two charts line up week for week instead of being a day out. A Microsoft
-       row is already such a Monday and maps to itself, so its bars do not move. */
-    function weekLabel(date) {
-      var d = new Date(date + "T00:00:00Z");
-      d.setUTCDate(d.getUTCDate() - d.getUTCDay() + 1);   // back to Sunday, then its Monday
-      return d.toISOString().slice(0, 10);
-    }
-    function combinedWeekly(apps, rowsOf, valueOf) {
-      var byWeek = {};
+    var GRAN_WORD = { day: "daily", week: "weekly", month: "monthly", period: "" };
+
+    /* Sum every app onto one series, keeping each row's OWN date. No rebucketing: the chart
+       shows whatever granularity the store actually publishes, so Apple (daily rows) draws a
+       daily chart and Microsoft (weekly rows, all 57 exactly seven days apart) draws a weekly
+       one. Forcing Microsoft to daily would mean spreading a week's installs across seven days
+       it was never measured on, which is the one thing this page does not do. If daily Partner
+       Center rows ever land, this becomes a daily chart with no code change. */
+    function combinedSeries(apps, rowsOf, valueOf) {
+      var byDate = {};
       apps.forEach(function (a) {
         (rowsOf(a) || []).forEach(function (r) {
           if (!r || !r.date) return;
-          var k = weekLabel(r.date);
-          byWeek[k] = (byWeek[k] || 0) + (valueOf(r) || 0);
+          byDate[r.date] = (byDate[r.date] || 0) + (valueOf(r) || 0);
         });
       });
-      var keys = Object.keys(byWeek).sort();
+      var keys = Object.keys(byDate).sort();
       var cum = 0;
-      return keys.map(function (k) { cum += byWeek[k]; return { date: k, d: byWeek[k], c: cum }; });
+      return keys.map(function (k) { cum += byDate[k]; return { date: k, d: byDate[k], c: cum }; });
     }
-    /* Returns the block and a paint(). A chart measures its wrapper to size
-       itself, and a wrapper that is not in the document yet measures 0 -- so
-       painting is separate from building, and is called again after the block
-       is in the page, on resize, and when its store is switched to. */
-    function combinedTrend(apps, rowsOf, valueOf, unit, note) {
+    function combinedTrend(apps, rowsOf, valueOf, unitBase, note) {
+      var series = combinedSeries(apps, rowsOf, valueOf);
+      var gran = inferGranularity(series);            // "day" | "week" | "month"
+      var unit = unitBase + " / " + gran;
       var box = document.createElement("div"); box.className = "ss-combined";
       var head = document.createElement("div"); head.className = "ss-trend-head";
       var eyebrow = document.createElement("p"); eyebrow.className = "eyebrow eyebrow--rule";
-      eyebrow.textContent = "all apps together \u00b7 weekly";
+      eyebrow.textContent = "all apps together \u00b7 " + (GRAN_WORD[gran] || gran);
       head.appendChild(eyebrow);
       box.appendChild(head);
       var wrap = document.createElement("div"); wrap.className = "ss-chartwrap"; box.appendChild(wrap);
@@ -267,14 +264,13 @@
         var n = document.createElement("p"); n.className = "ss-updated"; n.textContent = note;
         box.appendChild(n);
       }
-      var series = combinedWeekly(apps, rowsOf, valueOf);
       // Say what the bars actually span. Apple only reports first-time downloads for part of its
       // sales window, so this chart starts months after the total above it does -- unlabelled,
       // that reads as a gap in the apps rather than a gap in what the store publishes.
       if (note && series.length) {
         var n2 = box.querySelector(".ss-updated");
-        if (n2) n2.textContent = note + " Bars cover " + series[0].date + " to " +
-          series[series.length - 1].date + " (" + series.length + " weeks).";
+        if (n2) n2.textContent = note + " One bar per " + gran + ", covering " + series[0].date +
+          " to " + series[series.length - 1].date + " (" + series.length + " " + gran + "s).";
       }
       function paint() {
         wrap.innerHTML = "";
@@ -379,9 +375,10 @@
       var msTrend = combinedTrend(apps,
         function (a) { return a.rows; },
         function (r) { return r.installs; },
-        "installs / week",
-        "Every Microsoft app summed. Weeks run Sunday to Saturday, labelled by the Monday inside "
-        + "them; the newest week is still filling.");
+        "installs",
+        "Every Microsoft app summed. Partner Center is read weekly, so this cannot be daily "
+        + "without inventing days it was never measured on; weeks run Sunday to Saturday, "
+        + "labelled by the Monday inside them, and the newest one is still filling.");
       root.innerHTML = ""; root.appendChild(overview); root.appendChild(msTrend.node);
       root.appendChild(tabs); root.appendChild(body);
       msTrend.paint();
@@ -551,7 +548,6 @@
       // with just one, it renders straight to the chart as before. The "daily" /
       // "weekly" / "monthly" heading reflects the actual export granularity.
       if (metrics.length) {
-        var GRAN_WORD = { day: "daily", week: "weekly", month: "monthly", period: "" };
         var trendHead = document.createElement("div");
         trendHead.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin:1.6rem 0 .6rem";
         var eyebrow = document.createElement("p"); eyebrow.className = "eyebrow eyebrow--rule";
@@ -725,12 +721,9 @@
       var overview = buildAppleOverview(apps);
       var tabs = document.createElement("div"); tabs.className = "ss-tabs";
       var body = document.createElement("div");
-      // Apple reports daily; bucketing to the same weeks the Microsoft side uses makes the two
-      // charts read as one pair rather than two unrelated pictures.
-      var apTrend = combinedTrend(apps, appleRows, rowDownloads, "downloads / week",
-        "Every App Store app summed, first-time downloads only. Weeks run Sunday to Saturday, "
-        + "labelled by the Monday inside them, the same as the Microsoft chart; the newest week "
-        + "is still filling.");
+      var apTrend = combinedTrend(apps, appleRows, rowDownloads, "downloads",
+        "Every App Store app summed, first-time downloads only \u2014 Apple reports daily, so "
+        + "this is a day per bar.");
       asRoot.innerHTML = "";
       asRoot.appendChild(overview); asRoot.appendChild(apTrend.node);
       asRoot.appendChild(tabs); asRoot.appendChild(body);
