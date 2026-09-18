@@ -34,7 +34,7 @@
   <link rel="stylesheet" href="assets/css/style.css?v=20260911-privacy1">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 
-  <link rel="stylesheet" href="assets/css/stats.css?v=20260904-ver1">
+  <link rel="stylesheet" href="assets/css/stats.css?v=20260918-totals1">
 </head>
 <body class="theme-dark">
   <!-- Navigation -->
@@ -78,6 +78,31 @@
       <p class="eyebrow eyebrow--rule">downloads &middot; two stores</p>
       <h2>Real numbers, straight from each store</h2>
       <p class="lead-2 mb-0">Nothing here is an estimate and nothing comes from a third-party tracker. Each store reports differently, so pick one &mdash; the wording and the tiles change with it, because the underlying measures genuinely are not the same.</p>
+    </div>
+
+    <!-- The per-store totals used to live only as a small pill on each switcher button, where
+         they read as a filter count rather than as the headline they are. They are the first
+         thing anyone wants off this page, so they sit here, both visible at once, whichever
+         store's detail is open below. -->
+    <div class="ss-grand reveal" aria-label="Total downloads by store">
+      <div class="ss-grand-card">
+        <p class="ss-grand-store"><span class="ss-grand-dot" data-dot="ms"></span>Microsoft Store</p>
+        <p class="ss-grand-n" data-grand="ms">&mdash;</p>
+        <p class="ss-grand-unit">successful installs<span data-grand-apps="ms"></span></p>
+        <p class="ss-grand-win" data-grand-win="ms"></p>
+      </div>
+      <div class="ss-grand-card">
+        <p class="ss-grand-store"><span class="ss-grand-dot" data-dot="apple"></span>App Store</p>
+        <p class="ss-grand-n" data-grand="apple">&mdash;</p>
+        <p class="ss-grand-unit">first-time downloads<span data-grand-apps="apple"></span></p>
+        <p class="ss-grand-win" data-grand-win="apple"></p>
+      </div>
+      <div class="ss-grand-card ss-grand-card--sum">
+        <p class="ss-grand-store">Both stores</p>
+        <p class="ss-grand-n" data-grand="all">&mdash;</p>
+        <p class="ss-grand-unit">people who got an app<span data-grand-apps="all"></span></p>
+        <p class="ss-grand-win">the two measures added, each as its own store counts it</p>
+      </div>
     </div>
 
     <div class="ss-storebar reveal" role="tablist" aria-label="Choose a store">
@@ -173,6 +198,25 @@
       var el = STOREBTN[which] && STOREBTN[which].querySelector("[data-count]");
       if (el) { el.textContent = fmt(n); el.title = fmt(n) + " " + unit; }
     }
+
+    // The two store totals, and their sum. Each store is loaded independently and either can
+    // fail, so this fills in whichever has arrived and only shows the combined figure once both
+    // have — a "total" that silently meant one store would be worse than no total at all.
+    var GRAND = {};
+    function setGrand(which, n, apps, from, to) {
+      GRAND[which] = n;
+      var set = function (sel, txt) {
+        var el = document.querySelector(sel);
+        if (el) el.textContent = txt;
+      };
+      set('[data-grand="' + which + '"]', fmt(n));
+      set('[data-grand-apps="' + which + '"]', apps ? "  ·  " + apps + " apps" : "");
+      if (from && to) set('[data-grand-win="' + which + '"]', from + " to " + to);
+      if (GRAND.ms != null && GRAND.apple != null) {
+        set('[data-grand="all"]', fmt(GRAND.ms + GRAND.apple));
+        set('[data-grand-apps="all"]', "  ·  " + (GRAND.msApps + GRAND.appleApps) + " apps");
+      }
+    }
     // Store-ID -> app-icon asset, so tabs and panel headers show the real icon
     // used everywhere else on the site (privacy.html, projects.html, index.html).
     var ICONS = {
@@ -240,6 +284,25 @@
 
     function render(apps) {
       setStoreCount("ms", apps.reduce(function (t, a) { return t + (a.downloads || 0); }, 0), "downloads");
+      // The headline `downloads` field is Partner Center's LAST 12 MONTHS, a rolling window that
+      // falls when an old busy week ages out — it read "-16" the day it was last refreshed, which
+      // is not what anyone means by a total. Summing the weekly install rows gives every install
+      // since tracking began and only ever goes up.
+      var msRows = apps.reduce(function (t, a) {
+        return t + (a.rows || []).reduce(function (s, r) { return s + (r.installs || 0); }, 0);
+      }, 0);
+      var days = apps.reduce(function (d, a) {
+        var r = a.rows || [];
+        if (!r.length) return d;
+        if (!d[0] || r[0].date < d[0]) d[0] = r[0].date;
+        // A weekly row is labelled by the Monday inside it, so the last row's own date is not
+        // the last day counted. daily_read_through is the real one where it is recorded.
+        var end = a.daily_read_through || r[r.length - 1].date;
+        if (!d[1] || end > d[1]) d[1] = end;
+        return d;
+      }, [null, null]);
+      GRAND.msApps = apps.length;
+      setGrand("ms", msRows, apps.length, days[0], days[1]);
       var overview = buildOverview(apps);
       var tabs = document.createElement("div"); tabs.className = "ss-tabs";
       var body = document.createElement("div");
@@ -569,7 +632,17 @@
       .catch(function () { /* leave Apple off the switch; Microsoft still renders */ });
 
     function renderApple(apps) {
-      setStoreCount("apple", apps.reduce(function (t, a) { return t + appleDownloads(a); }, 0), "downloads");
+      var appleTotal = apps.reduce(function (t, a) { return t + appleDownloads(a); }, 0);
+      setStoreCount("apple", appleTotal, "downloads");
+      var aDays = apps.reduce(function (d, a) {
+        var r = a.rows || [];
+        if (!r.length) return d;
+        if (!d[0] || r[0].date < d[0]) d[0] = r[0].date;
+        if (!d[1] || r[r.length - 1].date > d[1]) d[1] = r[r.length - 1].date;
+        return d;
+      }, [null, null]);
+      GRAND.appleApps = apps.length;
+      setGrand("apple", appleTotal, apps.length, aDays[0], aDays[1]);
       var overview = buildAppleOverview(apps);
       var tabs = document.createElement("div"); tabs.className = "ss-tabs";
       var body = document.createElement("div");
