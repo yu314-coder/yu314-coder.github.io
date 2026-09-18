@@ -307,28 +307,36 @@
     });
     svg.appendChild(hit);
 
-    /* Release markers. Drawn LAST so they sit over the bars, but before the hit layer would
-       swallow them -- the hit layer is appended above and is transparent, so pointer behaviour
-       is unchanged. Each mark is {date, label}; it lands on the last period that started on or
-       before the release, which is the period the release actually affected.
+    /* Release markers. Drawn LAST so they sit over the bars, but before the transparent hit
+       layer, so pointer behaviour is unchanged. Each mark is {date, label, full, color}; it
+       lands on the last period starting on or before the release -- the period it affected.
 
-       Labels are rotated to read upward. Four of these can fall inside a fortnight (a run of
-       app updates in one week), and horizontal labels there would overlap into mush; vertical
-       ones sit side by side a few pixels apart and stay legible however tight the cluster. */
+       Labels are the VERSION only, horizontal, in the app's own colour, with the app named once
+       in the legend. They used to be the full "App 1.2.3" rotated to read upward, which was the
+       only way to fit five of them; with a full release history there are three times as many
+       and long labels, rotated or not, become a wall. Short ones stagger across three rows and
+       stay readable even when two releases are a day apart. */
     if (marks && marks.length) {
       var g = el("g", { class: "ss-marks" });
-      marks.forEach(function (mk) {
-        if (!mk || !mk.date) return;
+      var placed = marks.map(function (mk) {
+        if (!mk || !mk.date) return null;
         var idx = -1;
         for (var i = 0; i < n; i++) { if (series[i].date <= mk.date) idx = i; else break; }
-        if (idx < 0) return;                       // before the chart starts: nothing to point at
-        var mx = x(idx);
-        g.appendChild(el("line", { x1: mx, y1: topY, x2: mx, y2: topY + topH,
-          stroke: "rgba(203,210,255,0.42)", "stroke-width": 1, "stroke-dasharray": "3 3" }));
-        var t = el("text", { x: 0, y: 0, transform: "translate(" + (mx - 3) + "," + (topY + topH - 4) + ") rotate(-90)",
-          "font-size": 9, "font-family": "JetBrains Mono, monospace",
-          fill: "rgba(203,210,255,0.72)" }, mk.label || "");
-        t.appendChild(el("title", {}, (mk.full || mk.label || "") + " \u00b7 " + mk.date));
+        return idx < 0 ? null : { mk: mk, x: x(idx) };     // before the chart starts: no anchor
+      }).filter(Boolean).sort(function (a, b) { return a.x - b.x; });
+
+      var ROWS = 3, ROW_H = 11, lastX = -1e9, row = 0;
+      placed.forEach(function (q) {
+        var w = ((q.mk.label || "").length * 5.4) + 8;     // monospace at 9px, plus a gap
+        row = (q.x - lastX) < w ? (row + 1) % ROWS : 0;    // only step down when it would collide
+        lastX = q.x;
+        var col = q.mk.color || "rgba(203,210,255,0.55)";
+        g.appendChild(el("line", { x1: q.x, y1: topY, x2: q.x, y2: topY + topH,
+          stroke: col, "stroke-width": 1, "stroke-dasharray": "3 3", "stroke-opacity": 0.55 }));
+        var ty = topY + 9 + row * ROW_H;
+        var t = el("text", { x: q.x + 3, y: ty, "font-size": 9,
+          "font-family": "JetBrains Mono, monospace", fill: col }, q.mk.label || "");
+        t.appendChild(el("title", {}, (q.mk.full || q.mk.label || "") + " \u00b7 " + q.mk.date));
         g.appendChild(t);
       });
       svg.appendChild(g);
