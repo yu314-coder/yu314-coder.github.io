@@ -14,7 +14,9 @@ INTEGER — 281479271940096 is v1.1.4.0, four 16-bit fields from the high end
 down. That encoding is the only reason this is not a one-liner.
 
 Writes nothing but the version fields, leaving the hand-read download figures
-untouched. Fails soft: a stale version beats a blank one.
+untouched. Fails soft: a stale version beats a blank one. version_released is the
+store's LastUpdateDate for the published SKU -- store-stats.html marks it on the
+all-apps chart, so each app's latest update is visible against the downloads.
 """
 import json
 import os
@@ -61,6 +63,9 @@ def fetch(store_id):
     versions, updated = set(), None
     for sku in p.get("DisplaySkuAvailabilities") or []:
         props = (sku.get("Sku") or {}).get("Properties") or {}
+        # LastUpdateDate sits on the SKU's Properties, NOT on each package -- reading it off the
+        # packages found nothing, so version_released was silently never written.
+        updated = props.get("LastUpdateDate") or updated
         for pkg in props.get("Packages") or []:
             if pkg.get("Version"):
                 versions.add(int(pkg["Version"]))

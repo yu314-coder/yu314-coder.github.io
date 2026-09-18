@@ -110,7 +110,7 @@
     return p.length >= 3 ? (MONTHS[+p[1] - 1] || p[1]) + " " + (+p[2]) : iso;
   }
 
-  function chart(series, perLabel, wrap) {
+  function chart(series, perLabel, wrap, marks) {
     wrap = wrap || document.querySelector(".ss-chartwrap");
     var W = Math.max(320, (wrap ? wrap.clientWidth : 800) - 32);
     var n = series.length;
@@ -306,6 +306,33 @@
       if (peakLabel) peakLabel.setAttribute("opacity", "1");
     });
     svg.appendChild(hit);
+
+    /* Release markers. Drawn LAST so they sit over the bars, but before the hit layer would
+       swallow them -- the hit layer is appended above and is transparent, so pointer behaviour
+       is unchanged. Each mark is {date, label}; it lands on the last period that started on or
+       before the release, which is the period the release actually affected.
+
+       Labels are rotated to read upward. Four of these can fall inside a fortnight (a run of
+       app updates in one week), and horizontal labels there would overlap into mush; vertical
+       ones sit side by side a few pixels apart and stay legible however tight the cluster. */
+    if (marks && marks.length) {
+      var g = el("g", { class: "ss-marks" });
+      marks.forEach(function (mk) {
+        if (!mk || !mk.date) return;
+        var idx = -1;
+        for (var i = 0; i < n; i++) { if (series[i].date <= mk.date) idx = i; else break; }
+        if (idx < 0) return;                       // before the chart starts: nothing to point at
+        var mx = x(idx);
+        g.appendChild(el("line", { x1: mx, y1: topY, x2: mx, y2: topY + topH,
+          stroke: "rgba(203,210,255,0.42)", "stroke-width": 1, "stroke-dasharray": "3 3" }));
+        var t = el("text", { x: 0, y: 0, transform: "translate(" + (mx - 3) + "," + (topY + topH - 4) + ") rotate(-90)",
+          "font-size": 9, "font-family": "JetBrains Mono, monospace",
+          fill: "rgba(203,210,255,0.72)" }, mk.label || "");
+        t.appendChild(el("title", {}, (mk.full || mk.label || "") + " \u00b7 " + mk.date));
+        g.appendChild(t);
+      });
+      svg.appendChild(g);
+    }
     return svg;
   }
 

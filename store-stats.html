@@ -34,7 +34,7 @@
   <link rel="stylesheet" href="assets/css/style.css?v=20260911-privacy1">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 
-  <link rel="stylesheet" href="assets/css/stats.css?v=20260918-totals1">
+  <link rel="stylesheet" href="assets/css/stats.css?v=20260918-marks1">
 </head>
 <body class="theme-dark">
   <!-- Navigation -->
@@ -161,7 +161,7 @@
 
   <!-- Shared stats primitives, then the store-specific renderer. Not deferred:
        the renderer below runs at parse time and needs StatsUI present. -->
-  <script src="assets/js/stats-core.js?v=20260830-ticks2"></script>
+  <script src="assets/js/stats-core.js?v=20260918-marks1"></script>
   <script>
   (function () {
     var DATA = "assets/store-tracker/data/", root = document.getElementById("ss-app");
@@ -248,8 +248,33 @@
       var cum = 0;
       return keys.map(function (k) { cum += byDate[k]; return { date: k, d: byDate[k], c: cum }; });
     }
+    /* Each app's latest published version, as a marker for the chart. Both stores carry
+       version_released now -- Apple's from the App Store lookup, Microsoft's from the store
+       catalogue's LastUpdateDate. It is the CURRENT version only, not a history: one line per
+       app, not one per release it ever shipped. */
+    // The label reads up the chart, so its LENGTH is limited by the plot band's height: 188px of
+    // 9px monospace is about 34 characters. "Generalized Covariance Matrix 1.0.3.0" is 200px and
+    // ran off the top. The version is the point of the marker, so the NAME gives way, never the
+    // version; the untruncated text stays in the marker's tooltip.
+    var MARK_CHARS = 30;
+    function markLabel(name, version) {
+      var v = version ? " " + version : "";
+      if ((name + v).length <= MARK_CHARS) return name + v;
+      return name.slice(0, Math.max(6, MARK_CHARS - v.length - 1)).replace(/[\s-]+$/, "") + "\u2026" + v;
+    }
+    function releaseMarks(apps) {
+      return apps.filter(function (a) { return a.version_released; })
+                 .map(function (a) {
+                   return { date: a.version_released,
+                            label: markLabel(a.app, a.version),
+                            full: a.app + (a.version ? " " + a.version : "") };
+                 })
+                 .sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+    }
+
     function combinedTrend(apps, rowsOf, valueOf, unitBase, note) {
       var series = combinedSeries(apps, rowsOf, valueOf);
+      var marks = releaseMarks(apps);
       var gran = inferGranularity(series);            // "day" | "week" | "month"
       var unit = unitBase + " / " + gran;
       var box = document.createElement("div"); box.className = "ss-combined";
@@ -269,15 +294,19 @@
       // that reads as a gap in the apps rather than a gap in what the store publishes.
       if (note && series.length) {
         var n2 = box.querySelector(".ss-updated");
+        var shown = marks.filter(function (mk) { return mk.date >= series[0].date; }).length;
         if (n2) n2.textContent = note + " One bar per " + gran + ", covering " + series[0].date +
-          " to " + series[series.length - 1].date + " (" + series.length + " " + gran + "s).";
+          " to " + series[series.length - 1].date + " (" + series.length + " " + gran + "s)." +
+          (marks.length ? " Dashed lines mark each app's current version, " + shown + " of " +
+            marks.length + " released inside this range." : "");
       }
       function paint() {
         wrap.innerHTML = "";
-        wrap.appendChild(chart(series, unit, wrap));
+        wrap.appendChild(chart(series, unit, wrap, marks));
         legend.innerHTML = '<span><b style="background:' + cssVar("--ss-series-1") + '"></b>' + unit +
                            '</span><span><b style="background:' + cssVar("--ss-series-2") + '"></b>' +
-                           'cumulative total</span>';
+                           'cumulative total</span>' +
+                           (marks.length ? '<span><b class="ss-legend-mark"></b>app update</span>' : '');
       }
       return { node: box, paint: paint, series: series };
     }
