@@ -325,7 +325,9 @@
         return idx < 0 ? null : { mk: mk, x: x(idx) };     // before the chart starts: no anchor
       }).filter(Boolean).sort(function (a, b) { return a.x - b.x; });
 
-      var ROWS = 3, ROW_H = 11, lastX = -1e9, row = 0;
+      // Four rows, not three: cross-platform apps label their marks "macOS 1.2" rather
+      // than "1.2", and at that width three rows left two labels overlapping.
+      var ROWS = 4, ROW_H = 11, lastX = -1e9, row = 0;
       placed.forEach(function (q) {
         var w = ((q.mk.label || "").length * 5.4) + 8;     // monospace at 9px, plus a gap
         row = (q.x - lastX) < w ? (row + 1) % ROWS : 0;    // only step down when it would collide

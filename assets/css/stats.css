@@ -54,6 +54,14 @@
 .ss-legend-sep{color:var(--ink-4);letter-spacing:.12em;text-transform:uppercase;font-size:.68rem;
   margin-left:.35rem}
 
+/* What an app runs on. Cross-platform apps are the reason this exists: GPS-location-app also
+   ships a watchOS app and SidecarBridge a Mac one, which a single "iOS" label hid. */
+.ss-plats{display:flex;flex-wrap:wrap;gap:.3rem;margin:.3rem 0 .25rem}
+.ss-plats--inline{display:inline-flex;margin:0 0 0 .45rem;vertical-align:middle}
+.ss-plat{font:600 .66rem/1 JetBrains Mono,monospace;letter-spacing:.06em;
+  padding:.24rem .42rem;border-radius:5px;color:var(--ink-2);
+  border:1px solid var(--line);background:rgba(255,255,255,.04)}
+
 /* The all-apps trend, between the overview and the per-app tabs. */
 .ss-combined{margin:0 0 2rem}
 .ss-combined .ss-chartwrap{margin-top:.35rem}

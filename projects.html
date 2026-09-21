@@ -1367,7 +1367,7 @@
                 <p class="small mb-1"><strong>App Store ID:</strong> 6792298083 &mdash; one universal listing for iPhone, iPad and Mac (<code>io.sidecarbridge.mac</code>)</p>
                 <p class="small mb-1"><strong>Frameworks:</strong> SwiftUI &middot; ScreenCaptureKit &middot; Network.framework &middot; Multipeer Connectivity &middot; CryptoKit &middot; VideoToolbox</p>
                 <p class="small mb-1"><strong>Transport:</strong> Bonjour + Network.framework on port 45454, Multipeer Connectivity as nearby fallback</p>
-                <p class="small mb-0"><strong>Status:</strong> Live on the App Store &mdash; version 1.0, free, 6.6&nbsp;MB, Utilities, rated 4+</p>
+                <p class="small mb-0"><strong>Status:</strong> Live on the App Store &mdash; version <span data-appver="6764729098">1.3</span>, free, 6.6&nbsp;MB, Utilities, rated 4+</p>
               </div>
             </div>
 
@@ -2157,6 +2157,16 @@
     // link, because the store link and the heading are not always in the same
     // card here. The value in the HTML is the last known one and stands if the
     // fetch fails.
+    // Versions written into prose rather than shown as a badge. This one sentence said
+    // "version 1.0" against a published 1.3 -- the same rot the badges were built to stop, just
+    // outside them. The number in the markup is the last known one and stands if the fetch fails.
+    [].forEach.call(document.querySelectorAll("[data-appver]"), function (el) {
+      fetch(DATA + el.getAttribute("data-appver") + ".json?cb=" + Date.now())
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) { if (d && d.version) el.textContent = d.version; })
+        .catch(function () { /* keep what is in the markup */ });
+    });
+
     [].forEach.call(document.querySelectorAll("[data-msstore]"), function (el) {
       fetch("assets/store-tracker/data/" + el.getAttribute("data-msstore") + ".json?cb=" + Date.now())
         .then(function (r) { return r.ok ? r.json() : null; })

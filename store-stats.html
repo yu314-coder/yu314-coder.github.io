@@ -34,7 +34,7 @@
   <link rel="stylesheet" href="assets/css/style.css?v=20260911-privacy1">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 
-  <link rel="stylesheet" href="assets/css/stats.css?v=20260918-marks3">
+  <link rel="stylesheet" href="assets/css/stats.css?v=20260921-plats3">
 </head>
 <body class="theme-dark">
   <!-- Navigation -->
@@ -161,7 +161,7 @@
 
   <!-- Shared stats primitives, then the store-specific renderer. Not deferred:
        the renderer below runs at parse time and needs StatsUI present. -->
-  <script src="assets/js/stats-core.js?v=20260918-marks3"></script>
+  <script src="assets/js/stats-core.js?v=20260921-plats3"></script>
   <script>
   (function () {
     var DATA = "assets/store-tracker/data/", root = document.getElementById("ss-app");
@@ -279,15 +279,24 @@
         var hist = (a.versions && a.versions.length)
           ? a.versions
           : (a.version_released ? [{ version: a.version, released: a.version_released }] : []);
+        // A cross-platform app releases per platform, so "1.2" can legitimately appear twice.
+        // Name the platform on the mark when that is the case, and only then -- on a single
+        // -platform app it would be noise on every label.
+        var streams = {};
+        hist.forEach(function (v) { if (v.platform) streams[v.platform] = 1; });
+        var manyStreams = Object.keys(streams).length > 1;
         hist.forEach(function (v) {
           if (!v.released) return;
           // "launch" is the app going on sale, which both stores publish exactly; a version
           // number is a later update. approx marks are dated by submission, not release.
           marks.push({ date: v.released,
-                       label: v.launch ? "launch" : (v.version || ""),
+                       label: v.launch ? "launch"
+                              : ((manyStreams && v.platform ? v.platform + " " : "")
+                                 + (v.version || "")),
                        color: col, launch: !!v.launch, approx: !!v.approx,
                        full: a.app + (v.launch ? " \u2014 went on sale"
-                                               : (v.version ? " " + v.version : ""))
+                                               : (v.platform ? " " + v.platform : "")
+                                                 + (v.version ? " " + v.version : ""))
                              + (v.approx ? " (submitted; released within days)" : "") });
         });
       });
@@ -641,7 +650,7 @@
 
         function paint(m) {
           eyebrow.textContent = (GRAN_WORD[m.gran] ? GRAN_WORD[m.gran] + " " : "") + "trend";
-          wrap.innerHTML = ""; wrap.appendChild(chart(m.series, m.unit, wrap));
+          wrap.innerHTML = ""; wrap.appendChild(chart(m.series, m.unit, wrap, ownMarks(app)));
           legend.innerHTML = '<span><b style="background:' + cssVar("--ss-series-1") + '"></b>' + m.unit + '</span>' +
                              '<span><b style="background:' + cssVar("--ss-series-2") + '"></b>cumulative total</span>';
         }
@@ -837,6 +846,22 @@
       });
     }
 
+    // The releases of ONE app, for its own chart. No per-app colour needed here: there is only
+    // one app on the chart, so the marks take a single neutral accent.
+    function ownMarks(app) {
+      var m = releaseMarks([app]);
+      m.forEach(function (x) { x.color = "#cbd2ff"; });
+      return m;
+    }
+
+    // A one-line platform key for an app, used wherever an app is named.
+    function platsHtml(app) {
+      return (app.platforms && app.platforms.length)
+        ? '<span class="ss-plats ss-plats--inline">' + app.platforms.map(function (o) {
+            return '<span class="ss-plat">' + o + '</span>'; }).join("") + '</span>'
+        : "";
+    }
+
     function buildAppleOverview(apps) {
       var total = 0, last30 = 0, days = 0;
       apps.forEach(function (a) {
@@ -900,9 +925,15 @@
       head.innerHTML =
         '<div class="ss-panel-id">' + iconHtml(app.id) +
         '<div><h3>' + app.app + (app.version ? ' <span class="ss-ver">v' + app.version + '</span>' : '') + '</h3>' +
+        (app.platforms && app.platforms.length
+          ? '<div class="ss-plats">' + app.platforms.map(function (o) {
+              return '<span class="ss-plat">' + o + '</span>'; }).join("") + '</div>'
+          : '') +
         '<span class="ss-store-id">Apple ID ' + app.id +
           (app.version_released ? ' &middot; shipped ' + app.version_released : '') +
-          (app.min_os ? ' &middot; needs iOS ' + app.min_os : '') + '</span></div></div>' +
+          // "needs iOS 26.2" on a Mac-only app was simply wrong; name the OS it actually needs
+          (app.min_os ? ' &middot; needs ' + ((app.platforms || [])[0] || 'iOS') + ' ' + app.min_os : '')
+          + '</span></div></div>' +
         '<a class="store-badge store-badge-sm" href="https://apps.apple.com/app/' + meta[0] + '/id' + app.id +
         '" target="_blank" rel="noopener noreferrer" aria-label="Download ' + app.app + ' on the ' + meta[2] + '">' +
         '<img src="assets/img/badges/' + meta[1] + '.svg" alt="Download on the ' + meta[2] + '"></a>';
@@ -1012,7 +1043,7 @@
         var src = (mt.key === "installs" || mt.key === "dl_first_time") ? rows
                 : rows.filter(function (r) { return r[mt.key] != null; });
         wrap.innerHTML = "";
-        wrap.appendChild(chart(toSeries(src, mt.key), mt.unit, wrap));
+        wrap.appendChild(chart(toSeries(src, mt.key), mt.unit, wrap, ownMarks(app)));
         legend.innerHTML = '<span><b style="background:' + cssVar("--ss-series-1") + '"></b>' + mt.unit + '</span>' +
                            '<span><b style="background:' + cssVar("--ss-series-2") + '"></b>cumulative total</span>';
       }

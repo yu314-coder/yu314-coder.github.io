@@ -2,9 +2,9 @@
 """Keep the version numbers written into the HTML in step with the snapshots.
 
 Most versions on this site are injected at runtime from the committed JSON, so
-they cannot go stale. Two are also written into the markup as a fallback, shown
-if the fetch fails: the Windows badge on the projects page and rmt-denoise's on
-the PyPI page. A fallback that is never updated is just a slower kind of rot —
+they cannot go stale. A few are also written into the markup as a fallback, shown
+if the fetch fails: the Windows badge on the projects page, rmt-denoise's on the
+PyPI page, and the App Store version named in GPS-location-app's status line. A fallback that is never updated is just a slower kind of rot —
 it was a hand-typed v1.1.3.0 sitting under a live v1.1.4.0 badge that made the
 contradiction visible in the first place.
 
@@ -26,6 +26,8 @@ TARGETS = [
     ("projects.html", "data-msstore", "assets/store-tracker/data"),
     ("pypi-stats.html", "data-pkg", "assets/pypi-tracker/data"),
     ("index.html", "data-msstore", "assets/store-tracker/data"),
+    # A version written into a sentence rather than a badge, so it carries no "v" prefix.
+    ("projects.html", "data-appver", "assets/appstore-tracker/data"),
 ]
 
 
@@ -38,9 +40,11 @@ def main():
         html = path.read_text()
         original = html
 
-        # <span ... data-attr="KEY" ...>vX.Y.Z</span>
+        # <span ... data-attr="KEY" ...>vX.Y.Z</span>, or the same without the "v" where the
+        # number sits in a sentence. The prefix is captured and put back as it was found, so a
+        # badge keeps its v and prose keeps its bare number.
         pattern = re.compile(
-            r'(' + re.escape(attr) + r'="([^"]+)"[^>]*>)v[0-9][0-9A-Za-z.\-]*(</)')
+            r'(' + re.escape(attr) + r'="([^"]+)"[^>]*>)(v?)[0-9][0-9A-Za-z.\-]*(</)')
 
         def swap(m):
             nonlocal changed
@@ -54,7 +58,7 @@ def main():
                 return m.group(0)
             if not ver:
                 return m.group(0)
-            return f"{m.group(1)}v{ver}{m.group(3)}"
+            return f"{m.group(1)}{m.group(3)}{ver}{m.group(4)}"
 
         html = pattern.sub(swap, html)
         if html != original:
