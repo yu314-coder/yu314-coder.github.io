@@ -34,7 +34,7 @@
   <link rel="stylesheet" href="assets/css/style.css?v=20260911-privacy1">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 
-  <link rel="stylesheet" href="assets/css/stats.css?v=20260921-dev1">
+  <link rel="stylesheet" href="assets/css/stats.css?v=20260921-dev2">
 </head>
 <body class="theme-dark">
   <!-- Navigation -->
@@ -161,7 +161,7 @@
 
   <!-- Shared stats primitives, then the store-specific renderer. Not deferred:
        the renderer below runs at parse time and needs StatsUI present. -->
-  <script src="assets/js/stats-core.js?v=20260921-dev1"></script>
+  <script src="assets/js/stats-core.js?v=20260921-dev2"></script>
   <script>
   (function () {
     var DATA = "assets/store-tracker/data/", root = document.getElementById("ss-app");
@@ -856,8 +856,14 @@
 
     /* Downloads split by device, as a bar per device. Only worth drawing when there is more
        than one: a single "iPhone 761" bar says nothing the headline did not. */
+    // Apple's sales report calls a Mac "Desktop". The stored data keeps Apple's word, since
+    // that is what the column says, but "Desktop 242" on an App Store page reads as a mystery
+    // -- it means the app was downloaded onto a Mac, which is the whole point of the split for
+    // SidecarBridge and the reason ManimStudio shows any at all.
+    var DEVICE_NAME = { Desktop: "Mac" };
     function deviceBlock(app) {
-      var list = (app.devices || []).filter(function (d) { return d.units > 0; });
+      var list = (app.devices || []).filter(function (d) { return d.units > 0; })
+        .map(function (d) { return { device: DEVICE_NAME[d.device] || d.device, units: d.units }; });
       if (list.length < 2) return null;
       var total = list.reduce(function (t, d) { return t + d.units; }, 0);
       var max = Math.max.apply(null, list.map(function (d) { return d.units; }));
