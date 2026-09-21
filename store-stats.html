@@ -34,7 +34,7 @@
   <link rel="stylesheet" href="assets/css/style.css?v=20260911-privacy1">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 
-  <link rel="stylesheet" href="assets/css/stats.css?v=20260921-dev4">
+  <link rel="stylesheet" href="assets/css/stats.css?v=20260921-metric1">
 </head>
 <body class="theme-dark">
   <!-- Navigation -->
@@ -161,7 +161,7 @@
 
   <!-- Shared stats primitives, then the store-specific renderer. Not deferred:
        the renderer below runs at parse time and needs StatsUI present. -->
-  <script src="assets/js/stats-core.js?v=20260921-dev4"></script>
+  <script src="assets/js/stats-core.js?v=20260921-metric1"></script>
   <script>
   (function () {
     var DATA = "assets/store-tracker/data/", root = document.getElementById("ss-app");
@@ -241,7 +241,13 @@
       apps.forEach(function (a) {
         (rowsOf(a) || []).forEach(function (r) {
           if (!r || !r.date) return;
-          byDate[r.date] = (byDate[r.date] || 0) + (valueOf(r) || 0);
+          // A metric the store did not report for a day is ABSENT on that row, not zero.
+          // Impressions and page views come from a different Apple report that covers far
+          // fewer days than downloads; counting a missing day as 0 would draw a flat run of
+          // "nobody saw it" across months nobody was measuring.
+          var v = valueOf(r);
+          if (v == null) return;
+          byDate[r.date] = (byDate[r.date] || 0) + v;
         });
       });
       var keys = Object.keys(byDate).sort();
@@ -312,39 +318,48 @@
       }).join("");
     }
 
-    function combinedTrend(apps, rowsOf, valueOf, unitBase, note) {
-      var series = combinedSeries(apps, rowsOf, valueOf);
+    /* The all-apps chart, with a choice of what to plot: downloads, and on the App Store also
+       impressions and product page views -- the same choice each app's own chart already had,
+       now for the store as a whole. `metrics` is a list of
+         { key, label, unitBase, rowsOf(app), valueOf(row), note }
+       and the first one is shown first. Release lines stay on whichever is chosen: a jump in
+       impressions is as much worth reading against a release as a jump in downloads. */
+    function combinedTrend(apps, metrics) {
       var marks = releaseMarks(apps);
       var marksKey = marksLegend(apps);
-      var gran = inferGranularity(series);            // "day" | "week" | "month"
-      var unit = unitBase + " / " + gran;
+      var approx = marks.some(function (mk) { return mk.approx; });
+      var history = apps.some(function (a) {
+        return (a.versions || []).filter(function (v) { return !v.launch; }).length > 1;
+      });
+      // only offer a metric that has any data at all -- an empty option is a button to nowhere
+      metrics = metrics.map(function (m) {
+        return Object.assign({}, m, { series: combinedSeries(apps, m.rowsOf, m.valueOf) });
+      }).filter(function (m) { return m.series.length; });
+
       var box = document.createElement("div"); box.className = "ss-combined";
       var head = document.createElement("div"); head.className = "ss-trend-head";
+      head.style.cssText = "display:flex;align-items:center;justify-content:space-between;" +
+                           "gap:1rem;flex-wrap:wrap";
       var eyebrow = document.createElement("p"); eyebrow.className = "eyebrow eyebrow--rule";
-      eyebrow.textContent = "all apps together \u00b7 " + (GRAN_WORD[gran] || gran);
       head.appendChild(eyebrow);
+      var sel = null;
+      if (metrics.length > 1) {
+        sel = document.createElement("div"); sel.className = "ss-metric-sel";
+        head.appendChild(sel);
+      }
       box.appendChild(head);
       var wrap = document.createElement("div"); wrap.className = "ss-chartwrap"; box.appendChild(wrap);
       var legend = document.createElement("div"); legend.className = "ss-legend"; box.appendChild(legend);
-      if (note) {
-        var n = document.createElement("p"); n.className = "ss-updated"; n.textContent = note;
-        box.appendChild(n);
-      }
-      // Say what the bars actually span. Apple only reports first-time downloads for part of its
-      // sales window, so this chart starts months after the total above it does -- unlabelled,
-      // that reads as a gap in the apps rather than a gap in what the store publishes.
-      if (note && series.length) {
-        var n2 = box.querySelector(".ss-updated");
-        var shown = marks.filter(function (mk) { return mk.date >= series[0].date; }).length;
-        // Which caveat applies is about the MARKS, not about whether a versions array exists.
-        // Keying it off the array put Apple's "dates in between are submission dates" note on
-        // the Microsoft chart, which has no in-between dates at all.
-        var approx = marks.some(function (mk) { return mk.approx; });
-        var history = apps.some(function (a) {
-          return (a.versions || []).filter(function (v) { return !v.launch; }).length > 1;
-        });
-        if (n2) n2.textContent = note + " One bar per " + gran + ", covering " + series[0].date +
-          " to " + series[series.length - 1].date + " (" + series.length + " " + gran + "s)." +
+      var noteEl = document.createElement("p"); noteEl.className = "ss-updated"; box.appendChild(noteEl);
+
+      var cur = metrics[0];
+      function describe(m) {
+        var sr = m.series, gran = inferGranularity(sr);
+        var shown = marks.filter(function (mk) { return mk.date >= sr[0].date; }).length;
+        // Say what the bars actually span. Apple reports engagement for fewer days than it
+        // reports downloads, so each metric's chart starts somewhere different.
+        return m.note + " One bar per " + gran + ", covering " + sr[0].date + " to " +
+          sr[sr.length - 1].date + " (" + sr.length + " " + gran + "s)." +
           (marks.length
             ? " Lines are releases, " + shown + " of " + marks.length + " inside this range; a "
               + "solid line is an app going on sale, dashed is an update"
@@ -359,14 +374,30 @@
             : "");
       }
       function paint() {
+        if (!cur) return;
+        var gran = inferGranularity(cur.series);
+        var unit = cur.unitBase + " / " + gran;
+        eyebrow.textContent = "all apps together · " + (GRAN_WORD[gran] || gran);
         wrap.innerHTML = "";
-        wrap.appendChild(chart(series, unit, wrap, marks));
+        wrap.appendChild(chart(cur.series, unit, wrap, marks));
         legend.innerHTML = '<span><b style="background:' + cssVar("--ss-series-1") + '"></b>' + unit +
                            '</span><span><b style="background:' + cssVar("--ss-series-2") + '"></b>' +
                            'cumulative total</span>' +
                            (marks.length ? '<span class="ss-legend-sep">releases</span>' + marksKey : '');
+        noteEl.textContent = describe(cur);
       }
-      return { node: box, paint: paint, series: series };
+      if (sel) {
+        metrics.forEach(function (m, i) {
+          var b = document.createElement("button"); b.type = "button"; b.textContent = m.label;
+          if (i === 0) b.className = "on";
+          b.onclick = function () {
+            [].forEach.call(sel.children, function (o) { o.className = ""; });
+            b.className = "on"; cur = m; paint();
+          };
+          sel.appendChild(b);
+        });
+      }
+      return { node: box, paint: paint, series: cur ? cur.series : [] };
     }
     var REPAINT = {};          // per-store repaint hook, called on resize and on store switch
 
@@ -459,13 +490,16 @@
       var overview = buildOverview(apps);
       var tabs = document.createElement("div"); tabs.className = "ss-tabs";
       var body = document.createElement("div");
-      var msTrend = combinedTrend(apps,
-        function (a) { return a.rows; },
-        function (r) { return r.installs; },
-        "installs",
-        "Every Microsoft app summed. Partner Center is read weekly, so this cannot be daily "
-        + "without inventing days it was never measured on; weeks run Sunday to Saturday, "
-        + "labelled by the Monday inside them, and the newest one is still filling.");
+      var msTrend = combinedTrend(apps, [
+        { key: "installs", label: "Installs", unitBase: "installs",
+          rowsOf: function (a) { return a.rows; }, valueOf: function (r) { return r.installs; },
+          note: "Every Microsoft app summed. Partner Center is read weekly, so this cannot be daily "
+            + "without inventing days it was never measured on; weeks run Sunday to Saturday, "
+            + "labelled by the Monday inside them, and the newest one is still filling." },
+        { key: "views", label: "Page views", unitBase: "page views",
+          rowsOf: function (a) { return a.page_view_rows; }, valueOf: function (r) { return r.views; },
+          note: "Store-listing visits for every Microsoft app, summed, on the same weeks as installs." }
+      ]);
       root.innerHTML = ""; root.appendChild(overview); root.appendChild(msTrend.node);
       root.appendChild(tabs); root.appendChild(body);
       msTrend.paint();
@@ -808,9 +842,21 @@
       var overview = buildAppleOverview(apps);
       var tabs = document.createElement("div"); tabs.className = "ss-tabs";
       var body = document.createElement("div");
-      var apTrend = combinedTrend(apps, appleRows, rowDownloads, "downloads",
-        "Every App Store app summed, first-time downloads only \u2014 Apple reports daily, so "
-        + "this is a day per bar.");
+      var apTrend = combinedTrend(apps, [
+        { key: "downloads", label: "Downloads", unitBase: "downloads",
+          rowsOf: appleRows, valueOf: rowDownloads,
+          note: "Every App Store app summed, first-time downloads only \u2014 Apple reports daily, "
+            + "so this is a day per bar." },
+        { key: "impressions", label: "Impressions", unitBase: "impressions",
+          rowsOf: function (a) { return a.rows; }, valueOf: function (r) { return r.impressions; },
+          note: "Times any of the apps appeared in App Store browsing or search, summed. Apple "
+            + "publishes these from a separate report from downloads; a day it did not report is "
+            + "left out, not drawn as zero." },
+        { key: "page_views", label: "Page views", unitBase: "page views",
+          rowsOf: function (a) { return a.rows; }, valueOf: function (r) { return r.page_views; },
+          note: "Product-page views for every app, summed, from the same report as impressions and "
+            + "over the same days." }
+      ]);
       asRoot.innerHTML = "";
       asRoot.appendChild(overview); asRoot.appendChild(apTrend.node);
       asRoot.appendChild(tabs); asRoot.appendChild(body);
