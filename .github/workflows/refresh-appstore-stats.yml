@@ -101,6 +101,18 @@ jobs:
           APPSTORE_VENDOR_NUMBER: ${{ secrets.APPSTORE_VENDOR_NUMBER }}
         run: python3 scripts/refresh_appstore_analytics.py
 
+      # The App Store version HISTORY and the platforms each app runs on. Separate from the
+      # sales job above because it talks to a different API (appStoreVersions) and the public
+      # lookup, and because it must run AFTER that job: the sales run rewrites each snapshot,
+      # and these fields have to be re-applied on top of whatever it wrote.
+      - name: Stamp App Store version history and platforms
+        continue-on-error: true
+        env:
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+        run: python3 scripts/refresh_appstore_versions.py
+
       # Microsoft Store versions are public even though its download numbers
       # are not, so they ride along here rather than staying hand-typed. No
       # credentials needed; this is the same catalog the store page reads.

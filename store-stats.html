@@ -34,7 +34,7 @@
   <link rel="stylesheet" href="assets/css/style.css?v=20260911-privacy1">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 
-  <link rel="stylesheet" href="assets/css/stats.css?v=20260921-plats3">
+  <link rel="stylesheet" href="assets/css/stats.css?v=20260921-dev1">
 </head>
 <body class="theme-dark">
   <!-- Navigation -->
@@ -161,7 +161,7 @@
 
   <!-- Shared stats primitives, then the store-specific renderer. Not deferred:
        the renderer below runs at parse time and needs StatsUI present. -->
-  <script src="assets/js/stats-core.js?v=20260921-plats3"></script>
+  <script src="assets/js/stats-core.js?v=20260921-dev1"></script>
   <script>
   (function () {
     var DATA = "assets/store-tracker/data/", root = document.getElementById("ss-app");
@@ -854,6 +854,29 @@
       return m;
     }
 
+    /* Downloads split by device, as a bar per device. Only worth drawing when there is more
+       than one: a single "iPhone 761" bar says nothing the headline did not. */
+    function deviceBlock(app) {
+      var list = (app.devices || []).filter(function (d) { return d.units > 0; });
+      if (list.length < 2) return null;
+      var total = list.reduce(function (t, d) { return t + d.units; }, 0);
+      var max = Math.max.apply(null, list.map(function (d) { return d.units; }));
+      var box = document.createElement("div"); box.className = "ss-devices";
+      box.innerHTML = '<p class="eyebrow eyebrow--rule">downloads by device</p>';
+      var rows = document.createElement("div"); rows.className = "ss-cmp";
+      list.forEach(function (d) {
+        var r = document.createElement("div"); r.className = "ss-cmp-row";
+        r.innerHTML = '<span class="ss-cmp-name">' + d.device + '</span>' +
+          '<span class="ss-cmp-track"><span class="ss-cmp-bar" style="width:' +
+          Math.max(2, Math.round(100 * d.units / max)) + '%"></span></span>' +
+          '<span class="ss-cmp-val">' + fmt(d.units) + '</span>' +
+          '<span class="ss-cmp-pct">' + Math.round(100 * d.units / total) + '%</span>';
+        rows.appendChild(r);
+      });
+      box.appendChild(rows);
+      return box;
+    }
+
     // A one-line platform key for an app, used wherever an app is named.
     function platsHtml(app) {
       return (app.platforms && app.platforms.length)
@@ -1059,6 +1082,13 @@
         });
       }
       paintApple(metrics[0]);
+
+      // Which device the download landed on. Apple's sales rows carry it, so a cross-platform
+      // app can be split -- SidecarBridge's Mac downloads against its iPhone ones. Renders only
+      // once the nightly job has populated `devices`; before that there is nothing to show and
+      // nothing is shown, rather than an empty block.
+      var dev = deviceBlock(app);
+      if (dev) body.appendChild(dev);
 
       var geo = geoBlock("download events by country", app.territories, "units", "download events");
       if (geo) body.appendChild(geo);

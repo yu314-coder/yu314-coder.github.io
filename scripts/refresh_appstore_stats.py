@@ -147,7 +147,7 @@ def units_by_app(rows):
     """Per-app units, and per-app units split by country, for one day.
 
     Returns ({app_id: units}, {app_id: {country_code: units}}). The country
-    split is free: every sales row already carries a Country Code, so this is
+    split is free: every sales row already carries a Country Code and a Device, so this is
     the same download data grouped a second way — no extra request, no extra
     API, and it needs nothing that units did not already need.
 
@@ -161,7 +161,7 @@ def units_by_app(rows):
     rather than gross. Every app tracked here is free, so in practice there is
     nothing to refund — but the arithmetic is right either way if that changes.
     """
-    out, by_country = {}, {}
+    out, by_country, by_device = {}, {}, {}
     for r in rows:
         app_id = (r.get("Apple Identifier") or "").strip()
         if app_id not in APPS:
@@ -175,7 +175,16 @@ def units_by_app(rows):
         if cc:
             by_country.setdefault(app_id, {})
             by_country[app_id][cc] = by_country[app_id].get(cc, 0) + n
-    return out, by_country
+        # The same free second grouping as country: every sales row already says which device
+        # the download landed on, so a cross-platform app can be split -- SidecarBridge's Mac
+        # downloads against its iPhone ones -- with no extra request. Apple's own wording is
+        # kept ("iPhone", "iPad", "Apple Watch", "Mac"), not remapped to an OS name, because a
+        # device is what the column actually reports.
+        dev = (r.get("Device") or "").strip()
+        if dev:
+            by_device.setdefault(app_id, {})
+            by_device[app_id][dev] = by_device[app_id].get(dev, 0) + n
+    return out, by_country, by_device
 
 
 def storefront_version(app_id):
@@ -210,16 +219,16 @@ def storefront_version(app_id):
 
 
 def load_existing(app_id):
-    """Committed history for one app: ({date: units}, {date: {cc: units}})."""
+    """Committed history: ({date: units}, {date: {cc: units}}, {date: {device: units}})."""
     p = OUT / f"{app_id}.json"
     if not p.exists():
-        return {}, {}
+        return {}, {}, {}
     try:
         d = json.loads(p.read_text())
         days = {row["date"]: row["installs"] for row in d.get("rows", [])}
-        return days, dict(d.get("territory_days") or {})
+        return days, dict(d.get("territory_days") or {}), dict(d.get("device_days") or {})
     except Exception:
-        return {}, {}
+        return {}, {}, {}
 
 
 def main():
@@ -233,6 +242,7 @@ def main():
     # Country counts are kept per DAY, not as a running total, so that
     # re-fetching an overlapping day overwrites it instead of double-counting.
     terr = {a: loaded[a][1] for a in APPS}
+    devs = {a: loaded[a][2] for a in APPS}
     cold = not any(history.values())
 
     # A dimension added after the history already existed — country counts, say
@@ -245,7 +255,11 @@ def main():
     # covered, runs go back to being incremental on their own.
     def needs_backfill(app_id):
         active = sum(1 for v in history[app_id].values() if v)
-        return bool(active) and len(terr[app_id]) < active * 0.9
+        if not active:
+            return False
+        # device_days is the newer of the two dimensions and starts empty, so it triggers the
+        # same one-off reach-back that country data did when it was added.
+        return len(terr[app_id]) < active * 0.9 or len(devs[app_id]) < active * 0.9
 
     gaps = [APPS[a] for a in APPS if needs_backfill(a)]
     span = COLD_START_DAYS if (cold or gaps) else WARM_DAYS
@@ -279,7 +293,7 @@ def main():
         except Exception as exc:                      # noqa: BLE001
             log(f"  {day}: {type(exc).__name__}: {exc} — skipped")
             continue
-        counts, countries = units_by_app(rows)
+        counts, countries, devices = units_by_app(rows)
         iso = day.isoformat()
         for app_id in APPS:
             history[app_id][iso] = counts.get(app_id, 0)
@@ -288,6 +302,11 @@ def main():
                 terr[app_id][iso] = got
             else:
                 terr[app_id].pop(iso, None)
+            gotd = devices.get(app_id)
+            if gotd:
+                devs[app_id][iso] = gotd
+            else:
+                devs[app_id].pop(iso, None)
         fetched += 1
 
     stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -305,8 +324,25 @@ def main():
                 totals[cc] = totals.get(cc, 0) + n
         territories = [{"code": cc, "units": n}
                        for cc, n in sorted(totals.items(), key=lambda kv: (-kv[1], kv[0]))]
+        dev_totals = {}
+        for per in devs[app_id].values():
+            for dev, n in per.items():
+                dev_totals[dev] = dev_totals.get(dev, 0) + n
+        devices = [{"device": d, "units": n}
+                   for d, n in sorted(dev_totals.items(), key=lambda kv: (-kv[1], kv[0]))]
         meta = storefront_version(app_id)
-        payload = {
+        # START FROM WHAT IS ON DISK. This used to build the payload from scratch, which
+        # silently deleted every field written by another script -- refresh_appstore_versions
+        # adds `versions`, `platforms` and `first_released`, and the next run of this one would
+        # have wiped all three. Only the keys below are this script's to own.
+        path = OUT / f"{app_id}.json"
+        payload = {}
+        if path.exists():
+            try:
+                payload = json.loads(path.read_text())
+            except Exception:                                 # noqa: BLE001
+                payload = {}
+        payload.update({
             "app": name,
             "id": app_id,
             "store": "apple",
@@ -316,7 +352,10 @@ def main():
             "territories": territories,
             "territory_days": terr[app_id],
             "rows": rows,
-        }
+        })
+        if devices:
+            payload["devices"] = devices
+            payload["device_days"] = devs[app_id]
         payload.update(meta)
         # Write only when something other than the clock moved. Apple publishes
         # once a day, so most runs find nothing new — and restamping
@@ -324,7 +363,6 @@ def main():
         # cadence is 24 commits a day that say nothing. The stamp means "these
         # numbers are from this moment", so keeping the old one when the
         # numbers are old is also the more truthful thing to do.
-        path = OUT / f"{app_id}.json"
         index.append({"id": app_id, "name": name})
         top = ", ".join(f"{t['code']} {t['units']}" for t in territories[:4]) or "no country data"
         ver = (" v" + meta["version"]) if meta.get("version") else ""
