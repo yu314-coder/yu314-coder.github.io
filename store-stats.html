@@ -34,7 +34,7 @@
   <link rel="stylesheet" href="assets/css/style.css?v=20260911-privacy1">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 
-  <link rel="stylesheet" href="assets/css/stats.css?v=20260921-dev2">
+  <link rel="stylesheet" href="assets/css/stats.css?v=20260921-dev4">
 </head>
 <body class="theme-dark">
   <!-- Navigation -->
@@ -161,7 +161,7 @@
 
   <!-- Shared stats primitives, then the store-specific renderer. Not deferred:
        the renderer below runs at parse time and needs StatsUI present. -->
-  <script src="assets/js/stats-core.js?v=20260921-dev2"></script>
+  <script src="assets/js/stats-core.js?v=20260921-dev4"></script>
   <script>
   (function () {
     var DATA = "assets/store-tracker/data/", root = document.getElementById("ss-app");
@@ -861,14 +861,20 @@
     // -- it means the app was downloaded onto a Mac, which is the whole point of the split for
     // SidecarBridge and the reason ManimStudio shows any at all.
     var DEVICE_NAME = { Desktop: "Mac" };
-    function deviceBlock(app) {
+    /* The device split is on a DIFFERENT BASIS from every headline on this page, and has to say
+       so. It comes from the sales report, whose units are every download event -- first installs
+       and redownloads together -- while the headlines are first-time only. Apple's first-time
+       figure comes from a different report that does not split by device, so there is no
+       first-time version of this to show. Unlabelled, the two read as a contradiction: the App
+       Store tab said 1,724 at the top and 2,576 in this block, on the same page. */
+    function deviceBlock(app, title, firstTime) {
       var list = (app.devices || []).filter(function (d) { return d.units > 0; })
         .map(function (d) { return { device: DEVICE_NAME[d.device] || d.device, units: d.units }; });
       if (list.length < 2) return null;
       var total = list.reduce(function (t, d) { return t + d.units; }, 0);
       var max = Math.max.apply(null, list.map(function (d) { return d.units; }));
       var box = document.createElement("div"); box.className = "ss-devices";
-      box.innerHTML = '<p class="eyebrow eyebrow--rule">downloads by device</p>';
+      box.innerHTML = '<p class="eyebrow eyebrow--rule">' + (title || "downloads by device") + '</p>';
       var rows = document.createElement("div"); rows.className = "ss-cmp";
       list.forEach(function (d) {
         var r = document.createElement("div"); r.className = "ss-cmp-row";
@@ -880,6 +886,14 @@
         rows.appendChild(r);
       });
       box.appendChild(rows);
+      var note = document.createElement("p"); note.className = "ss-updated";
+      note.textContent = "Every download event, first installs and redownloads together: "
+        + fmt(total) + " in all" + (firstTime != null
+          ? ", against " + fmt(firstTime) + " first-time downloads shown above"
+          : "")
+        + ". Apple splits its sales report by device but not its first-time count, so the "
+        + "shares are the thing to read here, not the totals.";
+      box.appendChild(note);
       return box;
     }
 
@@ -939,6 +953,23 @@
         cmp.appendChild(row);
       });
       wrap.appendChild(cmp);
+      // The device split for the whole store, in the store tab itself -- the same place the
+      // country split for all apps sits -- so "where do my App Store downloads land" is answered
+      // without opening five apps one by one. A block of bars, not lines on the trend chart:
+      // the chart's lines are releases, and a device share is a proportion, not an event in time.
+      var allDev = {};
+      apps.forEach(function (a) {
+        (a.devices || []).forEach(function (d) {
+          var k = DEVICE_NAME[d.device] || d.device;
+          allDev[k] = (allDev[k] || 0) + d.units;
+        });
+      });
+      var devList = Object.keys(allDev).map(function (k) { return { device: k, units: allDev[k] }; })
+        .sort(function (a, b) { return b.units - a.units; });
+      var storeDev = deviceBlock({ devices: devList }, "downloads by device &middot; all apps",
+                                 apps.reduce(function (t, a) { return t + appleDownloads(a); }, 0));
+      if (storeDev) { storeDev.style.marginTop = "1.4rem"; wrap.appendChild(storeDev); }
+
       var allGeo = geoBlock("downloads by country &middot; all apps", ccList, "units", "downloads");
       if (allGeo) { allGeo.style.marginTop = "1.4rem"; wrap.appendChild(allGeo); }
       return wrap;
@@ -1093,7 +1124,7 @@
       // app can be split -- SidecarBridge's Mac downloads against its iPhone ones. Renders only
       // once the nightly job has populated `devices`; before that there is nothing to show and
       // nothing is shown, rather than an empty block.
-      var dev = deviceBlock(app);
+      var dev = deviceBlock(app, null, appleDownloads(app));
       if (dev) body.appendChild(dev);
 
       var geo = geoBlock("download events by country", app.territories, "units", "download events");
