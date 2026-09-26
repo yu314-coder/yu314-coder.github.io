@@ -127,6 +127,20 @@ def main():
         except Exception as exc:  # keep the last good snapshot on any failure
             print(f"{pkg}: FAILED ({exc}) — keeping existing snapshot")
             continue
+        # MERGE, never replace. pypistats.org only serves about the last 180 days, so writing its
+        # answer over the file dropped the oldest day on every run and the "all-time" total
+        # shrank: rmt-denoise lost its first week, 410 downloads, between 18 and 26 Sep. Days
+        # already on disk are kept; days the API still returns are taken from the API, since a
+        # recent day can be revised upward while it settles.
+        path = os.path.join(OUT_DIR, f"{pkg}.json")
+        if os.path.exists(path):
+            try:
+                with open(path) as f:
+                    kept = {r["date"]: r for r in json.load(f).get("rows", [])}
+            except Exception:  # unreadable snapshot: the fetch stands alone
+                kept = {}
+            kept.update({r["date"]: r for r in rows})
+            rows = [kept[d] for d in sorted(kept)]
         out = {
             "package": pkg,
             "updated_utc": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
