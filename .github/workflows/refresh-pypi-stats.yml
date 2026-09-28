@@ -52,11 +52,16 @@ jobs:
             fi
             echo "main moved; replaying on top of it (attempt $attempt)"
             git fetch origin main
-            # --mixed, NOT --soft. --soft moves HEAD but keeps the index this
-            # runner built, so the next commit records a tree that predates
-            # whatever landed on main and silently deletes it. That happened
-            # once in this repo already; see refresh-typhoon-forecast.yml.
-            git reset --mixed origin/main
+            # Start again FROM main and re-run the refresh on top of it. Re-adding
+            # this runner's own data files after a reset (what --mixed did here)
+            # overwrote whatever main had gained meanwhile: on 2026-09-26 a run
+            # that had checked out main just before the history-merge fix landed
+            # replayed its 180-day files over the restored history and deleted
+            # ~750 downloads of it. --hard puts main's latest data AND main's
+            # latest script in place, and the refresh merges today's fetch into
+            # them, so nothing that landed while this job ran can be lost.
+            git reset --hard origin/main
+            python3 scripts/refresh_pypistats.py
             git add assets/pypi-tracker/data
             if git diff --staged --quiet; then
               echo "main already has this"
