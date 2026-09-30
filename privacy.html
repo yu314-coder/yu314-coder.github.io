@@ -124,8 +124,8 @@
       </a>
       <a class="pv-card" href="#whisper">
         <div class="pv-card-top"><span class="app-icon app-icon-sm"><picture><source srcset="assets/img/app-icons/whisperkit.webp" type="image/webp"><img src="assets/img/app-icons/whisperkit.png" alt="" width="96" height="96" loading="lazy" decoding="async"></picture></span><div><h3>Whisper (WhisperKit)</h3><span class="pv-platform">iOS &amp; iPadOS · App Store</span></div></div>
-        <p>Transcribes entirely on-device; downloads the model weights you choose, once.</p>
-        <div class="pv-tags"><span class="pv-tag pv-tag--ok">On-device</span><span class="pv-tag pv-tag--ok">No analytics</span><span class="pv-tag pv-tag--ok">No accounts</span><span class="pv-tag pv-tag--net">Network: model download only</span><span class="pv-tag pv-tag--perm">Microphone, on request</span></div>
+        <p>Transcribes speech and makes music entirely on-device; downloads the model weights you choose, once.</p>
+        <div class="pv-tags"><span class="pv-tag pv-tag--ok">On-device</span><span class="pv-tag pv-tag--ok">No analytics</span><span class="pv-tag pv-tag--ok">No accounts</span><span class="pv-tag pv-tag--net">Network: models + links you paste</span><span class="pv-tag pv-tag--perm">Microphone, on request</span></div>
       </a>
       <a class="pv-card" href="#benchcode">
         <div class="pv-card-top"><span class="app-icon app-icon-sm"><picture><source srcset="assets/img/app-icons/benchcode.webp" type="image/webp"><img src="assets/img/app-icons/benchcode.png" alt="" width="96" height="96" loading="lazy" decoding="async"></picture></span><div><h3>BenchCode</h3><span class="pv-platform">iOS · App Store</span></div></div>
@@ -647,7 +647,7 @@
             <span class="app-icon"><picture><source srcset="assets/img/app-icons/whisperkit.webp" type="image/webp"><img src="assets/img/app-icons/whisperkit.png" alt="" width="256" height="256" loading="lazy" decoding="async"></picture></span>
             <div class="pv-policy-title">
               <h2>Whisper Privacy Policy <a class="pv-anchor" href="#whisper" aria-label="Link to this policy">#</a></h2>
-              <span class="pv-updated"><span class="pv-updated-label">Last updated</span> May 16, 2026</span>
+              <span class="pv-updated"><span class="pv-updated-label">Last updated</span> September 30, 2026</span>
             </div>
           </div>
           <dl class="pv-meta">
@@ -661,31 +661,33 @@
 
           <h3>The short version</h3>
           <ul>
-            <li>Everything stays on your device. Whisper transcribes audio entirely on-device using Apple's Neural Engine.</li>
+            <li>Everything stays on your device. Whisper transcribes audio and generates music entirely on-device, using your device's Neural Engine and GPU.</li>
             <li>No accounts. No tracking. No analytics. No ads.</li>
-            <li>No audio, transcripts, or personal data are ever sent to us or to any third-party server.</li>
-            <li>The developer has no servers and cannot see what you record or transcribe.</li>
+            <li>No audio, transcripts, music, or personal data are ever sent to us or to any third-party server.</li>
+            <li>The developer has no servers and cannot see what you record, transcribe, or create.</li>
           </ul>
 
           <h3>What Whisper does on your device</h3>
-          <p>When you record audio, import an audio/video file, or select a video from your Photos library, Whisper:</p>
+          <p>When you record audio, import an audio/video file, select a video from your Photos library, share a file to Whisper from another app, or download a file from a link you paste, Whisper:</p>
           <ul>
             <li>Stores the audio temporarily in the app's local sandbox on your device.</li>
             <li>Runs speech recognition locally using a Whisper model that you download once.</li>
             <li>Displays the transcript in the app, where you can read or copy it.</li>
           </ul>
-          <p>The transcript is held in memory and remains local to your device. Nothing about the audio or its contents is transmitted off the device by the app.</p>
+          <p>The transcript remains local to your device. Nothing about the audio or its contents is transmitted off the device by the app.</p>
+          <p>When you generate music, your description and lyrics are processed on your device by the music model. On devices with Apple Intelligence, Apple's on-device language model reads your description to find any lyrics in it; this also happens entirely on your device. Generated music is saved in the app on your device.</p>
 
           <h3>What Whisper downloads</h3>
-          <p>Whisper downloads AI model files from <a href="https://huggingface.co" target="_blank" rel="noopener noreferrer">Hugging Face</a>'s public model hub the first time you use a given model. These downloads contain only the model weights — no user data is sent in either direction beyond a standard HTTPS request. After download, models work entirely offline.</p>
+          <p>Whisper downloads AI model files the first time you use a given model: transcription models from <a href="https://huggingface.co" target="_blank" rel="noopener noreferrer">Hugging Face</a>'s public model hub, and music models from the app's public <a href="https://github.com/yu314-coder/WhisperKit/releases" target="_blank" rel="noopener noreferrer">GitHub releases</a>. These downloads contain only the model weights — no user data is sent in either direction beyond a standard HTTPS request. After download, models work entirely offline.</p>
+          <p>If you paste a link to an audio or video file, Whisper downloads that file directly from the address you gave, with a standard HTTPS request, and transcribes it on your device. Nothing is sent to that server except the request for the file, and nothing passes through the developer. Whisper does not download from video platforms such as YouTube, Instagram or Facebook.</p>
 
           <h3>Permissions the app requests</h3>
           <p>Whisper only asks for permissions strictly required for its features:</p>
           <ul>
             <li><strong>Microphone</strong> — to record audio you explicitly choose to record.</li>
             <li><strong>Photos / Files</strong> — only when you tap the corresponding button to import a file you select.</li>
-            <li><strong>Notifications</strong> (optional) — to notify you when a long transcription finishes.</li>
-            <li><strong>Background audio / processing</strong> — so transcription can continue if the app is briefly backgrounded.</li>
+            <li><strong>Notifications</strong> (optional) — to tell you when a long transcription or a piece of music is finished.</li>
+            <li><strong>Background audio / processing</strong> — so a recording, a transcription, a download or music generation can continue when you switch to another app.</li>
           </ul>
           <p>Each permission is requested through the system prompt and can be revoked at any time in iOS Settings.</p>
 
@@ -693,20 +695,20 @@
           <p>Whisper does not collect, transmit, sell, or share:</p>
           <ul>
             <li>Recorded audio or imported media</li>
-            <li>Transcripts or any text generated by the app</li>
+            <li>Transcripts, music, prompts, lyrics, or any text generated by the app</li>
             <li>Device identifiers, advertising IDs, or location</li>
             <li>Crash reports, usage analytics, or telemetry</li>
             <li>Email addresses, accounts, or any contact information</li>
           </ul>
 
           <h3>Third-party services</h3>
-          <p>Whisper does not embed any third-party SDKs for analytics, advertising, attribution, or tracking. The only external network requests the app makes are to Hugging Face to download the AI model weights you choose.</p>
+          <p>Whisper does not embed any third-party SDKs for analytics, advertising, attribution, or tracking. The only external network requests the app makes are to Hugging Face and GitHub to download the AI model weights you choose, and to the address of a link you paste yourself.</p>
 
           <h3>Children's privacy</h3>
           <p>Because Whisper collects no personal data, it is safe for users of any age. It does not knowingly collect information from children or anyone else.</p>
 
           <h3>Data retention and deletion</h3>
-          <p>All audio files, models, and transcripts live in the app's local container on your device. To delete everything, simply uninstall the app — iOS will remove all associated data automatically.</p>
+          <p>All audio files, models, transcripts, and generated music live in the app's local container on your device. To delete everything, simply uninstall the app — iOS will remove all associated data automatically.</p>
 
           <h3>Changes to this policy</h3>
           <p>If this policy ever changes, the updated version will be posted alongside the app. Since the app collects no data, any future changes will be limited to clarifications, not new data practices.</p>
@@ -719,7 +721,7 @@
           </ul>
 
           <hr>
-          <p><em>Whisper (released on the App Store as <a href="https://apps.apple.com/app/whisperkit/id6764759491" target="_blank" rel="noopener noreferrer">WhisperKit</a>) transcribes speech entirely on-device using Apple's Neural Engine. Your audio and transcripts never leave your iPhone or iPad.</em></p>
+          <p><em>Whisper (released on the App Store as <a href="https://apps.apple.com/app/whisperkit/id6764759491" target="_blank" rel="noopener noreferrer">WhisperKit</a>) transcribes speech and makes music entirely on-device. Your audio, transcripts and music never leave your iPhone or iPad.</em></p>
 
           </div>
         </article>
@@ -827,9 +829,6 @@
           <ul>
             <li><a href="mailto:euler.yu@gmail.com">euler.yu@gmail.com</a></li>
           </ul>
-          </div>
-          </div>
-
           </div>
         </article>
 
