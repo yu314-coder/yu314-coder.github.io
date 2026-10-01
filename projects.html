@@ -41,7 +41,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@200;300;400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 
   <!-- Site stylesheet (single source of truth) -->
-  <link rel="stylesheet" href="assets/css/style.css?v=20260911-privacy1">
+  <link rel="stylesheet" href="assets/css/style.css?v=20261002-showcase">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
 <body class="theme-dark">
@@ -1409,6 +1409,39 @@
               </div>
               <p class="lead mb-0">My own tropical-cyclone model for the western Pacific. <strong>Trackformer&nbsp;1.2</strong> forecasts the surrounding sea-level pressure and a moving storm core together, then reads the storm's route and central pressure from that evolving core, every six hours out to +120&nbsp;h. On a 1,473-forecast benchmark across 270 storms it cuts mean track error by 41% against Trackformer&nbsp;1.1. It is what the <a href="typhoon-tracks.html">Typhoon Tracks</a> explorer overlays, on live JMA storms and on past ones &mdash; read straight from the Trackformer Weather Lab's public API in your browser, with Trackformer&nbsp;1.1 filling in only where 1.2 has no run.</p>
             </header>
+
+            <!-- Showcase: the 1.2 Mangkhut forecast from the Hugging Face model card, streamed from
+                 Hugging Face at the commit the card pins. preload="none" plus the observer below means
+                 nothing is fetched until the Typhoon AI tab is open and the video is on screen. -->
+            <figure class="model-showcase mb-4">
+              <video class="model-showcase__video" controls muted loop playsinline preload="none"
+                     width="1600" height="1000" poster="assets/img/typhoon/trackformer12-mangkhut-poster.webp"
+                     aria-label="Trackformer 1.2 forecast of Typhoon Mangkhut issued 11 September 2018 at 00 UTC: twenty six-hour steps of the model's pressure field and route, compared with the observed best track">
+                <source src="https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_mangkhut.mp4" type="video/mp4">
+              </video>
+              <figcaption class="model-showcase__cap">
+                <strong>Mangkhut (2018)</strong>, issued 11&nbsp;Sep 00&nbsp;UTC &mdash; the 50-member mean through all twenty six-hour steps to +120&nbsp;h: the model's own basin pressure and moving core, its route (magenta) against the observed best track (dashed), and its central pressure against JMA's below. A selected example, not typical skill. From the <a href="https://huggingface.co/euler314/typhoon-predict" target="_blank" rel="noopener noreferrer">Hugging Face model card</a>.
+              </figcaption>
+            </figure>
+            <script>
+              // Play while on screen, pause when not (switching tabs hides it too). A visitor's own
+              // pause is respected for the rest of the visit; reduced-motion visitors get controls only.
+              (function () {
+                var v = document.querySelector(".model-showcase__video");
+                if (!v || !("IntersectionObserver" in window)) return;
+                if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+                var ours = false;
+                var io = new IntersectionObserver(function (entries) {
+                  entries.forEach(function (e) {
+                    if (e.isIntersecting && e.intersectionRatio >= 0.5) {
+                      var p = v.play(); if (p && p.catch) p.catch(function () {});
+                    } else if (!v.paused) { ours = true; v.pause(); }
+                  });
+                }, { threshold: [0, 0.5] });
+                v.addEventListener("pause", function () { if (!ours) io.disconnect(); ours = false; });
+                io.observe(v);
+              })();
+            </script>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
               <span class="feature-badge">Pressure field + moving core</span>
