@@ -539,6 +539,50 @@ body.theme-dark .tracker-shell {
 }
 .model-showcase__cap { margin: 0.65rem auto 0; max-width: 760px; font-size: 0.82rem; line-height: 1.55; color: var(--ink-3); }
 
+/* Model card (projects → Trackformer) */
+.mc-spec { display: grid; grid-template-columns: minmax(9rem, max-content) minmax(0, 1fr); gap: 0; margin: 0 auto; max-width: 820px;
+  border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; font-size: 0.86rem; }
+.mc-spec dt, .mc-spec dd { margin: 0; padding: 0.55rem 0.85rem; border-top: 1px solid var(--line); }
+.mc-spec dt { font-weight: 600; color: var(--ink-2); background: var(--bg-alt); }
+.mc-spec dd { color: var(--ink); overflow-wrap: anywhere; }
+.mc-spec dt:first-of-type, .mc-spec dt:first-of-type + dd { border-top: 0; }
+.mc-spec code { font-size: 0.78rem; overflow-wrap: anywhere; word-break: break-all; }
+@media (max-width: 575.98px) {
+  .mc-spec { grid-template-columns: minmax(0, 1fr); }
+  .mc-spec dd { border-top: 0; padding-top: 0.15rem; }
+}
+.mc-figure { margin: 0 auto; max-width: 900px; }
+.mc-figure img { display: block; width: 100%; height: auto; }
+.mc-cap { margin: 0.6rem auto 0; max-width: 760px; font-size: 0.82rem; line-height: 1.55; color: var(--ink-3); }
+.mc-steps { margin: 0 auto 1rem; max-width: 820px; padding-left: 1.3rem; font-size: 0.92rem; }
+.mc-steps li { margin-bottom: 0.45rem; }
+.mc-code { margin: 0 auto 0.75rem; max-width: 820px; padding: 0.85rem 1rem; text-align: left; overflow-x: auto;
+  background: var(--bg-alt); border: 1px solid var(--line); border-radius: var(--r); font-size: 0.8rem; line-height: 1.5; }
+.mc-code code { color: var(--ink); white-space: pre; }
+.tf-chart { display: block; width: 100%; max-width: 640px; height: auto; margin: 0 auto; font-family: inherit; }
+.tf-chart .tf-grid { stroke: var(--line); stroke-width: 1; }
+.tf-chart .tf-axis { fill: var(--ink-3); font-size: 11px; }
+.tf-chart .tf-l11 { fill: none; stroke: var(--ink-3); stroke-width: 2; stroke-dasharray: 5 4; }
+.tf-chart .tf-l12 { fill: none; stroke: var(--accent); stroke-width: 2.6; }
+.tf-chart .tf-d11 { fill: var(--ink-3); }
+.tf-chart .tf-d12 { fill: var(--accent); }
+.tf-chart .tf-lab11 { fill: var(--ink-3); font-size: 12px; }
+.tf-chart .tf-lab12 { fill: var(--accent); font-size: 12px; font-weight: 600; }
+.mc-key { display: inline-block; width: 18px; height: 0; vertical-align: middle; margin-right: 4px; border-top: 3px solid var(--accent); }
+.mc-key--11 { border-top: 2px dashed var(--ink-3); }
+.mc-gallery { margin: 0 auto; max-width: 900px; }
+.mc-gallery__tabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.4rem; margin-bottom: 0.75rem; }
+.mc-gallery__tab { font: inherit; font-size: 0.82rem; padding: 0.3rem 0.8rem; border-radius: 999px; cursor: pointer;
+  color: var(--ink-2); background: transparent; border: 1px solid var(--line-2); }
+.mc-gallery__tab:hover { color: var(--ink); }
+.mc-gallery__tab.is-on { color: var(--accent); border-color: var(--accent); background: var(--accent-tint); }
+.mc-abstract { margin: 0; padding: 0.1rem 0 0.1rem 0.9rem; border-left: 3px solid var(--accent); color: var(--ink-2); line-height: 1.6; }
+.mc-paper ol { padding-left: 1.2rem; }
+.mc-details { margin: 0 auto; max-width: 820px; }
+.mc-details > summary { cursor: pointer; font-size: 0.88rem; font-weight: 600; color: var(--accent); }
+.mc-gallery__video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10;
+  background: #f6f8fb; border: 1px solid var(--line-2); border-radius: var(--r); }
+
 /* category header band */
 .category-header {
   display: flex; align-items: center; gap: 0.7rem;
