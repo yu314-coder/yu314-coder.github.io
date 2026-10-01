@@ -2059,9 +2059,9 @@
     // The precomputed run may not have arrived the first time through. When it
     // does, redraw the panel so a depression's boxes fill in rather than
     // staying dashed for the rest of the session.
-    if (!tfLiveAll) {
-      tfLiveLoadFor(d.tcId).then(function () {
-        if (tfLiveFor(d.tcId) && els.typhoonSelect && els.typhoonSelect.value === d.tcId) {
+    if (!tfLiveAll || tf12Live[d.tcId] === undefined) {
+      Promise.all([tfLiveLoadFor(d.tcId), tf12LiveLoad(d.tcId)]).then(function () {
+        if ((tfLive12For(d.tcId, d) || tfLiveFor(d.tcId)) && els.typhoonSelect && els.typhoonSelect.value === d.tcId) {
           updateForecastPanel(d);
         }
       });
@@ -2172,8 +2172,8 @@
   // With one fixed label that read as an invitation to press -- and pressing it
   // HID a forecast that had just drawn itself, which looks exactly like the
   // forecast never coming. The label says which way it goes now.
-  var AI_BTN_OFF = "\u{1F9EA} Overlay my AI model (Trackformer1.1)";
-  var AI_BTN_ON  = "\u{1F9EA} Hide the AI overlay (Trackformer1.1)";
+  var AI_BTN_OFF = "\u{1F9EA} Overlay my AI model (Trackformer 1.2)";
+  var AI_BTN_ON  = "\u{1F9EA} Hide the AI overlay (Trackformer 1.2)";
   var aiEnabled = false; // the user wants the overlay shown — survives rebuilds,
                          // storm switches and the animation ending
   var aiLastFc = null;   // last drawn AI forecast, tagged with .tcId + .dataKey so a
@@ -2363,6 +2363,207 @@
   function tfLiveFor(tcId) {
     return (tfLiveAll && tfLiveAll.storms && tfLiveAll.storms[tcId]) || null;
   }
+  /* --- Trackformer 1.2, read straight from the Trackformer Weather Lab -------------
+     1.2 does not run here. typhoon-predict runs it in GitHub Actions -- the historical
+     backfill and a live job every six hours -- and the Weather Lab serves every saved
+     forecast through a public, read-only, CORS-enabled API (documented at
+     /history-api). The overlay calls that API from your browser, so it always shows
+     what the Lab has published right now, with nothing mirrored into this site:
+
+       /api/history/v1/storms/{id}      a storm's saved issues: id, time, members, kind
+       /api/history/v1/forecasts/{id}   one forecast: route, central pressure, aux wind
+       /api/history/live                the storms JMA lists now, with their latest run
+       /api/benchmarks/released         the 1,473-start benchmark, per-lead track error
+
+     Following the API's own contract: a forecast starts at its recorded issue
+     location and is never re-anchored to a later fix; route points are matched by
+     lead, never by array offset; members, kind and issue time are kept and shown;
+     a missing wind is null, never zero. Every forecast is checked against the
+     released checkpoint, so a different model can never be drawn under this name. */
+  var TF12_API = "https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site";
+  var TF12_CHECKPOINT = "f194a23d3f91ea76ad776dfad942fabd669eeae8b3fd665815463095367e9ee0";
+  var TF12_LEADS = [6, 12, 18, 24, 30, 36, 42, 48, 54, 60, 66, 72, 78, 84, 90, 96, 102, 108, 114, 120];
+  var tf12Err = null;                       // the last time the service did not answer
+  function tf12Get(path) {
+    return fetch(TF12_API + path).then(function (r) {
+      if (r.status === 404) return null;
+      if (!r.ok) throw new Error("the Trackformer 1.2 data service answered " + r.status);
+      return r.json();
+    });
+  }
+  // A storm's saved issues, or null when the Lab has none for it. A failure is not
+  // cached, so the next look asks again.
+  var tf12Issues = {}, tf12IssuesLoading = {};
+  function tf12EnsureIssues(sid) {
+    if (!sid) return Promise.resolve(null);
+    if (tf12Issues[sid] !== undefined) return Promise.resolve(tf12Issues[sid]);
+    if (tf12IssuesLoading[sid]) return tf12IssuesLoading[sid];
+    tf12IssuesLoading[sid] = tf12Get("/api/history/v1/storms/" + encodeURIComponent(sid))
+      .then(function (j) {
+        var list = (j && j.issues || []).map(function (i) {
+          return { id: i.id, issue_time_utc: i.issue_time_utc, members: i.members || 1,
+                   kind: i.kind, src: "trackformer12" };
+        });
+        list.sort(function (a, b) { return Date.parse(a.issue_time_utc) - Date.parse(b.issue_time_utc); });
+        tf12Issues[sid] = list.length ? list : null;
+        delete tf12IssuesLoading[sid];
+        return tf12Issues[sid];
+      }, function (e) { tf12Err = e; delete tf12IssuesLoading[sid]; return null; });
+    return tf12IssuesLoading[sid];
+  }
+  // One forecast, converted to the run shape the overlay draws. tf12Runs[id] is the
+  // run, or false once the Lab has answered and the forecast is unusable.
+  var tf12Runs = {}, tf12RunsLoading = {};
+  function tf12RunFrom(fc) {
+    if (!fc || fc.model !== "Trackformer 1.2" || fc.checkpoint_sha256 !== TF12_CHECKPOINT) return false;
+    var by = {};
+    (fc.route || []).forEach(function (p) { if (p && p.lead_hours != null) by[p.lead_hours] = p; });
+    var base = by[0], run = { id: fc.id, src: "trackformer12", kind: fc.kind, members: fc.members || 1,
+      issue_time_utc: fc.issue_time_utc, source_note: fc.source_note || "",
+      base_lat: base ? base.lat : null, base_lon: base ? base.lon : null,
+      lead_hours: TF12_LEADS, lats: [], lons: [], pres_hpa: [], vmax_kt: [], wind: null };
+    for (var k = 0; k < TF12_LEADS.length; k++) {
+      var p = by[TF12_LEADS[k]];
+      if (!p || !isFinite(p.lat) || !isFinite(p.lon)) return false;
+      run.lats.push(p.lat); run.lons.push(p.lon);
+      run.pres_hpa.push(isFinite(p.pressure_hpa) ? p.pressure_hpa : null);
+      var w = p.wind_kt_auxiliary, ok = w != null && isFinite(w) && p.wind_kt_auxiliary_valid !== false;
+      run.vmax_kt.push(ok ? w : null);
+      if (ok && !run.wind) {
+        var est = p.wind_estimation && String(p.wind_estimation.method || "");
+        run.wind = est && est.indexOf("pressure-gradient") >= 0 ? "pg" : "aux";
+      }
+    }
+    if (!run.wind) run.vmax_kt = null;
+    if (run.base_lat == null) { run.base_lat = run.lats[0]; run.base_lon = run.lons[0]; }
+    return run;
+  }
+  function tf12EnsureRun(issue) {
+    var id = issue && issue.id;
+    if (!id) return Promise.resolve(null);
+    if (tf12Runs[id] !== undefined) return Promise.resolve(tf12Runs[id] || null);
+    if (tf12RunsLoading[id]) return tf12RunsLoading[id];
+    tf12RunsLoading[id] = tf12Get("/api/history/v1/forecasts/" + encodeURIComponent(id))
+      .then(function (fc) {
+        tf12Runs[id] = tf12RunFrom(fc);
+        delete tf12RunsLoading[id];
+        return tf12Runs[id] || null;
+      }, function (e) {
+        // Skip it for a minute rather than forever: the follow-the-playhead loop
+        // would otherwise re-ask on every step while the service is down.
+        tf12Err = e; delete tf12RunsLoading[id]; tf12Runs[id] = false;
+        setTimeout(function () { if (tf12Runs[id] === false) delete tf12Runs[id]; }, 60000);
+        return null;
+      });
+    return tf12RunsLoading[id];
+  }
+  // The published benchmark's mean track error per lead, drawn as a band around the
+  // route: how far off 1.2 typically is at that lead, measured, not a spread of the
+  // run on screen (the Lab publishes no per-run spread). Fetched once.
+  var tf12Bench = null, tf12BenchLoading = null;
+  function tf12EnsureBench() {
+    if (tf12Bench) return Promise.resolve(tf12Bench);
+    if (tf12BenchLoading) return tf12BenchLoading;
+    tf12BenchLoading = tf12Get("/api/benchmarks/released").then(function (j) {
+      var km = j && j.per_lead_track && j.per_lead_track["1.2"];
+      var c = (j && j.cohort) || {};
+      tf12Bench = (km && km.length === TF12_LEADS.length)
+        ? { km: km, starts: c.daily_issues, storms: c.storms } : null;
+      tf12BenchLoading = null;
+      return tf12Bench;
+    }, function () { tf12BenchLoading = null; return null; });
+    return tf12BenchLoading;
+  }
+  function tf12Band(fc) {
+    if (tf12Bench && tf12Bench.km) tfTf11Cone(fc, { cone_km: tf12Bench.km });
+  }
+  function tf12Hhmm(iso) { return String(iso).slice(0, 16).replace("T", " ") + "Z"; }
+
+  // ---- live: the latest 1.2 run for each storm JMA lists -----------------------------
+  // 1.2 runs every six hours and JMA every three, so a 1.2 run is normally a cycle
+  // behind the map. Past twelve hours it describes a different storm state, and
+  // Trackformer1.1's newer run is the better thing to show.
+  var TF12_LIVE_MAX_AGE_H = 12;
+  var tf12Live = {}, tf12LiveAt = {}, tf12LiveLoading = {}, tf12LiveErr = {};
+  function tf12LiveLoad(tcId) {
+    if (!tcId) return Promise.resolve(null);
+    if (tf12Live[tcId] !== undefined && (Date.now() - (tf12LiveAt[tcId] || 0)) < TF_LIVE_TTL_MS) {
+      return Promise.resolve(tf12Live[tcId]);
+    }
+    if (tf12LiveLoading[tcId]) return tf12LiveLoading[tcId];
+    // The storm's own issue list says which run is newest and whether a 50-member
+    // mean exists at that time; /live is the fallback when that list is missing.
+    tf12LiveLoading[tcId] = Promise.all([
+        tf12Get("/api/history/live").catch(function (e) { tf12Err = e; return null; }),
+        tf12Get("/api/history/v1/storms/" + encodeURIComponent(tcId)).catch(function (e) { tf12Err = e; return false; })])
+      .then(function (r) {
+        var live = r[0], st = r[1];
+        // Both requests failed: the service is down or refusing, which is not the
+        // same as "no run" and the status line says which.
+        tf12LiveErr[tcId] = (!live && st === false) ? (tf12Err || new Error("no answer")) : null;
+        var cands = ((st && st.issues) || []).filter(function (i) { return /^live/.test(i.kind || ""); });
+        if (!cands.length && live && live.storms) {
+          live.storms.forEach(function (s) {
+            if (s.id === tcId && s.forecast_id) cands.push({ id: s.forecast_id, issue_time_utc: s.issue_time_utc, members: 1 });
+          });
+        }
+        if (!cands.length) return null;
+        cands.sort(function (a, b) {
+          return (Date.parse(b.issue_time_utc) - Date.parse(a.issue_time_utc)) || ((b.members || 1) - (a.members || 1));
+        });
+        return tf12EnsureRun(cands[0]);
+      })
+      .then(function (run) {
+        tf12Live[tcId] = run || null; tf12LiveAt[tcId] = Date.now(); delete tf12LiveLoading[tcId];
+        return tf12Live[tcId];
+      }, function () { delete tf12LiveLoading[tcId]; return null; });
+    return tf12LiveLoading[tcId];
+  }
+  function tf12LiveAge(run, d) {
+    var nowUTC = d && d.points && d.points[0] && d.points[0].valid && d.points[0].valid.UTC;
+    return nowUTC ? (Date.parse(nowUTC) - Date.parse(run.issue_time_utc)) / 3600000 : 0;
+  }
+  // The 1.2 run for this storm if it is recent enough to stand for the issue on screen.
+  function tfLive12For(tcId, d) {
+    var run = tf12Live[tcId];
+    if (!run) return null;
+    var age = tf12LiveAge(run, d);
+    return (isFinite(age) && age <= TF12_LIVE_MAX_AGE_H) ? run : null;
+  }
+  function tfPrecomputed12Fc(run, baseW) {
+    var fc = { initial_lat: run.base_lat, initial_lon: run.base_lon, initial_vmax: baseW,
+               points: [], trackSource: "trackformer12", tf12: run };
+    for (var i = 0; i < run.lats.length; i++) {
+      fc.points.push({ lead_hours: run.lead_hours[i], lat: run.lats[i], lon: run.lons[i],
+        vmax: run.vmax_kt ? run.vmax_kt[i] : null, pres: run.pres_hpa[i],
+        rmw: null, radiiKm: null,          // 1.2 has no wind-radius output
+        p10_lat: run.lats[i], p10_lon: run.lons[i], p90_lat: run.lats[i], p90_lon: run.lons[i] });
+    }
+    tf12Band(fc);
+    return fc;
+  }
+  function tf12WindNote(run) {
+    return !run.vmax_kt ? " No wind for this run, so the dots are grey and the hover gives pressure only."
+      : run.wind === "pg" ? " Wind is diagnosed from the forecast pressure field — experimental."
+      : " Wind is the model's auxiliary max-wind output — experimental, not an agency 1- or 10-minute wind.";
+  }
+  function tf12BandNote() {
+    return tf12Bench ? " The shaded band is 1.2's published mean track error at each lead, over the "
+      + Number(tf12Bench.starts || 1473).toLocaleString() + " forecasts of its benchmark — how far off it"
+      + " typically is, not a spread of this run." : "";
+  }
+  // Plain text: aiSetStatus assigns to textContent.
+  function tfPrecomputed12Status(run, storm, d) {
+    var age = Math.round(tf12LiveAge(run, d));
+    var when = age > 0 ? " (" + age + " h before the JMA analysis on screen; 1.2 runs every six hours)" : "";
+    var members = run.members > 1 ? ", the mean of " + run.members + " input-perturbed members" : ", a single run";
+    return "🧪 " + storm + " — MODEL: Trackformer 1.2, issued " + tf12Hhmm(run.issue_time_utc) + when + members
+      + ". Track and central pressure come from a storm core carried through a learned western-Pacific"
+      + " pressure field, started from NOAA GFS analyses up to the issue time and JMA's own analysis of the"
+      + " storm — no official forecast track is an input." + tf12WindNote(run)
+      + " 1.2 has no wind-radius output, so no rings are drawn." + tf12BandNote()
+      + " Read live from the Trackformer Weather Lab. Experimental, not an official forecast.";
+  }
   function tfPrecomputedFc(pre, baseW) {
     var tf11 = pre.trackformer11 || {}, full = pre.intensity_source === "trackformer11";
     var pts = pre.lats.map(function (la, i) {
@@ -2455,8 +2656,22 @@
     if (!live) { aiSetStatus("No storm loaded to run the model on.", "err"); return; }
     aiLoading = true;
     var dataKey = jmaIssueKey(d);
-    tfLiveLoadFor(d.tcId)
-      .then(function (all) {
+    Promise.all([tfLiveLoadFor(d.tcId), tf12LiveLoad(d.tcId), tf12EnsureBench()])
+      .then(function (both) {
+        var all = both[0];
+        // Trackformer 1.2 first. Trackformer1.1 only answers where 1.2 has no run
+        // recent enough for the issue on screen -- a just-named storm, or an
+        // upstream run that is late.
+        var pre12 = tfLive12For(d.tcId, d);
+        if (pre12) {
+          aiLoading = false;
+          var fc12 = tfPrecomputed12Fc(pre12, d.points[0].windKt);
+          fc12.storm = (d.name && d.name.en) || "storm";
+          fc12.tcId = d.tcId; fc12.dataKey = dataKey;
+          aiDrawForecast(fc12);
+          aiSetStatus(tfPrecomputed12Status(pre12, fc12.storm, d), "on");
+          return null;
+        }
         var pre = all && all.storms && all.storms[d.tcId];
         // If a fresh server-side run exists, it's STRICTLY better than the browser's own
         // (full 10-seed fp32 vs a 5-seed int8 export) -- draw it and stop, rather than
@@ -2468,17 +2683,23 @@
           fc.storm = (d.name && d.name.en) || "storm";
           fc.tcId = d.tcId; fc.dataKey = dataKey;
           aiDrawForecast(fc);
-          aiSetStatus(tfPrecomputedStatus(pre, fc.storm), "on");
+          var stale12 = tf12Live[d.tcId];
+          var why12 = stale12 ? "Trackformer 1.2's latest run for this storm is from " + tf12Hhmm(stale12.issue_time_utc)
+              + ", too old for the issue on screen, so this is Trackformer1.1. "
+            : tf12LiveErr[d.tcId] ? "Trackformer 1.2's data service did not answer ("
+              + (tf12LiveErr[d.tcId].message || tf12LiveErr[d.tcId]) + "), so this is Trackformer1.1. "
+            : "No Trackformer 1.2 run for this storm yet, so this is Trackformer1.1. ";
+          aiSetStatus(why12 + tfPrecomputedStatus(pre, fc.storm), "on");
           return null;   // signals "already drawn" to the next .then — skip the client-side run
         }
-        // Trackformer1.1 only. If the server-side run has nothing for this storm yet, say so
-        // rather than running a different model in the browser.
+        // Neither model has a run for this storm yet. Say so rather than running a
+        // different model in the browser.
         aiLoading = false;
         aiRemoveTraces();
-        aiSetStatus("🧪 " + ((d.name && d.name.en) || "This storm") + " — MODEL: Trackformer1.1, and the"
-          + " server-side run has no forecast for it yet. Trackformer1.1 needs a posted GFS analysis cycle and"
-          + " an observed centre to anchor on; the next hourly run will pick it up. Nothing is drawn rather"
-          + " than substituting a different model.", "err");
+        aiSetStatus("🧪 " + ((d.name && d.name.en) || "This storm") + " — no AI run for it yet. Trackformer 1.2"
+          + " runs every six hours upstream, and Trackformer1.1 needs a posted GFS analysis cycle and an observed"
+          + " centre to anchor on; the next run of either picks it up. Nothing is drawn rather than"
+          + " substituting a different model.", "err");
         return null;
       })
       .then(function () {})
@@ -2578,7 +2799,8 @@
   var TF_NSEED = 5;                                     // seeds actually shipped (of the 10 published)
   var tfRT = { sessions: null, meta: null, ens: null, cons: null, coastline: null, tf11: null };
   var hindcastTraceCount = 0;
-  var hindcastLastSource = null;   // so the status follows the track in and out of Trackformer1.1
+  var hindcastLastSource = null;   // so the status follows the track between Trackformer 1.2 and 1.1
+  var hindcastLastRunId = null;    // and from one 1.2 run to the next
   var consensusTraceCount = 0;
   // Overlay tags. Both overlays can be on at once (the consensus stays visible while the
   // hindcast animates), so traces are located by tag, never by position in els.map.data.
@@ -2872,7 +3094,11 @@
   }
   function tfCatColors(fc) {   // per-marker color array: init + each lead, by predicted category
     var cols = [tfCat(fc.initial_vmax)[1]];
-    (fc.points || []).forEach(function (p) { cols.push(tfCat(p.vmax)[1]); });
+    // No forecast wind is no category -- grey, not the depression blue tfCat
+    // would paint it, which would claim an intensity the run never gave.
+    (fc.points || []).forEach(function (p) {
+      cols.push(p.vmax == null || !isFinite(p.vmax) ? "rgba(170,178,196,0.9)" : tfCat(p.vmax)[1]);
+    });
     return cols;
   }
   // Faint 34-kt wind-field polygons at a few leads, from the model's radii output
@@ -2906,6 +3132,12 @@
     // -- three numbers invented from an absent field. Say the position, say the
     // intensity is missing, and leave it at that.
     var known = p.vmax != null && isFinite(p.vmax);
+    // Trackformer 1.2 always forecasts central pressure, but its auxiliary wind is
+    // missing on some runs. Pressure alone is still a real forecast; say which half is there.
+    if (!known && p.pres != null && isFinite(p.pres)) {
+      return "<b>" + Math.round(p.pres) + " mb</b><br>AI +" + p.lead_hours + " h · " + fmtLatLon(p.lat, p.lon)
+        + "<br>no wind for this run — pressure and track only";
+    }
     if (!known) {
       return "<b>Intensity not available</b><br>AI +" + p.lead_hours + " h · " + fmtLatLon(p.lat, p.lon)
         + "<br>route only — the intensity head did not run for this storm";
@@ -2939,24 +3171,32 @@
   // button promise a model and then explain in a line at the foot of the page.
   // The index is 47 KB and already fetched for the overlay, so this costs
   // nothing; before it arrives the button keeps its neutral label.
-  var HINDCAST_LABEL = "🧪 Run my AI model (Trackformer1.1)";
+  var HINDCAST_LABEL = "🧪 Run my AI model (Trackformer 1.2)";
+  var HINDCAST_LABEL_11 = "🧪 Run my AI model (Trackformer1.1)";
   function aiMarkHindcastAvailability() {
     var b = els.hindcastBtn;
     if (!b) return;
     var sid = currentSid;
-    tfEnsureTf11().then(function (idx) {
+    // One small request (the storm's 1.2 issue list, ~5 KB) plus the 1.1 index this
+    // page already has, so the label can say which model will answer.
+    Promise.all([tf12EnsureIssues(sid), tfEnsureTf11()]).then(function (r) {
       if (!b || sid !== currentSid) return;          // storm changed while loading
-      var have = idx && idx.hindcasts && idx.hindcasts[sid];
-      b.classList.toggle("tt-ai-btn--none", !have);
-      if (have) {
+      var i12 = r[0], h11 = r[1] && r[1].hindcasts && r[1].hindcasts[sid];
+      var span11 = h11 ? "Trackformer1.1 runs " + String(h11.first_issue_utc).slice(0, 10) + " to "
+        + String(h11.last_issue_utc).slice(0, 10) + " (" + h11.runs + " initialisations)" : "";
+      b.classList.toggle("tt-ai-btn--none", !i12 && !h11);
+      if (i12) {
         b.textContent = HINDCAST_LABEL;
-        b.title = "Trackformer1.1 runs " +
-          String(have.first_issue_utc).slice(0, 10) + " to " +
-          String(have.last_issue_utc).slice(0, 10) + " (" + have.runs + " initialisations)";
+        b.title = "Trackformer 1.2 runs " + String(i12[0].issue_time_utc).slice(0, 10) + " to "
+          + String(i12[i12.length - 1].issue_time_utc).slice(0, 10) + " (" + i12.length + " initialisations)"
+          + (h11 ? "; " + span11 + " fill in where 1.2 has none" : "");
+      } else if (h11) {
+        b.textContent = HINDCAST_LABEL_11;
+        b.title = (tf12Err ? "Trackformer 1.2's data service did not answer. " : "No Trackformer 1.2 run for this storm. ")
+          + span11;
       } else {
         b.textContent = HINDCAST_LABEL + " — no run yet";
-        b.title = "Trackformer1.1 has no hindcast for this storm yet: its reanalysis " +
-          "fields have not been published and run. Click for the detail.";
+        b.title = "Neither Trackformer 1.2 nor Trackformer1.1 has a run for this storm yet. Click for the detail.";
       }
     });
   }
@@ -3025,37 +3265,6 @@
     return best ? best.h : null;
   }
 
-  // The run nearest a given scrub point, whether or not it covers it. A storm's
-  // runs can sit in a narrow window -- the recovered live-archive ones cover
-  // only the days the storm was actually being forecast -- so "press the button
-  // anywhere in the storm and get nothing" was the common case, not the rare one.
-  function tfTf11NearestList(initHour) {
-    var runs = currentSid && tfTf11Runs[currentSid];
-    if (!runs || !runs.length) return [];
-    var ms = tfStormTimeAt(initHour);
-    var out = runs.slice();
-    if (ms != null) {
-      out.sort(function (a, b) {
-        return Math.abs(Date.parse(a.issue_time_utc) - ms) -
-               Math.abs(Date.parse(b.issue_time_utc) - ms);
-      });
-    }
-    return out;
-  }
-
-  // A published Trackformer1.1 run for THIS storm at THIS initialisation, or null.
-  function tfTf11For(initHour) {
-    if (!currentSid) return null;
-    var runs = tfTf11Runs[currentSid];
-    if (!runs || !runs.length) return null;
-    var ms = tfStormTimeAt(initHour);
-    if (ms == null) return null;
-    for (var i = 0; i < runs.length; i++) {
-      var t = Date.parse(runs[i].issue_time_utc);
-      if (isFinite(t) && Math.abs(t - ms) <= 3 * 3600000) return runs[i];
-    }
-    return null;
-  }
   // The hindcast table is 47 KB against the model's 75 MB, so fetch it on its
   // own. Where a published Trackformer1.1 run covers the initialisation it carries the
   // whole state, and the in-browser model never has to be downloaded at all.
@@ -3082,9 +3291,149 @@
       return fetch("model/" + entry.file + TF_TF11_RUNS_BUST)
         .then(function (r) { return r.ok ? r.json() : null; })
         .catch(function () { return null; })
-        .then(function (j) { tfTf11Runs[sid] = (j && j.runs) || null; return tfTf11Runs[sid]; });
+        .then(function (j) {
+          var runs = (j && j.runs) || null;
+          if (runs) runs.forEach(function (run) { run.src = "trackformer11"; });
+          tfTf11Runs[sid] = runs; return runs;
+        });
     });
     return tfTf11RunsLoading[sid];
+  }
+  // ---- history: Trackformer 1.2 first, Trackformer1.1 where 1.2 has no run ---------
+  // 1.2's issues come from the Weather Lab per storm (see the client above); 1.1's
+  // runs are this site's own published files. A 1.2 issue is only metadata until
+  // its forecast is fetched, so picking a run and drawing it are separate steps.
+  function tfEnsureHindRuns(sid) {
+    return Promise.all([tf12EnsureIssues(sid), tfEnsureTf11Runs(sid), tf12EnsureBench()]);
+  }
+  // The run that stands for the initialisation at `ms`: within 3 h, an exact match
+  // first, then one issued before that moment (it could not have seen what is on
+  // screen), then one issued after; at one time, the 50-member mean over a single
+  // member. 1.2 issues whose forecast turned out unusable are skipped.
+  function tfRunNear(runs, ms) {
+    if (!runs || !runs.length || ms == null) return null;
+    var best = null, bk = null;
+    for (var i = 0; i < runs.length; i++) {
+      var r = runs[i];
+      if (r.src === "trackformer12" && tf12Runs[r.id] === false) continue;
+      var d = Date.parse(r.issue_time_utc) - ms;
+      if (!isFinite(d) || Math.abs(d) > 3 * 3600000) continue;
+      var k = [Math.abs(d) < 60000 ? 0 : (d < 0 ? 1 : 2), Math.abs(d), -(r.members || 1)];
+      if (!bk || k[0] < bk[0] || (k[0] === bk[0] && (k[1] < bk[1] || (k[1] === bk[1] && k[2] < bk[2])))) {
+        best = r; bk = k;
+      }
+    }
+    return best;
+  }
+  function tfHindPick(initHour) {
+    if (!currentSid) return null;
+    var ms = tfStormTimeAt(initHour);
+    return tfRunNear(tf12Issues[currentSid], ms) || tfRunNear(tfTf11Runs[currentSid], ms);
+  }
+  // The drawable run for a pick if it is already here, else undefined (still to
+  // fetch) or null (the Lab answered and it is unusable).
+  function tfHindReady(pick) {
+    if (!pick) return null;
+    if (pick.src !== "trackformer12") return pick;
+    var r = tf12Runs[pick.id];
+    return r === undefined ? undefined : (r || null);
+  }
+  function tfHindResolve(pick) {
+    if (!pick) return Promise.resolve(null);
+    return pick.src === "trackformer12" ? tf12EnsureRun(pick) : Promise.resolve(pick);
+  }
+  function tfHindForecast(run, initHour) {
+    if (!run) return null;
+    return run.src === "trackformer12" ? tfTf12Forecast(run, initHour) : tfTf11Forecast(run, initHour);
+  }
+  // Every issue of either model, nearest the scrub point first; 1.2 first on a tie.
+  function tfHindNearestList(initHour) {
+    var a = (currentSid && tf12Issues[currentSid]) || [], b = (currentSid && tfTf11Runs[currentSid]) || [];
+    var out = a.filter(function (r) { return tf12Runs[r.id] !== false; }).concat(b), ms = tfStormTimeAt(initHour);
+    if (out.length && ms != null) {
+      out.sort(function (x, y) {
+        return (Math.abs(Date.parse(x.issue_time_utc) - ms) - Math.abs(Date.parse(y.issue_time_utc) - ms))
+          || ((x.src === "trackformer12" ? 0 : 1) - (y.src === "trackformer12" ? 0 : 1))
+          || ((y.members || 1) - (x.members || 1));
+      });
+    }
+    return out;
+  }
+  function tfModelName(run) { return run && run.src === "trackformer12" ? "Trackformer 1.2" : "Trackformer1.1"; }
+  // Fetch the rest of this storm's 1.2 forecasts behind the first one, nearest the
+  // playhead first and three at a time, so pressing play does not wait on the
+  // network at every step. Roughly 25 KB a forecast; stops if the storm changes.
+  var tf12PrefetchSid = null;
+  function tf12Prefetch(sid, initHour) {
+    var issues = tf12Issues[sid];
+    if (!issues || tf12PrefetchSid === sid) return;
+    tf12PrefetchSid = sid;
+    var ms = tfStormTimeAt(initHour);
+    var queue = issues.filter(function (i) { return tf12Runs[i.id] === undefined; });
+    if (ms != null) queue.sort(function (x, y) {
+      return Math.abs(Date.parse(x.issue_time_utc) - ms) - Math.abs(Date.parse(y.issue_time_utc) - ms);
+    });
+    function next() {
+      if (currentSid !== sid || !queue.length) return null;
+      return tf12EnsureRun(queue.shift()).then(next);
+    }
+    next(); next(); next();
+  }
+  // Mean distance from the real track over the leads the best track covers, on this
+  // site's own fixes. Computed here because the Lab keeps observations separate.
+  function tf12Score(run) {
+    if (run.track_mae_km !== undefined) return run.track_mae_km;
+    var at = {}, pts = (currentStorm && currentStorm.pts) || [];
+    pts.forEach(function (p) {
+      if (p.la == null || !p.t || p.src) return;      // borrowed gap-fill points are not best track
+      var t = String(p.t); if (!/[Zz]$|[+\-]\d\d:?\d\d$/.test(t)) t += "Z";
+      at[Date.parse(t)] = p;
+    });
+    var t0 = Date.parse(run.issue_time_utc), sum = 0, n = 0;
+    for (var k = 0; k < run.lead_hours.length; k++) {
+      var p = at[t0 + run.lead_hours[k] * 3600000];
+      if (!p) continue;
+      var la1 = run.lats[k] * Math.PI / 180, la2 = p.la * Math.PI / 180;
+      var dl = (p.lo - run.lons[k]) * Math.PI / 180, dp = la2 - la1;
+      var h = Math.sin(dp / 2) * Math.sin(dp / 2) + Math.cos(la1) * Math.cos(la2) * Math.sin(dl / 2) * Math.sin(dl / 2);
+      sum += 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(h))); n++;
+    }
+    run.track_mae_km = n ? sum / n : null;
+    return run.track_mae_km;
+  }
+  // A complete forecast from a Trackformer 1.2 run -- no model in the browser. It
+  // starts at the run's recorded issue location, as the Lab's contract requires,
+  // never re-anchored to a best-track fix.
+  function tfTf12Forecast(run, initHour) {
+    if (!run || !run.lats) return null;
+    var fc = tfPrecomputed12Fc(run, null);
+    // the issue-time wind for the first dot's colour, from the best track at that time
+    var spts = (currentStorm && currentStorm.pts) || [], want = Date.parse(run.issue_time_utc), bd = Infinity;
+    for (var i = 0; i < spts.length; i++) {
+      var t = String(spts[i].t || ""); if (!/[Zz]$|[+\-]\d\d:?\d\d$/.test(t)) t += "Z";
+      var d = Math.abs(Date.parse(t) - want);
+      if (d < bd) { bd = d; fc.initial_vmax = spts[i].w; }
+    }
+    tf12Score(run);
+    return fc;
+  }
+  // Why neither model has a run here.
+  function tfHindUnavailable() {
+    var name = (currentStorm && currentStorm.name) || "This storm";
+    var i12 = currentSid && tf12Issues[currentSid];
+    var h11 = tfRT.tf11 && tfRT.tf11.hindcasts && currentSid && tfRT.tf11.hindcasts[currentSid];
+    if (i12 || h11) {
+      return "🧪 " + name + " — no AI run covers this point in the storm."
+        + (i12 ? " Trackformer 1.2's " + i12.length + " initialisations span " + tf12Hhmm(i12[0].issue_time_utc)
+                 + " to " + tf12Hhmm(i12[i12.length - 1].issue_time_utc) + "." : "")
+        + (h11 ? " Trackformer1.1's span " + tf12Hhmm(h11.first_issue_utc) + " to " + tf12Hhmm(h11.last_issue_utc) + "." : "")
+        + " Scrub inside a window. Nothing else is drawn here rather than substituting a different model.";
+    }
+    var lead = tf12Issues[currentSid] === undefined && tf12Err
+      ? "🧪 " + name + " — Trackformer 1.2's data service did not answer (" + (tf12Err.message || tf12Err) + "). "
+      : "🧪 " + name + " — no Trackformer 1.2 run for this storm: the Weather Lab covers western-Pacific storms"
+        + " from 1970, six-hourly from 1996. ";
+    return lead + tfTf11Unavailable().replace(/^🧪 [^—]*— /, "");
   }
   // Trackformer1.1's own 90% member radius, laid perpendicular to the local heading.
   function tfTf11Cone(fc, run) {
@@ -3165,7 +3514,10 @@
     return fc;
   }
   // Trackformer1.1's drawn routes are real ensemble members, not samples from a covariance.
+  // Trackformer 1.2's members are not published -- a 50-member run arrives as its
+  // mean -- so there are no member routes to draw, and none are invented.
   function tfSpaghettiFor(fc) {
+    if (fc && fc.trackSource === "trackformer12") return { lat: [], lon: [] };
     return (fc && fc.trackSource === "trackformer11") ? tfTf11Spaghetti(fc) : tfSpaghetti(fc);
   }
   function tfTf11Spaghetti(fc) {
@@ -3183,6 +3535,24 @@
   }
   function tfHindcastStatusText(fc) {
     var storm = currentStorm.name || "This storm";
+    if (fc && fc.trackSource === "trackformer12") {
+      var q = fc.tf12 || {};
+      var kindNote = q.members > 1
+        ? " This run is the mean of " + q.members + " input-perturbed members"
+          + (q.kind === "retrospective-hindcast" ? ", one of the daily starts in 1.2's published benchmark." : ".")
+        : " This is a single deterministic run" + (q.kind === "automatic-historical-hindcast" ? " from the six-hourly backfill." : ".");
+      var yr = Number(currentStorm.season);
+      var sample = yr >= 2024 ? " This storm comes after the years 1.2 was trained and validated on (2000–23)."
+        : yr >= 2000 ? " This storm falls in the years 1.2 was trained (2000–21) or validated (2022–23) on, so this is a fit, not a test."
+        : " This storm predates the years 1.2 was trained on (2000–21).";
+      var score12 = q.track_mae_km != null
+        ? " On this case it lands " + Math.round(q.track_mae_km) + " km mean from the real track." : "";
+      return "🧪 " + storm + " — MODEL: Trackformer 1.2, issued " + tf12Hhmm(q.issue_time_utc) + ". Track and"
+        + " central pressure come from a storm core carried through a learned western-Pacific pressure field,"
+        + " started from analyses up to the issue time only." + kindNote + tf12WindNote(q)
+        + " 1.2 has no wind-radius output, so no rings are drawn. White is what actually happened." + score12
+        + tf12BandNote() + sample + " Read live from the Trackformer Weather Lab. Experimental, not an official forecast.";
+    }
     if (fc && fc.trackSource === "trackformer11") {
       var r = fc.tf11 || {}, score = "";
       if (r.track_mae_km != null) {
@@ -3227,8 +3597,8 @@
         + provenance
         + " Intensity comes from its frozen structure head, coupled to"
         + " the same causal pressure map. White is what actually happened." + score + members
-        + " Scrub away from this initialisation and it falls back to the historical Trackformer1.0, which is"
-        + " field-free and can run anywhere in a storm's life. Experimental, not an official forecast.";
+        + " Trackformer 1.2 has no run at this initialisation, which is why this is 1.1; scrub to one it covers"
+        + " and the overlay switches to 1.2. Experimental, not an official forecast.";
     }
     var ens = tfRT.ens ? " Faint green lines are an ensemble of possible tracks sampled from Trackformer1.0's own forecast-error covariance; the shaded cone is the 90% area." : "";
     return "🧪 " + storm + " — MODEL: Trackformer1.0 for everything here — track, wind, pressure and"
@@ -3264,6 +3634,7 @@
     hindcastTraceCount = traces.length;   // fixed 7, so a follow-update can restyle in place
     if (els.hindcastBtn) { els.hindcastBtn.setAttribute("aria-pressed", "true"); els.hindcastBtn.classList.add("is-on"); }
     hindcastLastSource = fc && fc.trackSource;
+    hindcastLastRunId = fc && fc.tf12 ? fc.tf12.id : null;
     aiSetHindcastStatus(tfHindcastStatusText(fc), "on");
   }
   // In-place update (restyle) so the overlay follows the playhead smoothly, no
@@ -3281,7 +3652,13 @@
     if (fc && fc.trackSource !== hindcastLastSource) {
       hindcastLastSource = fc.trackSource;
       aiSetHindcastStatus(tfHindcastStatusText(fc), "on");
+    } else if (fc && fc.tf12 && fc.tf12.id !== hindcastLastRunId && els.hindcastStatus) {
+      // A new 1.2 run under the playhead: its issue time, members and score change,
+      // so the line does too -- set in place, without the scroll-into-view that
+      // aiSetHindcastStatus does, which would yank the page on every step of play.
+      els.hindcastStatus.textContent = tfHindcastStatusText(fc);
     }
+    hindcastLastRunId = fc && fc.tf12 ? fc.tf12.id : null;
   }
   // While the overlay is on, re-forecast from the current playhead as the animation
   // (or a manual scrub) moves — throttled + in-flight-guarded + updated in place.
@@ -3291,14 +3668,23 @@
     var now = Date.now();
     if (!force && now - hindcastFollowTs < 240) return;
     var h = Number(els.slider.value);
-    // Trackformer1.1 only, and it needs no model in the browser at all. Scrubbing past the
-    // end of the generated initialisations clears the overlay and says why,
-    // rather than filling the gap with a different model.
-    var run = tfTf11For(h), quick = run ? tfTf11Forecast(run, h) : null;
     hindcastFollowTs = now;
+    // Trackformer 1.2 where it has a run, Trackformer1.1 where only it does. Past both
+    // models' initialisations the overlay clears and says why, rather than filling
+    // the gap with a different model. A 1.2 forecast not fetched yet is fetched now;
+    // the overlay holds the last one until it lands, then catches up.
+    var pick = tfHindPick(h), run = tfHindReady(pick);
+    if (run === undefined) {
+      var sid = currentSid;
+      tfHindResolve(pick).then(function () {
+        if (sid === currentSid && hindcastTraceCount > 0) hindcastFollowTick(true);
+      });
+      return;
+    }
+    var quick = run ? tfHindForecast(run, h) : null;
     if (quick) { aiUpdateHindcast(quick, h); return; }
     aiClearHindcast();
-    aiSetHindcastStatus(tfTf11Unavailable(), "err");
+    aiSetHindcastStatus(tfHindUnavailable(), "err");
   }
   /* --- Multi-initialisation consensus ------------------------------------------
      Runs the model from EVERY 6-hourly init along the storm, then at each valid time
@@ -3633,49 +4019,58 @@
     var initHour = Number(els.slider.value);
     aiLoading = true;
     aiSetHindcastStatus("Loading…", "loading");
-    // Check the 47 KB hindcast table first. If a published Trackformer1.1 run covers this
-    // initialisation it already carries track, intensity, radii, cone and member
-    // routes — so draw straight from it and skip the 75 MB model entirely.
-    tfEnsureTf11Runs(currentSid)
+    // Trackformer 1.2's issue list for this storm (one ~5 KB request to the Weather
+    // Lab) and Trackformer1.1's published runs, then the one forecast that covers
+    // this initialisation. Nothing runs in the browser; the rest of the storm's 1.2
+    // forecasts are fetched behind it so play does not stall.
+    var sid = currentSid;
+    tfEnsureHindRuns(sid)
       .then(function () {
-        var run = tfTf11For(initHour);
-        var quick = run ? tfTf11Forecast(run, initHour) : null;
-        if (quick) { aiLoading = false; aiDrawHindcast(quick, initHour); return null; }
-        // The button says the model can run on this storm, so it should run it.
-        // A storm's runs often sit in a narrow window -- the recovered
-        // live-archive ones only cover the days it was actually being forecast --
-        // and refusing because the scrubber happens to sit elsewhere read as a
-        // button that does nothing. Walk to the nearest initialisation and draw
-        // that instead, saying where it went.
-        // Walk outwards from the scrub point and take the first run that
-        // actually renders. Not every run does: one without an intensity head
-        // has nothing to hover, and Dolphin's earliest run is exactly that, so
-        // trying only the single closest one gave up on the first candidate.
-        var cands = tfTf11NearestList(initHour);
-        for (var ci = 0; ci < cands.length; ci++) {
-          var nearHour = tfHourForRun(cands[ci]);
-          if (nearHour == null) continue;
-          var moved = tfTf11Forecast(cands[ci], nearHour);
-          if (!moved) continue;
+        if (sid !== currentSid) return true;
+        return tfHindResolve(tfHindPick(initHour)).then(function (run) {
+          var quick = run ? tfHindForecast(run, initHour) : null;
+          if (!quick || sid !== currentSid) return false;
           aiLoading = false;
-          if (els.slider) {
-            els.slider.value = String(nearHour);
-            els.slider.dispatchEvent(new Event("input", { bubbles: true }));
-          }
-          aiDrawHindcast(moved, nearHour);
-          aiSetHindcastStatus(
-            "Moved to the nearest Trackformer1.1 initialisation, "
-            + String(cands[ci].issue_time_utc).slice(0, 16).replace("T", " ") + "Z. "
-            + els.hindcastStatus.textContent, "");
-          return null;
-        }
-        // Genuinely nothing to draw: no run on this storm at all.
-        aiLoading = false;
-        aiClearHindcast();
-        aiSetHindcastStatus(tfTf11Unavailable(), "err");
-        return null;
+          aiDrawHindcast(quick, initHour);
+          tf12Prefetch(sid, initHour);
+          return true;
+        });
       })
-      .then(function () {})
+      .then(function (drawn) {
+        if (drawn) { aiLoading = false; return null; }
+        // The button says the model can run on this storm, so it should run it.
+        // A storm's runs often sit in a narrow window -- a pre-1996 storm has only
+        // 1.2's first issue -- and refusing because the scrubber happens to sit
+        // elsewhere read as a button that does nothing. Walk outwards from the scrub
+        // point and draw the first run that actually renders, saying where it went.
+        var cands = tfHindNearestList(initHour).slice(0, 8);
+        function tryAt(ci) {
+          if (ci >= cands.length || sid !== currentSid) return Promise.resolve(false);
+          var nearHour = tfHourForRun(cands[ci]);
+          if (nearHour == null) return tryAt(ci + 1);
+          return tfHindResolve(cands[ci]).then(function (run) {
+            var moved = run ? tfHindForecast(run, nearHour) : null;
+            if (!moved || sid !== currentSid) return tryAt(ci + 1);
+            aiLoading = false;
+            if (els.slider) {
+              els.slider.value = String(nearHour);
+              els.slider.dispatchEvent(new Event("input", { bubbles: true }));
+            }
+            aiDrawHindcast(moved, nearHour);
+            tf12Prefetch(sid, nearHour);
+            aiSetHindcastStatus("Moved to the nearest " + tfModelName(cands[ci]) + " initialisation, "
+              + tf12Hhmm(cands[ci].issue_time_utc) + ". " + els.hindcastStatus.textContent, "");
+            return true;
+          });
+        }
+        return tryAt(0).then(function (ok) {
+          if (ok) return;
+          // Genuinely nothing to draw: no run on this storm at all.
+          aiLoading = false;
+          aiClearHindcast();
+          aiSetHindcastStatus(tfHindUnavailable(), "err");
+        });
+      })
       .catch(function (e) { aiLoading = false; aiSetHindcastStatus(((e && e.message) || String(e)), "err"); });
   }
 
@@ -3910,13 +4305,15 @@
     var a = d.points[0];
     // JMA reports nothing but a position for a depression -- no wind, no
     // gusts, no forecast points -- so every box read "—" even though the
-    // precomputed Trackformer1.1 run had the whole thing. Fill the gaps from Trackformer1.1 where
-    // JMA is silent, and label them, because a number with no source on it is
-    // worse than a dash.
-    var pre = tfLiveFor(d.tcId);
+    // precomputed model run had the whole thing. Fill the gaps from the model where
+    // JMA is silent -- Trackformer 1.2 if it has a current run, else Trackformer1.1 --
+    // and label them, because a number with no source on it is worse than a dash.
+    var pre12 = tfLive12For(d.tcId, d);
+    var pre = pre12 || tfLiveFor(d.tcId);
+    var preName = pre12 ? "Trackformer 1.2" : "Trackformer1.1";
     var vm = (pre && pre.vmax_kt) || null;
     var vp = (pre && pre.pres_hpa) || null;
-    var tf11tag = ' <small class="tt-tf11-src">TF1.1</small>';
+    var tf11tag = ' <small class="tt-tf11-src">' + (pre12 ? "TF1.2" : "TF1.1") + '</small>';
     var catFull = CAT_NAME[a.catEn] || a.catEn || "Tropical cyclone";
     var badge = catFull + (a.intensity ? " · " + a.intensity : "") + (a.scale ? " · " + a.scale : "");
     var move = (a.course || "") + (a.speedKt != null ? " " + a.speedKt + " kt" : "");
@@ -3955,7 +4352,7 @@
       '<div class="tt-fc-subhead">5-day forecast · T = Dvorak (± = 70% circle)</div>' +
       '<div class="tt-fc-rows">' + (rows || '<div class="tt-fc-row">' +
         (pre && pre.lats && pre.lats.length
-          ? 'JMA issues no forecast points for a tropical depression. The Trackformer1.1 route above still ' +
+          ? 'JMA issues no forecast points for a tropical depression. The ' + preName + ' route above still ' +
             'covers ' + ((pre.lead_hours && pre.lead_hours[pre.lead_hours.length - 1]) || 120) +
             ' h &mdash; turn the overlay on to see it.'
           : 'No forecast points issued.') + '</div>') + "</div>" +
