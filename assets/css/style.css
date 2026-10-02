@@ -209,6 +209,16 @@ code {
   border-radius: var(--r-pill);
   transition: color .2s var(--ease), background .2s var(--ease);
 }
+/* Eight menu items no longer fit at full size between 992px (where the bar stops
+   collapsing) and ~1280px -- iPad landscape lands right there -- so the links wrapped
+   onto two lines ("PyPI / Stats"). Never wrap a label; tighten the spacing instead. */
+.navbar .nav-link { white-space: nowrap; }
+.navbar-brand { white-space: nowrap; }
+@media (min-width: 992px) and (max-width: 1279.98px) {
+  .navbar-nav { gap: 0.1rem; }
+  .navbar .nav-link { font-size: 0.88rem; padding: 0.35rem 0.55rem !important; }
+  .navbar-brand { font-size: 1rem; margin-right: 0.5rem; }
+}
 .navbar .nav-link:hover { color: var(--ink) !important; }
 .navbar .nav-link.active {
   color: var(--accent) !important;
