@@ -315,7 +315,24 @@ def main():
         days = history[app_id]
         if not days:
             continue
-        rows = [{"date": d, "installs": days[d]} for d in sorted(days)]
+        # Keep every per-day field another script wrote onto a row -- impressions,
+        # page views and the first-time / redownload / update split come from
+        # refresh_appstore_analytics.py, not from the sales report. Rebuilding rows
+        # as bare {date, installs} dropped them, and they only came back for the
+        # days Apple's analytics report happened to return on the next run. On
+        # 2026-10-02 that was 36 days instead of 117, and the page's first-time
+        # total fell from 2,031 to 1,326 overnight.
+        prior_rows = {}
+        path0 = OUT / f"{app_id}.json"
+        if path0.exists():
+            try:
+                prior_rows = {r["date"]: r for r in json.loads(path0.read_text()).get("rows", [])}
+            except Exception:                                 # noqa: BLE001
+                prior_rows = {}
+        rows = []
+        for d in sorted(days):
+            row = {k: v for k, v in prior_rows.get(d, {}).items() if k not in ("date", "installs")}
+            rows.append({"date": d, "installs": days[d], **row})
         # Roll the per-day country split up once here so the page does not have
         # to; the per-day form stays as the mergeable source of truth.
         totals = {}

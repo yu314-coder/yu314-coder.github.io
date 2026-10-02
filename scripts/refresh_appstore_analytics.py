@@ -441,6 +441,40 @@ def download_breakdown(app_id, bearer):
     return per_day
 
 
+# Download kinds kept per day: first-time downloads AND what was left out of them,
+# so the page can say so instead of implying Units is the whole story.
+DL_KINDS = ("installs", "first_time", "redownloads", "restores", "updates", "other")
+
+
+def rollup(payload):
+    """Recompute every engagement total from the per-day rows on disk.
+
+    Totals used to be summed from just the days Apple returned on this run, so a
+    run that only got the last 36 days wrote 36-day totals over a 117-day history
+    -- ManimStudio's first-time downloads fell from 650 to 292 and its impressions
+    from 4,236 to 1,935 in one night. Summing the stored rows makes every total
+    agree with the rows the page draws, whatever span Apple sent today.
+    """
+    rows = payload.get("rows", [])
+    eng = [r for r in rows if r.get("impressions") is not None]
+    if eng:
+        payload["impressions"] = sum(r["impressions"] for r in eng)
+        payload["page_views"] = sum(r.get("page_views") or 0 for r in eng)
+    dl_rows = [r for r in rows if r.get("dl_first_time") is not None]
+    if dl_rows:
+        # The analytics report covers a different, shorter span than the sales
+        # history, and the two do not line up day for day (different day
+        # boundaries). Record the span so the page can label these figures
+        # instead of implying they are subtractable from a year-long total.
+        payload["downloads_report_days"] = len(dl_rows)
+        payload["downloads_report_window"] = dl_rows[0]["date"] + " to " + dl_rows[-1]["date"]
+        for key in DL_KINDS:
+            tot = sum(r.get("dl_" + key) or 0 for r in dl_rows)
+            if tot:
+                payload["downloads_" + key] = tot
+    return payload
+
+
 def main():
     c = creds()
     if not c:
@@ -475,43 +509,36 @@ def main():
             continue
         payload = json.loads(path.read_text())
         by_date = {r["date"]: r for r in payload.get("rows", [])}
+        # OVERLAY, never replace. Apple returns whatever span its report instances
+        # happen to hold that day -- the full-history snapshot when it is there,
+        # only the last few weeks of the ongoing report when it is not. Days it did
+        # not return keep the values already on disk; days it did return take the
+        # fresh reading, since Apple revises recent days.
         for d, vals in per_day.items():
             row = by_date.get(d)
             if row is None:
                 continue          # engagement day outside the sales window
             row["impressions"] = vals["impressions"]
             row["page_views"] = vals["page_views"]
-        if per_day:
-            payload["impressions"] = sum(v["impressions"] for v in per_day.values())
-            payload["page_views"] = sum(v["page_views"] for v in per_day.values())
-        if dl:
-            # Keep all three so the page can show first-time downloads AND say
-            # what it left out, instead of implying Units is the whole story.
-            KINDS = ("installs", "first_time", "redownloads", "restores",
-                     "updates", "other")
-            # The analytics report covers a different, shorter span than the
-            # sales history, and the two do not line up day for day (different
-            # day boundaries). Record the span so the page can label these
-            # figures instead of implying they are subtractable from a
-            # year-long total.
-            payload["downloads_report_days"] = len(dl)
-            if dl:
-                payload["downloads_report_window"] = min(dl) + " to " + max(dl)
-            for key in KINDS:
-                tot = sum(v.get(key, 0) for v in dl.values())
-                if tot:
-                    payload["downloads_" + key] = tot
-            by_date = {r["date"]: r for r in payload.get("rows", [])}
-            for d, vals in dl.items():
-                row = by_date.get(d)
-                if row is not None:
-                    for key in KINDS:
-                        if key in vals:
-                            row["dl_" + key] = vals[key]
+        for d, vals in dl.items():
+            row = by_date.get(d)
+            if row is not None:
+                for key in DL_KINDS:
+                    if key in vals:
+                        row["dl_" + key] = vals[key]
+        rollup(payload)
+        # The country split is stored only as totals, so it cannot be overlaid day by
+        # day. Replace it only with a reading that covers at least as many
+        # impressions as the one on disk: a short-span run must not shrink it.
         if per_country:
-            payload["impression_territories"] = [
-                {"code": cc, "impressions": n}
-                for cc, n in sorted(per_country.items(), key=lambda kv: (-kv[1], kv[0]))]
+            had = sum(t.get("impressions", 0) for t in payload.get("impression_territories") or [])
+            if sum(per_country.values()) >= had:
+                payload["impression_territories"] = [
+                    {"code": cc, "impressions": n}
+                    for cc, n in sorted(per_country.items(), key=lambda kv: (-kv[1], kv[0]))]
+            else:
+                log(f"    country split kept: this run saw {sum(per_country.values())} "
+                    f"impressions against {had} on disk")
         # Same rule as the sales script: don't rewrite the file just to move a
         # timestamp, or an hourly run commits every hour for nothing.
         before = json.loads((OUT / f"{app_id}.json").read_text())
@@ -523,8 +550,9 @@ def main():
             "%Y-%m-%dT%H:%M:%SZ")
         path.write_text(json.dumps(payload, separators=(",", ":")))
         touched += 1
-        log(f"    {payload['impressions']} impressions, "
-            f"{payload['page_views']} page views over {len(per_day)} day(s)")
+        log(f"    {payload.get('impressions')} impressions, "
+            f"{payload.get('page_views')} page views in total; {len(per_day)} day(s) and "
+            f"{len(dl)} download day(s) refreshed from Apple this run")
 
     log(f"updated {touched} app(s) with engagement data")
     return 0
