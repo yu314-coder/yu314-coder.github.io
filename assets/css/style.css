@@ -1756,35 +1756,66 @@ body.theme-dark .chip-no { background: rgba(255,255,255,0.05); }
 .cover li::before { content: "✓"; color: var(--ok); font-weight: 700; flex: none; }
 .cover li.no::before { content: "×"; color: var(--ink-3); }
 
-/* --- project tab pills (were unstyled Bootstrap defaults) ------------------
-   touch-action: manipulation is not cosmetic here. Without it iOS holds each
-   tap open as a possible double-tap-zoom, so the first tap on a pill is delayed
-   or swallowed and the tab reads as "not working" on iPhone. Same fix the
-   .device-chip block below already documents. Pills were also 41px tall —
-   under Apple's 44px minimum target — so a coarse pointer gets a taller one. */
-#projectTabs .nav-link {
-  font-family: var(--font-body);
-  font-size: 0.88rem; font-weight: 550;
-  color: var(--ink-2);
-  background: transparent;
-  border: 1px solid var(--line);
-  border-radius: var(--r-pill);
-  padding: 0.5rem 1rem;
-  touch-action: manipulation;
-  -webkit-touch-callout: none;
-  transition: color .18s var(--ease), border-color .18s var(--ease), background .18s var(--ease);
+/* --- project navigator (projects.html) ---------------------------------------
+   Grouped tiles in place of one row of identical pills: eleven pills wrapped onto
+   two rows with nothing to tell them apart, and a newly added tab went unseen.
+   Each tile is still a Bootstrap .nav-link tab button, so the tab wiring and
+   #tab-* deep links are unchanged.
+
+   touch-action: manipulation is not cosmetic. Without it iOS holds each tap open
+   as a possible double-tap-zoom, so the first tap on a tile is delayed or
+   swallowed and the tab reads as "not working" on iPhone. Tiles are 52px+ tall,
+   over Apple's 44px minimum target. */
+.pt-nav { max-width: 1060px; margin-left: auto; margin-right: auto; display: grid; gap: 0.9rem; }
+.pt-group { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr); gap: 0.75rem; align-items: start; }
+.pt-group + .pt-group { padding-top: 0.9rem; border-top: 1px solid var(--line); }
+.pt-group__label {
+  margin: 0; padding-top: 1.05rem;
+  font-family: var(--font-mono, ui-monospace, monospace); font-size: 0.7rem; font-weight: 600;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3);
 }
-#projectTabs .nav-link:hover { color: var(--ink); border-color: var(--line-2); }
-#projectTabs .nav-link.active {
-  color: var(--accent); background: var(--accent-tint);
-  border-color: transparent;
+.pt-group__items { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+#projectTabs .pt-tile {
+  display: flex; align-items: center; gap: 0.7rem; width: 100%; min-height: 56px;
+  padding: 0.55rem 0.8rem; text-align: left;
+  font-family: var(--font-body); color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+  touch-action: manipulation; -webkit-touch-callout: none;
+  transition: border-color .18s var(--ease), background .18s var(--ease), box-shadow .18s var(--ease), transform .18s var(--ease);
 }
-@media (pointer: coarse) {
-  #projectTabs .nav-link {
-    min-height: 44px;
-    padding: 0.6rem 1.05rem;
-    display: inline-flex; align-items: center;
-  }
+#projectTabs .pt-tile:hover { border-color: var(--line-2); transform: translateY(-1px); }
+#projectTabs .pt-tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; box-shadow: none; }
+#projectTabs .pt-tile.active {
+  border-color: var(--accent); background: var(--accent-tint);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+#projectTabs .pt-tile.active .pt-tile__name { color: var(--accent); }
+.pt-tile__icon {
+  flex: none; width: 36px; height: 36px; border-radius: 9px; overflow: hidden;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--bg-alt); border: 1px solid var(--line);
+}
+.pt-tile__icon picture { display: contents; }
+.pt-tile__icon img { width: 100%; height: 100%; object-fit: cover; }
+.pt-tile__icon--glyph { color: var(--ink-2); }
+.pt-tile__icon--glyph svg { width: 21px; height: 21px; }
+#projectTabs .pt-tile.active .pt-tile__icon--glyph { color: var(--accent); border-color: transparent; background: var(--surface); }
+.pt-tile__text { display: flex; flex-direction: column; min-width: 0; }
+.pt-tile__name { font-size: 0.9rem; font-weight: 600; line-height: 1.25; color: var(--ink); }
+.pt-tile__sub { font-size: 0.76rem; line-height: 1.3; color: var(--ink-3); }
+@media (prefers-reduced-motion: reduce) { #projectTabs .pt-tile:hover { transform: none; } }
+@media (max-width: 767.98px) {
+  .pt-group { grid-template-columns: minmax(0, 1fr); gap: 0.45rem; }
+  .pt-group__label { padding-top: 0; }
+  .pt-group__items { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 419.98px) {
+  .pt-group__items { gap: 0.4rem; }
+  #projectTabs .pt-tile { min-height: 50px; padding: 0.45rem 0.5rem; gap: 0.45rem; }
+  .pt-tile__icon { width: 26px; height: 26px; border-radius: 7px; }
+  .pt-tile__icon--glyph svg { width: 17px; height: 17px; }
+  .pt-tile__sub { display: none; }
+  .pt-tile__name { font-size: 0.8rem; overflow-wrap: anywhere; }
 }
 
 /* ---------------------------------------------------------------------------

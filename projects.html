@@ -41,7 +41,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@200;300;400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 
   <!-- Site stylesheet (single source of truth) -->
-  <link rel="stylesheet" href="assets/css/style.css?v=20261002-modelcard3">
+  <link rel="stylesheet" href="assets/css/style.css?v=20261002-ptnav">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
 <body class="theme-dark">
@@ -78,42 +78,38 @@
   <!-- Projects Section (tabbed) -->
   <section class="section container">
 
-    <!-- Tab Navigation -->
-    <ul class="nav nav-pills justify-content-center flex-wrap mb-5 gap-2" id="projectTabs" role="tablist">
-      <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="tab-manim-btn" data-bs-toggle="pill" data-bs-target="#tab-manim" type="button" role="tab" aria-controls="tab-manim" aria-selected="true">ManimStudio</button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-codebench-btn" data-bs-toggle="pill" data-bs-target="#tab-codebench" type="button" role="tab" aria-controls="tab-codebench" aria-selected="false">CodeBench</button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-bootbox-btn" data-bs-toggle="pill" data-bs-target="#tab-bootbox" type="button" role="tab" aria-controls="tab-bootbox" aria-selected="false">Bootbox</button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-gencov-btn" data-bs-toggle="pill" data-bs-target="#tab-gencov" type="button" role="tab" aria-controls="tab-gencov" aria-selected="false">Generalized Covariance</button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-gps-btn" data-bs-toggle="pill" data-bs-target="#tab-gps" type="button" role="tab" aria-controls="tab-gps" aria-selected="false">GPS-location-app</button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-sidecar-btn" data-bs-toggle="pill" data-bs-target="#tab-sidecar" type="button" role="tab" aria-controls="tab-sidecar" aria-selected="false">SidecarBridge</button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-typhoon-btn" data-bs-toggle="pill" data-bs-target="#tab-typhoon" type="button" role="tab" aria-controls="tab-typhoon" aria-selected="false">Typhoon AI</button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-trackformer-btn" data-bs-toggle="pill" data-bs-target="#tab-trackformer" type="button" role="tab" aria-controls="tab-trackformer" aria-selected="false">Trackformer</button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-afm-btn" data-bs-toggle="pill" data-bs-target="#tab-afm" type="button" role="tab" aria-controls="tab-afm" aria-selected="false">Apple Teardown</button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-py2bin-btn" data-bs-toggle="pill" data-bs-target="#tab-py2bin" type="button" role="tab" aria-controls="tab-py2bin" aria-selected="false">py2bin</button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="tab-other-btn" data-bs-toggle="pill" data-bs-target="#tab-other" type="button" role="tab" aria-controls="tab-other" aria-selected="false">Others</button>
-      </li>
-    </ul>
+    <!-- Tab Navigation. Grouped tiles rather than one row of identical pills: eleven pills
+         wrapped onto two rows and a new tab was easy to miss. Same Bootstrap tab wiring --
+         every button keeps its .nav-link class, id and data-bs-target, and #projectTabs keeps
+         role="tablist" -- so deep links like projects.html#tab-trackformer still work. -->
+    <div class="pt-nav mb-5" id="projectTabs" role="tablist" aria-label="Projects">
+      <div class="pt-group" role="presentation">
+        <p class="pt-group__label" aria-hidden="true">Apps</p>
+        <div class="pt-group__items" role="presentation">
+          <button class="nav-link pt-tile active" id="tab-manim-btn" data-bs-toggle="pill" data-bs-target="#tab-manim" type="button" role="tab" aria-controls="tab-manim" aria-selected="true"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/manimstudio-win.webp" type="image/webp"><img src="assets/img/app-icons/manimstudio-win.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">ManimStudio</span><span class="pt-tile__sub">Math animation studio</span></span></button>
+          <button class="nav-link pt-tile" id="tab-codebench-btn" data-bs-toggle="pill" data-bs-target="#tab-codebench" type="button" role="tab" aria-controls="tab-codebench" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/benchcode.webp" type="image/webp"><img src="assets/img/app-icons/benchcode.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">CodeBench</span><span class="pt-tile__sub">On-device dev workstation</span></span></button>
+          <button class="nav-link pt-tile" id="tab-bootbox-btn" data-bs-toggle="pill" data-bs-target="#tab-bootbox" type="button" role="tab" aria-controls="tab-bootbox" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/bootbox.webp" type="image/webp"><img src="assets/img/app-icons/bootbox.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">Bootbox</span><span class="pt-tile__sub">Boots real OSes on iPad</span></span></button>
+          <button class="nav-link pt-tile" id="tab-gps-btn" data-bs-toggle="pill" data-bs-target="#tab-gps" type="button" role="tab" aria-controls="tab-gps" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/gps-location-app.webp" type="image/webp"><img src="assets/img/app-icons/gps-location-app.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">GPS-location-app</span><span class="pt-tile__sub">GPS workout tracker</span></span></button>
+          <button class="nav-link pt-tile" id="tab-sidecar-btn" data-bs-toggle="pill" data-bs-target="#tab-sidecar" type="button" role="tab" aria-controls="tab-sidecar" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/sidecarbridge.webp" type="image/webp"><img src="assets/img/app-icons/sidecarbridge.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">SidecarBridge</span><span class="pt-tile__sub">Remote window into your Mac</span></span></button>
+          <button class="nav-link pt-tile" id="tab-other-btn" data-bs-toggle="pill" data-bs-target="#tab-other" type="button" role="tab" aria-controls="tab-other" aria-selected="false"><span class="pt-tile__icon pt-tile__icon--glyph"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="4.5" width="6" height="6" rx="1.5"/><rect x="13.5" y="4.5" width="6" height="6" rx="1.5"/><rect x="4.5" y="13.5" width="6" height="6" rx="1.5"/><rect x="13.5" y="13.5" width="6" height="6" rx="1.5"/></svg></span><span class="pt-tile__text"><span class="pt-tile__name">Others</span><span class="pt-tile__sub">WhisperKit, t-SNE and more</span></span></button>
+        </div>
+      </div>
+      <div class="pt-group" role="presentation">
+        <p class="pt-group__label" aria-hidden="true">Research &amp; AI</p>
+        <div class="pt-group__items" role="presentation">
+          <button class="nav-link pt-tile" id="tab-gencov-btn" data-bs-toggle="pill" data-bs-target="#tab-gencov" type="button" role="tab" aria-controls="tab-gencov" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/generalized-covariance.webp" type="image/webp"><img src="assets/img/app-icons/generalized-covariance.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">Generalized Covariance</span><span class="pt-tile__sub">Eigenvalue spectral analysis</span></span></button>
+          <button class="nav-link pt-tile" id="tab-typhoon-btn" data-bs-toggle="pill" data-bs-target="#tab-typhoon" type="button" role="tab" aria-controls="tab-typhoon" aria-selected="false"><span class="pt-tile__icon pt-tile__icon--glyph"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.2"/><path d="M12 4.5c-4.4 0-7.5 3-7.5 6.8M12 19.5c4.4 0 7.5-3 7.5-6.8M4.5 12c0 2.6 2 4.6 4.6 4.6M19.5 12c0-2.6-2-4.6-4.6-4.6"/></svg></span><span class="pt-tile__text"><span class="pt-tile__name">Typhoon AI</span><span class="pt-tile__sub">Five-day typhoon forecasts</span></span></button>
+          <button class="nav-link pt-tile" id="tab-trackformer-btn" data-bs-toggle="pill" data-bs-target="#tab-trackformer" type="button" role="tab" aria-controls="tab-trackformer" aria-selected="false"><span class="pt-tile__icon pt-tile__icon--glyph"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="3.5" width="15" height="17" rx="2.5"/><path d="M8 8h8M8 11.5h8M8 15h5"/></svg></span><span class="pt-tile__text"><span class="pt-tile__name">Trackformer</span><span class="pt-tile__sub">Model card &middot; 1.2</span></span></button>
+        </div>
+      </div>
+      <div class="pt-group" role="presentation">
+        <p class="pt-group__label" aria-hidden="true">Systems</p>
+        <div class="pt-group__items" role="presentation">
+          <button class="nav-link pt-tile" id="tab-afm-btn" data-bs-toggle="pill" data-bs-target="#tab-afm" type="button" role="tab" aria-controls="tab-afm" aria-selected="false"><span class="pt-tile__icon pt-tile__icon--glyph"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M10 3.5V7M14 3.5V7M10 17v3.5M14 17v3.5M3.5 10H7M3.5 14H7M17 10h3.5M17 14h3.5"/></svg></span><span class="pt-tile__text"><span class="pt-tile__name">Apple Teardown</span><span class="pt-tile__sub">On-device LLM, decoded</span></span></button>
+          <button class="nav-link pt-tile" id="tab-py2bin-btn" data-bs-toggle="pill" data-bs-target="#tab-py2bin" type="button" role="tab" aria-controls="tab-py2bin" aria-selected="false"><span class="pt-tile__icon pt-tile__icon--glyph"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="M7.5 10l2.5 2-2.5 2M12.5 15h4"/></svg></span><span class="pt-tile__text"><span class="pt-tile__name">py2bin</span><span class="pt-tile__sub">Python to machine code</span></span></button>
+        </div>
+      </div>
+    </div>
 
     <!-- Tab Content -->
     <div class="tab-content" id="projectTabsContent">
@@ -2716,6 +2712,18 @@ const fc = await (await fetch(base + "/api/history/v1/forecasts/" + storm.issues
       // A pane opened by either path must have its scroll-reveal content lit:
       // those elements start at opacity 0 and the observer may never fire for a
       // pane that was display:none when the page loaded.
+      // The tile grid is tall on a phone, so a chosen project can open entirely below
+      // the fold and the tap reads as doing nothing. Scroll to it only in that case;
+      // on a desktop the content is already on screen and the page stays put.
+      function bringIntoView(pane) {
+        if (!pane || !pane.getBoundingClientRect) return;
+        var top = pane.getBoundingClientRect().top;
+        if (top < window.innerHeight * 0.7) return;
+        var nav = document.querySelector(".navbar.fixed-top");
+        var off = (nav ? nav.getBoundingClientRect().height : 64) + 12;
+        window.scrollTo(0, Math.max(0, top + (window.pageYOffset || 0) - off));
+      }
+
       function revealIn(pane) {
         if (!pane) return;
         var r = pane.querySelectorAll(".reveal");
@@ -2739,11 +2747,14 @@ const fc = await (await fetch(base + "/api/history/v1/forecasts/" + storm.issues
           p.classList.toggle("show", onPane);
         }
         revealIn(pane);
+        bringIntoView(pane);
       }
 
       // Bootstrap present: let it drive, just light the pane it opened.
       tabsEl.addEventListener("shown.bs.tab", function (e) {
-        revealIn(paneFor(e.target));
+        var pane = paneFor(e.target);
+        revealIn(pane);
+        bringIntoView(pane);
       });
 
       // Bootstrap absent: drive the tabs ourselves.
