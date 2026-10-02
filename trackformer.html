@@ -19,7 +19,7 @@
 
   <!-- Open Graph -->
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Trackformer 1.2 — Model Card">
+  <meta property="og:title" content="Trackformer — Typhoon Forecasting AI">
   <meta property="og:description" content="A coupled pressure-field typhoon model: how it works, how it scores against 1.1, where it is weak, and the paper.">
   <meta property="og:url" content="https://yu314-coder.github.io/trackformer.html">
   <meta property="og:image" content="https://yu314-coder.github.io/assets/img/og-image.png">
@@ -28,7 +28,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:image" content="https://yu314-coder.github.io/assets/img/og-image.png">
 
-  <title>Trackformer 1.2 — Model Card | Yu, Yao-Hsing 尤耀星</title>
+  <title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title>
 
   <!-- Bootstrap 5 (UNCHANGED — keep loaded for grid + tab/collapse JS) -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -41,7 +41,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@200;300;400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 
   <!-- Site stylesheet (single source of truth) -->
-  <link rel="stylesheet" href="assets/css/style.css?v=20261002-tfpage">
+  <link rel="stylesheet" href="assets/css/style.css?v=20261002-tfpage2">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
 <body class="theme-dark">
@@ -70,8 +70,8 @@
   <!-- Header Section -->
     <header class="page-header mc-hero">
     <div class="container">
-      <p class="eyebrow eyebrow--rule reveal">Model card</p>
-      <h1 class="reveal">Trackformer 1.2</h1>
+      <p class="eyebrow eyebrow--rule reveal">Typhoon forecasting AI &middot; model card</p>
+      <h1 class="reveal">Trackformer</h1>
       <div class="d-flex flex-wrap gap-2 mb-3 reveal">
                 <span class="badge-accent mono">released 29 Sep 2026</span>
                 <span class="badge-neutral mono">21,452,595 parameters</span>
@@ -79,7 +79,7 @@
                 <span class="badge-neutral mono">+6 to +120 h</span>
                 <span class="badge-neutral mono">MIT</span>
               </div>
-      <p class="lead-2 reveal mc-hero__lead">A research model for five-day typhoon forecasts in the western Pacific. It forecasts the surrounding sea-level pressure and a moving storm core together, then reads the storm's route and central pressure from that evolving core, every six hours from +6 to +120&nbsp;h. Everything it sees ends at the issue time. This page collects what the model is, what it was trained and scored on, where it is weak, and where the paper, weights and data live. The project around it &mdash; the live explorer and the story so far &mdash; is on the <a href="projects.html#tab-typhoon">Typhoon AI</a> project page.</p>
+      <p class="lead-2 reveal mc-hero__lead">My own tropical-cyclone model for the western Pacific. <strong>Trackformer&nbsp;1.2</strong> forecasts the surrounding sea-level pressure and a moving storm core together, then reads the storm's route and central pressure from that evolving core, every six hours out to +120&nbsp;h, from inputs that all end at the issue time. On a 1,473-forecast benchmark across 270 storms it cuts mean track error by 41% against Trackformer&nbsp;1.1. It drives the <a href="typhoon-tracks.html">Typhoon Tracks</a> explorer, on live JMA storms and past ones; this page is the project and its full model card &mdash; what it is, how it was trained and scored, where it is weak, and where the paper, weights and data live.</p>
         <div class="d-flex flex-wrap justify-content-start gap-2 mc-hero__links reveal">
               <a href="https://huggingface.co/euler314/typhoon-predict/resolve/main/paper/trackformer.pdf" target="_blank" rel="noopener noreferrer" class="badge-btn">Read the paper (PDF)</a>
               <a href="https://huggingface.co/euler314/typhoon-predict" target="_blank" rel="noopener noreferrer" class="badge-btn">Hugging Face</a>
@@ -97,12 +97,13 @@
         <nav class="mc-toc" aria-label="On this page">
           <p class="mc-toc__title">On this page</p>
           <ol>
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="#example-forecasts">Example forecasts</a></li>
             <li><a href="#at-a-glance">At a glance</a></li>
             <li><a href="#how-it-works">How it works</a></li>
             <li><a href="#inputs-and-outputs">Inputs and outputs</a></li>
             <li><a href="#training">Training</a></li>
             <li><a href="#evaluation">Evaluation</a></li>
-            <li><a href="#example-forecasts">Example forecasts</a></li>
             <li><a href="#use-and-limits">Use and limits</a></li>
             <li><a href="#the-forecast-archive">The forecast archive</a></li>
             <li><a href="#run-it">Run it, or read its forecasts</a></li>
@@ -112,6 +113,93 @@
         </nav>
       </aside>
       <article class="col-lg-9 mc-article">
+<!-- Overview -->
+    <div class="mb-4">
+      <h2 class="mc-h2" id="overview">Overview</h2>
+      <ul class="mc-steps mc-overview">
+        <li><strong>Causal by construction</strong> &mdash; the inputs end at the issue time: no JMA or JTWC forecast route, no future analysis, no observation from after the issue. Later data is used only to <em>score</em> a forecast, never to make one &mdash; which is what makes a hindcast on a 1979 storm mean something</li>
+        <li><strong>An ensemble mean, and an honest band</strong> &mdash; benchmark and live runs average 50 seeded perturbations of the past and issue-time inputs, not 50 separately trained networks; the historical backfill is one member per issue. The Lab publishes the mean rather than the members, so the shaded band on the explorer is 1.2's published mean track error at each lead &mdash; how far off it typically is &mdash; not a spread invented for the run on screen</li>
+        <li><strong>Intensity is the honest weak spot</strong> &mdash; central-pressure error against JMA is 12.84&nbsp;hPa for 1.2 and 13.53&nbsp;hPa for 1.1 on the 134 starts where both can be scored, but the paired 95% interval of [&minus;2.68,&nbsp;+1.20]&nbsp;hPa includes zero, so no intensity gain is claimed. The maximum-wind number is an auxiliary output whose averaging period is not validated and whose USA-wind benchmark is worse than 1.1's, and 1.2 has no wind-radius head at all &mdash; so the explorer draws no radius rings for it</li>
+        <li><strong>32,230 forecasts you can look up</strong> &mdash; six-hourly starts for every western-Pacific storm from 1996 on, plus first issues back to 1970, each saved with its inputs' hashes and served read-only by the Trackformer Weather Lab, alongside a live run every six hours for whatever JMA is tracking</li>
+        <li><strong>Live &amp; honest</strong> &mdash; it overlays its forecast on the JMA official track for active storms and lets you scrub any past storm to forecast forward against what actually happened. Where 1.2 has no run the overlay falls back to Trackformer&nbsp;1.1 and says so; where neither has one it draws nothing, rather than quietly substituting another model. Clearly flagged experimental &mdash; research output, not an operational warning system</li>
+      </ul>
+      <div class="lib-category-card mt-3">
+        <h3 class="h6 fw-bold mb-3">How it runs on this site</h3>
+        <ul class="small mb-0">
+                    <li><strong>1.2:</strong> typhoon-predict runs it on GitHub-hosted CPUs &mdash; the historical backfill and a live job every six hours &mdash; and the Trackformer Weather Lab serves every saved forecast through a public, read-only, CORS-enabled API</li>
+                    <li>The explorer calls that API from your browser: a storm's issue list (~5&nbsp;KB), then each forecast (~25&nbsp;KB) as you scrub. Nothing is mirrored here, so a new run appears as soon as the Lab publishes it</li>
+                    <li>Every forecast is checked against the released checkpoint before it is drawn, so no other model can appear under the 1.2 name</li>
+                    <li><strong>1.1:</strong> a GitHub Actions job on this site still computes its live run, as the fallback</li>
+                    <li>No API keys or accounts; the only thing sent to the Lab is which storm's forecasts to fetch</li>
+                  </ul>
+      </div>
+    </div>
+
+    <!-- Example forecasts -->
+    <div class="mb-4">
+      <h2 class="mc-h2" id="example-forecasts">Example forecasts</h2>
+      <div class="mc-gallery">
+        <div class="mc-gallery__tabs" role="tablist" aria-label="Example forecast">
+          <button type="button" role="tab" class="mc-gallery__tab is-on" aria-selected="true" data-video="https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_mangkhut.mp4" data-poster="assets/img/typhoon/trackformer12-mangkhut-poster.webp" data-cap="&lt;strong&gt;Mangkhut (2018)&lt;/strong&gt;, issued 11&amp;nbsp;Sep 00&amp;nbsp;UTC &amp;mdash; the release's featured film: basin pressure and the moving core registered on one map, 20 steps in 20 seconds. Mangkhut falls in 1.2's training years.">Mangkhut 2018</button>
+          <button type="button" role="tab" class="mc-gallery__tab" aria-selected="false" data-video="https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_fung_wong.mp4" data-poster="assets/img/typhoon/trackformer12-fung-wong-poster.webp" data-cap="&lt;strong&gt;Fung-wong (2025)&lt;/strong&gt;, issued 7&amp;nbsp;Nov 00&amp;nbsp;UTC &amp;mdash; a storm from after 1.2's training and validation years. An earlier rendering: the regional pressure patch is fixed to the issue position, so once the centre leaves it only the coarse basin field covers it.">Fung-wong 2025</button>
+          <button type="button" role="tab" class="mc-gallery__tab" aria-selected="false" data-video="https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_meranti.mp4" data-poster="assets/img/typhoon/trackformer12-meranti-poster.webp" data-cap="&lt;strong&gt;Meranti (2016)&lt;/strong&gt;, issued 10&amp;nbsp;Sep 00&amp;nbsp;UTC &amp;mdash; an earlier fixed-patch rendering; Meranti falls in 1.2's training years.">Meranti 2016</button>
+          <button type="button" role="tab" class="mc-gallery__tab" aria-selected="false" data-video="https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_soudelor.mp4" data-poster="assets/img/typhoon/trackformer12-soudelor-poster.webp" data-cap="&lt;strong&gt;Soudelor (2015)&lt;/strong&gt;, issued 5&amp;nbsp;Aug 00&amp;nbsp;UTC &amp;mdash; an earlier fixed-patch rendering; Soudelor falls in 1.2's training years.">Soudelor 2015</button>
+        </div>
+        <video class="mc-gallery__video" controls muted playsinline preload="none" width="1600" height="1000"
+               poster="assets/img/typhoon/trackformer12-mangkhut-poster.webp"
+               aria-label="Trackformer 1.2 example forecast film">
+          <source src="https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_mangkhut.mp4" type="video/mp4">
+        </video>
+        <p class="mc-cap mc-gallery__cap" aria-live="polite"><strong>Mangkhut (2018)</strong>, issued 11&nbsp;Sep 00&nbsp;UTC &mdash; the release's featured film: basin pressure and the moving core registered on one map, 20 steps in 20 seconds. Mangkhut falls in 1.2's training years.</p>
+        <div class="table-responsive d-inline-block text-start mt-3">
+          <table class="table table-sm small mb-0">
+            <thead><tr><th>Forecast (50-member mean)</th><th class="text-end">Mean track error</th><th class="text-end">At +120&nbsp;h</th><th class="text-end">Pressure MAE</th><th class="text-end">Leaves regional patch</th></tr></thead>
+            <tbody>
+              <tr><td>Mangkhut, 11 Sep 2018 00Z</td><td class="text-end">77.5 km</td><td class="text-end">191.7 km</td><td class="text-end">7.39 hPa</td><td class="text-end">stays inside</td></tr>
+              <tr><td>Soudelor, 5 Aug 2015 00Z</td><td class="text-end">120.6 km</td><td class="text-end">354.4 km</td><td class="text-end">9.86 hPa</td><td class="text-end">+90&nbsp;h</td></tr>
+              <tr><td>Fung-wong, 7 Nov 2025 00Z</td><td class="text-end">130.9 km</td><td class="text-end">142.3 km</td><td class="text-end">7.36 hPa</td><td class="text-end">+66&nbsp;h</td></tr>
+              <tr><td>Meranti, 10 Sep 2016 00Z</td><td class="text-end">192.9 km</td><td class="text-end">453.3 km</td><td class="text-end">13.90 hPa</td><td class="text-end">+84&nbsp;h</td></tr>
+            </tbody>
+          </table>
+          <p class="small mt-2 mb-0">From each film's <a href="https://github.com/yu314-coder/typhoon-predict/blob/main/evaluation/release_data" target="_blank" rel="noopener noreferrer">provenance record</a>; all 20 leads scored. Fung-wong stays within 200&nbsp;km of the real track at every lead. Mangkhut, Soudelor and Meranti fall in 1.2's training years, and all four are hand-picked &mdash; set them against the 471&nbsp;km benchmark mean, not in place of it.</p>
+        </div>
+        <p class="mc-cap mb-0">Each film is a 50-member mean against the observed best track. They are selected development illustrations, not typical skill or untouched-test evidence &mdash; the benchmark above is the measure. Streamed from the <a href="https://github.com/yu314-coder/typhoon-predict/blob/main/docs/showcase_archive.md" target="_blank" rel="noopener noreferrer">release's example archive</a> on Hugging Face.</p>
+      </div>
+      <script>
+        // One video element, four films. Nothing is fetched until a film is played
+        // (preload="none"); choosing a storm plays it, and it pauses whenever it leaves
+        // the screen -- including when another projects tab hides it.
+        (function () {
+          var g = document.querySelector(".mc-gallery");
+          if (!g) return;
+          var v = g.querySelector(".mc-gallery__video"), src = v.querySelector("source");
+          var cap = g.querySelector(".mc-gallery__cap"), tabs = g.querySelectorAll(".mc-gallery__tab");
+          Array.prototype.forEach.call(tabs, function (b) {
+            b.addEventListener("click", function () {
+              Array.prototype.forEach.call(tabs, function (o) {
+                var on = o === b;
+                o.classList.toggle("is-on", on);
+                o.setAttribute("aria-selected", on ? "true" : "false");
+              });
+              if (src.getAttribute("src") !== b.getAttribute("data-video")) {
+                v.pause();
+                v.setAttribute("poster", b.getAttribute("data-poster"));
+                src.setAttribute("src", b.getAttribute("data-video"));
+                v.load();
+                cap.innerHTML = b.getAttribute("data-cap");   // author-written markup from this page
+              }
+              var p = v.play(); if (p && p.catch) p.catch(function () {});
+            });
+          });
+          if ("IntersectionObserver" in window) {
+            new IntersectionObserver(function (es) {
+              es.forEach(function (e) { if (!e.isIntersecting && !v.paused) v.pause(); });
+            }).observe(v);
+          }
+        })();
+      </script>
+    </div>
+
 
 
     <!-- At a glance -->
@@ -251,46 +339,46 @@
         <text class="tf-axis" x="52" y="12" text-anchor="start">km</text>
         <path class="tf-l11" d="M52.0,222.1 L82.0,214.1 L112.0,205.9 L142.0,197.5 L172.0,188.8 L202.0,180.1 L232.0,171.3 L262.0,162.5 L292.0,153.4 L322.0,144.1 L352.0,134.5 L382.0,124.6 L412.0,114.3 L442.0,103.9 L472.0,93.1 L502.0,82.0 L532.0,70.3 L562.0,58.4 L592.0,46.4 L622.0,34.3"/>
         <path class="tf-l12" d="M52.0,224.3 L82.0,219.2 L112.0,214.7 L142.0,210.4 L172.0,206.3 L202.0,202.1 L232.0,197.6 L262.0,193.0 L292.0,188.0 L322.0,182.5 L352.0,176.6 L382.0,170.3 L412.0,163.6 L442.0,156.7 L472.0,149.4 L502.0,141.9 L532.0,133.8 L562.0,125.4 L592.0,116.5 L622.0,107.4"/>
-        <circle class="tf-d12" cx="52.0" cy="224.3" r="2.6"><title>Trackformer 1.2, +6 h: 48.3 km</title></circle>
-        <circle class="tf-d12" cx="82.0" cy="219.2" r="2.6"><title>Trackformer 1.2, +12 h: 91.1 km</title></circle>
-        <circle class="tf-d12" cx="112.0" cy="214.7" r="2.6"><title>Trackformer 1.2, +18 h: 129.1 km</title></circle>
-        <circle class="tf-d12" cx="142.0" cy="210.4" r="2.6"><title>Trackformer 1.2, +24 h: 164.5 km</title></circle>
-        <circle class="tf-d12" cx="172.0" cy="206.3" r="2.6"><title>Trackformer 1.2, +30 h: 199.1 km</title></circle>
-        <circle class="tf-d12" cx="202.0" cy="202.1" r="2.6"><title>Trackformer 1.2, +36 h: 234.9 km</title></circle>
-        <circle class="tf-d12" cx="232.0" cy="197.6" r="2.6"><title>Trackformer 1.2, +42 h: 272.5 km</title></circle>
-        <circle class="tf-d12" cx="262.0" cy="193.0" r="2.6"><title>Trackformer 1.2, +48 h: 311.5 km</title></circle>
-        <circle class="tf-d12" cx="292.0" cy="188.0" r="2.6"><title>Trackformer 1.2, +54 h: 353.5 km</title></circle>
-        <circle class="tf-d12" cx="322.0" cy="182.5" r="2.6"><title>Trackformer 1.2, +60 h: 399.4 km</title></circle>
-        <circle class="tf-d12" cx="352.0" cy="176.6" r="2.6"><title>Trackformer 1.2, +66 h: 449.3 km</title></circle>
-        <circle class="tf-d12" cx="382.0" cy="170.3" r="2.6"><title>Trackformer 1.2, +72 h: 502.5 km</title></circle>
-        <circle class="tf-d12" cx="412.0" cy="163.6" r="2.6"><title>Trackformer 1.2, +78 h: 558.3 km</title></circle>
-        <circle class="tf-d12" cx="442.0" cy="156.7" r="2.6"><title>Trackformer 1.2, +84 h: 616.2 km</title></circle>
-        <circle class="tf-d12" cx="472.0" cy="149.4" r="2.6"><title>Trackformer 1.2, +90 h: 677.7 km</title></circle>
-        <circle class="tf-d12" cx="502.0" cy="141.9" r="2.6"><title>Trackformer 1.2, +96 h: 740.9 km</title></circle>
-        <circle class="tf-d12" cx="532.0" cy="133.8" r="2.6"><title>Trackformer 1.2, +102 h: 808.8 km</title></circle>
-        <circle class="tf-d12" cx="562.0" cy="125.4" r="2.6"><title>Trackformer 1.2, +108 h: 880.1 km</title></circle>
-        <circle class="tf-d12" cx="592.0" cy="116.5" r="2.6"><title>Trackformer 1.2, +114 h: 954.9 km</title></circle>
-        <circle class="tf-d12" cx="622.0" cy="107.4" r="2.6"><title>Trackformer 1.2, +120 h: 1,031.6 km</title></circle>
-        <circle class="tf-d11" cx="52.0" cy="222.1" r="2.4"><title>Trackformer 1.1, +6 h: 66.1 km</title></circle>
-        <circle class="tf-d11" cx="82.0" cy="214.1" r="2.4"><title>Trackformer 1.1, +12 h: 133.5 km</title></circle>
-        <circle class="tf-d11" cx="112.0" cy="205.9" r="2.4"><title>Trackformer 1.1, +18 h: 202.4 km</title></circle>
-        <circle class="tf-d11" cx="142.0" cy="197.5" r="2.4"><title>Trackformer 1.1, +24 h: 273.3 km</title></circle>
-        <circle class="tf-d11" cx="172.0" cy="188.8" r="2.4"><title>Trackformer 1.1, +30 h: 346.9 km</title></circle>
-        <circle class="tf-d11" cx="202.0" cy="180.1" r="2.4"><title>Trackformer 1.1, +36 h: 419.9 km</title></circle>
-        <circle class="tf-d11" cx="232.0" cy="171.3" r="2.4"><title>Trackformer 1.1, +42 h: 493.6 km</title></circle>
-        <circle class="tf-d11" cx="262.0" cy="162.5" r="2.4"><title>Trackformer 1.1, +48 h: 568.1 km</title></circle>
-        <circle class="tf-d11" cx="292.0" cy="153.4" r="2.4"><title>Trackformer 1.1, +54 h: 644.1 km</title></circle>
-        <circle class="tf-d11" cx="322.0" cy="144.1" r="2.4"><title>Trackformer 1.1, +60 h: 722.6 km</title></circle>
-        <circle class="tf-d11" cx="352.0" cy="134.5" r="2.4"><title>Trackformer 1.1, +66 h: 803.6 km</title></circle>
-        <circle class="tf-d11" cx="382.0" cy="124.6" r="2.4"><title>Trackformer 1.1, +72 h: 886.6 km</title></circle>
-        <circle class="tf-d11" cx="412.0" cy="114.3" r="2.4"><title>Trackformer 1.1, +78 h: 973.3 km</title></circle>
-        <circle class="tf-d11" cx="442.0" cy="103.9" r="2.4"><title>Trackformer 1.1, +84 h: 1,060.6 km</title></circle>
-        <circle class="tf-d11" cx="472.0" cy="93.1" r="2.4"><title>Trackformer 1.1, +90 h: 1,151.6 km</title></circle>
-        <circle class="tf-d11" cx="502.0" cy="82.0" r="2.4"><title>Trackformer 1.1, +96 h: 1,245.0 km</title></circle>
-        <circle class="tf-d11" cx="532.0" cy="70.3" r="2.4"><title>Trackformer 1.1, +102 h: 1,343.6 km</title></circle>
-        <circle class="tf-d11" cx="562.0" cy="58.4" r="2.4"><title>Trackformer 1.1, +108 h: 1,443.2 km</title></circle>
-        <circle class="tf-d11" cx="592.0" cy="46.4" r="2.4"><title>Trackformer 1.1, +114 h: 1,544.1 km</title></circle>
-        <circle class="tf-d11" cx="622.0" cy="34.3" r="2.4"><title>Trackformer 1.1, +120 h: 1,646.4 km</title></circle>
+        <circle class="tf-d12" cx="52.0" cy="224.3" r="2.6"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d12" cx="82.0" cy="219.2" r="2.6"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d12" cx="112.0" cy="214.7" r="2.6"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d12" cx="142.0" cy="210.4" r="2.6"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d12" cx="172.0" cy="206.3" r="2.6"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d12" cx="202.0" cy="202.1" r="2.6"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d12" cx="232.0" cy="197.6" r="2.6"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d12" cx="262.0" cy="193.0" r="2.6"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d12" cx="292.0" cy="188.0" r="2.6"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d12" cx="322.0" cy="182.5" r="2.6"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d12" cx="352.0" cy="176.6" r="2.6"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d12" cx="382.0" cy="170.3" r="2.6"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d12" cx="412.0" cy="163.6" r="2.6"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d12" cx="442.0" cy="156.7" r="2.6"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d12" cx="472.0" cy="149.4" r="2.6"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d12" cx="502.0" cy="141.9" r="2.6"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d12" cx="532.0" cy="133.8" r="2.6"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d12" cx="562.0" cy="125.4" r="2.6"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d12" cx="592.0" cy="116.5" r="2.6"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d12" cx="622.0" cy="107.4" r="2.6"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d11" cx="52.0" cy="222.1" r="2.4"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d11" cx="82.0" cy="214.1" r="2.4"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d11" cx="112.0" cy="205.9" r="2.4"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d11" cx="142.0" cy="197.5" r="2.4"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d11" cx="172.0" cy="188.8" r="2.4"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d11" cx="202.0" cy="180.1" r="2.4"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d11" cx="232.0" cy="171.3" r="2.4"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d11" cx="262.0" cy="162.5" r="2.4"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d11" cx="292.0" cy="153.4" r="2.4"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d11" cx="322.0" cy="144.1" r="2.4"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d11" cx="352.0" cy="134.5" r="2.4"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d11" cx="382.0" cy="124.6" r="2.4"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d11" cx="412.0" cy="114.3" r="2.4"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d11" cx="442.0" cy="103.9" r="2.4"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d11" cx="472.0" cy="93.1" r="2.4"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d11" cx="502.0" cy="82.0" r="2.4"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d11" cx="532.0" cy="70.3" r="2.4"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d11" cx="562.0" cy="58.4" r="2.4"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d11" cx="592.0" cy="46.4" r="2.4"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
+        <circle class="tf-d11" cx="622.0" cy="34.3" r="2.4"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
         <text class="tf-lab11" x="616.0" y="26.3" text-anchor="end">1.1 · 1,646 km</text>
         <text class="tf-lab12" x="616.0" y="125.4" text-anchor="end">1.2 · 1,032 km</text>
         </svg>
@@ -361,71 +449,6 @@
         <li><strong>Not yet compared:</strong> a matched run against DeepMind's WeatherNext Cyclones Mini is pending, so no score is claimed.</li>
         <li><strong>Read the protocol:</strong> <a href="https://github.com/yu314-coder/typhoon-predict/blob/main/docs/trackformer_1_2_evaluation.md" target="_blank" rel="noopener noreferrer">evaluation limits</a> &middot; <a href="https://github.com/yu314-coder/typhoon-predict/blob/main/docs/daily_storm_benchmark.md" target="_blank" rel="noopener noreferrer">daily benchmark</a> &middot; <a href="https://github.com/yu314-coder/typhoon-predict/blob/main/docs/intensity_benchmark.md" target="_blank" rel="noopener noreferrer">intensity</a> &middot; <a href="https://github.com/yu314-coder/typhoon-predict/blob/main/evaluation/daily_storm_final.json" target="_blank" rel="noopener noreferrer">every daily score</a> &middot; <a href="https://github.com/yu314-coder/typhoon-predict/blob/main/docs/deepmind_daily_benchmark.md" target="_blank" rel="noopener noreferrer">DeepMind protocol</a></li>
       </ul>
-    </div>
-
-    <!-- Example forecasts -->
-    <div class="mb-4">
-      <h2 class="mc-h2" id="example-forecasts">Example forecasts</h2>
-      <div class="mc-gallery">
-        <div class="mc-gallery__tabs" role="tablist" aria-label="Example forecast">
-          <button type="button" role="tab" class="mc-gallery__tab is-on" aria-selected="true" data-video="https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_mangkhut.mp4" data-poster="assets/img/typhoon/trackformer12-mangkhut-poster.webp" data-cap="&lt;strong&gt;Mangkhut (2018)&lt;/strong&gt;, issued 11&amp;nbsp;Sep 00&amp;nbsp;UTC &amp;mdash; the release's featured film: basin pressure and the moving core registered on one map, 20 steps in 20 seconds. Mangkhut falls in 1.2's training years.">Mangkhut 2018</button>
-          <button type="button" role="tab" class="mc-gallery__tab" aria-selected="false" data-video="https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_fung_wong.mp4" data-poster="assets/img/typhoon/trackformer12-fung-wong-poster.webp" data-cap="&lt;strong&gt;Fung-wong (2025)&lt;/strong&gt;, issued 7&amp;nbsp;Nov 00&amp;nbsp;UTC &amp;mdash; a storm from after 1.2's training and validation years. An earlier rendering: the regional pressure patch is fixed to the issue position, so once the centre leaves it only the coarse basin field covers it.">Fung-wong 2025</button>
-          <button type="button" role="tab" class="mc-gallery__tab" aria-selected="false" data-video="https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_meranti.mp4" data-poster="assets/img/typhoon/trackformer12-meranti-poster.webp" data-cap="&lt;strong&gt;Meranti (2016)&lt;/strong&gt;, issued 10&amp;nbsp;Sep 00&amp;nbsp;UTC &amp;mdash; an earlier fixed-patch rendering; Meranti falls in 1.2's training years.">Meranti 2016</button>
-          <button type="button" role="tab" class="mc-gallery__tab" aria-selected="false" data-video="https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_soudelor.mp4" data-poster="assets/img/typhoon/trackformer12-soudelor-poster.webp" data-cap="&lt;strong&gt;Soudelor (2015)&lt;/strong&gt;, issued 5&amp;nbsp;Aug 00&amp;nbsp;UTC &amp;mdash; an earlier fixed-patch rendering; Soudelor falls in 1.2's training years.">Soudelor 2015</button>
-        </div>
-        <video class="mc-gallery__video" controls muted playsinline preload="none" width="1600" height="1000"
-               poster="assets/img/typhoon/trackformer12-mangkhut-poster.webp"
-               aria-label="Trackformer 1.2 example forecast film">
-          <source src="https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_mangkhut.mp4" type="video/mp4">
-        </video>
-        <p class="mc-cap mc-gallery__cap" aria-live="polite"><strong>Mangkhut (2018)</strong>, issued 11&nbsp;Sep 00&nbsp;UTC &mdash; the release's featured film: basin pressure and the moving core registered on one map, 20 steps in 20 seconds. Mangkhut falls in 1.2's training years.</p>
-        <div class="table-responsive d-inline-block text-start mt-3">
-          <table class="table table-sm small mb-0">
-            <thead><tr><th>Forecast (50-member mean)</th><th class="text-end">Mean track error</th><th class="text-end">At +120&nbsp;h</th><th class="text-end">Pressure MAE</th><th class="text-end">Leaves regional patch</th></tr></thead>
-            <tbody>
-              <tr><td>Mangkhut, 11 Sep 2018 00Z</td><td class="text-end">77.5 km</td><td class="text-end">191.7 km</td><td class="text-end">7.39 hPa</td><td class="text-end">stays inside</td></tr>
-              <tr><td>Soudelor, 5 Aug 2015 00Z</td><td class="text-end">120.6 km</td><td class="text-end">354.4 km</td><td class="text-end">9.86 hPa</td><td class="text-end">+90&nbsp;h</td></tr>
-              <tr><td>Fung-wong, 7 Nov 2025 00Z</td><td class="text-end">130.9 km</td><td class="text-end">142.3 km</td><td class="text-end">7.36 hPa</td><td class="text-end">+66&nbsp;h</td></tr>
-              <tr><td>Meranti, 10 Sep 2016 00Z</td><td class="text-end">192.9 km</td><td class="text-end">453.3 km</td><td class="text-end">13.90 hPa</td><td class="text-end">+84&nbsp;h</td></tr>
-            </tbody>
-          </table>
-          <p class="small mt-2 mb-0">From each film's <a href="https://github.com/yu314-coder/typhoon-predict/blob/main/evaluation/release_data" target="_blank" rel="noopener noreferrer">provenance record</a>; all 20 leads scored. Fung-wong stays within 200&nbsp;km of the real track at every lead. Mangkhut, Soudelor and Meranti fall in 1.2's training years, and all four are hand-picked &mdash; set them against the 471&nbsp;km benchmark mean, not in place of it.</p>
-        </div>
-        <p class="mc-cap mb-0">Each film is a 50-member mean against the observed best track. They are selected development illustrations, not typical skill or untouched-test evidence &mdash; the benchmark above is the measure. Streamed from the <a href="https://github.com/yu314-coder/typhoon-predict/blob/main/docs/showcase_archive.md" target="_blank" rel="noopener noreferrer">release's example archive</a> on Hugging Face.</p>
-      </div>
-      <script>
-        // One video element, four films. Nothing is fetched until a film is played
-        // (preload="none"); choosing a storm plays it, and it pauses whenever it leaves
-        // the screen -- including when another projects tab hides it.
-        (function () {
-          var g = document.querySelector(".mc-gallery");
-          if (!g) return;
-          var v = g.querySelector(".mc-gallery__video"), src = v.querySelector("source");
-          var cap = g.querySelector(".mc-gallery__cap"), tabs = g.querySelectorAll(".mc-gallery__tab");
-          Array.prototype.forEach.call(tabs, function (b) {
-            b.addEventListener("click", function () {
-              Array.prototype.forEach.call(tabs, function (o) {
-                var on = o === b;
-                o.classList.toggle("is-on", on);
-                o.setAttribute("aria-selected", on ? "true" : "false");
-              });
-              if (src.getAttribute("src") !== b.getAttribute("data-video")) {
-                v.pause();
-                v.setAttribute("poster", b.getAttribute("data-poster"));
-                src.setAttribute("src", b.getAttribute("data-video"));
-                v.load();
-                cap.innerHTML = b.getAttribute("data-cap");   // author-written markup from this page
-              }
-              var p = v.play(); if (p && p.catch) p.catch(function () {});
-            });
-          });
-          if ("IntersectionObserver" in window) {
-            new IntersectionObserver(function (es) {
-              es.forEach(function (e) { if (!e.isIntersecting && !v.paused) v.pause(); });
-            }).observe(v);
-          }
-        })();
-      </script>
     </div>
 
     <!-- Intended use & limits -->
@@ -525,7 +548,7 @@ const fc = await (await fetch(base + "/api/history/v1/forecasts/" + storm.issues
           <tbody>
             <tr><td><a href="https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.2" target="_blank" rel="noopener noreferrer"><strong>1.2</strong></a></td><td>29 Sep 2026</td><td>Pressure field + moving core; this card. Supersedes a withdrawn, unrelated route/scalar 1.2 candidate</td></tr>
             <tr><td><a href="https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.1" target="_blank" rel="noopener noreferrer">1.1</a></td><td>20 Aug 2026</td><td>Causal route through a western-Pacific steering ensemble, with intensity and structure heads (RMW, 34/50/64&nbsp;kt radii)</td></tr>
-            <tr><td>1.0</td><td>16 Jul 2026</td><td>The field-free historical family, first live on this site on 16&nbsp;July and renamed 1.0 on 8&nbsp;August, when the project moved to release names; never a tagged release. Its five-seed int8 ensemble ran in the browser</td></tr>
+            <tr><td>1.0</td><td>16 Jul 2026</td><td>The field-free historical family, first live on this site on 16&nbsp;July and renamed 1.0 on 8&nbsp;August, when the project moved to release names; never a tagged release. Its five-seed int8 ensemble ran in the browser and sampled routes from its own 40-dimensional forecast-error covariance, where the cross-lead correlation kept them coherent &mdash; a diagonal covariance collapses 90% coverage from 0.82 to 0.20 &mdash; tying into my <a href="projects.html#tab-gencov">random-matrix covariance</a> work</td></tr>
           </tbody>
         </table>
       </div>
