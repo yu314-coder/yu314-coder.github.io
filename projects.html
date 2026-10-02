@@ -41,7 +41,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@200;300;400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 
   <!-- Site stylesheet (single source of truth) -->
-  <link rel="stylesheet" href="assets/css/style.css?v=20261002-ptnav">
+  <link rel="stylesheet" href="assets/css/style.css?v=20261002-tfpage">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
 <body class="theme-dark">
@@ -60,6 +60,7 @@
           <li class="nav-item"><a class="nav-link" href="pypi-stats.html">PyPI Stats</a></li>
           <li class="nav-item"><a class="nav-link" href="store-stats.html">Store Stats</a></li>
           <li class="nav-item"><a class="nav-link" href="typhoon-tracks.html">Typhoon Tracks</a></li>
+          <li class="nav-item"><a class="nav-link" href="trackformer.html">Trackformer</a></li>
           <li class="nav-item"><a class="nav-link" href="privacy.html">Privacy</a></li>
         </ul>
       </div>
@@ -72,16 +73,21 @@
       <p class="eyebrow eyebrow--rule reveal">Portfolio</p>
       <h1 class="reveal">Projects</h1>
       <p class="lead-2 reveal">Featured apps, libraries, and tools — organized by category.</p>
+      <div class="pt-meta reveal">
+        <a class="pt-meta__item" href="store-stats.html">Store downloads <span aria-hidden="true">&rarr;</span></a>
+        <a class="pt-meta__item" href="pypi-stats.html">PyPI installs <span aria-hidden="true">&rarr;</span></a>
+        <a class="pt-meta__item" href="trackformer.html">Trackformer model card <span aria-hidden="true">&rarr;</span></a>
+      </div>
     </div>
   </header>
 
   <!-- Projects Section (tabbed) -->
-  <section class="section container">
+  <section class="section container pt-section">
 
     <!-- Tab Navigation. Grouped tiles rather than one row of identical pills: eleven pills
          wrapped onto two rows and a new tab was easy to miss. Same Bootstrap tab wiring --
          every button keeps its .nav-link class, id and data-bs-target, and #projectTabs keeps
-         role="tablist" -- so deep links like projects.html#tab-trackformer still work. -->
+         role="tablist" -- so deep links like projects.html#tab-py2bin still work. -->
     <div class="pt-nav mb-5" id="projectTabs" role="tablist" aria-label="Projects">
       <div class="pt-group" role="presentation">
         <p class="pt-group__label" aria-hidden="true">Apps</p>
@@ -99,13 +105,12 @@
         <div class="pt-group__items" role="presentation">
           <button class="nav-link pt-tile" id="tab-gencov-btn" data-bs-toggle="pill" data-bs-target="#tab-gencov" type="button" role="tab" aria-controls="tab-gencov" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/generalized-covariance.webp" type="image/webp"><img src="assets/img/app-icons/generalized-covariance.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">Generalized Covariance</span><span class="pt-tile__sub">Eigenvalue spectral analysis</span></span></button>
           <button class="nav-link pt-tile" id="tab-typhoon-btn" data-bs-toggle="pill" data-bs-target="#tab-typhoon" type="button" role="tab" aria-controls="tab-typhoon" aria-selected="false"><span class="pt-tile__icon pt-tile__icon--glyph"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.2"/><path d="M12 4.5c-4.4 0-7.5 3-7.5 6.8M12 19.5c4.4 0 7.5-3 7.5-6.8M4.5 12c0 2.6 2 4.6 4.6 4.6M19.5 12c0-2.6-2-4.6-4.6-4.6"/></svg></span><span class="pt-tile__text"><span class="pt-tile__name">Typhoon AI</span><span class="pt-tile__sub">Five-day typhoon forecasts</span></span></button>
-          <button class="nav-link pt-tile" id="tab-trackformer-btn" data-bs-toggle="pill" data-bs-target="#tab-trackformer" type="button" role="tab" aria-controls="tab-trackformer" aria-selected="false"><span class="pt-tile__icon pt-tile__icon--glyph"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="3.5" width="15" height="17" rx="2.5"/><path d="M8 8h8M8 11.5h8M8 15h5"/></svg></span><span class="pt-tile__text"><span class="pt-tile__name">Trackformer</span><span class="pt-tile__sub">Model card &middot; 1.2</span></span></button>
+          <button class="nav-link pt-tile" id="tab-afm-btn" data-bs-toggle="pill" data-bs-target="#tab-afm" type="button" role="tab" aria-controls="tab-afm" aria-selected="false"><span class="pt-tile__icon pt-tile__icon--glyph"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M10 3.5V7M14 3.5V7M10 17v3.5M14 17v3.5M3.5 10H7M3.5 14H7M17 10h3.5M17 14h3.5"/></svg></span><span class="pt-tile__text"><span class="pt-tile__name">Apple Teardown</span><span class="pt-tile__sub">On-device LLM, decoded</span></span></button>
         </div>
       </div>
       <div class="pt-group" role="presentation">
-        <p class="pt-group__label" aria-hidden="true">Systems</p>
+        <p class="pt-group__label" aria-hidden="true">Tools</p>
         <div class="pt-group__items" role="presentation">
-          <button class="nav-link pt-tile" id="tab-afm-btn" data-bs-toggle="pill" data-bs-target="#tab-afm" type="button" role="tab" aria-controls="tab-afm" aria-selected="false"><span class="pt-tile__icon pt-tile__icon--glyph"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M10 3.5V7M14 3.5V7M10 17v3.5M14 17v3.5M3.5 10H7M3.5 14H7M17 10h3.5M17 14h3.5"/></svg></span><span class="pt-tile__text"><span class="pt-tile__name">Apple Teardown</span><span class="pt-tile__sub">On-device LLM, decoded</span></span></button>
           <button class="nav-link pt-tile" id="tab-py2bin-btn" data-bs-toggle="pill" data-bs-target="#tab-py2bin" type="button" role="tab" aria-controls="tab-py2bin" aria-selected="false"><span class="pt-tile__icon pt-tile__icon--glyph"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="M7.5 10l2.5 2-2.5 2M12.5 15h4"/></svg></span><span class="pt-tile__text"><span class="pt-tile__name">py2bin</span><span class="pt-tile__sub">Python to machine code</span></span></button>
         </div>
       </div>
@@ -1525,7 +1530,7 @@
                 <p class="small mb-1"><strong>Category:</strong> Research &amp; Education &mdash; ML / weather</p>
                 <p class="small mb-1"><strong>Frameworks:</strong> PyTorch &middot; Plotly</p>
                 <p class="small mb-1"><strong>Data:</strong> NOAA NCEI IBTrACS &middot; NOAA NCEP/NCAR Reanalysis&nbsp;1 &middot; NOAA GFS f000 analyses &middot; JMA (live analysis; official forecasts for display only)</p>
-                <p class="small mb-1"><strong>Current release:</strong> Trackformer&nbsp;1.2 &mdash; weights on <a href="https://huggingface.co/euler314/typhoon-predict" target="_blank" rel="noopener noreferrer" class="lib-link">Hugging Face</a> and in the <a href="https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.2" target="_blank" rel="noopener noreferrer" class="lib-link">1.2 release</a>, with the <a href="https://huggingface.co/euler314/typhoon-predict/resolve/main/paper/trackformer.pdf" target="_blank" rel="noopener noreferrer" class="lib-link">technical paper</a>, and the full <a href="#tab-trackformer" onclick="document.getElementById('tab-trackformer-btn').click();return false;" class="lib-link">model card</a></p>
+                <p class="small mb-1"><strong>Current release:</strong> Trackformer&nbsp;1.2 &mdash; weights on <a href="https://huggingface.co/euler314/typhoon-predict" target="_blank" rel="noopener noreferrer" class="lib-link">Hugging Face</a> and in the <a href="https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.2" target="_blank" rel="noopener noreferrer" class="lib-link">1.2 release</a>, with the <a href="https://huggingface.co/euler314/typhoon-predict/resolve/main/paper/trackformer.pdf" target="_blank" rel="noopener noreferrer" class="lib-link">technical paper</a>, and the full <a href="trackformer.html" class="lib-link">model card</a></p>
                 <p class="small mb-0"><strong>Status:</strong> Trackformer&nbsp;1.2 drives the Typhoon Tracks explorer, read live from the Weather Lab; 1.1 fills in where 1.2 has no run</p>
               </div>
             </div>
@@ -1534,7 +1539,7 @@
               <a href="typhoon-tracks.html" class="badge-btn">
                 Try it live
               </a>
-              <a href="#tab-trackformer" class="badge-btn" onclick="document.getElementById('tab-trackformer-btn').click();return false;">
+              <a href="trackformer.html" class="badge-btn">
                 Model card
               </a>
               <a href="https://github.com/yu314-coder/typhoon-predict" target="_blank" rel="noopener noreferrer" class="badge-btn">
@@ -1555,458 +1560,6 @@
       </div>
     </div>
     </div><!-- /tab-typhoon -->
-
-    <!-- Tab: Trackformer model card -->
-    <div class="tab-pane fade" id="tab-trackformer" role="tabpanel" aria-labelledby="tab-trackformer-btn">
-
-    <!-- Model card: Trackformer 1.2. Every number here is quoted from the release's own sources
-         (README, paper, evaluation JSON, the Weather Lab benchmark API); see the links beside each. -->
-    <div class="card card--hue hue-typhoon reveal">
-      <div class="card-body p-4 p-md-5">
-        <div class="row g-0 align-items-center justify-content-center">
-          <div class="col-lg-10 col-xl-9 text-center">
-            <header class="mb-4">
-              <p class="eyebrow mb-2">model card</p>
-              <h3 class="h2 mb-2 fw-bold">Trackformer 1.2</h3>
-              <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
-                <span class="badge-accent mono">released 29 Sep 2026</span>
-                <span class="badge-neutral mono">21,452,595 parameters</span>
-                <span class="badge-neutral mono">western Pacific</span>
-                <span class="badge-neutral mono">+6 to +120 h</span>
-                <span class="badge-neutral mono">MIT</span>
-              </div>
-              <p class="lead mb-0">A research model for five-day typhoon forecasts in the western Pacific. It forecasts the surrounding sea-level pressure and a moving storm core together, then reads the storm's route and central pressure from that evolving core, every six hours from +6 to +120&nbsp;h. Everything it sees ends at the issue time. This card collects what the model is, what it was trained and scored on, where it is weak, and where the paper, weights and data live; the project itself is on the <a href="#tab-typhoon" onclick="document.getElementById('tab-typhoon-btn').click();return false;">Typhoon AI</a> tab.</p>
-            </header>
-
-            <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
-              <a href="https://huggingface.co/euler314/typhoon-predict/resolve/main/paper/trackformer.pdf" target="_blank" rel="noopener noreferrer" class="badge-btn">Read the paper (PDF)</a>
-              <a href="https://huggingface.co/euler314/typhoon-predict" target="_blank" rel="noopener noreferrer" class="badge-btn">Hugging Face</a>
-              <a href="https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.2" target="_blank" rel="noopener noreferrer" class="badge-btn">1.2 release</a>
-              <a href="https://github.com/yu314-coder/typhoon-predict" target="_blank" rel="noopener noreferrer" class="badge-btn">GitHub</a>
-              <a href="https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/history" target="_blank" rel="noopener noreferrer" class="badge-btn">Weather Lab</a>
-              <a href="typhoon-tracks.html" class="badge-btn">Try it live</a>
-            </div>
-
-            <!-- At a glance -->
-            <div class="mb-4">
-              <h4 class="h5 fw-bold mb-3">At a glance</h4>
-              <dl class="mc-spec text-start">
-                <dt>Model</dt><dd>Trackformer&nbsp;1.2 &mdash; coupled pressure-field tropical-cyclone forecaster</dd>
-                <dt>Released</dt><dd>29&nbsp;Sep&nbsp;2026 as <a href="https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.2" target="_blank" rel="noopener noreferrer"><code>trackformer-1.2</code></a>; paper revised 1&nbsp;Oct&nbsp;2026</dd>
-                <dt>Author</dt><dd>Yu Yao-Hsing</dd>
-                <dt>Status</dt><dd>Research model, not operational</dd>
-                <dt>Type</dt><dd>Recurrent convolutional encoder&ndash;decoders with Transformer attention, rolled out autoregressively</dd>
-                <dt>Parameters</dt><dd>21,452,595 &mdash; one shared set of weights</dd>
-                <dt>Domain</dt><dd>Western North Pacific: basin grid 0&ndash;60&deg;N, 100&ndash;180&deg;E at 2.5&deg;; regional grid &plusmn;15&deg; around the storm at 0.25&deg;</dd>
-                <dt>Inputs</dt><dd>Nine six-hourly analyses (&minus;48 to 0&nbsp;h) of sea-level pressure, 500&nbsp;hPa height and the winds at 850/500/200&nbsp;hPa; static geography; the observed centre, motion and issue-time intensity</dd>
-                <dt>Outputs</dt><dd>Track, central pressure, basin and regional sea-level pressure fields, and an auxiliary maximum wind at +6, +12, &hellip;, +120&nbsp;h</dd>
-                <dt>Ensemble</dt><dd>Benchmark, showcase and live-ensemble runs average 50 seeded perturbations of the inputs; the historical archive and <code>predict.py</code> give single clean forecasts</dd>
-                <dt>Training data</dt><dd>Whole storms by year: 2000&ndash;2021 training, 2022&ndash;23 validation, 2024&ndash;25 test; labels from IBTrACS</dd>
-                <dt>Licence</dt><dd>MIT</dd>
-                <dt>Weights</dt><dd><a href="https://huggingface.co/euler314/typhoon-predict/resolve/main/models/trackformer_1_2_field/weights.pt" target="_blank" rel="noopener noreferrer"><code>weights.pt</code></a>, 86.0&nbsp;MB (85,997,315 bytes); the released checkpoint is from epoch 4</dd>
-                <dt>Weights SHA-256</dt><dd><code>db49f36e85a3766defc4c172746897a1f783705d1ce8e6f9dfb8e87ae1d902cb</code></dd>
-                <dt>Checkpoint SHA-256</dt><dd><code>f194a23d3f91ea76ad776dfad942fabd669eeae8b3fd665815463095367e9ee0</code> &mdash; the hash every saved forecast carries, and the one the Typhoon Tracks overlay checks</dd>
-                <dt>Dataset SHA-256</dt><dd><code>04fd0d30620137aad20173dcd59e22da2a6c20fae2f17de593e91a59517459c1</code> (<a href="https://github.com/yu314-coder/typhoon-predict/blob/main/models/trackformer_1_2_field/manifest.json" target="_blank" rel="noopener noreferrer">manifest</a>)</dd>
-                <dt>Paper</dt><dd><a href="https://huggingface.co/euler314/typhoon-predict/resolve/main/paper/trackformer.pdf" target="_blank" rel="noopener noreferrer">Trackformer&nbsp;1.2: Coupled pressure-field forecasting</a> (PDF, 10 pages)</dd>
-              </dl>
-            </div>
-
-            <!-- Architecture -->
-            <div class="mb-4">
-              <h4 class="h5 fw-bold mb-3">How it works</h4>
-              <figure class="mc-figure mb-3">
-                <img src="assets/img/typhoon/trackformer12-architecture.svg" width="1260" height="400" loading="lazy" decoding="async"
-                     alt="Trackformer 1.2 pipeline: nine causal analyses initialise coupled basin-pressure and moving-core evolution; their physical pressure composite gives the storm centre and central pressure; a recurrent rollout advances twenty six-hour steps.">
-                <figcaption class="mc-cap">Pressure first: the route is read from the forecast pressure field, not predicted as a separate number. Diagram from the <a href="https://github.com/yu314-coder/typhoon-predict/blob/main/docs/trackformer_1_2_architecture.svg" target="_blank" rel="noopener noreferrer">release repository</a>.</figcaption>
-              </figure>
-              <ol class="mc-steps text-start">
-                <li><strong>Initialise from the past.</strong> Nine six-hourly analyses, &minus;48&nbsp;h to the issue time, of sea-level pressure, 500&nbsp;hPa height and the winds at 850, 500 and 200&nbsp;hPa, with static geography, the storm's observed centre, recent motion, current intensity and validity masks. Finer regional pressure detail is used where it exists; where it does not, it stays masked rather than filled in.</li>
-                <li><strong>Evolve the environment.</strong> A convolutional recurrent network advances the basin's pressure by steering-based advection plus learned pressure tendencies, with multiscale spatial tokens and attention conditioning its memory.</li>
-                <li><strong>Move and evolve the core.</strong> A storm-centred pressure anomaly is carried relative to that environment and updated by its own learned tendencies; basin pressure plus the tapered core anomaly is the spatial forecast.</li>
-                <li><strong>Read out the storm.</strong> The centre is the local low within 300&nbsp;km and the central pressure is sampled there, so the route and the pressure forecast cannot disagree. A separate auxiliary head gives a single maximum-wind number &mdash; not a wind map.</li>
-                <li><strong>Roll forward.</strong> Twenty autoregressive six-hour steps give +6, +12, &hellip;, +120&nbsp;h. Future truth is a training target, never an inference input.</li>
-              </ol>
-              <div class="table-responsive d-inline-block text-start">
-                <table class="table table-sm small mb-0">
-                  <thead><tr><th>Released architecture</th><th>Configuration</th></tr></thead>
-                  <tbody>
-                    <tr><td>Trainable parameters</td><td>21,452,595</td></tr>
-                    <tr><td>Basin history</td><td>9 &times; 8 &times; 25 &times; 33 (steps &times; channels &times; lat &times; lon), &minus;48 to 0&nbsp;h</td></tr>
-                    <tr><td>Basin / core network widths</td><td>72 / 144 / 288 / 432 and 64 / 128 / 256 / 384</td></tr>
-                    <tr><td>Moving core</td><td>65 &times; 65, about 20&nbsp;km spacing</td></tr>
-                    <tr><td>Environmental attention</td><td>134 pooled tokens, width 64, 4 heads, 2 Transformer blocks</td></tr>
-                    <tr><td>Recurrent memory</td><td>32 channels each, basin and core</td></tr>
-                    <tr><td>Forecast steps</td><td>20 &times; 6&nbsp;h</td></tr>
-                  </tbody>
-                </table>
-              </div>
-              <h5 class="h6 fw-bold mt-4 mb-2">Under the hood, from the paper</h5>
-              <ul class="small text-start mc-steps mb-0">
-                <li><strong>Two encoder&ndash;decoders.</strong> The basin network runs at widths 72/144/288/432 with depths 2/2/4/4 on the 25&nbsp;&times;&nbsp;33 grid; the core network runs at 64/128/256/384 on a 65&nbsp;&times;&nbsp;65 frame at 20&nbsp;km spacing, &plusmn;640&nbsp;km around the storm. Each keeps a 32-channel convolutional GRU memory between steps.</li>
-                <li><strong>Attention for context.</strong> The basin is pooled into 134 multiscale tokens (width 64, 4 heads, 2 pre-norm Transformer layers), and all 825 basin cells cross-attend to them, so a ridge or trough far from the storm can condition its motion.</li>
-                <li><strong>Steering transport.</strong> The steering flow is a learned blend of the 850, 500 and 200&nbsp;hPa winds, starting at weights 0.4/0.4/0.2, plus a bounded learned correction. It advects the basin pressure, and the next step's motion proposal is 70% of that steering displacement (wind in m/s &times; 21.6 gives km per six hours) plus 30% of the previous step's motion, plus a learned correction bounded at &plusmn;100&nbsp;km.</li>
-                <li><strong>Pressure-associated readout.</strong> The new centre is a soft minimum of pressure within 300&nbsp;km of the proposal, weighted by a 180&nbsp;km Gaussian; central pressure is sampled at that centre, not taken as the grid minimum.</li>
-                <li><strong>Geographic reconstruction.</strong> The map is the basin field plus the tapered core anomaly, registered by position. Once a storm leaves the &plusmn;15&deg; regional patch &mdash; at +66 to +90&nbsp;h in the films below &mdash; only the 2.5&deg; basin field covers it.</li>
-              </ul>
-            </div>
-
-            <!-- Input / output contract -->
-            <div class="mb-4">
-              <h4 class="h5 fw-bold mb-3">Inputs and outputs</h4>
-              <p class="small mb-3">The model reads one causal issue packet and writes one forecast, both NumPy <code>.npz</code> files (pickled content is refused). Every input ends at the issue time. The eight channels are sea-level pressure (hPa), 500&nbsp;hPa height (m) and the u/v winds at 850, 500 and 200&nbsp;hPa (m/s), each normalised by a mean and standard deviation fitted on the training split alone &mdash; sea-level pressure, for example, by 8.27&nbsp;hPa. The full contract is in the <a href="https://github.com/yu314-coder/typhoon-predict/blob/main/models/trackformer_1_2_field/README.md" target="_blank" rel="noopener noreferrer">model README</a>.</p>
-              <div class="row g-3 justify-content-center">
-                <div class="col-md-6">
-                  <div class="lib-category-card">
-                    <h5 class="h6 fw-bold mb-3">Input packet</h5>
-                    <ul class="small mb-0 text-start">
-                      <li><code>global_history</code> 9&times;8&times;25&times;33 &mdash; the basin analyses</li>
-                      <li><code>regional_history</code> 9&times;1&times;121&times;121 &mdash; storm-centred pressure detail</li>
-                      <li><code>global_static</code>, <code>regional_static</code> &mdash; latitude, longitude, land fraction, elevation</li>
-                      <li><code>detail_available</code> &mdash; whether that regional detail exists</li>
-                      <li><code>center</code>, <code>motion</code> (km) &mdash; observed position and last six-hour motion</li>
-                      <li><code>issue_intensity</code> (kt, hPa), <code>issue_mask</code> &mdash; current intensity and which parts are known</li>
-                      <li><code>issue_time_ns</code>, <code>history_time_ns</code> &mdash; nine consecutive six-hour times ending at the issue</li>
-                    </ul>
-                  </div>
-                </div>
-                <div class="col-md-6">
-                  <div class="lib-category-card">
-                    <h5 class="h6 fw-bold mb-3">Forecast</h5>
-                    <ul class="small mb-0 text-start">
-                      <li><code>lead_hours</code> &mdash; 6 to 120 in six-hour steps</li>
-                      <li><code>track_lat_lon</code> &mdash; the storm centre at each lead</li>
-                      <li><code>central_pressure_hpa</code> &mdash; sampled at that centre, not the grid minimum</li>
-                      <li><code>basin_mslp_hpa</code>, <code>regional_mslp_hpa</code> &mdash; the pressure maps</li>
-                      <li><code>maximum_wind_auxiliary_kt</code> &mdash; a scalar with validity mask, averaging period not validated</li>
-                      <li>Experimental pressure-derived wind, RMW and R34/R50/R64 estimates &mdash; diagnostics, not forecasts (<a href="https://github.com/yu314-coder/typhoon-predict/blob/main/models/trackformer_1_2_field/WIND_ESTIMATION.md" target="_blank" rel="noopener noreferrer">method</a>)</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Training -->
-            <div class="mb-4">
-              <h4 class="h5 fw-bold mb-3">Training</h4>
-              <ul class="small text-start mc-steps mb-0">
-                <li><strong>Split by whole storm and year</strong>, so no storm is in two splits: 13,949 training windows from 2000&ndash;2021, 1,041 validation windows from 2022&ndash;23 and 1,195 test windows from 2024&ndash;25; 800, 100 and 100 of them carry native regional pressure detail. No separate scores on the test split are published &mdash; the evaluation below is the released benchmark.</li>
-                <li><strong>Normalisation</strong> is a per-channel mean and standard deviation fitted on the training split only (through 2021).</li>
-                <li><strong>Objective:</strong> a weighted sum of the basin-field and regional-field errors, the route (weight 0.2), central pressure (0.5), auxiliary wind (0.05), and the six-hour changes in pressure (0.25) and position (0.1). The innermost 150&nbsp;km is left out of regional-field supervision. Future observations are targets only.</li>
-                <li><strong>Ensemble:</strong> 50 members from seeded, smoothed perturbations of the past and issue-time inputs &mdash; not 50 separately trained networks &mdash; averaged with equal weight. Noise is 0.025 standard deviations on the basin fields and 0.015 on the regional field, smoothed over 5 and 9 cells, with each member's seed fixed so every forecast can be replayed exactly. The spread is not calibrated uncertainty.</li>
-                <li><strong>Labels:</strong> IBTrACS positions and central pressure, from both the JMA (<code>TOKYO_PRES</code>) and USA (<code>USA_PRES</code>) fields.</li>
-              </ul>
-            </div>
-
-            <!-- Evaluation -->
-            <div class="mb-4">
-              <h4 class="h5 fw-bold mb-3">Evaluation</h4>
-              <p class="small mb-3">The released daily benchmark scores 1.2 against Trackformer&nbsp;1.1 on 1,473 daily forecasts of 270 western-Pacific storms &mdash; 230 from 1980&ndash;1999 and 40 from 2024 on &mdash; with the same starts, valid times and leads for both. Each lead's error is averaged per day and each storm is weighted equally. 1.2 is the mean of 50 members. The cohort lies outside 1.2's fitting and validation years, but it is a development comparison, not a certified untouched holdout.</p>
-              <figure class="mc-figure mb-3">
-                <svg class="tf-chart" viewBox="0 0 640 270" role="img" aria-labelledby="tf-chart-t tf-chart-d">
-                <title id="tf-chart-t">Mean track error by forecast lead, Trackformer 1.1 vs 1.2</title>
-                <desc id="tf-chart-d">Released daily benchmark, 1,473 forecasts of 270 storms. Trackformer 1.2 is lower at every lead: 164.5 km against 273.3 km at +24 h, 502.5 against 886.6 at +72 h, 1031.6 against 1646.4 at +120 h.</desc>
-                <line class="tf-grid" x1="52" x2="622" y1="230.0" y2="230.0"/>
-                <text class="tf-axis" x="44" y="234.0" text-anchor="end">0</text>
-                <line class="tf-grid" x1="52" x2="622" y1="182.4" y2="182.4"/>
-                <text class="tf-axis" x="44" y="186.4" text-anchor="end">400</text>
-                <line class="tf-grid" x1="52" x2="622" y1="134.9" y2="134.9"/>
-                <text class="tf-axis" x="44" y="138.9" text-anchor="end">800</text>
-                <line class="tf-grid" x1="52" x2="622" y1="87.3" y2="87.3"/>
-                <text class="tf-axis" x="44" y="91.3" text-anchor="end">1,200</text>
-                <line class="tf-grid" x1="52" x2="622" y1="39.8" y2="39.8"/>
-                <text class="tf-axis" x="44" y="43.8" text-anchor="end">1,600</text>
-                <text class="tf-axis" x="52.0" y="248" text-anchor="middle">+6 h</text>
-                <text class="tf-axis" x="142.0" y="248" text-anchor="middle">+24 h</text>
-                <text class="tf-axis" x="262.0" y="248" text-anchor="middle">+48 h</text>
-                <text class="tf-axis" x="382.0" y="248" text-anchor="middle">+72 h</text>
-                <text class="tf-axis" x="502.0" y="248" text-anchor="middle">+96 h</text>
-                <text class="tf-axis" x="622.0" y="248" text-anchor="middle">+120 h</text>
-                <text class="tf-axis" x="52" y="12" text-anchor="start">km</text>
-                <path class="tf-l11" d="M52.0,222.1 L82.0,214.1 L112.0,205.9 L142.0,197.5 L172.0,188.8 L202.0,180.1 L232.0,171.3 L262.0,162.5 L292.0,153.4 L322.0,144.1 L352.0,134.5 L382.0,124.6 L412.0,114.3 L442.0,103.9 L472.0,93.1 L502.0,82.0 L532.0,70.3 L562.0,58.4 L592.0,46.4 L622.0,34.3"/>
-                <path class="tf-l12" d="M52.0,224.3 L82.0,219.2 L112.0,214.7 L142.0,210.4 L172.0,206.3 L202.0,202.1 L232.0,197.6 L262.0,193.0 L292.0,188.0 L322.0,182.5 L352.0,176.6 L382.0,170.3 L412.0,163.6 L442.0,156.7 L472.0,149.4 L502.0,141.9 L532.0,133.8 L562.0,125.4 L592.0,116.5 L622.0,107.4"/>
-                <circle class="tf-d12" cx="52.0" cy="224.3" r="2.6"><title>Trackformer 1.2, +6 h: 48.3 km</title></circle>
-                <circle class="tf-d12" cx="82.0" cy="219.2" r="2.6"><title>Trackformer 1.2, +12 h: 91.1 km</title></circle>
-                <circle class="tf-d12" cx="112.0" cy="214.7" r="2.6"><title>Trackformer 1.2, +18 h: 129.1 km</title></circle>
-                <circle class="tf-d12" cx="142.0" cy="210.4" r="2.6"><title>Trackformer 1.2, +24 h: 164.5 km</title></circle>
-                <circle class="tf-d12" cx="172.0" cy="206.3" r="2.6"><title>Trackformer 1.2, +30 h: 199.1 km</title></circle>
-                <circle class="tf-d12" cx="202.0" cy="202.1" r="2.6"><title>Trackformer 1.2, +36 h: 234.9 km</title></circle>
-                <circle class="tf-d12" cx="232.0" cy="197.6" r="2.6"><title>Trackformer 1.2, +42 h: 272.5 km</title></circle>
-                <circle class="tf-d12" cx="262.0" cy="193.0" r="2.6"><title>Trackformer 1.2, +48 h: 311.5 km</title></circle>
-                <circle class="tf-d12" cx="292.0" cy="188.0" r="2.6"><title>Trackformer 1.2, +54 h: 353.5 km</title></circle>
-                <circle class="tf-d12" cx="322.0" cy="182.5" r="2.6"><title>Trackformer 1.2, +60 h: 399.4 km</title></circle>
-                <circle class="tf-d12" cx="352.0" cy="176.6" r="2.6"><title>Trackformer 1.2, +66 h: 449.3 km</title></circle>
-                <circle class="tf-d12" cx="382.0" cy="170.3" r="2.6"><title>Trackformer 1.2, +72 h: 502.5 km</title></circle>
-                <circle class="tf-d12" cx="412.0" cy="163.6" r="2.6"><title>Trackformer 1.2, +78 h: 558.3 km</title></circle>
-                <circle class="tf-d12" cx="442.0" cy="156.7" r="2.6"><title>Trackformer 1.2, +84 h: 616.2 km</title></circle>
-                <circle class="tf-d12" cx="472.0" cy="149.4" r="2.6"><title>Trackformer 1.2, +90 h: 677.7 km</title></circle>
-                <circle class="tf-d12" cx="502.0" cy="141.9" r="2.6"><title>Trackformer 1.2, +96 h: 740.9 km</title></circle>
-                <circle class="tf-d12" cx="532.0" cy="133.8" r="2.6"><title>Trackformer 1.2, +102 h: 808.8 km</title></circle>
-                <circle class="tf-d12" cx="562.0" cy="125.4" r="2.6"><title>Trackformer 1.2, +108 h: 880.1 km</title></circle>
-                <circle class="tf-d12" cx="592.0" cy="116.5" r="2.6"><title>Trackformer 1.2, +114 h: 954.9 km</title></circle>
-                <circle class="tf-d12" cx="622.0" cy="107.4" r="2.6"><title>Trackformer 1.2, +120 h: 1,031.6 km</title></circle>
-                <circle class="tf-d11" cx="52.0" cy="222.1" r="2.4"><title>Trackformer 1.1, +6 h: 66.1 km</title></circle>
-                <circle class="tf-d11" cx="82.0" cy="214.1" r="2.4"><title>Trackformer 1.1, +12 h: 133.5 km</title></circle>
-                <circle class="tf-d11" cx="112.0" cy="205.9" r="2.4"><title>Trackformer 1.1, +18 h: 202.4 km</title></circle>
-                <circle class="tf-d11" cx="142.0" cy="197.5" r="2.4"><title>Trackformer 1.1, +24 h: 273.3 km</title></circle>
-                <circle class="tf-d11" cx="172.0" cy="188.8" r="2.4"><title>Trackformer 1.1, +30 h: 346.9 km</title></circle>
-                <circle class="tf-d11" cx="202.0" cy="180.1" r="2.4"><title>Trackformer 1.1, +36 h: 419.9 km</title></circle>
-                <circle class="tf-d11" cx="232.0" cy="171.3" r="2.4"><title>Trackformer 1.1, +42 h: 493.6 km</title></circle>
-                <circle class="tf-d11" cx="262.0" cy="162.5" r="2.4"><title>Trackformer 1.1, +48 h: 568.1 km</title></circle>
-                <circle class="tf-d11" cx="292.0" cy="153.4" r="2.4"><title>Trackformer 1.1, +54 h: 644.1 km</title></circle>
-                <circle class="tf-d11" cx="322.0" cy="144.1" r="2.4"><title>Trackformer 1.1, +60 h: 722.6 km</title></circle>
-                <circle class="tf-d11" cx="352.0" cy="134.5" r="2.4"><title>Trackformer 1.1, +66 h: 803.6 km</title></circle>
-                <circle class="tf-d11" cx="382.0" cy="124.6" r="2.4"><title>Trackformer 1.1, +72 h: 886.6 km</title></circle>
-                <circle class="tf-d11" cx="412.0" cy="114.3" r="2.4"><title>Trackformer 1.1, +78 h: 973.3 km</title></circle>
-                <circle class="tf-d11" cx="442.0" cy="103.9" r="2.4"><title>Trackformer 1.1, +84 h: 1,060.6 km</title></circle>
-                <circle class="tf-d11" cx="472.0" cy="93.1" r="2.4"><title>Trackformer 1.1, +90 h: 1,151.6 km</title></circle>
-                <circle class="tf-d11" cx="502.0" cy="82.0" r="2.4"><title>Trackformer 1.1, +96 h: 1,245.0 km</title></circle>
-                <circle class="tf-d11" cx="532.0" cy="70.3" r="2.4"><title>Trackformer 1.1, +102 h: 1,343.6 km</title></circle>
-                <circle class="tf-d11" cx="562.0" cy="58.4" r="2.4"><title>Trackformer 1.1, +108 h: 1,443.2 km</title></circle>
-                <circle class="tf-d11" cx="592.0" cy="46.4" r="2.4"><title>Trackformer 1.1, +114 h: 1,544.1 km</title></circle>
-                <circle class="tf-d11" cx="622.0" cy="34.3" r="2.4"><title>Trackformer 1.1, +120 h: 1,646.4 km</title></circle>
-                <text class="tf-lab11" x="616.0" y="26.3" text-anchor="end">1.1 · 1,646 km</text>
-                <text class="tf-lab12" x="616.0" y="125.4" text-anchor="end">1.2 · 1,032 km</text>
-                </svg>
-                <figcaption class="mc-cap"><span class="mc-key mc-key--12"></span>Trackformer&nbsp;1.2 &nbsp; <span class="mc-key mc-key--11"></span>Trackformer&nbsp;1.1 &mdash; mean track error at each lead, same 1,473 forecasts. Values from the <a href="https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/api/benchmarks/released" target="_blank" rel="noopener noreferrer">benchmark JSON</a>.</figcaption>
-              </figure>
-              <div class="table-responsive d-inline-block text-start">
-                <table class="table table-sm small mb-0">
-                  <thead><tr><th>Daily benchmark (270 storms)</th><th class="text-end">1.1</th><th class="text-end">1.2</th></tr></thead>
-                  <tbody>
-                    <tr><td>Mean track error, +6 to +120&nbsp;h</td><td class="text-end">798.4 km</td><td class="text-end"><strong>471.2 km</strong></td></tr>
-                    <tr><td>Track error at +24 / +72 / +120&nbsp;h</td><td class="text-end">273 / 887 / 1,646 km</td><td class="text-end"><strong>165 / 503 / 1,032 km</strong></td></tr>
-                    <tr><td>Six-hour heading error</td><td class="text-end">51.58&deg;</td><td class="text-end"><strong>34.96&deg;</strong></td></tr>
-                    <tr><td>Fr&eacute;chet distance to the observed track</td><td class="text-end">1,658.1 km</td><td class="text-end"><strong>1,045.8 km</strong></td></tr>
-                    <tr><td>Track shape similarity (1 = identical)</td><td class="text-end">0.754</td><td class="text-end"><strong>0.884</strong></td></tr>
-                    <tr><td>Path similarity (1 = identical)</td><td class="text-end">0.534</td><td class="text-end"><strong>0.656</strong></td></tr>
-                  </tbody>
-                </table>
-              </div>
-              <details class="mc-details mt-3">
-                <summary>Track error at all 20 leads</summary>
-                <div class="table-responsive d-inline-block text-start mt-2">
-                  <table class="table table-sm small mb-0">
-                    <thead><tr><th>Lead</th><th class="text-end">1.1 (km)</th><th class="text-end">1.2 (km)</th><th class="text-end">change</th></tr></thead>
-                    <tbody>
-                      <tr><td>+6&nbsp;h</td><td class="text-end">66.1</td><td class="text-end"><strong>48.3</strong></td><td class="text-end">&minus;27%</td></tr>
-                      <tr><td>+12&nbsp;h</td><td class="text-end">133.5</td><td class="text-end"><strong>91.1</strong></td><td class="text-end">&minus;32%</td></tr>
-                      <tr><td>+18&nbsp;h</td><td class="text-end">202.4</td><td class="text-end"><strong>129.1</strong></td><td class="text-end">&minus;36%</td></tr>
-                      <tr><td>+24&nbsp;h</td><td class="text-end">273.3</td><td class="text-end"><strong>164.5</strong></td><td class="text-end">&minus;40%</td></tr>
-                      <tr><td>+30&nbsp;h</td><td class="text-end">346.9</td><td class="text-end"><strong>199.1</strong></td><td class="text-end">&minus;43%</td></tr>
-                      <tr><td>+36&nbsp;h</td><td class="text-end">419.9</td><td class="text-end"><strong>234.9</strong></td><td class="text-end">&minus;44%</td></tr>
-                      <tr><td>+42&nbsp;h</td><td class="text-end">493.6</td><td class="text-end"><strong>272.5</strong></td><td class="text-end">&minus;45%</td></tr>
-                      <tr><td>+48&nbsp;h</td><td class="text-end">568.1</td><td class="text-end"><strong>311.5</strong></td><td class="text-end">&minus;45%</td></tr>
-                      <tr><td>+54&nbsp;h</td><td class="text-end">644.1</td><td class="text-end"><strong>353.5</strong></td><td class="text-end">&minus;45%</td></tr>
-                      <tr><td>+60&nbsp;h</td><td class="text-end">722.6</td><td class="text-end"><strong>399.4</strong></td><td class="text-end">&minus;45%</td></tr>
-                      <tr><td>+66&nbsp;h</td><td class="text-end">803.6</td><td class="text-end"><strong>449.3</strong></td><td class="text-end">&minus;44%</td></tr>
-                      <tr><td>+72&nbsp;h</td><td class="text-end">886.6</td><td class="text-end"><strong>502.5</strong></td><td class="text-end">&minus;43%</td></tr>
-                      <tr><td>+78&nbsp;h</td><td class="text-end">973.3</td><td class="text-end"><strong>558.3</strong></td><td class="text-end">&minus;43%</td></tr>
-                      <tr><td>+84&nbsp;h</td><td class="text-end">1,060.6</td><td class="text-end"><strong>616.2</strong></td><td class="text-end">&minus;42%</td></tr>
-                      <tr><td>+90&nbsp;h</td><td class="text-end">1,151.6</td><td class="text-end"><strong>677.7</strong></td><td class="text-end">&minus;41%</td></tr>
-                      <tr><td>+96&nbsp;h</td><td class="text-end">1,245.0</td><td class="text-end"><strong>740.9</strong></td><td class="text-end">&minus;40%</td></tr>
-                      <tr><td>+102&nbsp;h</td><td class="text-end">1,343.6</td><td class="text-end"><strong>808.8</strong></td><td class="text-end">&minus;40%</td></tr>
-                      <tr><td>+108&nbsp;h</td><td class="text-end">1,443.2</td><td class="text-end"><strong>880.1</strong></td><td class="text-end">&minus;39%</td></tr>
-                      <tr><td>+114&nbsp;h</td><td class="text-end">1,544.1</td><td class="text-end"><strong>954.9</strong></td><td class="text-end">&minus;38%</td></tr>
-                      <tr><td>+120&nbsp;h</td><td class="text-end">1,646.4</td><td class="text-end"><strong>1,031.6</strong></td><td class="text-end">&minus;37%</td></tr>
-                    </tbody>
-                  </table>
-                </div>
-              </details>
-              <div class="table-responsive d-inline-block text-start mt-3">
-                <table class="table table-sm small mb-0">
-                  <thead><tr><th>Intensity (134 starts, 40 storms)</th><th class="text-end">1.1</th><th class="text-end">1.2</th></tr></thead>
-                  <tbody>
-                    <tr><td>Central pressure MAE vs JMA</td><td class="text-end">13.53 hPa</td><td class="text-end">12.84 hPa*</td></tr>
-                    <tr><td>Pressure-curve similarity vs JMA</td><td class="text-end">0.7074</td><td class="text-end">0.7118</td></tr>
-                    <tr><td>Central pressure MAE vs USA</td><td class="text-end">12.84 hPa</td><td class="text-end">12.55 hPa*</td></tr>
-                    <tr><td>Central pressure MAE vs JMA at +120&nbsp;h</td><td class="text-end">15.95 hPa</td><td class="text-end">12.44 hPa</td></tr>
-                    <tr><td>Central pressure MAE vs USA at +120&nbsp;h</td><td class="text-end"><strong>13.52 hPa</strong></td><td class="text-end">15.55 hPa</td></tr>
-                    <tr><td>Six-hour pressure change MAE vs JMA</td><td class="text-end"><strong>3.28 hPa</strong></td><td class="text-end">3.43 hPa</td></tr>
-                    <tr><td>Maximum wind MAE vs USA one-minute wind</td><td class="text-end"><strong>16.98 kt</strong></td><td class="text-end">25.03 kt</td></tr>
-                    <tr><td>Pressure-curve similarity vs USA (131 days)</td><td class="text-end"><strong>0.7237</strong></td><td class="text-end">0.6637</td></tr>
-                  </tbody>
-                </table>
-                <p class="small mt-2 mb-0">* paired 95% intervals from 2,000 whole-storm bootstrap replicates include zero &mdash; [&minus;2.68,&nbsp;+1.20]&nbsp;hPa against JMA, [&minus;2.10,&nbsp;+1.45] against USA &mdash; so no intensity gain is established; against USA references 1.2 is worse. The other 1,339 daily starts are not scored for intensity because 1.1's frozen pipeline needs a valid issue-time wind and pressure &mdash; missing, not zero.</p>
-              </div>
-              <ul class="small text-start mc-steps mt-3 mb-0">
-                <li><strong>Wind is worse than 1.1:</strong> against USA one-minute wind on the same 134 starts, the auxiliary wind's error is 25.03&nbsp;kt for 1.2 against 16.98&nbsp;kt for 1.1, a paired gap of +8.05&nbsp;kt [5.02,&nbsp;11.31].</li>
-                <li><strong>Single cases:</strong> the four showcase forecasts are scored one by one under <em>Example forecasts</em> below; the paper works through Fung-wong (2025) in detail.</li>
-                <li><strong>Not yet compared:</strong> a matched run against DeepMind's WeatherNext Cyclones Mini is pending, so no score is claimed.</li>
-                <li><strong>Read the protocol:</strong> <a href="https://github.com/yu314-coder/typhoon-predict/blob/main/docs/trackformer_1_2_evaluation.md" target="_blank" rel="noopener noreferrer">evaluation limits</a> &middot; <a href="https://github.com/yu314-coder/typhoon-predict/blob/main/docs/daily_storm_benchmark.md" target="_blank" rel="noopener noreferrer">daily benchmark</a> &middot; <a href="https://github.com/yu314-coder/typhoon-predict/blob/main/docs/intensity_benchmark.md" target="_blank" rel="noopener noreferrer">intensity</a> &middot; <a href="https://github.com/yu314-coder/typhoon-predict/blob/main/evaluation/daily_storm_final.json" target="_blank" rel="noopener noreferrer">every daily score</a> &middot; <a href="https://github.com/yu314-coder/typhoon-predict/blob/main/docs/deepmind_daily_benchmark.md" target="_blank" rel="noopener noreferrer">DeepMind protocol</a></li>
-              </ul>
-            </div>
-
-            <!-- Example forecasts -->
-            <div class="mb-4">
-              <h4 class="h5 fw-bold mb-3">Example forecasts</h4>
-              <div class="mc-gallery">
-                <div class="mc-gallery__tabs" role="tablist" aria-label="Example forecast">
-                  <button type="button" role="tab" class="mc-gallery__tab is-on" aria-selected="true" data-video="https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_mangkhut.mp4" data-poster="assets/img/typhoon/trackformer12-mangkhut-poster.webp" data-cap="&lt;strong&gt;Mangkhut (2018)&lt;/strong&gt;, issued 11&amp;nbsp;Sep 00&amp;nbsp;UTC &amp;mdash; the release's featured film: basin pressure and the moving core registered on one map, 20 steps in 20 seconds. Mangkhut falls in 1.2's training years.">Mangkhut 2018</button>
-                  <button type="button" role="tab" class="mc-gallery__tab" aria-selected="false" data-video="https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_fung_wong.mp4" data-poster="assets/img/typhoon/trackformer12-fung-wong-poster.webp" data-cap="&lt;strong&gt;Fung-wong (2025)&lt;/strong&gt;, issued 7&amp;nbsp;Nov 00&amp;nbsp;UTC &amp;mdash; a storm from after 1.2's training and validation years. An earlier rendering: the regional pressure patch is fixed to the issue position, so once the centre leaves it only the coarse basin field covers it.">Fung-wong 2025</button>
-                  <button type="button" role="tab" class="mc-gallery__tab" aria-selected="false" data-video="https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_meranti.mp4" data-poster="assets/img/typhoon/trackformer12-meranti-poster.webp" data-cap="&lt;strong&gt;Meranti (2016)&lt;/strong&gt;, issued 10&amp;nbsp;Sep 00&amp;nbsp;UTC &amp;mdash; an earlier fixed-patch rendering; Meranti falls in 1.2's training years.">Meranti 2016</button>
-                  <button type="button" role="tab" class="mc-gallery__tab" aria-selected="false" data-video="https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_soudelor.mp4" data-poster="assets/img/typhoon/trackformer12-soudelor-poster.webp" data-cap="&lt;strong&gt;Soudelor (2015)&lt;/strong&gt;, issued 5&amp;nbsp;Aug 00&amp;nbsp;UTC &amp;mdash; an earlier fixed-patch rendering; Soudelor falls in 1.2's training years.">Soudelor 2015</button>
-                </div>
-                <video class="mc-gallery__video" controls muted playsinline preload="none" width="1600" height="1000"
-                       poster="assets/img/typhoon/trackformer12-mangkhut-poster.webp"
-                       aria-label="Trackformer 1.2 example forecast film">
-                  <source src="https://huggingface.co/euler314/typhoon-predict/resolve/87a6e366b42bb4cc0edc95d2c50c55fca21a2c93/docs/trackformer_1_2_mangkhut.mp4" type="video/mp4">
-                </video>
-                <p class="mc-cap mc-gallery__cap" aria-live="polite"><strong>Mangkhut (2018)</strong>, issued 11&nbsp;Sep 00&nbsp;UTC &mdash; the release's featured film: basin pressure and the moving core registered on one map, 20 steps in 20 seconds. Mangkhut falls in 1.2's training years.</p>
-                <div class="table-responsive d-inline-block text-start mt-3">
-                  <table class="table table-sm small mb-0">
-                    <thead><tr><th>Forecast (50-member mean)</th><th class="text-end">Mean track error</th><th class="text-end">At +120&nbsp;h</th><th class="text-end">Pressure MAE</th><th class="text-end">Leaves regional patch</th></tr></thead>
-                    <tbody>
-                      <tr><td>Mangkhut, 11 Sep 2018 00Z</td><td class="text-end">77.5 km</td><td class="text-end">191.7 km</td><td class="text-end">7.39 hPa</td><td class="text-end">stays inside</td></tr>
-                      <tr><td>Soudelor, 5 Aug 2015 00Z</td><td class="text-end">120.6 km</td><td class="text-end">354.4 km</td><td class="text-end">9.86 hPa</td><td class="text-end">+90&nbsp;h</td></tr>
-                      <tr><td>Fung-wong, 7 Nov 2025 00Z</td><td class="text-end">130.9 km</td><td class="text-end">142.3 km</td><td class="text-end">7.36 hPa</td><td class="text-end">+66&nbsp;h</td></tr>
-                      <tr><td>Meranti, 10 Sep 2016 00Z</td><td class="text-end">192.9 km</td><td class="text-end">453.3 km</td><td class="text-end">13.90 hPa</td><td class="text-end">+84&nbsp;h</td></tr>
-                    </tbody>
-                  </table>
-                  <p class="small mt-2 mb-0">From each film's <a href="https://github.com/yu314-coder/typhoon-predict/blob/main/evaluation/release_data" target="_blank" rel="noopener noreferrer">provenance record</a>; all 20 leads scored. Fung-wong stays within 200&nbsp;km of the real track at every lead. Mangkhut, Soudelor and Meranti fall in 1.2's training years, and all four are hand-picked &mdash; set them against the 471&nbsp;km benchmark mean, not in place of it.</p>
-                </div>
-                <p class="mc-cap mb-0">Each film is a 50-member mean against the observed best track. They are selected development illustrations, not typical skill or untouched-test evidence &mdash; the benchmark above is the measure. Streamed from the <a href="https://github.com/yu314-coder/typhoon-predict/blob/main/docs/showcase_archive.md" target="_blank" rel="noopener noreferrer">release's example archive</a> on Hugging Face.</p>
-              </div>
-              <script>
-                // One video element, four films. Nothing is fetched until a film is played
-                // (preload="none"); choosing a storm plays it, and it pauses whenever it leaves
-                // the screen -- including when another projects tab hides it.
-                (function () {
-                  var g = document.querySelector(".mc-gallery");
-                  if (!g) return;
-                  var v = g.querySelector(".mc-gallery__video"), src = v.querySelector("source");
-                  var cap = g.querySelector(".mc-gallery__cap"), tabs = g.querySelectorAll(".mc-gallery__tab");
-                  Array.prototype.forEach.call(tabs, function (b) {
-                    b.addEventListener("click", function () {
-                      Array.prototype.forEach.call(tabs, function (o) {
-                        var on = o === b;
-                        o.classList.toggle("is-on", on);
-                        o.setAttribute("aria-selected", on ? "true" : "false");
-                      });
-                      if (src.getAttribute("src") !== b.getAttribute("data-video")) {
-                        v.pause();
-                        v.setAttribute("poster", b.getAttribute("data-poster"));
-                        src.setAttribute("src", b.getAttribute("data-video"));
-                        v.load();
-                        cap.innerHTML = b.getAttribute("data-cap");   // author-written markup from this page
-                      }
-                      var p = v.play(); if (p && p.catch) p.catch(function () {});
-                    });
-                  });
-                  if ("IntersectionObserver" in window) {
-                    new IntersectionObserver(function (es) {
-                      es.forEach(function (e) { if (!e.isIntersecting && !v.paused) v.pause(); });
-                    }).observe(v);
-                  }
-                })();
-              </script>
-            </div>
-
-            <!-- Intended use & limits -->
-            <div class="row g-3 mb-4 justify-content-center">
-              <div class="col-md-5">
-                <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">Intended use</h5>
-                  <ul class="small mb-0 text-start">
-                    <li>Research on data-driven tropical-cyclone forecasting: how far a pressure-first, causal model can take track skill from analyses alone</li>
-                    <li>Retrospective study of past western-Pacific storms, with every forecast and its provenance public</li>
-                    <li>Teaching and exploration, as on the Typhoon Tracks explorer</li>
-                    <li><strong>Not</strong> for warnings, evacuation or any safety decision &mdash; follow official agencies (JMA, JTWC, CWA and others)</li>
-                  </ul>
-                </div>
-              </div>
-              <div class="col-md-5">
-                <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">Known limits</h5>
-                  <ul class="small mb-0 text-start">
-                    <li>No wind-radius head at all; the auxiliary maximum wind's averaging period and surface-wind skill are not validated, and its USA-wind benchmark is worse than 1.1's</li>
-                    <li>Pressure-derived wind and radius estimates are experimental diagnostics, not agency-equivalent forecasts</li>
-                    <li>Western Pacific only (0&ndash;60&deg;N, 100&ndash;180&deg;E basin); no other basins</li>
-                    <li>Interpolated pressure maps are not evidence of finer effective resolution</li>
-                    <li>Retrospective analyses and the live GFS transfer are not operational validation</li>
-                    <li>Historical-archive issues are single members; only the benchmark, showcase and live runs are 50-member means</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <!-- The forecast archive -->
-            <div class="mb-4">
-              <h4 class="h5 fw-bold mb-3">The forecast archive</h4>
-              <ul class="small text-start mc-steps mb-0">
-                <li><strong>32,230 historical forecasts</strong>: a start every six hours for western-Pacific storms from 1996 on (30,677 of them), plus each storm's first issue back to 1970. All are single members, each saved with the hash of its exact input tensor.</li>
-                <li><strong>Inputs by era:</strong> NCEP/NCAR Reanalysis&nbsp;1 analyses until NOAA ended it on 17&nbsp;March&nbsp;2026, archived GFS f000 analyses after that, and for live runs the latest GFS f000 analysis with JMA's own analysis of the storm.</li>
-                <li><strong>Live:</strong> typhoon-predict runs 1.2 on GitHub-hosted CPUs every six hours for each storm JMA tracks; a 50-member live ensemble takes about 68&nbsp;s. Completion counts and source errors are public in the <a href="https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/api/history/status" target="_blank" rel="noopener noreferrer">status feed</a>.</li>
-                <li><strong>Auxiliary wind</strong> is being exported for the archive separately and is still filling in, so some saved forecasts carry pressure but no wind yet &mdash; missing, never zero.</li>
-              </ul>
-            </div>
-
-            <!-- How to use -->
-            <div class="mb-4">
-              <h4 class="h5 fw-bold mb-3">Run it, or read its forecasts</h4>
-              <p class="small mb-2">With PyTorch and NumPy, on a causal issue packet you prepare to the input contract (the release has no bundled live downloader):</p>
-              <pre class="mc-code"><code>git clone https://github.com/yu314-coder/typhoon-predict
-cd typhoon-predict
-curl -L -o models/trackformer_1_2_field/weights.pt \
-  https://huggingface.co/euler314/typhoon-predict/resolve/main/models/trackformer_1_2_field/weights.pt
-python models/trackformer_1_2_field/predict.py causal_issue_packet.npz forecast.npz --device cpu   # or mps / cuda</code></pre>
-              <p class="small mb-2">Or read the 34,000-odd forecasts already saved, from any web page &mdash; the Trackformer Weather Lab's API is public, read-only and CORS-enabled (<a href="https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/history-api" target="_blank" rel="noopener noreferrer">documentation</a>):</p>
-              <pre class="mc-code"><code>const base = "https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site";
-const storm = await (await fetch(base + "/api/history/v1/storms/2013306N07162")).json();   // Haiyan 2013
-const fc = await (await fetch(base + "/api/history/v1/forecasts/" + storm.issues[0].id)).json();
-// fc.route: lat, lon, pressure_hpa at lead_hours 0..120; fc.members, fc.kind, fc.source_note</code></pre>
-              <p class="small mb-0">Release package: <a href="https://github.com/yu314-coder/typhoon-predict/releases/download/trackformer-1.2/trackformer_1_2_field_20260929.tar.gz" target="_blank" rel="noopener noreferrer">trackformer_1_2_field_20260929.tar.gz</a> (89.9&nbsp;MB) &middot; <a href="https://github.com/yu314-coder/typhoon-predict/blob/main/models/trackformer_1_2_field/manifest.json" target="_blank" rel="noopener noreferrer">manifest with every hash</a></p>
-            </div>
-
-            <!-- The paper -->
-            <div class="mb-4">
-              <h4 class="h5 fw-bold mb-3">The paper</h4>
-              <div class="lib-category-card text-start mc-paper">
-                <p class="mb-1"><a href="https://huggingface.co/euler314/typhoon-predict/resolve/main/paper/trackformer.pdf" target="_blank" rel="noopener noreferrer"><strong>Trackformer&nbsp;1.2: Coupled pressure-field forecasting</strong></a></p>
-                <p class="small mb-2" style="color:var(--ink-3);">Architecture, forecast dynamics and development evaluation &middot; Yu Yao-Hsing &middot; research technical report, revised 1&nbsp;October&nbsp;2026 &middot; 10 pages</p>
-                <blockquote class="small mb-3 mc-abstract">Trackformer 1.2 forecasts tropical-cyclone motion and central pressure by jointly advancing a basin-scale atmospheric state and a translating pressure core. Recurrent convolutional networks evolve the fields, while multiscale attention supplies environmental context. A pressure-associated centre and central-pressure sample are read from the evolving core at each six-hour step. Twenty autoregressive transitions produce a five-day forecast. This report specifies the released architecture, state updates, learning objectives and 50-member input-perturbation policy. Across 1,473 daily forecasts from 270 storms, equal-storm mean track error is 471.2&nbsp;km for the 1.2 ensemble and 798.4&nbsp;km for the causal 1.1 route pipeline. On 134 matched daily starts from 40 storms, same-time JMA pressure MAE is 13.53 and 12.84&nbsp;hPa for 1.1 and 1.2, respectively; paired whole-storm uncertainty includes zero improvement. The pipelines differ; this is not an architecture ablation or an untouched-test result. A selected Fung-wong case illustrates actual geographic alignment, intensity evolution and model-generated pressure contours, including their remaining errors and coverage limits.</blockquote>
-                <p class="small fw-bold mb-1">Contents</p>
-                <ol class="small mb-3">
-                  <li>Overview and forecast state</li>
-                  <li>Architecture and input contract</li>
-                  <li>Neural operators &mdash; multiresolution networks, convolutional recurrent memory, environmental attention, observation-conditioned initialisation</li>
-                  <li>One six-hour forecast transition &mdash; environmental transport, moving-frame proposal, core transport, pressure-associated readout, geographic reconstruction</li>
-                  <li>Training, ensembles and reproducibility</li>
-                  <li>Development evaluation</li>
-                  <li>Matched central-pressure comparison</li>
-                  <li>Fung-wong: route alignment and intensity</li>
-                  <li>Pressure-field interpretation and limitations</li>
-                </ol>
-                <p class="small mb-3"><a href="https://huggingface.co/euler314/typhoon-predict/resolve/main/paper/trackformer.pdf" target="_blank" rel="noopener noreferrer">PDF on Hugging Face</a> &middot; <a href="https://github.com/yu314-coder/typhoon-predict/blob/main/paper/trackformer.pdf" target="_blank" rel="noopener noreferrer">PDF on GitHub</a> &middot; <a href="https://github.com/yu314-coder/typhoon-predict/blob/main/paper/trackformer.tex" target="_blank" rel="noopener noreferrer">LaTeX source</a> &middot; <a href="https://github.com/yu314-coder/typhoon-predict/releases/download/trackformer-1.2/trackformer.pdf" target="_blank" rel="noopener noreferrer">first edition, 29&nbsp;Sep</a> (8 pages, before the matched-pressure section)</p>
-                <p class="small fw-bold mb-1">Cite</p>
-                <pre class="mc-code mb-0"><code>@misc{yu2026trackformer,
-  author       = {Yu, Yao-Hsing},
-  title        = {Trackformer 1.2: Coupled Pressure-Field Forecasting},
-  howpublished = {Research technical report, revised 1 October 2026},
-  year         = {2026},
-  url          = {https://github.com/yu314-coder/typhoon-predict}
-}</code></pre>
-              </div>
-            </div>
-
-            <!-- Versions -->
-            <div class="mb-0">
-              <h4 class="h5 fw-bold mb-3">Versions</h4>
-              <div class="table-responsive d-inline-block text-start">
-                <table class="table table-sm small mb-0">
-                  <thead><tr><th>Version</th><th>Released</th><th>What it is</th></tr></thead>
-                  <tbody>
-                    <tr><td><a href="https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.2" target="_blank" rel="noopener noreferrer"><strong>1.2</strong></a></td><td>29 Sep 2026</td><td>Pressure field + moving core; this card. Supersedes a withdrawn, unrelated route/scalar 1.2 candidate</td></tr>
-                    <tr><td><a href="https://github.com/yu314-coder/typhoon-predict/releases/tag/trackformer-1.1" target="_blank" rel="noopener noreferrer">1.1</a></td><td>20 Aug 2026</td><td>Causal route through a western-Pacific steering ensemble, with intensity and structure heads (RMW, 34/50/64&nbsp;kt radii)</td></tr>
-                    <tr><td>1.0</td><td>16 Jul 2026</td><td>The field-free historical family, first live on this site on 16&nbsp;July and renamed 1.0 on 8&nbsp;August, when the project moved to release names; never a tagged release. Its five-seed int8 ensemble ran in the browser</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    </div><!-- /tab-trackformer -->
 
     <!-- Tab: AFM-IFP Teardown -->
     <div class="tab-pane fade" id="tab-afm" role="tabpanel" aria-labelledby="tab-afm-btn">
@@ -2598,7 +2151,23 @@ const fc = await (await fetch(base + "/api/history/v1/forecasts/" + storm.issues
 
     </div><!-- /tab-other -->
     </div><!-- /tab-content -->
+
+    <!-- Previous / next project, under whichever project is open. Filled in by the
+         script below from the tile order, so it follows the navigator. -->
+    <nav class="pt-next" aria-label="More projects">
+      <button type="button" class="pt-next__btn" data-dir="-1"><span class="pt-next__k">&larr; Previous</span><span class="pt-next__name"></span></button>
+      <button type="button" class="pt-next__btn pt-next__btn--next" data-dir="1"><span class="pt-next__k">Next project &rarr;</span><span class="pt-next__name"></span></button>
+    </nav>
   </section>
+
+  <!-- Floating switcher: once the tiles have scrolled away, a slim bar under the menu
+       says which project you are reading and steps to the previous or next one,
+       or back up to all of them -- some projects run for many screens. -->
+  <div class="pt-sticky" id="ptSticky" aria-label="Project switcher" role="navigation">
+    <button type="button" class="pt-sticky__step" data-dir="-1" aria-label="Previous project">&lsaquo;</button>
+    <button type="button" class="pt-sticky__all"><span class="pt-sticky__now"></span><span class="pt-sticky__hint">All projects</span></button>
+    <button type="button" class="pt-sticky__step" data-dir="1" aria-label="Next project">&rsaquo;</button>
+  </div>
 
   <!-- Footer -->
   <footer class="site-footer text-center">
@@ -2768,6 +2337,9 @@ const fc = await (await fetch(base + "/api/history/v1/forecasts/" + storm.issues
       function openFromHash() {
         var id = (location.hash || "").replace(/^#/, "");
         if (!id) return;
+        // The Trackformer model card was a tab here for a day before it got its own
+        // page; links to the old tab go to the page.
+        if (id === "tab-trackformer") { location.replace("trackformer.html"); return; }
         var btn = document.getElementById(id + "-btn");
         if (!btn || btn.classList.contains("active")) return;
         if (hasBsTab()) { btn.click(); } else { activate(btn); }
@@ -2777,6 +2349,65 @@ const fc = await (await fetch(base + "/api/history/v1/forecasts/" + storm.issues
         document.addEventListener("DOMContentLoaded", openFromHash);
       } else { openFromHash(); }
       window.addEventListener("hashchange", openFromHash);
+
+      // ---- previous / next and the floating switcher ----------------------------
+      var tiles = Array.prototype.slice.call(tabsEl.querySelectorAll(".pt-tile"));
+      var sticky = document.getElementById("ptSticky");
+      var nextNav = document.querySelector(".pt-next");
+      function nameOf(t) { var n = t && t.querySelector(".pt-tile__name"); return n ? n.textContent : ""; }
+      function current() {
+        for (var i = 0; i < tiles.length; i++) if (tiles[i].classList.contains("active")) return i;
+        return 0;
+      }
+      function navOffset() {
+        var nav = document.querySelector(".navbar.fixed-top");
+        return (nav ? nav.getBoundingClientRect().height : 64) + 12;
+      }
+      function scrollToEl(el) {
+        if (!el) return;
+        window.scrollTo(0, Math.max(0, el.getBoundingClientRect().top + (window.pageYOffset || 0) - navOffset()));
+      }
+      function refresh() {
+        var i = current(), n = tiles.length;
+        var prev = tiles[(i - 1 + n) % n], next = tiles[(i + 1) % n];
+        if (sticky) sticky.querySelector(".pt-sticky__now").textContent = nameOf(tiles[i]);
+        if (nextNav) {
+          var b = nextNav.querySelectorAll(".pt-next__name");
+          b[0].textContent = nameOf(prev); b[1].textContent = nameOf(next);
+        }
+      }
+      function step(dir) {
+        var n = tiles.length, t = tiles[(current() + dir + n) % n];
+        t.click();
+        // step to the top of the new project, wherever the reader was
+        setTimeout(function () { scrollToEl(paneFor(t)); }, hasBsTab() ? 180 : 0);
+      }
+      [sticky, nextNav].forEach(function (root) {
+        if (!root) return;
+        Array.prototype.forEach.call(root.querySelectorAll("[data-dir]"), function (b) {
+          b.addEventListener("click", function () { step(Number(b.getAttribute("data-dir"))); });
+        });
+      });
+      if (sticky) {
+        sticky.querySelector(".pt-sticky__all").addEventListener("click", function () { scrollToEl(tabsEl); });
+        var content = document.getElementById("projectTabsContent"), ticking = false;
+        var check = function () {
+          ticking = false;
+          var off = navOffset(), navR = tabsEl.getBoundingClientRect(), cR = content.getBoundingClientRect();
+          var show = navR.bottom < off && cR.bottom > window.innerHeight * 0.35;
+          sticky.classList.toggle("is-shown", show);
+          sticky.setAttribute("aria-hidden", show ? "false" : "true");
+          Array.prototype.forEach.call(sticky.querySelectorAll("button"), function (b) { b.tabIndex = show ? 0 : -1; });
+        };
+        window.addEventListener("scroll", function () {
+          if (!ticking) { ticking = true; requestAnimationFrame(check); }
+        }, { passive: true });
+        window.addEventListener("resize", check);
+        check();
+      }
+      tabsEl.addEventListener("shown.bs.tab", refresh);
+      tabsEl.addEventListener("click", function () { setTimeout(refresh, 0); });
+      refresh();
     })();
   </script>
 </body>

@@ -1804,6 +1804,81 @@ body.theme-dark .chip-no { background: rgba(255,255,255,0.05); }
 .pt-tile__name { font-size: 0.9rem; font-weight: 600; line-height: 1.25; color: var(--ink); }
 .pt-tile__sub { font-size: 0.76rem; line-height: 1.3; color: var(--ink-3); }
 @media (prefers-reduced-motion: reduce) { #projectTabs .pt-tile:hover { transform: none; } }
+
+/* the section right under the page header: the header already spaces it */
+.pt-section { padding-top: clamp(0.5rem, 2vw, 1.5rem); }
+.pt-meta { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 1.1rem; }
+.pt-meta__item {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.3rem 0.75rem; border-radius: var(--r-pill); border: 1px solid var(--line-2);
+  font-size: 0.8rem; font-weight: 550; color: var(--ink-2); text-decoration: none;
+  transition: color .18s var(--ease), border-color .18s var(--ease);
+}
+a.pt-meta__item:hover { color: var(--accent); border-color: var(--accent); }
+
+/* previous / next project, under the open project */
+.pt-next { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; max-width: 1060px; margin: 2.5rem auto 0; }
+.pt-next__btn {
+  display: flex; flex-direction: column; gap: 0.2rem; align-items: flex-start; text-align: left;
+  padding: 0.85rem 1.05rem; font: inherit; color: var(--ink); cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+  touch-action: manipulation; transition: border-color .18s var(--ease);
+}
+.pt-next__btn--next { align-items: flex-end; text-align: right; }
+.pt-next__btn:hover { border-color: var(--accent); }
+.pt-next__k { font-size: 0.74rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+.pt-next__name { font-size: 1rem; font-weight: 600; }
+
+/* floating switcher, shown once the tiles have scrolled away */
+.pt-sticky {
+  position: fixed; left: 50%; top: 76px; z-index: 1020;
+  display: flex; align-items: center; gap: 0.15rem; padding: 0.25rem;
+  background: rgba(14, 14, 22, 0.86); -webkit-backdrop-filter: saturate(160%) blur(14px); backdrop-filter: saturate(160%) blur(14px);
+  border: 1px solid var(--line-2); border-radius: var(--r-pill); box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  transform: translate(-50%, -10px); opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .2s var(--ease), transform .2s var(--ease), visibility 0s linear .2s;
+}
+.pt-sticky.is-shown { transform: translate(-50%, 0); opacity: 1; visibility: visible; pointer-events: auto; transition: opacity .2s var(--ease), transform .2s var(--ease); }
+.pt-sticky button {
+  font: inherit; color: var(--ink); background: transparent; border: 0; cursor: pointer; touch-action: manipulation;
+  border-radius: var(--r-pill); min-height: 38px;
+}
+.pt-sticky__step { width: 38px; font-size: 1.35rem; line-height: 1; color: var(--ink-2); }
+.pt-sticky__step:hover, .pt-sticky__all:hover { background: var(--accent-tint); color: var(--accent); }
+.pt-sticky__all { display: inline-flex; align-items: baseline; gap: 0.5rem; padding: 0 0.9rem; }
+.pt-sticky__now { font-weight: 600; font-size: 0.9rem; white-space: nowrap; }
+.pt-sticky__hint { font-size: 0.74rem; color: var(--ink-3); white-space: nowrap; }
+@media (max-width: 419.98px) { .pt-sticky__hint { display: none; } }
+@media (prefers-reduced-motion: reduce) { .pt-sticky, .pt-sticky.is-shown { transition: none; } }
+
+/* --- Trackformer model-card page (trackformer.html) ------------------------
+   The model card's sections were written for a centred card; on its own page
+   they read as a document, left-aligned beside a section menu. */
+.mc-hero .badge-accent, .mc-hero .badge-neutral { font-size: 0.74rem; }
+.mc-hero__lead { max-width: 860px; }
+.mc-hero__links { margin-top: 1.25rem; }
+.mc-page { padding-top: clamp(0.5rem, 2vw, 1.5rem); }
+.mc-article { min-width: 0; }
+.mc-article > .mb-4, .mc-article > .row, .mc-article > .mb-0 { margin-bottom: 2.75rem !important; }
+.mc-h2 { font-size: 1.45rem; font-weight: 700; margin: 0 0 1rem; scroll-margin-top: 96px; }
+.mc-article .mc-spec, .mc-article .mc-steps, .mc-article .mc-code, .mc-article .mc-cap,
+.mc-article .mc-figure, .mc-article .mc-gallery, .mc-article .mc-details { margin-left: 0; max-width: none; }
+.mc-article .mc-gallery__tabs { justify-content: flex-start; }
+.mc-article .table-responsive.d-inline-block { display: block !important; }
+.mc-article .tf-chart { margin-left: 0; }
+.mc-toc { position: sticky; top: 96px; }
+.mc-toc__title { margin: 0 0 0.6rem; font-family: var(--font-mono); font-size: 0.7rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+.mc-toc ol { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--line); }
+.mc-toc a { display: block; padding: 0.32rem 0 0.32rem 0.9rem; margin-left: -1px; border-left: 2px solid transparent;
+  font-size: 0.86rem; color: var(--ink-2); text-decoration: none; }
+.mc-toc a:hover { color: var(--ink); }
+.mc-toc a.is-on { color: var(--accent); border-left-color: var(--accent); }
+@media (max-width: 991.98px) {
+  .mc-toc { position: static; }
+  .mc-toc ol { display: flex; flex-wrap: wrap; gap: 0.4rem; border-left: 0; }
+  .mc-toc a { padding: 0.28rem 0.7rem; margin: 0; border: 1px solid var(--line-2); border-radius: var(--r-pill); font-size: 0.8rem; }
+  .mc-toc a.is-on { border-color: var(--accent); }
+}
 @media (max-width: 767.98px) {
   .pt-group { grid-template-columns: minmax(0, 1fr); gap: 0.45rem; }
   .pt-group__label { padding-top: 0; }
