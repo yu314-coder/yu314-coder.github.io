@@ -41,7 +41,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@200;300;400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 
   <!-- Site stylesheet (single source of truth) -->
-  <link rel="stylesheet" href="assets/css/style.css?v=20261002-navfit">
+  <link rel="stylesheet" href="assets/css/style.css?v=20261003-tflive">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
 <body class="theme-dark">
@@ -79,7 +79,7 @@
                 <span class="badge-neutral mono">+6 to +120 h</span>
                 <span class="badge-neutral mono">MIT</span>
               </div>
-      <p class="lead-2 reveal mc-hero__lead">My own tropical-cyclone model for the western Pacific. <strong>Trackformer&nbsp;1.2</strong> forecasts the surrounding sea-level pressure and a moving storm core together, then reads the storm's route and central pressure from that evolving core, every six hours out to +120&nbsp;h, from inputs that all end at the issue time. On a 1,473-forecast benchmark across 270 storms it cuts mean track error by 41% against Trackformer&nbsp;1.1. It drives the <a href="typhoon-tracks.html">Typhoon Tracks</a> explorer, on live JMA storms and past ones; this page is the project and its full model card &mdash; what it is, how it was trained and scored, where it is weak, and where the paper, weights and data live.</p>
+      <p class="lead-2 reveal mc-hero__lead">My own tropical-cyclone model for the western Pacific. <strong>Trackformer&nbsp;1.2</strong> forecasts the surrounding sea-level pressure and a moving storm core together, then reads the storm's route and central pressure from that evolving core, every six hours out to +120&nbsp;h, from inputs that all end at the issue time. On a <span data-tfb="cohort.daily_issues|int">1,473</span>-forecast benchmark across <span data-tfb="cohort.storms|int">270</span> storms it cuts mean track error by <span data-tfb="cut|pct">41%</span> against Trackformer&nbsp;1.1. It drives the <a href="typhoon-tracks.html">Typhoon Tracks</a> explorer, on live JMA storms and past ones; this page is the project and its full model card &mdash; what it is, how it was trained and scored, where it is weak, and where the paper, weights and data live.</p>
         <div class="d-flex flex-wrap justify-content-start gap-2 mc-hero__links reveal">
               <a href="https://huggingface.co/euler314/typhoon-predict/resolve/main/paper/trackformer.pdf" target="_blank" rel="noopener noreferrer" class="badge-btn">Read the paper (PDF)</a>
               <a href="https://huggingface.co/euler314/typhoon-predict" target="_blank" rel="noopener noreferrer" class="badge-btn">Hugging Face</a>
@@ -120,7 +120,7 @@
         <li><strong>Causal by construction</strong> &mdash; the inputs end at the issue time: no JMA or JTWC forecast route, no future analysis, no observation from after the issue. Later data is used only to <em>score</em> a forecast, never to make one &mdash; which is what makes a hindcast on a 1979 storm mean something</li>
         <li><strong>An ensemble mean, and an honest band</strong> &mdash; benchmark and live runs average 50 seeded perturbations of the past and issue-time inputs, not 50 separately trained networks; the historical backfill is one member per issue. The Lab publishes the mean rather than the members, so the shaded band on the explorer is 1.2's published mean track error at each lead &mdash; how far off it typically is &mdash; not a spread invented for the run on screen</li>
         <li><strong>Intensity is the honest weak spot</strong> &mdash; central-pressure error against JMA is 12.84&nbsp;hPa for 1.2 and 13.53&nbsp;hPa for 1.1 on the 134 starts where both can be scored, but the paired 95% interval of [&minus;2.68,&nbsp;+1.20]&nbsp;hPa includes zero, so no intensity gain is claimed. The maximum-wind number is an auxiliary output whose averaging period is not validated and whose USA-wind benchmark is worse than 1.1's, and 1.2 has no wind-radius head at all &mdash; so the explorer draws no radius rings for it</li>
-        <li><strong>32,230 forecasts you can look up</strong> &mdash; six-hourly starts for every western-Pacific storm from 1996 on, plus first issues back to 1970, each saved with its inputs' hashes and served read-only by the Trackformer Weather Lab, alongside a live run every six hours for whatever JMA is tracking</li>
+        <li><strong><span data-tfs="historical_total">32,230</span> forecasts you can look up</strong> &mdash; six-hourly starts for every western-Pacific storm from 1996 on, plus first issues back to 1970, each saved with its inputs' hashes and served read-only by the Trackformer Weather Lab, alongside a live run every six hours for whatever JMA is tracking</li>
         <li><strong>Live &amp; honest</strong> &mdash; it overlays its forecast on the JMA official track for active storms and lets you scrub any past storm to forecast forward against what actually happened. Where 1.2 has no run the overlay falls back to Trackformer&nbsp;1.1 and says so; where neither has one it draws nothing, rather than quietly substituting another model. Clearly flagged experimental &mdash; research output, not an operational warning system</li>
       </ul>
       <div class="lib-category-card mt-3">
@@ -315,7 +315,7 @@
     <!-- Evaluation -->
     <div class="mb-4">
       <h2 class="mc-h2" id="evaluation">Evaluation</h2>
-      <p class="small mb-3">The released daily benchmark scores 1.2 against Trackformer&nbsp;1.1 on 1,473 daily forecasts of 270 western-Pacific storms &mdash; 230 from 1980&ndash;1999 and 40 from 2024 on &mdash; with the same starts, valid times and leads for both. Each lead's error is averaged per day and each storm is weighted equally. 1.2 is the mean of 50 members. The cohort lies outside 1.2's fitting and validation years, but it is a development comparison, not a certified untouched holdout.</p>
+      <p class="small mb-3">The released daily benchmark scores 1.2 against Trackformer&nbsp;1.1 on <span data-tfb="cohort.daily_issues|int">1,473</span> daily forecasts of <span data-tfb="cohort.storms|int">270</span> western-Pacific storms &mdash; 230 from 1980&ndash;1999 and 40 from 2024 on &mdash; with the same starts, valid times and leads for both. Each lead's error is averaged per day and each storm is weighted equally. 1.2 is the mean of 50 members. The cohort lies outside 1.2's fitting and validation years, but it is a development comparison, not a certified untouched holdout.</p>
       <figure class="mc-figure mb-3">
         <svg class="tf-chart" viewBox="0 0 640 270" role="img" aria-labelledby="tf-chart-t tf-chart-d">
         <title id="tf-chart-t">Mean track error by forecast lead, Trackformer 1.1 vs 1.2</title>
@@ -380,20 +380,20 @@
         <circle class="tf-d11" cx="592.0" cy="46.4" r="2.4"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
         <circle class="tf-d11" cx="622.0" cy="34.3" r="2.4"><title>Trackformer — Typhoon Forecasting AI | Yu, Yao-Hsing 尤耀星</title></circle>
         <text class="tf-lab11" x="616.0" y="26.3" text-anchor="end">1.1 · 1,646 km</text>
-        <text class="tf-lab12" x="616.0" y="125.4" text-anchor="end">1.2 · 1,032 km</text>
+        <text class="tf-lab12" x="616.0" y="97.4" text-anchor="end">1.2 · 1,032 km</text>
         </svg>
-        <figcaption class="mc-cap"><span class="mc-key mc-key--12"></span>Trackformer&nbsp;1.2 &nbsp; <span class="mc-key mc-key--11"></span>Trackformer&nbsp;1.1 &mdash; mean track error at each lead, same 1,473 forecasts. Values from the <a href="https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/api/benchmarks/released" target="_blank" rel="noopener noreferrer">benchmark JSON</a>.</figcaption>
+        <figcaption class="mc-cap"><span class="mc-key mc-key--12"></span>Trackformer&nbsp;1.2 &nbsp; <span class="mc-key mc-key--11"></span>Trackformer&nbsp;1.1 &mdash; mean track error at each lead, same <span data-tfb="cohort.daily_issues|int">1,473</span> forecasts. Values from the <a href="https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/api/benchmarks/released" target="_blank" rel="noopener noreferrer">benchmark JSON</a>.</figcaption>
       </figure>
       <div class="table-responsive d-inline-block text-start">
         <table class="table table-sm small mb-0">
-          <thead><tr><th>Daily benchmark (270 storms)</th><th class="text-end">1.1</th><th class="text-end">1.2</th></tr></thead>
+          <thead><tr><th>Daily benchmark (<span data-tfb="cohort.storms|int">270</span> storms)</th><th class="text-end">1.1</th><th class="text-end">1.2</th></tr></thead>
           <tbody>
-            <tr><td>Mean track error, +6 to +120&nbsp;h</td><td class="text-end">798.4 km</td><td class="text-end"><strong>471.2 km</strong></td></tr>
-            <tr><td>Track error at +24 / +72 / +120&nbsp;h</td><td class="text-end">273 / 887 / 1,646 km</td><td class="text-end"><strong>165 / 503 / 1,032 km</strong></td></tr>
-            <tr><td>Six-hour heading error</td><td class="text-end">51.58&deg;</td><td class="text-end"><strong>34.96&deg;</strong></td></tr>
-            <tr><td>Fr&eacute;chet distance to the observed track</td><td class="text-end">1,658.1 km</td><td class="text-end"><strong>1,045.8 km</strong></td></tr>
-            <tr><td>Track shape similarity (1 = identical)</td><td class="text-end">0.754</td><td class="text-end"><strong>0.884</strong></td></tr>
-            <tr><td>Path similarity (1 = identical)</td><td class="text-end">0.534</td><td class="text-end"><strong>0.656</strong></td></tr>
+            <tr><td>Mean track error, +6 to +120&nbsp;h</td><td class="text-end"><span data-tfb="mean_track_error_km|1.1|km1">798.4 km</span></td><td class="text-end"><strong><span data-tfb="mean_track_error_km|1.2|km1">471.2 km</span></strong></td></tr>
+            <tr><td>Track error at +24 / +72 / +120&nbsp;h</td><td class="text-end"><span data-tfb="lead|1.1|3|int">273</span> / <span data-tfb="lead|1.1|11|int">887</span> / <span data-tfb="lead|1.1|19|int">1,646</span> km</td><td class="text-end"><strong><span data-tfb="lead|1.2|3|int">165</span> / <span data-tfb="lead|1.2|11|int">503</span> / <span data-tfb="lead|1.2|19|int">1,032</span> km</strong></td></tr>
+            <tr><td>Six-hour heading error</td><td class="text-end"><span data-tfb="direction_error_deg|1.1|deg2">51.58&deg;</span></td><td class="text-end"><strong><span data-tfb="direction_error_deg|1.2|deg2">34.96&deg;</span></strong></td></tr>
+            <tr><td>Fr&eacute;chet distance to the observed track</td><td class="text-end"><span data-tfb="frechet_distance_km|1.1|km1">1,658.1 km</span></td><td class="text-end"><strong><span data-tfb="frechet_distance_km|1.2|km1">1,045.8 km</span></strong></td></tr>
+            <tr><td>Track shape similarity (1 = identical)</td><td class="text-end"><span data-tfb="shape_similarity|1.1|f3">0.754</span></td><td class="text-end"><strong><span data-tfb="shape_similarity|1.2|f3">0.884</span></strong></td></tr>
+            <tr><td>Path similarity (1 = identical)</td><td class="text-end"><span data-tfb="path_similarity|1.1|f3">0.534</span></td><td class="text-end"><strong><span data-tfb="path_similarity|1.2|f3">0.656</span></strong></td></tr>
           </tbody>
         </table>
       </div>
@@ -402,7 +402,7 @@
         <div class="table-responsive d-inline-block text-start mt-2">
           <table class="table table-sm small mb-0">
             <thead><tr><th>Lead</th><th class="text-end">1.1 (km)</th><th class="text-end">1.2 (km)</th><th class="text-end">change</th></tr></thead>
-            <tbody>
+            <tbody id="tfLeadRows">
               <tr><td>+6&nbsp;h</td><td class="text-end">66.1</td><td class="text-end"><strong>48.3</strong></td><td class="text-end">&minus;27%</td></tr>
               <tr><td>+12&nbsp;h</td><td class="text-end">133.5</td><td class="text-end"><strong>91.1</strong></td><td class="text-end">&minus;32%</td></tr>
               <tr><td>+18&nbsp;h</td><td class="text-end">202.4</td><td class="text-end"><strong>129.1</strong></td><td class="text-end">&minus;36%</td></tr>
@@ -431,14 +431,14 @@
         <table class="table table-sm small mb-0">
           <thead><tr><th>Intensity (134 starts, 40 storms)</th><th class="text-end">1.1</th><th class="text-end">1.2</th></tr></thead>
           <tbody>
-            <tr><td>Central pressure MAE vs JMA</td><td class="text-end">13.53 hPa</td><td class="text-end">12.84 hPa*</td></tr>
-            <tr><td>Pressure-curve similarity vs JMA</td><td class="text-end">0.7074</td><td class="text-end">0.7118</td></tr>
-            <tr><td>Central pressure MAE vs USA</td><td class="text-end">12.84 hPa</td><td class="text-end">12.55 hPa*</td></tr>
+            <tr><td>Central pressure MAE vs JMA</td><td class="text-end"><span data-tfb="pressure_JMA_hpa|1.1|hpa2">13.53 hPa</span></td><td class="text-end"><span data-tfb="pressure_JMA_hpa|1.2|hpa2">12.84 hPa</span>*</td></tr>
+            <tr><td>Pressure-curve similarity vs JMA</td><td class="text-end"><span data-tfb="pressure_JMA_curve_similarity|1.1|f4">0.7074</span></td><td class="text-end"><span data-tfb="pressure_JMA_curve_similarity|1.2|f4">0.7118</span></td></tr>
+            <tr><td>Central pressure MAE vs USA</td><td class="text-end"><span data-tfb="pressure_USA_hpa|1.1|hpa2">12.84 hPa</span></td><td class="text-end"><span data-tfb="pressure_USA_hpa|1.2|hpa2">12.55 hPa</span>*</td></tr>
             <tr><td>Central pressure MAE vs JMA at +120&nbsp;h</td><td class="text-end">15.95 hPa</td><td class="text-end">12.44 hPa</td></tr>
             <tr><td>Central pressure MAE vs USA at +120&nbsp;h</td><td class="text-end"><strong>13.52 hPa</strong></td><td class="text-end">15.55 hPa</td></tr>
             <tr><td>Six-hour pressure change MAE vs JMA</td><td class="text-end"><strong>3.28 hPa</strong></td><td class="text-end">3.43 hPa</td></tr>
             <tr><td>Maximum wind MAE vs USA one-minute wind</td><td class="text-end"><strong>16.98 kt</strong></td><td class="text-end">25.03 kt</td></tr>
-            <tr><td>Pressure-curve similarity vs USA (131 days)</td><td class="text-end"><strong>0.7237</strong></td><td class="text-end">0.6637</td></tr>
+            <tr><td>Pressure-curve similarity vs USA (131 days)</td><td class="text-end"><strong><span data-tfb="pressure_USA_curve_similarity|1.1|f4">0.7237</span></strong></td><td class="text-end"><span data-tfb="pressure_USA_curve_similarity|1.2|f4">0.6637</span></td></tr>
           </tbody>
         </table>
         <p class="small mt-2 mb-0">* paired 95% intervals from 2,000 whole-storm bootstrap replicates include zero &mdash; [&minus;2.68,&nbsp;+1.20]&nbsp;hPa against JMA, [&minus;2.10,&nbsp;+1.45] against USA &mdash; so no intensity gain is established; against USA references 1.2 is worse. The other 1,339 daily starts are not scored for intensity because 1.1's frozen pipeline needs a valid issue-time wind and pressure &mdash; missing, not zero.</p>
@@ -484,11 +484,44 @@
     <div class="mb-4">
       <h2 class="mc-h2" id="the-forecast-archive">The forecast archive</h2>
       <ul class="small text-start mc-steps mb-0">
-        <li><strong>32,230 historical forecasts</strong>: a start every six hours for western-Pacific storms from 1996 on (30,677 of them), plus each storm's first issue back to 1970. All are single members, each saved with the hash of its exact input tensor.</li>
+        <li><strong><span data-tfs="historical_total">32,230</span> historical forecasts</strong>: a start every six hours for western-Pacific storms from 1996 on (<span data-tfs="tick_total">30,677</span> of them), plus each storm's first issue back to 1970. All are single members, each saved with the hash of its exact input tensor.</li>
         <li><strong>Inputs by era:</strong> NCEP/NCAR Reanalysis&nbsp;1 analyses until NOAA ended it on 17&nbsp;March&nbsp;2026, archived GFS f000 analyses after that, and for live runs the latest GFS f000 analysis with JMA's own analysis of the storm.</li>
         <li><strong>Live:</strong> typhoon-predict runs 1.2 on GitHub-hosted CPUs every six hours for each storm JMA tracks; a 50-member live ensemble takes about 68&nbsp;s. Completion counts and source errors are public in the <a href="https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/api/history/status" target="_blank" rel="noopener noreferrer">status feed</a>.</li>
-        <li><strong>Auxiliary wind</strong> is being exported for the archive separately and is still filling in, so some saved forecasts carry pressure but no wind yet &mdash; missing, never zero.</li>
+        <li><strong>Still filling in:</strong> the learned auxiliary wind and the recovered pressure cores are exported for the archive separately, so some saved forecasts carry pressure but no wind yet &mdash; missing, never zero. The panel below follows that backfill live.</li>
       </ul>
+      <!-- Live backfill status, read from the Weather Lab's public status feeds when the
+           page opens and every five minutes while it stays open. The numbers in the
+           markup are the last saved reading and stand if the feeds do not answer. -->
+      <div class="tf-live mt-3" id="tfLive">
+        <div class="tf-live__head">
+          <span class="tf-live__dot" aria-hidden="true"></span>
+          <span class="tf-live__title">Live from the Weather Lab</span>
+          <span class="tf-live__when" data-tfl="when">saved reading, 2&nbsp;Oct&nbsp;2026</span>
+        </div>
+        <div class="tf-live__grid">
+          <div class="tf-meter" data-meter="archive">
+            <div class="tf-meter__top"><span>Forecast archive</span><b data-tfl="archive">32,230 / 32,230</b></div>
+            <div class="tf-meter__bar"><i style="width:100%"></i></div>
+            <p class="tf-meter__note" data-tfl="archive-note">every planned issue verified</p>
+          </div>
+          <div class="tf-meter" data-meter="ticks">
+            <div class="tf-meter__top"><span>Six-hourly starts since 1996</span><b data-tfl="ticks">30,677 / 30,677</b></div>
+            <div class="tf-meter__bar"><i style="width:100%"></i></div>
+            <p class="tf-meter__note" data-tfl="ticks-note">complete</p>
+          </div>
+          <div class="tf-meter" data-meter="wind">
+            <div class="tf-meter__top"><span>Learned wind exported</span><b data-tfl="wind">30,827 / 32,230</b></div>
+            <div class="tf-meter__bar"><i style="width:95.6%"></i></div>
+            <p class="tf-meter__note" data-tfl="wind-note">backfilling &middot; 1,403 to go</p>
+          </div>
+          <div class="tf-meter" data-meter="cores">
+            <div class="tf-meter__top"><span>Pressure cores recovered</span><b data-tfl="cores">30,830 / 32,230</b></div>
+            <div class="tf-meter__bar"><i style="width:95.7%"></i></div>
+            <p class="tf-meter__note" data-tfl="cores-note">backfilling &middot; 1,400 to go</p>
+          </div>
+        </div>
+        <p class="tf-live__now" data-tfl="live">Live runs: checking which storms JMA is tracking&hellip;</p>
+      </div>
     </div>
 
     <!-- How to use -->
@@ -500,7 +533,7 @@ cd typhoon-predict
 curl -L -o models/trackformer_1_2_field/weights.pt \
   https://huggingface.co/euler314/typhoon-predict/resolve/main/models/trackformer_1_2_field/weights.pt
 python models/trackformer_1_2_field/predict.py causal_issue_packet.npz forecast.npz --device cpu   # or mps / cuda</code></pre>
-      <p class="small mb-2">Or read the 34,000-odd forecasts already saved, from any web page &mdash; the Trackformer Weather Lab's API is public, read-only and CORS-enabled (<a href="https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/history-api" target="_blank" rel="noopener noreferrer">documentation</a>):</p>
+      <p class="small mb-2">Or read the <span data-tfs="historical_total">32,230</span> archived forecasts, plus the benchmark and live runs, from any web page &mdash; the Trackformer Weather Lab's API is public, read-only and CORS-enabled (<a href="https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/history-api" target="_blank" rel="noopener noreferrer">documentation</a>):</p>
       <pre class="mc-code"><code>const base = "https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site";
 const storm = await (await fetch(base + "/api/history/v1/storms/2013306N07162")).json();   // Haiyan 2013
 const fc = await (await fetch(base + "/api/history/v1/forecasts/" + storm.issues[0].id)).json();
@@ -605,6 +638,203 @@ const fc = await (await fetch(base + "/api/history/v1/forecasts/" + storm.issues
         });
       }, { rootMargin: "-90px 0px -55% 0px" });
       Object.keys(byId).forEach(function (id) { var h = document.getElementById(id); if (h) io.observe(h); });
+    })();
+  </script>
+
+  <!-- Live figures. The Weather Lab is still backfilling (learned wind, pressure cores)
+       and can re-verify its benchmark, so the numbers on this page are read from its
+       public API when the page opens and kept current while it stays open: status
+       feeds every five minutes, the benchmark every hour, and again on returning to
+       the tab after that long. Every number in the markup is the last saved reading
+       and stays if a feed does not answer. Nothing is sent but the request itself. -->
+  <script>
+    (function () {
+      var API = "https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site";
+      var CHECKPOINT = "f194a23d3f91ea76ad776dfad942fabd669eeae8b3fd665815463095367e9ee0";
+      var STATUS_EVERY = 5 * 60 * 1000, BENCH_EVERY = 60 * 60 * 1000;
+      var lastStatus = 0, lastBench = 0;
+      function get(path) {
+        return fetch(API + path).then(function (r) { return r.ok ? r.json() : null; })
+          .catch(function () { return null; });
+      }
+      function nf(n, d) {
+        return Number(n).toLocaleString("en-US", { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 });
+      }
+      function fmt(v, f) {
+        if (v == null || !isFinite(v)) return null;
+        switch (f) {
+          case "int": return nf(Math.round(v));
+          case "km1": return nf(v, 1) + " km";
+          case "deg2": return nf(v, 2) + "°";
+          case "f3": return nf(v, 3);
+          case "f4": return nf(v, 4);
+          case "hpa2": return nf(v, 2) + " hPa";
+          case "pct": return Math.round(v) + "%";
+        }
+        return String(v);
+      }
+      function set(el, text) { if (el && text != null && el.textContent !== text) el.textContent = text; }
+      function utc(iso) {
+        var d = new Date(iso);
+        if (!isFinite(d)) return "";
+        return d.toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC", hour12: false }) + " UTC";
+      }
+
+      // ---- benchmark: tables, prose and the per-lead chart ------------------------------
+      var SVGNS = "http://www.w3.org/2000/svg";
+      function drawChart(a, b) {
+        var svg = document.querySelector(".tf-chart");
+        if (!svg) return;
+        var W = 640, H = 270, L = 52, R = 18, T = 16, Bm = 40, pw = W - L - R, ph = H - T - Bm;
+        var top = Math.max.apply(null, a.concat(b));
+        var ymax = Math.max(1800, Math.ceil(top * 1.06 / 200) * 200);
+        var X = function (i) { return L + i / 19 * pw; }, Y = function (v) { return T + ph - v / ymax * ph; };
+        var keep = [svg.querySelector("title"), svg.querySelector("desc")];
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+        keep.forEach(function (n) { if (n) svg.appendChild(n); });
+        var desc = svg.querySelector("desc");
+        if (desc) desc.textContent = "Released daily benchmark. Trackformer 1.2 against 1.1 at +24 h: " + nf(b[3], 1) + " vs " + nf(a[3], 1)
+          + " km; +72 h: " + nf(b[11], 1) + " vs " + nf(a[11], 1) + " km; +120 h: " + nf(b[19], 1) + " vs " + nf(a[19], 1) + " km.";
+        function el(tag, attrs, text) {
+          var n = document.createElementNS(SVGNS, tag);
+          for (var k in attrs) n.setAttribute(k, attrs[k]);
+          if (text != null) n.textContent = text;
+          svg.appendChild(n); return n;
+        }
+        var step = ymax > 2400 ? 800 : 400;
+        for (var g = 0; g < ymax; g += step) {
+          el("line", { "class": "tf-grid", x1: L, x2: W - R, y1: Y(g).toFixed(1), y2: Y(g).toFixed(1) });
+          el("text", { "class": "tf-axis", x: L - 8, y: (Y(g) + 4).toFixed(1), "text-anchor": "end" }, nf(g));
+        }
+        [[0, 6], [3, 24], [7, 48], [11, 72], [15, 96], [19, 120]].forEach(function (t) {
+          el("text", { "class": "tf-axis", x: X(t[0]).toFixed(1), y: H - Bm + 18, "text-anchor": "middle" }, "+" + t[1] + " h");
+        });
+        el("text", { "class": "tf-axis", x: L, y: T - 4, "text-anchor": "start" }, "km");
+        function path(v) { return "M" + v.map(function (x, i) { return X(i).toFixed(1) + "," + Y(x).toFixed(1); }).join(" L"); }
+        el("path", { "class": "tf-l11", d: path(a) });
+        el("path", { "class": "tf-l12", d: path(b) });
+        [[b, "tf-d12", "1.2", 2.6], [a, "tf-d11", "1.1", 2.4]].forEach(function (s) {
+          s[0].forEach(function (v, i) {
+            var c = el("circle", { "class": s[1], cx: X(i).toFixed(1), cy: Y(v).toFixed(1), r: s[3] });
+            var t = document.createElementNS(SVGNS, "title");
+            t.textContent = "Trackformer " + s[2] + ", +" + (6 * (i + 1)) + " h: " + nf(v, 1) + " km";
+            c.appendChild(t);
+          });
+        });
+        el("text", { "class": "tf-lab11", x: (X(19) - 6).toFixed(1), y: (Y(a[19]) - 8).toFixed(1), "text-anchor": "end" }, "1.1 · " + nf(a[19]) + " km");
+        el("text", { "class": "tf-lab12", x: (X(19) - 6).toFixed(1), y: (Y(b[19]) - 10).toFixed(1), "text-anchor": "end" }, "1.2 · " + nf(b[19]) + " km");
+      }
+      function fillLeads(a, b) {
+        var body = document.getElementById("tfLeadRows");
+        if (!body) return;
+        while (body.firstChild) body.removeChild(body.firstChild);
+        a.forEach(function (x, i) {
+          var tr = document.createElement("tr");
+          [["+" + (6 * (i + 1)) + " h", ""], [nf(x, 1), "text-end"], [nf(b[i], 1), "text-end", true],
+           ["−" + Math.round(100 * (1 - b[i] / x)) + "%", "text-end"]].forEach(function (c) {
+            var td = document.createElement("td");
+            if (c[1]) td.className = c[1];
+            if (c[2]) { var st = document.createElement("strong"); st.textContent = c[0]; td.appendChild(st); }
+            else td.textContent = c[0];
+            tr.appendChild(td);
+          });
+          body.appendChild(tr);
+        });
+      }
+      function applyBench(bm) {
+        if (!bm || !bm.cohort || !bm.metrics) return false;
+        var m = {};
+        bm.metrics.forEach(function (x) { m[x.key] = x.values || {}; });
+        var lead = bm.per_lead_track || {};
+        Array.prototype.forEach.call(document.querySelectorAll("[data-tfb]"), function (el) {
+          var p = el.getAttribute("data-tfb").split("|"), f = p[p.length - 1], v = null;
+          if (p[0] === "cohort.daily_issues") v = bm.cohort.daily_issues;
+          else if (p[0] === "cohort.storms") v = bm.cohort.storms;
+          else if (p[0] === "cut") { var t = m.mean_track_error_km; v = t && t["1.1"] ? 100 * (1 - t["1.2"] / t["1.1"]) : null; }
+          else if (p[0] === "lead") v = lead[p[1]] ? lead[p[1]][+p[2]] : null;
+          else v = m[p[0]] ? m[p[0]][p[1]] : null;
+          set(el, fmt(v, f));
+        });
+        var a = lead["1.1"], b = lead["1.2"];
+        if (a && b && a.length === 20 && b.length === 20) { drawChart(a, b); fillLeads(a, b); }
+        return true;
+      }
+
+      // ---- backfill status and live runs -----------------------------------------------
+      function meter(name, done, total, note) {
+        var box = document.querySelector('[data-meter="' + name + '"]');
+        if (!box || !total) return;
+        set(box.querySelector('[data-tfl="' + name + '"]'), nf(done) + " / " + nf(total));
+        box.querySelector(".tf-meter__bar i").style.width = Math.min(100, 100 * done / total).toFixed(1) + "%";
+        set(box.querySelector('[data-tfl="' + name + '-note"]'), note);
+        box.classList.toggle("is-done", done >= total);
+      }
+      function backfillNote(x) {
+        if (x.completed >= x.total) return "complete";
+        var left = x.total - x.completed;
+        return (x.state === "backfilling" ? "backfilling" : (x.state || "in progress")) + " · " + nf(left) + " to go";
+      }
+      function liveLine(live) {
+        var box = document.querySelector('[data-tfl="live"]');
+        if (!box || !live || !live.storms) return;
+        while (box.firstChild) box.removeChild(box.firstChild);
+        var b = document.createElement("strong"); b.textContent = "Live runs: "; box.appendChild(b);
+        if (!live.storms.length) { box.appendChild(document.createTextNode("JMA is not tracking any storm right now.")); return; }
+        live.storms.forEach(function (st, i) {
+          if (i) box.appendChild(document.createTextNode(" · "));
+          var a = document.createElement("a");
+          a.href = "typhoon-tracks.html"; a.textContent = (st.name || st.id) + " (" + st.id + ")";
+          box.appendChild(a);
+          box.appendChild(document.createTextNode(st.forecast_status === "available"
+            ? " — latest 1.2 run for the " + utc(st.issue_time_utc) + " issue"
+            : " — JMA's newest issue is waiting for 1.2's next scheduled run"));
+        });
+      }
+      function applyStatus(st, ver, wind, core, live) {
+        var stamps = [];
+        if (st && st.checkpoint_sha256 === CHECKPOINT) {
+          var total = st.historical_total, done = (ver && ver.planned === total) ? ver.verified : st.historical_completed;
+          meter("archive", done, total, (ver && ver.complete) ? "every planned issue verified" : nf(total - done) + " still to run");
+          meter("ticks", st.tick_completed, st.tick_total, st.tick_completed >= st.tick_total ? "complete" : nf(st.tick_total - st.tick_completed) + " still to run");
+          Array.prototype.forEach.call(document.querySelectorAll("[data-tfs]"), function (el) {
+            var v = st[el.getAttribute("data-tfs")];
+            if (v != null) set(el, nf(v));
+          });
+          stamps.push(st.updated_at_utc);
+        }
+        [["wind", wind], ["cores", core]].forEach(function (kv) {
+          var x = kv[1];
+          if (x && x.total && x.checkpoint_sha256 === CHECKPOINT) { meter(kv[0], x.completed, x.total, backfillNote(x)); stamps.push(x.updated_at_utc); }
+        });
+        liveLine(live);
+        var when = document.querySelector('[data-tfl="when"]'), panel = document.getElementById("tfLive");
+        if (stamps.length) {
+          stamps.sort();
+          set(when, "Weather Lab status " + utc(stamps[stamps.length - 1]) + " · checked " +
+            new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + ", again every 5 min");
+          if (panel) panel.classList.add("is-live");
+        } else {
+          set(when, "the Weather Lab did not answer — showing the last saved reading");
+          if (panel) panel.classList.remove("is-live");
+        }
+      }
+
+      function refresh(force) {
+        var now = Date.now();
+        if (force || now - lastStatus >= STATUS_EVERY) {
+          lastStatus = now;
+          Promise.all([get("/api/history/status"), get("/api/history/v1/verification"), get("/api/history/wind-status"),
+                       get("/api/history/core-status"), get("/api/history/live")])
+            .then(function (r) { applyStatus(r[0], r[1], r[2], r[3], r[4]); });
+        }
+        if (force || now - lastBench >= BENCH_EVERY) {
+          lastBench = now;
+          get("/api/benchmarks/released").then(applyBench);
+        }
+      }
+      refresh(true);
+      setInterval(function () { if (document.visibilityState === "visible") refresh(false); }, 60 * 1000);
+      document.addEventListener("visibilitychange", function () { if (document.visibilityState === "visible") refresh(false); });
     })();
   </script>
 </body>

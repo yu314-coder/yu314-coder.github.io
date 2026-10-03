@@ -2393,10 +2393,25 @@
   }
   // A storm's saved issues, or null when the Lab has none for it. A failure is not
   // cached, so the next look asks again.
-  var tf12Issues = {}, tf12IssuesLoading = {};
+  // The Lab is still backfilling, so what it has for a storm can grow while this page
+  // is open. A cached list older than TF12_STALE_MS is answered from the cache at once
+  // and refetched behind it; tf12OnFresh redraws whatever the new data touches.
+  var TF12_STALE_MS = 10 * 60 * 1000;
+  var tf12Issues = {}, tf12IssuesLoading = {}, tf12IssuesAt = {};
   function tf12EnsureIssues(sid) {
     if (!sid) return Promise.resolve(null);
-    if (tf12Issues[sid] !== undefined) return Promise.resolve(tf12Issues[sid]);
+    if (tf12Issues[sid] !== undefined) {
+      if (Date.now() - (tf12IssuesAt[sid] || 0) > TF12_STALE_MS && !tf12IssuesLoading[sid]) {
+        var had = (tf12Issues[sid] || []).length;
+        tf12FetchIssues(sid).then(function (list) {
+          if ((list || []).length !== had) tf12OnFresh(sid, null);
+        });
+      }
+      return Promise.resolve(tf12Issues[sid]);
+    }
+    return tf12FetchIssues(sid);
+  }
+  function tf12FetchIssues(sid) {
     if (tf12IssuesLoading[sid]) return tf12IssuesLoading[sid];
     tf12IssuesLoading[sid] = tf12Get("/api/history/v1/storms/" + encodeURIComponent(sid))
       .then(function (j) {
@@ -2406,14 +2421,15 @@
         });
         list.sort(function (a, b) { return Date.parse(a.issue_time_utc) - Date.parse(b.issue_time_utc); });
         tf12Issues[sid] = list.length ? list : null;
+        tf12IssuesAt[sid] = Date.now();
         delete tf12IssuesLoading[sid];
         return tf12Issues[sid];
-      }, function (e) { tf12Err = e; delete tf12IssuesLoading[sid]; return null; });
+      }, function (e) { tf12Err = e; delete tf12IssuesLoading[sid]; return tf12Issues[sid] || null; });
     return tf12IssuesLoading[sid];
   }
   // One forecast, converted to the run shape the overlay draws. tf12Runs[id] is the
   // run, or false once the Lab has answered and the forecast is unusable.
-  var tf12Runs = {}, tf12RunsLoading = {};
+  var tf12Runs = {}, tf12RunsLoading = {}, tf12RunsAt = {};
   function tf12RunFrom(fc) {
     if (!fc || fc.model !== "Trackformer 1.2" || fc.checkpoint_sha256 !== TF12_CHECKPOINT) return false;
     var by = {};
@@ -2441,17 +2457,33 @@
   function tf12EnsureRun(issue) {
     var id = issue && issue.id;
     if (!id) return Promise.resolve(null);
-    if (tf12Runs[id] !== undefined) return Promise.resolve(tf12Runs[id] || null);
+    if (tf12Runs[id] !== undefined) {
+      var r0 = tf12Runs[id];
+      // No wind yet usually means "not exported yet" while the Lab backfills; ask again
+      // later, and redraw if it has arrived.
+      if (r0 && !r0.vmax_kt && Date.now() - (tf12RunsAt[id] || 0) > TF12_STALE_MS && !tf12RunsLoading[id]) {
+        tf12FetchRun(id).then(function (r1) { if (r1 && r1.vmax_kt) tf12OnFresh(null, id); });
+      }
+      return Promise.resolve(r0 || null);
+    }
+    return tf12FetchRun(id);
+  }
+  function tf12FetchRun(id) {
     if (tf12RunsLoading[id]) return tf12RunsLoading[id];
     tf12RunsLoading[id] = tf12Get("/api/history/v1/forecasts/" + encodeURIComponent(id))
       .then(function (fc) {
-        tf12Runs[id] = tf12RunFrom(fc);
+        var run = tf12RunFrom(fc);
+        // keep a good copy rather than swap it for an unusable re-read
+        if (run || tf12Runs[id] === undefined) tf12Runs[id] = run;
+        tf12RunsAt[id] = Date.now();
         delete tf12RunsLoading[id];
         return tf12Runs[id] || null;
       }, function (e) {
+        tf12Err = e; delete tf12RunsLoading[id];
+        if (tf12Runs[id]) { tf12RunsAt[id] = Date.now(); return tf12Runs[id]; }   // keep what we had
         // Skip it for a minute rather than forever: the follow-the-playhead loop
         // would otherwise re-ask on every step while the service is down.
-        tf12Err = e; delete tf12RunsLoading[id]; tf12Runs[id] = false;
+        tf12Runs[id] = false;
         setTimeout(function () { if (tf12Runs[id] === false) delete tf12Runs[id]; }, 60000);
         return null;
       });
@@ -2478,6 +2510,41 @@
     if (tf12Bench && tf12Bench.km) tfTf11Cone(fc, { cone_km: tf12Bench.km });
   }
   function tf12Hhmm(iso) { return String(iso).slice(0, 16).replace("T", " ") + "Z"; }
+
+  // Fresh data from a background refetch: redraw only what it touches. A storm's issue
+  // list changing re-labels the button and re-picks the run under the playhead; a run
+  // gaining its wind re-draws if it is the one on screen.
+  function tf12OnFresh(sid, runId) {
+    if (sid && sid === currentSid) {
+      try { aiMarkHindcastAvailability(); } catch (e) {}
+      if (hindcastTraceCount > 0) hindcastFollowTick(true);
+    }
+    if (runId && hindcastTraceCount > 0 && hindcastLastRunId === runId) {
+      hindcastLastRunId = null;            // so the status line is rewritten with the wind
+      hindcastFollowTick(true);
+    }
+  }
+  // The history overlay reads its runs from memory as it follows the playhead, so on
+  // its own it would never notice the Lab adding runs or wind. Touch the storm's list
+  // and the run on screen: both answer from memory and refetch only once stale.
+  function tf12Touch() {
+    if (!currentSid || hindcastTraceCount === 0 || appMode !== "track") return;
+    tf12EnsureIssues(currentSid);
+    var pick = tfHindPick(Number(els.slider.value));
+    if (pick && pick.src === "trackformer12" && tf12Runs[pick.id]) tf12EnsureRun(pick);
+  }
+  setInterval(function () { if (document.visibilityState === "visible") tf12Touch(); }, 60 * 1000);
+  // While the live overlay is on, look for a newer 1.2 run every ten minutes. JMA's own
+  // reissue also re-runs the overlay, but a 1.2 run can land between reissues.
+  setInterval(function () {
+    if (document.visibilityState !== "visible" || appMode !== "predict" || !aiEnabled || !aiLastFc || aiLoading) return;
+    var d = els.typhoonSelect ? jmaCache[els.typhoonSelect.value] : null;
+    if (!d || d.tcId !== aiLastFc.tcId) return;
+    var shown = aiLastFc.tf12 && aiLastFc.tf12.id;
+    tf12LiveLoad(d.tcId).then(function (run) {
+      if (run && run.id !== shown && tfLive12For(d.tcId, d)) aiRun(d);
+    });
+  }, 10 * 60 * 1000);
 
   // ---- live: the latest 1.2 run for each storm JMA lists -----------------------------
   // 1.2 runs every six hours and JMA every three, so a 1.2 run is normally a cycle
@@ -3682,7 +3749,7 @@
       return;
     }
     var quick = run ? tfHindForecast(run, h) : null;
-    if (quick) { aiUpdateHindcast(quick, h); return; }
+    if (quick) { aiUpdateHindcast(quick, h); tf12Touch(); return; }
     aiClearHindcast();
     aiSetHindcastStatus(tfHindUnavailable(), "err");
   }
