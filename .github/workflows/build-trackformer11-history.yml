@@ -131,6 +131,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: yu314-coder/typhoon-predict
+          # PINNED, the same commit refresh-typhoon-forecast.yml uses. typhoon-predict's
+          # default branch deleted every Trackformer1.1 module when it published 1.2
+          # (2026-10-01), so an unpinned checkout gets none of the files below and the
+          # first storm that needs building dies on "No module named
+          # 'analysis_level_mean_route'" -- runs with nothing to build still passed, which
+          # is why it failed only some hours. All six files here are byte-identical at this
+          # commit and at the trackformer-1.1 release tag.
+          ref: 24369eadefee1b7b28d50b700a0b834ff1c452f6
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             trackformer_1_1_route.py
