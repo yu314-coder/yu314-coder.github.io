@@ -1082,7 +1082,11 @@
     // a full track rebuild (storm/classification/view change) wipes every trace,
     // so drop any hindcast overlay state that was sitting on the old map.
     hindcastTraceCount = 0;
-    if (els.hindcastBtn) { els.hindcastBtn.setAttribute("aria-pressed", "false"); els.hindcastBtn.classList.remove("is-on"); }
+    if (els.hindcastBtn) {
+      els.hindcastBtn.setAttribute("aria-pressed", "false"); els.hindcastBtn.classList.remove("is-on");
+      if (hindcastOffLabel) els.hindcastBtn.textContent = hindcastOffLabel;
+    }
+    setModelChip("track", null);
     consensusTraceCount = 0;
     tfRunCache = {};          // forecasts are per-storm
     aiSetHindcastStatus("");
@@ -2203,9 +2207,35 @@
     }
     return { name: "Trackformer 1.0", cls: "v10", detail: "historical model, in your browser" };
   }
+  // Forecast intensity at the day marks, on whichever scale is selected: TD / TS /
+  // C1-C5, or CWA's 輕度 / 中度 / 強烈. From the model's own wind -- 1.2's auxiliary
+  // maximum wind, whose averaging period is not validated, so the chip titles say so.
+  var TF_CAT_LEADS = [24, 48, 72, 96, 120];
+  function tfCatShort(name) {
+    if (!name) return "";
+    if (/Depression/.test(name)) return "TD";
+    if (/Tropical Storm/.test(name)) return "TS";
+    var m = /^(C[1-5])\b/.exec(name); if (m) return m[1];
+    m = /(輕度|中度|強烈)/.exec(name); if (m) return m[1];
+    return name.split(" ")[0];
+  }
+  function tfLeadCats(fc) {
+    var pts = (fc && fc.points) || [], out = [], any = false;
+    TF_CAT_LEADS.forEach(function (L) {
+      var p = null;
+      for (var i = 0; i < pts.length; i++) if (pts[i].lead_hours === L) { p = pts[i]; break; }
+      var w = p && p.vmax != null && isFinite(p.vmax) ? p.vmax : null;
+      var c = w != null ? tfCat(w) : null;
+      if (w != null) any = true;
+      out.push({ lead: L, kt: w, name: c ? c[0] : null, color: c ? c[1] : null, short: c ? tfCatShort(c[0]) : "\u2014" });
+    });
+    return any ? out : null;
+  }
   var modelChipState = { track: null, predict: null }, modelChipKey = "";
   function setModelChip(mode, fc) {
-    modelChipState[mode] = fc ? tfModelInfo(fc) : null;
+    var info = fc ? tfModelInfo(fc) : null;
+    if (info) { info.cats = tfLeadCats(fc); info.scale = standard; }
+    modelChipState[mode] = info;
     renderModelChip();
   }
   function renderModelChip() {
@@ -2219,21 +2249,47 @@
       shell.appendChild(chip);
     }
     var info = (appMode === "track" && viewMode === "season") ? null : modelChipState[appMode];
-    var key = info ? info.cls + "|" + info.name + "|" + info.detail : "";
+    var key = info ? [info.cls, info.name, info.detail, info.scale,
+      (info.cats || []).map(function (c) { return c.short + c.kt; }).join(",")].join("|") : "";
     if (key === modelChipKey) return;          // followed every playhead step; touch the DOM only on change
     modelChipKey = key;
     while (chip.firstChild) chip.removeChild(chip.firstChild);
     chip.hidden = !info;
     if (!info) return;
     chip.className = "tt-model-chip tt-model-chip--" + info.cls;
+    var top = document.createElement("div"); top.className = "tt-model-chip__top";
     var dot = document.createElement("span"); dot.className = "tt-model-chip__dot"; dot.setAttribute("aria-hidden", "true");
     var k = document.createElement("span"); k.className = "tt-model-chip__k"; k.textContent = "AI model";
     var n = document.createElement("strong"); n.className = "tt-model-chip__n"; n.textContent = info.name;
-    chip.appendChild(dot); chip.appendChild(k); chip.appendChild(n);
+    top.appendChild(dot); top.appendChild(k); top.appendChild(n);
     if (info.detail) {
       var d = document.createElement("span"); d.className = "tt-model-chip__d"; d.textContent = info.detail;
-      chip.appendChild(d);
+      top.appendChild(d);
     }
+    chip.appendChild(top);
+    // forecast intensity at each day, coloured and labelled on the selected scale
+    var row = document.createElement("div"); row.className = "tt-model-chip__cats";
+    if (info.cats) {
+      var lab = document.createElement("span"); lab.className = "tt-model-chip__k";
+      lab.textContent = info.scale === "taiwan" ? "Intensity (CWA)" : "Intensity";
+      row.appendChild(lab);
+      info.cats.forEach(function (c) {
+        var cell = document.createElement("span"); cell.className = "tt-cat";
+        var h = document.createElement("i"); h.textContent = "+" + c.lead + "h";
+        var b = document.createElement("b"); b.textContent = c.short;
+        if (c.color) b.style.background = c.color; else b.className = "is-none";
+        cell.appendChild(h); cell.appendChild(b);
+        cell.title = "+" + c.lead + " h: " + (c.kt != null ? Math.round(c.kt) + " kt \u2014 " + c.name
+          + (info.cls === "v12" ? " (1.2's auxiliary maximum wind; averaging period not validated)" : "")
+          : "no wind forecast at this lead");
+        row.appendChild(cell);
+      });
+    } else {
+      var none = document.createElement("span"); none.className = "tt-model-chip__d";
+      none.textContent = "no wind forecast for this run \u2014 track and pressure only";
+      row.appendChild(none);
+    }
+    chip.appendChild(row);
     chip.title = info.name + (info.detail ? " \u2014 " + info.detail : "");
   }
   function aiLoadScript(src) {
@@ -4755,12 +4811,31 @@
   });
   els.standard.addEventListener("change", function () {
     standard = els.standard.value;
+    // Forecast mode: recolour the AI overlay on the new scale, keep everything else.
+    if (appMode === "predict") { aiRedrawLive(); return; }
     if (!currentStorm || appMode !== "track" || viewMode !== "storm") return;
+    var hindOn = hindcastTraceCount > 0, h = Number(els.slider.value);
     buildMap();
     buildChart();
     buildLegend();
     updateReadout();
+    // The rebuild wipes the AI overlay; switching scale should recolour it, not remove it.
+    if (hindOn) {
+      var run = tfHindReady(tfHindPick(h)), fc = run ? tfHindForecast(run, h) : null;
+      if (fc) aiDrawHindcast(fc, h);
+    }
   });
+  // Redraw the live overlay in place (new colours), keeping its status line.
+  function aiRedrawLive() {
+    if (!aiLastFc || aiTraceCount === 0 || !els.map.data) return;
+    var n = els.map.data.length, idx = [];
+    for (var i = n - aiTraceCount; i < n; i++) idx.push(i);
+    Plotly.deleteTraces(els.map, idx);
+    aiTraceCount = 0;
+    var msg = els.aiStatus ? els.aiStatus.textContent : "", cls = els.aiStatus ? els.aiStatus.className : "";
+    aiDrawForecast(aiLastFc);
+    if (els.aiStatus) { els.aiStatus.textContent = msg; els.aiStatus.className = cls; }
+  }
   [els.r34, els.r50, els.r64].forEach(function (cb) {
     cb.addEventListener("change", function () { if (currentStorm) updateDynamic(); });
   });
