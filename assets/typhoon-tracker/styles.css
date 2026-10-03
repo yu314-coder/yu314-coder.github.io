@@ -482,6 +482,31 @@ body {
 .tt-float-x:hover { background: rgba(34, 211, 238, 0.16); border-color: var(--accent); color: var(--text); }
 .tt-float-body { padding: 12px; }
 
+/* --- AI model badge, top-centre --------------------------------
+   Names the model actually drawn: Trackformer 1.2, or 1.1 where 1.2 has no run.
+   Emerald matches the overlay's own colour; the 1.1 fallback is amber so a
+   change of model reads at a glance, not only in the words. */
+.tt-model-chip {
+  position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 6;
+  display: flex; align-items: center; gap: 7px; max-width: calc(100% - 560px);
+  padding: 6px 12px; border-radius: 999px; white-space: nowrap; overflow: hidden;
+  background: rgba(19, 26, 46, 0.92); border: 1px solid rgba(52, 211, 153, 0.55);
+  backdrop-filter: blur(10px); box-shadow: 0 8px 26px rgba(0, 0, 0, 0.4);
+  color: var(--text); font-size: 12.5px; pointer-events: auto;
+}
+.tt-model-chip[hidden] { display: none; }
+.tt-model-chip__dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: rgb(52, 211, 153); }
+.tt-model-chip__k { font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.tt-model-chip__n { font-weight: 700; color: rgb(110, 231, 183); }
+.tt-model-chip__d { color: var(--muted); overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.tt-model-chip--v11 { border-color: rgba(251, 191, 36, 0.6); }
+.tt-model-chip--v11 .tt-model-chip__dot { background: rgb(251, 191, 36); }
+.tt-model-chip--v11 .tt-model-chip__n { color: rgb(252, 211, 77); }
+.tt-model-chip--v10 { border-color: var(--line); }
+.tt-model-chip--v10 .tt-model-chip__dot { background: var(--muted); }
+.tt-model-chip--v10 .tt-model-chip__n { color: var(--text); }
+@media (max-width: 1279px) { .tt-model-chip { max-width: calc(100% - 520px); } .tt-model-chip__d { display: none; } }
+
 /* --- Controls, top-left ------------------------------------ */
 .tt-float--controls {
   top: 12px; left: 12px; width: 236px;
@@ -596,6 +621,11 @@ body {
 /* Matches the host page's rule: width OR a touch pointer, so an iPad in
    landscape gets the full-screen map instead of the desktop column layout. */
 @media (max-width: 999px), (hover: none) and (pointer: coarse) {
+  /* The top edge here holds the storm readout, then the controls button, the legend and the
+     zoom buttons; the map's lower edge is the timeline card. The clear strip is just under
+     the legend, between the controls column and the zoom column. */
+  .tt-model-chip { top: 122px; max-width: calc(100% - 140px); padding: 5px 10px; font-size: 12px; }
+  .tt-model-chip__d { display: none; }
   .tt-app { padding: 0; position: relative; }
   .tt-mapwrap { flex-direction: column; gap: 0; margin: 0; }
   .tt-map-shell { width: 100%; }

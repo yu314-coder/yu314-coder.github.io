@@ -2180,6 +2180,62 @@
                          // rebuild can tell "same run" (redraw) from "data moved on" (re-run)
 
   function aiPmod(a, n) { return ((a % n) + n) % n; }     // Python-style positive modulo
+
+  /* --- Which model is on the map ----------------------------------------------
+     The overlay is Trackformer 1.2 where the Weather Lab has a run, and falls back
+     to Trackformer 1.1 where it does not -- and the only place that said which was
+     a paragraph under the map, hidden altogether on a phone. A badge on the map
+     names the model actually drawn, per mode; the buttons and the point hovers use
+     the same name. */
+  function tfModelInfo(fc) {
+    if (!fc) return null;
+    if (fc.trackSource === "trackformer12") {
+      var r = fc.tf12 || {};
+      return { name: "Trackformer 1.2", cls: "v12", detail: [
+        r.members > 1 ? "mean of " + r.members + " members" : "single run",
+        r.issue_time_utc ? "issued " + tf12Hhmm(r.issue_time_utc) : null].filter(Boolean).join(" \u00b7 ") };
+    }
+    if (fc.trackSource === "trackformer11") {
+      var q = fc.tf11 || {};
+      return { name: "Trackformer 1.1", cls: "v11", detail: [
+        "fallback \u2014 no 1.2 run here",
+        q.issue_time_utc ? "issued " + tf12Hhmm(q.issue_time_utc) : null].filter(Boolean).join(" \u00b7 ") };
+    }
+    return { name: "Trackformer 1.0", cls: "v10", detail: "historical model, in your browser" };
+  }
+  var modelChipState = { track: null, predict: null }, modelChipKey = "";
+  function setModelChip(mode, fc) {
+    modelChipState[mode] = fc ? tfModelInfo(fc) : null;
+    renderModelChip();
+  }
+  function renderModelChip() {
+    var shell = document.querySelector(".tt-map-shell");
+    if (!shell) return;
+    var chip = document.getElementById("tt-model-chip");
+    if (!chip) {
+      chip = document.createElement("div");
+      chip.id = "tt-model-chip"; chip.className = "tt-model-chip";
+      chip.setAttribute("role", "status"); chip.setAttribute("aria-live", "polite");
+      shell.appendChild(chip);
+    }
+    var info = (appMode === "track" && viewMode === "season") ? null : modelChipState[appMode];
+    var key = info ? info.cls + "|" + info.name + "|" + info.detail : "";
+    if (key === modelChipKey) return;          // followed every playhead step; touch the DOM only on change
+    modelChipKey = key;
+    while (chip.firstChild) chip.removeChild(chip.firstChild);
+    chip.hidden = !info;
+    if (!info) return;
+    chip.className = "tt-model-chip tt-model-chip--" + info.cls;
+    var dot = document.createElement("span"); dot.className = "tt-model-chip__dot"; dot.setAttribute("aria-hidden", "true");
+    var k = document.createElement("span"); k.className = "tt-model-chip__k"; k.textContent = "AI model";
+    var n = document.createElement("strong"); n.className = "tt-model-chip__n"; n.textContent = info.name;
+    chip.appendChild(dot); chip.appendChild(k); chip.appendChild(n);
+    if (info.detail) {
+      var d = document.createElement("span"); d.className = "tt-model-chip__d"; d.textContent = info.detail;
+      chip.appendChild(d);
+    }
+    chip.title = info.name + (info.detail ? " \u2014 " + info.detail : "");
+  }
   function aiLoadScript(src) {
     return new Promise(function (res, rej) {
       var s = document.createElement("script");
@@ -2199,6 +2255,7 @@
       els.aiBtn.setAttribute("aria-pressed", "false"); els.aiBtn.classList.remove("is-on");
       els.aiBtn.textContent = AI_BTN_OFF;
     }
+    setModelChip("predict", null);
     aiSetStatus("");
   }
   function aiRemoveTraces() {
@@ -2238,8 +2295,9 @@
   function aiDrawForecast(fc) {
     var pts = fc.points || [];
     if (!pts.length) throw new Error("empty forecast");
-    var meanLat = [fc.initial_lat], meanLon = [fc.initial_lon], txt = ["AI · now · " + fmtLatLon(fc.initial_lat, fc.initial_lon)];
-    pts.forEach(function (p) { meanLat.push(p.lat); meanLon.push(p.lon); txt.push(tfHover(p)); });
+    var mInfo = tfModelInfo(fc);
+    var meanLat = [fc.initial_lat], meanLon = [fc.initial_lon], txt = [mInfo.name + " · start · " + fmtLatLon(fc.initial_lat, fc.initial_lon)];
+    pts.forEach(function (p) { meanLat.push(p.lat); meanLon.push(p.lon); txt.push(tfHover(p, mInfo.name)); });
     // spread cone: apex at now, out along the p90 corners, back along the p10 corners
     var rev = pts.slice().reverse();
     var coneLat = [fc.initial_lat].concat(pts.map(function (p) { return p.p90_lat; }))
@@ -2265,8 +2323,9 @@
     aiLastFc = fc;   // remember it so a same-storm map rebuild can restore it
     if (els.aiBtn) {
       els.aiBtn.setAttribute("aria-pressed", "true"); els.aiBtn.classList.add("is-on");
-      els.aiBtn.textContent = AI_BTN_ON;
+      els.aiBtn.textContent = "\u{1F9EA} Hide the AI overlay (" + mInfo.name + ")";
     }
+    setModelChip("predict", fc);
     aiSetStatus("🧪 " + (fc.storm || "AI") + " — MODEL: Trackformer1.0 for everything here — track,"
       + " wind, pressure and wind-field size — run in your own browser (5-seed int8 ensemble of the"
       + " historical release). Trackformer1.1 is computed server-side and only for the latest JMA issuance;"
@@ -3186,7 +3245,8 @@
   }
   // Hover text carrying the model's full predicted state at a lead: category, wind,
   // pressure, RMW, and the 34/50/64-kt wind radii.
-  function tfHover(p) {
+  function tfHover(p, model) {
+    var who = model || "AI";
     var r34 = p.radiiKm ? avgRadius(p.radiiKm.slice(0, 4)) : null,
         r50 = p.radiiKm ? avgRadius(p.radiiKm.slice(4, 8)) : null,
         r64 = p.radiiKm ? avgRadius(p.radiiKm.slice(8, 12)) : null;
@@ -3202,14 +3262,14 @@
     // Trackformer 1.2 always forecasts central pressure, but its auxiliary wind is
     // missing on some runs. Pressure alone is still a real forecast; say which half is there.
     if (!known && p.pres != null && isFinite(p.pres)) {
-      return "<b>" + Math.round(p.pres) + " mb</b><br>AI +" + p.lead_hours + " h · " + fmtLatLon(p.lat, p.lon)
+      return "<b>" + Math.round(p.pres) + " mb</b><br>" + who + " +" + p.lead_hours + " h · " + fmtLatLon(p.lat, p.lon)
         + "<br>no wind for this run — pressure and track only";
     }
     if (!known) {
-      return "<b>Intensity not available</b><br>AI +" + p.lead_hours + " h · " + fmtLatLon(p.lat, p.lon)
+      return "<b>Intensity not available</b><br>" + who + " +" + p.lead_hours + " h · " + fmtLatLon(p.lat, p.lon)
         + "<br>route only — the intensity head did not run for this storm";
     }
-    return "<b>" + tfCat(p.vmax)[0] + "</b><br>AI +" + p.lead_hours + " h · " + fmtLatLon(p.lat, p.lon)
+    return "<b>" + tfCat(p.vmax)[0] + "</b><br>" + who + " +" + p.lead_hours + " h · " + fmtLatLon(p.lat, p.lon)
       + "<br>" + Math.round(p.vmax) + " kt · " + (p.pres != null && isFinite(p.pres) ? Math.round(p.pres) + " mb" : "pressure n/a")
       + (p.rmw ? " · RMW " + Math.round(p.rmw) + " km" : "")
       + (rads.length ? "<br>wind radii: " + rads.join(" · ") + " km" : "");
@@ -3239,7 +3299,14 @@
   // The index is 47 KB and already fetched for the overlay, so this costs
   // nothing; before it arrives the button keeps its neutral label.
   var HINDCAST_LABEL = "🧪 Run my AI model (Trackformer 1.2)";
-  var HINDCAST_LABEL_11 = "🧪 Run my AI model (Trackformer1.1)";
+  var HINDCAST_LABEL_11 = "🧪 Run my AI model (Trackformer 1.1)";
+  var hindcastOffLabel = null;      // what the button says when the overlay is off, for this storm
+  // While the overlay is up, the button and the badge name the model actually drawn.
+  function hindcastShowModel(fc) {
+    var info = tfModelInfo(fc);
+    if (els.hindcastBtn && info) els.hindcastBtn.textContent = "🧪 Hide the AI model (" + info.name + ")";
+    setModelChip("track", fc);
+  }
   function aiMarkHindcastAvailability() {
     var b = els.hindcastBtn;
     if (!b) return;
@@ -3252,17 +3319,19 @@
       var span11 = h11 ? "Trackformer1.1 runs " + String(h11.first_issue_utc).slice(0, 10) + " to "
         + String(h11.last_issue_utc).slice(0, 10) + " (" + h11.runs + " initialisations)" : "";
       b.classList.toggle("tt-ai-btn--none", !i12 && !h11);
+      var label = i12 ? HINDCAST_LABEL : (h11 ? HINDCAST_LABEL_11 : HINDCAST_LABEL + " — no run yet");
+      hindcastOffLabel = label;
       if (i12) {
-        b.textContent = HINDCAST_LABEL;
+        if (hindcastTraceCount === 0) b.textContent = label;
         b.title = "Trackformer 1.2 runs " + String(i12[0].issue_time_utc).slice(0, 10) + " to "
           + String(i12[i12.length - 1].issue_time_utc).slice(0, 10) + " (" + i12.length + " initialisations)"
           + (h11 ? "; " + span11 + " fill in where 1.2 has none" : "");
       } else if (h11) {
-        b.textContent = HINDCAST_LABEL_11;
+        if (hindcastTraceCount === 0) b.textContent = label;
         b.title = (tf12Err ? "Trackformer 1.2's data service did not answer. " : "No Trackformer 1.2 run for this storm. ")
           + span11;
       } else {
-        b.textContent = HINDCAST_LABEL + " — no run yet";
+        if (hindcastTraceCount === 0) b.textContent = label;
         b.title = "Neither Trackformer 1.2 nor Trackformer1.1 has a run for this storm yet. Click for the detail.";
       }
     });
@@ -3272,7 +3341,11 @@
     var idx = tfTraceIdx(TF_HIND);
     if (idx.length) Plotly.deleteTraces(els.map, idx);
     hindcastTraceCount = 0;
-    if (els.hindcastBtn) { els.hindcastBtn.setAttribute("aria-pressed", "false"); els.hindcastBtn.classList.remove("is-on"); }
+    if (els.hindcastBtn) {
+      els.hindcastBtn.setAttribute("aria-pressed", "false"); els.hindcastBtn.classList.remove("is-on");
+      els.hindcastBtn.textContent = hindcastOffLabel || HINDCAST_LABEL;
+    }
+    setModelChip("track", null);
     aiSetHindcastStatus("");
   }
   var hindcastFollowRun = false, hindcastFollowTs = 0;
@@ -3282,8 +3355,9 @@
   // 34-kt rings (+24/+72/+120 h, empty if implausible), actual track, mean track.
   function tfHindcastData(fc, initHour) {
     var pts = fc.points || [], rev = pts.slice().reverse();
-    var meanLat = [fc.initial_lat], meanLon = [fc.initial_lon], meanTxt = ["AI init · " + fmtLatLon(fc.initial_lat, fc.initial_lon)];
-    pts.forEach(function (p) { meanLat.push(p.lat); meanLon.push(p.lon); meanTxt.push(tfHover(p)); });
+    var mName = tfModelInfo(fc).name;
+    var meanLat = [fc.initial_lat], meanLon = [fc.initial_lon], meanTxt = [mName + " · start · " + fmtLatLon(fc.initial_lat, fc.initial_lon)];
+    pts.forEach(function (p) { meanLat.push(p.lat); meanLon.push(p.lon); meanTxt.push(tfHover(p, mName)); });
     // The cone is whichever model produced this forecast: Trackformer1.0's error covariance,
     // or Trackformer1.1's own 90% member radius. Both are laid perpendicular the same way.
     var coneLat = [fc.initial_lat].concat(pts.map(function (p) { return p.p90_lat; })).concat(rev.map(function (p) { return p.p10_lat; }));
@@ -3700,6 +3774,7 @@
     Plotly.addTraces(els.map, traces);
     hindcastTraceCount = traces.length;   // fixed 7, so a follow-update can restyle in place
     if (els.hindcastBtn) { els.hindcastBtn.setAttribute("aria-pressed", "true"); els.hindcastBtn.classList.add("is-on"); }
+    hindcastShowModel(fc);
     hindcastLastSource = fc && fc.trackSource;
     hindcastLastRunId = fc && fc.tf12 ? fc.tf12.id : null;
     aiSetHindcastStatus(tfHindcastStatusText(fc), "on");
@@ -3716,6 +3791,7 @@
     }, [i0, i0 + 1, i0 + 2, i0 + 3, i0 + 4, i0 + 5, i0 + 6]);
     Plotly.restyle(els.map, { text: [d.rings[0].text, d.rings[1].text, d.rings[2].text, ACT_HOVER, d.meanTxt] }, [i0 + 2, i0 + 3, i0 + 4, i0 + 5, i0 + 6]);
     Plotly.restyle(els.map, { "marker.color": [d.meanColors] }, [i0 + 6]);
+    hindcastShowModel(fc);
     if (fc && fc.trackSource !== hindcastLastSource) {
       hindcastLastSource = fc.trackSource;
       aiSetHindcastStatus(tfHindcastStatusText(fc), "on");
@@ -4450,6 +4526,7 @@
 
   function setViewMode(mode) {
     viewMode = mode;
+    renderModelChip();
     if (els.app) els.app.classList.toggle("is-season", mode === "season");
     if (els.viewStorm) {
       els.viewStorm.classList.toggle("is-active", mode === "storm");
@@ -4468,6 +4545,7 @@
   /* ---- Track / Forecast mode plumbing ------------------------------------ */
   function setAppMode(mode) {
     appMode = mode;
+    renderModelChip();
     els.app.classList.toggle("mode-track", mode === "track");
     els.app.classList.toggle("mode-predict", mode === "predict");
     // the season-view chrome (hint, hidden panels) must only apply inside Track
