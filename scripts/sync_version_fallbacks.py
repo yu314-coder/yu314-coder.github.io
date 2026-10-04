@@ -4,7 +4,7 @@
 Most versions on this site are injected at runtime from the committed JSON, so
 they cannot go stale. A few are also written into the markup as a fallback, shown
 if the fetch fails: the Windows badge on the projects page, rmt-denoise's on the
-PyPI page, and the App Store version named in GPS-location-app's status line. A fallback that is never updated is just a slower kind of rot —
+PyPI page, and the App Store version named in SidecarBridge's status line. A fallback that is never updated is just a slower kind of rot —
 it was a hand-typed v1.1.3.0 sitting under a live v1.1.4.0 badge that made the
 contradiction visible in the first place.
 

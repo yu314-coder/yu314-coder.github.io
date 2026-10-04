@@ -140,6 +140,10 @@
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
               <span class="feature-badge">Visual Code Editor</span>
               <span class="feature-badge">Live Preview</span>
+              <span class="feature-badge">AI Assist</span>
+              <span class="feature-badge">Kokoro Narration</span>
+              <span class="feature-badge">CLI + MCP Server</span>
+              <span class="feature-badge">Up to 8K / 120fps</span>
               <span class="feature-badge">No Admin Rights</span>
               <span class="feature-badge">Auto Dependencies</span>
               <span class="feature-badge">Asset Management</span>
@@ -148,9 +152,11 @@
             <div class="mb-4">
               <h4 class="h5 fw-bold mb-3">What's Included</h4>
               <ul class="list-unstyled">
-                <li class="mb-2">ManimStudio GUI Application</li>
-                <li class="mb-2">Python 3.12.7 (bundled installer)</li>
-                <li class="mb-2">MiKTeX Basic (officially recommended for Manim)</li>
+                <li class="mb-2">ManimStudio GUI application with a Monaco editor and basedpyright IntelliSense</li>
+                <li class="mb-2">AI Assist — edits the open scene through your signed-in OpenAI Codex CLI or Claude Code CLI, no API key needed</li>
+                <li class="mb-2">Kokoro TTS narration — <code>narrate("...")</code> in a scene is voiced and merged into the video on render</li>
+                <li class="mb-2">Command-line rendering and an MCP server from the same executable</li>
+                <li class="mb-2">Final renders up to 8K at 120fps</li>
               </ul>
             </div>
 
@@ -160,6 +166,7 @@
                   <h5 class="h6 fw-bold mb-3">Requirements</h5>
                   <ul class="small mb-0 text-start">
                     <li>Windows 10+ (64-bit)</li>
+                    <li>Python 3.8+ and MiKTeX (or other LaTeX distribution) must be installed</li>
                     <li>No admin privileges needed</li>
                     <li>Internet for initial setup</li>
                   </ul>
@@ -169,9 +176,9 @@
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">Quick Install</h5>
                   <ol class="small mb-0 text-start">
-                    <li>Run ManimStudio installer</li>
-                    <li>Auto-installs dependencies</li>
-                    <li>Follow setup wizard</li>
+                    <li>Install Python 3.8+ and a LaTeX distribution</li>
+                    <li>Get ManimStudio from the Microsoft Store</li>
+                    <li>Setup wizard installs Manim into its own environment</li>
                     <li>Launch and create!</li>
                   </ol>
                 </div>
@@ -183,8 +190,8 @@
               <div class="d-inline-block text-start">
                 <p class="small mb-1"><strong>Created by:</strong> Yu Yao-Hsing</p>
                 <p class="small mb-1"><strong>License:</strong> MIT License</p>
-                <p class="small mb-1"><strong>LaTeX Engine:</strong> MiKTeX</p>
-                <p class="small mb-1"><strong>Format:</strong> MSIX Package</p>
+                <p class="small mb-1"><strong>LaTeX Engine:</strong> MiKTeX (or other LaTeX distribution, installed separately)</p>
+                <p class="small mb-1"><strong>Format:</strong> MSIX Package, 25&nbsp;MB</p>
                 <p class="small mb-0"><strong>Platform:</strong> Windows 10+</p>
               </div>
             </div>
@@ -228,8 +235,10 @@
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
               <span class="feature-badge">Monaco Editor</span>
-              <span class="feature-badge">VideoToolbox H.264</span>
-              <span class="feature-badge">offlinai_shell (~150 builtins)</span>
+              <span class="feature-badge">VideoToolbox H.264 / HEVC</span>
+              <span class="feature-badge">Apple Pencil → Manim</span>
+              <span class="feature-badge">Presentation Mode</span>
+              <span class="feature-badge">offlinai_shell (over 100 builtins)</span>
               <span class="feature-badge">busytex LaTeX</span>
               <span class="feature-badge">SwiftTerm + PTY</span>
               <span class="feature-badge">Fully Offline</span>
@@ -243,7 +252,10 @@
                 <li class="mb-2">Monaco editor in WKWebView — full Python autocomplete, find/replace, multi-cursor, snippets, render-error gutter markers</li>
                 <li class="mb-2">Live symbol-completion index built from introspection of the bundled Python packages</li>
                 <li class="mb-2">Drag-drop image → auto-inserts <code>ImageMobject</code> snippet</li>
-                <li class="mb-2">Pure-Swift Python formatter (⌥⌘L)</li>
+                <li class="mb-2">Pure-Swift Python formatter (⌥⌘I)</li>
+                <li class="mb-2">Apple Pencil → Manim — sketch on iPad and get editable Manim source (circles, rectangles, polygons, lines, smooth curves), entirely on-device</li>
+                <li class="mb-2">Presentation mode — full-screen looping playback of the latest render, with a library strip of earlier ones</li>
+                <li class="mb-2">Editor-first workspace with a command palette, and a rebuilt System tab that reads live memory, storage and thermal state from the device</li>
                 <li class="mb-2">Reuses the offlinai_shell from <a href="https://github.com/yu314-coder/CodeBench" target="_blank" rel="noopener noreferrer" class="lib-link">CodeBench / BenchCode</a> (rebranded as "ManimStudio shell" at install)</li>
               </ul>
             </div>
@@ -264,7 +276,9 @@
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">Render Pipeline</h5>
                   <ul class="small mb-0 text-start">
-                    <li>VideoToolbox H.264 (~5× faster than libx264)</li>
+                    <li>VideoToolbox H.264; HEVC above 4K</li>
+                    <li>Custom output size — 9:16, 1:1, 4:5, 16:9 presets</li>
+                    <li>Transparent MOV export with real alpha</li>
                     <li>Cairo via pycairo compat layer</li>
                     <li>busytex WASM for Tex / MathTex</li>
                     <li>Output to Documents/ — Files app visible</li>
@@ -325,15 +339,19 @@
                   <span class="badge-neutral mono ms-1">App Store name: BenchCode</span>
                 </div>
               </div>
-              <p class="lead mb-0">A self-contained developer / scientific / AI workstation for iPad and Mac. Python 3.14, C, C++, Fortran, pdflatex, and local LLMs — all running on-device, no internet required.</p>
+              <p class="lead mb-0">A self-contained developer / scientific / AI workstation for iPad and Mac. Python 3.14, Jupyter notebooks, C, C++, Fortran, pdflatex, and local LLMs — all running on-device, no internet required.</p>
             </header>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
               <span class="feature-badge">Monaco Editor</span>
               <span class="feature-badge">IntelliSense</span>
+              <span class="feature-badge">Jupyter Notebooks</span>
+              <span class="feature-badge">Vim Mode</span>
               <span class="feature-badge">SwiftTerm REPL</span>
               <span class="feature-badge">pdflatex</span>
               <span class="feature-badge">llama.cpp</span>
+              <span class="feature-badge">Apple Foundation Models</span>
+              <span class="feature-badge">Blender bpy</span>
               <span class="feature-badge">Metal GPU PyTorch</span>
               <span class="feature-badge">LoRA Fine-tune</span>
               <span class="feature-badge">AI Assist Chat</span>
@@ -343,6 +361,7 @@
               <span class="feature-badge">RAG Engine</span>
               <span class="feature-badge">Command Palette</span>
               <span class="feature-badge">Live RAM Sparkline</span>
+              <span class="feature-badge">cpu-z / gpu-z</span>
               <span class="feature-badge">Auto-save</span>
             </div>
 
@@ -387,7 +406,7 @@
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
                   <h5>Workspace System <span class="lib-count-badge">multi-tab</span></h5>
-                  <p class="mt-1 mb-0" style="text-align:left;">iOS document browser with multiple concurrent workspaces. Auto-save debounced ~600 ms after every keystroke + on run, tab-switch, view-disappear, and app-backgrounding. Tombstone system records deleted files so seeders don't resurrect them.</p>
+                  <p class="mt-1 mb-0" style="text-align:left;">iOS document browser with multiple concurrent workspaces, also visible in the Files app. Auto-save debounced ~600 ms after every keystroke + on run, tab-switch, view-disappear, and app-backgrounding. Tombstone system records deleted files so seeders don't resurrect them.</p>
                 </div>
               </div>
 
@@ -436,7 +455,7 @@
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
                   <h5>AI Assist Chat <span class="lib-count-badge new-badge">NEW</span></h5>
-                  <p class="mt-1 mb-0" style="text-align:left;">ChatGPT-style chat panel wired to the local LLM — streaming replies that render <strong>compiled LaTeX</strong> inline, code-aware assists into the editor, and a one-tap scratch file when there's no target. All on-device; no tokens leave the iPad.</p>
+                  <p class="mt-1 mb-0" style="text-align:left;">ChatGPT-style chat panel — streaming replies that render <strong>compiled LaTeX</strong> inline, code-aware assists into the editor, and a one-tap scratch file when there's no target. Runs on <strong>Apple's Foundation Models</strong> (on-device, or Cloud Pro) or any local GGUF; OpenAI, Anthropic and Ollama are optional providers. With an on-device model, no tokens leave the iPad.</p>
                 </div>
               </div>
 
@@ -444,6 +463,41 @@
                 <div class="lib-category-card">
                   <h5>Visual Debugger <span class="lib-count-badge new-badge">NEW</span></h5>
                   <p class="mt-1 mb-0" style="text-align:left;">Step through Python with a visual debugger wired into Monaco, <strong>data Quick Look</strong> for inspecting variables / arrays / frames, plus a redesigned Libraries tab, richer System Info, and a hidden debug panel with a native-lib test probe.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>Jupyter Notebooks <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <p class="mt-1 mb-0" style="text-align:left;">Tap an <code>.ipynb</code> and it opens in the editor box as stacked cells, not raw JSON. Per-cell Run on a <strong>persistent in-process kernel</strong>, inline plots and HTML output, markdown cells with KaTeX, saved back as nbformat v4.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>Vim Mode <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <p class="mt-1 mb-0" style="text-align:left;">NORMAL / INSERT / VISUAL / V-LINE modes inside Monaco, toggled from the settings sheet (<code>⇧⌘,</code>) alongside the AI provider and inline completion.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>Blender 3D <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <p class="mt-1 mb-0" style="text-align:left;">Full <code>import bpy</code> from python-ios-lib — Cycles and Eevee rendering on the Apple GPU. Saving a <code>.blend</code> opens an interactive 3D preview.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>Benchmarks <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <p class="mt-1 mb-0" style="text-align:left;"><code>cpu-z</code> and <code>gpu-z</code> terminal builtins measure the device when run and map the results onto the CPU-Z and Geekbench 6 Compute scales, labelled as estimates.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>Libraries Storage Chart <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <p class="mt-1 mb-0" style="text-align:left;">The Libraries tab opens on an interactive ring chart of the whole app's disk footprint — tap a slice to filter the list to it — and every package card shows its true on-disk size.</p>
                 </div>
               </div>
 
@@ -456,7 +510,7 @@
                 <span class="feature-badge">Python 3.14 (BeeWare CPython)</span>
                 <span class="feature-badge">C — 3.4k LOC interpreter</span>
                 <span class="feature-badge">C++ — 4.2k LOC interpreter</span>
-                <span class="feature-badge">Fortran — 4.1k LOC interpreter</span>
+                <span class="feature-badge">Fortran — vendored ofort interpreter</span>
               </div>
             </div>
 
@@ -528,10 +582,10 @@
                 <div class="text-start">
                   <h3 class="h2 mb-1 fw-bold">python-ios-lib</h3>
                   <span class="badge-neutral mono">Python 3.14</span>
-                  <span class="badge-accent mono ms-1">30+ Libraries</span>
+                  <span class="badge-accent mono ms-1">~180 Packages</span>
                 </div>
               </div>
-              <p class="lead mb-0">Full Python 3.14 runtime for iOS/iPadOS with 30+ offline libraries — including native PyTorch, HuggingFace transformers, and Rust tokenizers. Train on-device. No JIT, App Store safe. Powers <strong>CodeBench</strong>. Its Metal-accelerated pieces also ship as standalone repos: <a href="https://github.com/yu314-coder/cairometal" target="_blank" rel="noopener noreferrer" class="lib-link">cairometal</a> and <a href="https://github.com/yu314-coder/torchmetal" target="_blank" rel="noopener noreferrer" class="lib-link">torchmetal</a>.</p>
+              <p class="lead mb-0">Full Python 3.14 runtime for iOS/iPadOS with about 180 offline packages — including native PyTorch, HuggingFace transformers, Rust tokenizers, and Blender <code>bpy</code>. Train on-device. No JIT, App Store safe. Powers <strong>CodeBench</strong>. Its Metal-accelerated pieces also ship as standalone repos: <a href="https://github.com/yu314-coder/cairometal" target="_blank" rel="noopener noreferrer" class="lib-link">cairometal</a> and <a href="https://github.com/yu314-coder/torchmetal" target="_blank" rel="noopener noreferrer" class="lib-link">torchmetal</a>.</p>
             </header>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
@@ -544,7 +598,10 @@
               <span class="feature-badge">Transformers</span>
               <span class="feature-badge">Rust Tokenizers</span>
               <span class="feature-badge">NumPy Native</span>
-              <span class="feature-badge">Manim up to 8K</span>
+              <span class="feature-badge">Blender bpy (Metal)</span>
+              <span class="feature-badge">OpenCV</span>
+              <span class="feature-badge">ONNX Runtime + CoreML</span>
+              <span class="feature-badge">Manim up to 14K</span>
               <span class="feature-badge">C/C++/Fortran</span>
               <span class="feature-badge">JavaScript REPL</span>
               <span class="feature-badge">dulwich Git</span>
@@ -564,7 +621,7 @@
                     <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/scipy.md" target="_blank" rel="noopener noreferrer" class="lib-link">SciPy</a></td><td>1.15.0</td></tr>
                     <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/sympy.md" target="_blank" rel="noopener noreferrer" class="lib-link">SymPy</a></td><td>1.14.0</td></tr>
                     <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/mpmath.md" target="_blank" rel="noopener noreferrer" class="lib-link">mpmath</a></td><td>1.4.1</td></tr>
-                    <tr><td>PyArrow <span class="new-badge">NEW</span></td><td>columnar data</td></tr>
+                    <tr><td>PyArrow <span class="new-badge">NEW</span></td><td>with Parquet</td></tr>
                     <tr><td>Tropycal <span class="new-badge">NEW</span></td><td>tropical cyclones</td></tr>
                   </table>
                 </div>
@@ -573,13 +630,17 @@
               <!-- Machine Learning -->
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>Machine Learning <span class="lib-count-badge">4</span></h5>
+                  <h5>Machine Learning <span class="lib-count-badge">8</span></h5>
                   <table>
                     <tr><th>Library</th><th>Ver</th></tr>
-                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/pytorch.md" target="_blank" rel="noopener noreferrer" class="lib-link">PyTorch</a> <span class="dev-badge">BETA</span></td><td>2.1.2</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/pytorch.md" target="_blank" rel="noopener noreferrer" class="lib-link">PyTorch</a> <span class="dev-badge">BETA</span></td><td>2.1.0</td></tr>
                     <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/transformers.md" target="_blank" rel="noopener noreferrer" class="lib-link">transformers</a> <span class="dev-badge">BETA</span></td><td>4.41.2</td></tr>
                     <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/tokenizers.md" target="_blank" rel="noopener noreferrer" class="lib-link">tokenizers</a> <span class="dev-badge">BETA</span></td><td>0.19.1</td></tr>
-                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/sklearn.md" target="_blank" rel="noopener noreferrer" class="lib-link">scikit-learn</a></td><td>40 modules</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/sklearn.md" target="_blank" rel="noopener noreferrer" class="lib-link">scikit-learn</a></td><td>1.9.0</td></tr>
+                    <tr><td>onnxruntime <span class="new-badge">NEW</span></td><td>1.26 · CoreML</td></tr>
+                    <tr><td>faiss <span class="new-badge">NEW</span></td><td>1.9.0 (CPU)</td></tr>
+                    <tr><td>sentencepiece <span class="new-badge">NEW</span></td><td>0.2.0</td></tr>
+                    <tr><td>datasets / evaluate <span class="new-badge">NEW</span></td><td>4.0.0 / 0.4.6</td></tr>
                   </table>
                   <p class="mt-2 mb-0">Native PyTorch (95/95 asserts) + Metal GPU bridge (<strong>2–10× speedup</strong>) + HuggingFace transformers &amp; Rust tokenizers — train on-device</p>
                 </div>
@@ -591,7 +652,7 @@
                   <h5>Visualization <span class="lib-count-badge">3</span></h5>
                   <table>
                     <tr><th>Library</th><th>Ver</th></tr>
-                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/matplotlib.md" target="_blank" rel="noopener noreferrer" class="lib-link">matplotlib</a></td><td>3.9.0</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/matplotlib.md" target="_blank" rel="noopener noreferrer" class="lib-link">matplotlib</a></td><td>3.11.0</td></tr>
                     <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/plotly.md" target="_blank" rel="noopener noreferrer" class="lib-link">Plotly</a></td><td>6.6.0</td></tr>
                     <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/libs/manim.md" target="_blank" rel="noopener noreferrer" class="lib-link">manim</a> <span class="dev-badge">BETA</span></td><td>0.20.1</td></tr>
                   </table>
@@ -657,6 +718,19 @@
                     <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/werkzeug.md" target="_blank" rel="noopener noreferrer" class="lib-link">Werkzeug</a></td><td>WSGI utils</td></tr>
                   </table>
                   <p class="mt-2 mb-0">Run a full Python web app on-device — Jinja2 + MarkupSafe + Fsspec also bundled. See <a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/web-stack.md" target="_blank" rel="noopener noreferrer" class="lib-link">web-stack.md</a>.</p>
+                </div>
+              </div>
+
+              <!-- 3D & Vision -->
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>3D &amp; Vision <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <table>
+                    <tr><th>Library</th><th>Ver</th></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/blender-bpy.md" target="_blank" rel="noopener noreferrer" class="lib-link">Blender bpy</a></td><td>5.3.0</td></tr>
+                    <tr><td><a href="https://github.com/yu314-coder/python-ios-lib/blob/main/docs/opencv.md" target="_blank" rel="noopener noreferrer" class="lib-link">OpenCV</a></td><td>4.10</td></tr>
+                  </table>
+                  <p class="mt-2 mb-0">The complete Blender module — Cycles and Eevee rendering on the Apple GPU (Metal) — plus a curated native OpenCV build</p>
                 </div>
               </div>
 
@@ -760,8 +834,8 @@
               </div>
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h5>Manim 4K/8K <span class="lib-count-badge new-badge">NEW</span></h5>
-                  <p class="mt-1 mb-0" style="text-align:left;">Memory-safe high-res rendering up to <strong>8K (7680×4320)</strong> without tripping iOS jetsam — bounded GIF buffer, frames stream to mp4 instead of accumulating, resolution-tiered RAM pre-flight, <code>h264_videotoolbox</code> encode. Quality selectable 480p→8K.</p>
+                  <h5>Manim up to 14K <span class="lib-count-badge new-badge">NEW</span></h5>
+                  <p class="mt-1 mb-0" style="text-align:left;">Memory-safe high-res rendering up to <strong>14K</strong> without tripping iOS jetsam — bounded GIF buffer, frames stream to mp4 instead of accumulating, and a RAM estimate that now only warns instead of refusing. <code>h264_videotoolbox</code> up to 4K, <code>hevc_videotoolbox</code> above it. Quality selectable 480p→14K, with 8K, 12K and 14K presets.</p>
                 </div>
               </div>
               <div class="col-md-6 col-lg-4">
@@ -804,7 +878,7 @@
                 <p class="small mb-1"><strong>Created by:</strong> Yu Yao-Hsing</p>
                 <p class="small mb-1"><strong>License:</strong> MIT</p>
                 <p class="small mb-1"><strong>Runtime:</strong> Python 3.14 on iOS arm64</p>
-                <p class="small mb-1"><strong>Libraries:</strong> 30+ (native + pure Python)</p>
+                <p class="small mb-1"><strong>Libraries:</strong> about 180 packages (native + pure Python)</p>
                 <p class="small mb-0"><strong>Platform:</strong> iOS 17+ / iPadOS 17+</p>
               </div>
             </div>
@@ -840,14 +914,15 @@
                   <span class="badge-neutral mono ms-1">No Jailbreak</span>
                 </div>
               </div>
-              <p class="lead mb-0">A boot manager for your iPad. Bootbox is a native iOS app that boots real operating systems — 64-bit Linux (x86-64 and ARM64), classic Windows, graphical desktops — inside a WebKit-hosted emulation stack, with real internet, real multi-core, files in the iOS Files app, and one-tap downloads for every guest image. Everything runs on-device: no servers, no streaming, no jailbreak.</p>
+              <p class="lead mb-0">A boot manager for your iPad. Bootbox is a native iOS app that boots real operating systems — 64-bit Linux (x86-64 and ARM64), Android 12, classic Windows, graphical desktops — inside a WebKit-hosted emulation stack, with real internet, real multi-core, files in the iOS Files app, and one-tap downloads for every guest image. Everything runs on-device: no servers, no streaming, no jailbreak.</p>
             </header>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
               <span class="feature-badge">64-bit Linux (x86-64)</span>
               <span class="feature-badge">Genuine ARM64</span>
+              <span class="feature-badge">Android 12 AOSP</span>
               <span class="feature-badge">Windows 98 / 2000</span>
-              <span class="feature-badge">Wine 9.0</span>
+              <span class="feature-badge">wine-staging 11.5</span>
               <span class="feature-badge">Multi-core (up to 8)</span>
               <span class="feature-badge">Real Internet (gVisor)</span>
               <span class="feature-badge">Files App Integration</span>
@@ -862,7 +937,7 @@
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
                   <h5>64-bit Linux &amp; ARM64 <span class="lib-count-badge">QEMU-Wasm</span></h5>
-                  <p class="mt-1 mb-0" style="text-align:left;">Genuine aarch64 Alpine (<code>uname -m</code> really reports <code>aarch64</code>) alongside a dual-core x86-64 console guest with Python 3.12, pip/uv, Wine, and real internet.</p>
+                  <p class="mt-1 mb-0" style="text-align:left;">Genuine aarch64 Alpine (<code>uname -m</code> really reports <code>aarch64</code>) alongside a dual-core x86-64 console guest with Python 3.12, pip/uv, wine-staging 11.5, and real internet.</p>
                 </div>
               </div>
 
@@ -870,6 +945,13 @@
                 <div class="lib-category-card">
                   <h5>Classic Windows <span class="lib-count-badge">v86</span></h5>
                   <p class="mt-1 mb-0" style="text-align:left;">Windows 98 SE and Windows 2000 Pro boot natively to the desktop via v86, with working internet on Windows 2000 through the NDIS relay.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h5>Android 12 <span class="lib-count-badge">AOSP</span></h5>
+                  <p class="mt-1 mb-0" style="text-align:left;">A real 64-bit x86-64 AOSP userspace — Android framework, ART, System UI and Launcher3 with touch and keyboard, a writable 2 GiB <code>/data</code>, 1–4 cores. About 591 MB, downloaded once. AOSP, so no Google Play.</p>
                 </div>
               </div>
 
@@ -941,9 +1023,10 @@
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">What It Boots</h5>
                   <ul class="small mb-0 text-start">
-                    <li>64-bit Linux + Python &amp; Wine (x86-64, 1–8 cores)</li>
-                    <li>64-bit Linux Desktop (twm + terminal + browser)</li>
+                    <li>64-bit Linux + Python &amp; wine-staging 11.5 (x86-64, 1–8 cores)</li>
+                    <li>64-bit Linux Desktop (Openbox, Dillo, PCManFM, Claude Code CLI)</li>
                     <li>64-bit Linux — genuine ARM64 Alpine</li>
+                    <li>Android 12 AOSP (x86-64, 1–4 cores)</li>
                     <li>Windows 98 SE &amp; Windows 2000 Pro</li>
                     <li>Any imported <code>.iso</code> / <code>.img</code></li>
                   </ul>
@@ -957,7 +1040,7 @@
                 <p class="small mb-1"><strong>Created by:</strong> Yu Yao-Hsing</p>
                 <p class="small mb-1"><strong>Platform:</strong> iPad · iPadOS (Swift host app + WKWebView)</p>
                 <p class="small mb-1"><strong>Networking:</strong> gVisor userspace TCP/IP via Iosnet.xcframework</p>
-                <p class="small mb-1"><strong>App size:</strong> ~60 MB · guest images download on demand, once, and are cached</p>
+                <p class="small mb-1"><strong>App size:</strong> ~68 MB · guest images download on demand, once, and are cached</p>
                 <p class="small mb-0"><strong>Status:</strong> Active development — build from source (Xcode 16+, Apple developer team)</p>
               </div>
             </div>
@@ -1087,7 +1170,7 @@
                 <span class="app-icon"><picture><source srcset="assets/img/app-icons/eigendenoise.webp" type="image/webp"><img src="assets/img/app-icons/eigendenoise.png" alt="EigenDenoise icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
                 <div class="text-start">
                   <h3 class="h2 mb-1 fw-bold">EigenDenoise</h3>
-                  <span class="badge-neutral mono">macOS 14+</span>
+                  <span class="badge-neutral mono">macOS 26.2+</span>
                   <span class="badge-accent mono ms-1">Metal GPU</span>
                 </div>
               </div>
@@ -1097,6 +1180,7 @@
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
               <span class="feature-badge">Marchenko–Pastur</span>
               <span class="feature-badge">Generalized-Cov Oracle</span>
+              <span class="feature-badge">Blind RIE</span>
               <span class="feature-badge">Metal Acceleration</span>
               <span class="feature-badge">5 Noise Models</span>
               <span class="feature-badge">Spectral Visualizations</span>
@@ -1107,10 +1191,12 @@
               <h4 class="h5 fw-bold mb-3">Key Capabilities</h4>
               <ul class="list-unstyled">
                 <li class="mb-2">Side-by-side RMT denoisers — MP thresholding + generalized-covariance oracle (β·δ_a + (1−β)·δ_1)</li>
+                <li class="mb-2">Blind RIE denoising — a third, optimal-shrinkage method that works without a clean reference image</li>
                 <li class="mb-2">Differential evolution to find best (a, β) against a clean reference</li>
                 <li class="mb-2">Three interactive spectral tabs — Eigenvalue density, Im(s) vs z, Roots vs β</li>
                 <li class="mb-2">Curated dataset gallery: ORL Faces (400 PGMs), CBSD68 (68 colour), Brain MRI (3,264 T1 slices)</li>
                 <li class="mb-2">Custom URL lists with per-image checkboxes &amp; destination preview</li>
+                <li class="mb-2">Built-in &ldquo;How to use&rdquo; guide</li>
               </ul>
             </div>
 
@@ -1119,7 +1205,7 @@
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">System Requirements</h5>
                   <ul class="small mb-0 text-start">
-                    <li>macOS 14 (Sonoma) or later</li>
+                    <li>macOS 26.2 or later</li>
                     <li>Apple Silicon (arm64) — Rosetta supported</li>
                     <li>Metal GPU acceleration (LAPACK fallback)</li>
                     <li>App Sandbox enabled</li>
@@ -1151,8 +1237,8 @@
               <div class="d-inline-block text-start">
                 <p class="small mb-1"><strong>Created by:</strong> Yao-Hsing Yu</p>
                 <p class="small mb-1"><strong>License:</strong> MIT</p>
-                <p class="small mb-1"><strong>Platform:</strong> macOS 14+ (Apple Silicon)</p>
-                <p class="small mb-1"><strong>Type:</strong> Native macOS App (App Store ready)</p>
+                <p class="small mb-1"><strong>Platform:</strong> macOS 26.2+ (Apple Silicon)</p>
+                <p class="small mb-1"><strong>Type:</strong> Native macOS App (Live on the Mac App Store)</p>
                 <p class="small mb-0"><strong>Status:</strong> Active Development</p>
               </div>
             </div>
@@ -1193,20 +1279,21 @@
                 <span class="app-icon"><picture><source srcset="assets/img/app-icons/gps-location-app.webp" type="image/webp"><img src="assets/img/app-icons/gps-location-app.png" alt="GPS-location-app icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
                 <div class="text-start">
                   <h3 class="h2 mb-1 fw-bold">GPS-location-app</h3>
-                  <span class="badge-neutral mono">iOS 17+</span>
+                  <span class="badge-neutral mono">iOS 18.5+</span>
+                  <span class="badge-neutral mono ms-1">watchOS 11.5+</span>
                   <span class="badge-accent mono ms-1">App Store</span>
-                  <span class="badge-neutral mono ms-1">Apple Watch</span>
-                  <span class="badge-neutral mono ms-1">CarPlay</span>
+                  <span class="badge-neutral mono ms-1">CarPlay pending Apple approval</span>
                 </div>
               </div>
-              <p class="lead mb-0">Precision GPS workout tracker for iPhone & Apple Watch. Kalman-filtered location, HealthKit sync, Live Activities, CarPlay, and route analytics — all in a clean SwiftUI interface.</p>
+              <p class="lead mb-0">Precision GPS workout tracker for iPhone & Apple Watch. Kalman-filtered location, Velocity Mode for when GPS drops out, HealthKit sync, Live Activities, and route analytics — all in a clean SwiftUI interface, with CarPlay pending Apple approval.</p>
             </header>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
               <span class="feature-badge">Kalman-filtered GPS</span>
+              <span class="feature-badge">Velocity Mode</span>
               <span class="feature-badge">Apple Watch</span>
               <span class="feature-badge">HealthKit Sync</span>
-              <span class="feature-badge">CarPlay</span>
+              <span class="feature-badge">CarPlay (pending approval)</span>
               <span class="feature-badge">Live Activities</span>
               <span class="feature-badge">Route Analytics</span>
               <span class="feature-badge">Workout History</span>
@@ -1220,10 +1307,20 @@
                 <li class="mb-2">Continuous tracking from iPhone + Apple Watch — start one, finish on the other</li>
                 <li class="mb-2">Two-way HealthKit sync — workouts appear in the iOS Fitness / Health apps</li>
                 <li class="mb-2">Live Activity / Dynamic Island shows current distance, pace, and duration</li>
-                <li class="mb-2">CarPlay support for in-car activity display</li>
+                <li class="mb-2">Velocity Mode keeps recording the route when GPS drops out or degrades &mdash; see below</li>
+                <li class="mb-2">CarPlay live route map on the car display &mdash; pending Apple approval</li>
                 <li class="mb-2">Per-workout route map with split / pace / elevation analytics</li>
                 <li class="mb-2">All workout data stays on your device — no servers, no telemetry</li>
               </ul>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">Velocity Mode</h4>
+              <div class="d-inline-block text-start">
+                <p class="small mb-1">When satellite positioning drops out or degrades &mdash; a tunnel, an underground car park, a street between tall buildings &mdash; Velocity Mode takes over on its own and keeps recording the route. Speed comes from the phone's vibration, read off how the vehicle shakes; direction comes from the gyroscope, accelerometer and magnetometer; GPS supplies only the first point. It reads the vehicle, so the phone needs to be in a pocket, lying flat or on a mount &mdash; held in the hand, the speed signal is lost.</p>
+                <p class="small mb-1">Replayed through the current version and checked against GPS over 94 motorcycle and car journeys (28 hours, 511&nbsp;km GPS could check) and walks on foot: in a car, distance came out &minus;3.4% against GPS (301 of 312&nbsp;km) and direction was within 30&deg; of GPS 87% of the time (median error 14&deg;); on a motorcycle &minus;13.3% and 74%; on foot +6.8% and 93%.</p>
+                <p class="small mb-0">The method, its accuracy and where it fails are written up in <a href="https://github.com/yu314-coder/GPS-location-app/blob/main/paper/velocity_mode.pdf" target="_blank" rel="noopener noreferrer" class="lib-link"><em>Recording a Route Without Satellites</em></a> &mdash; Speed from Vibration and Direction from Turns on a Smartphone, Measured Against GPS.</p>
+              </div>
             </div>
 
             <div class="row g-3 mb-4 justify-content-center">
@@ -1231,8 +1328,7 @@
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">Requirements</h5>
                   <ul class="small mb-0 text-start">
-                    <li>iOS 17.0+ / watchOS 10+</li>
-                    <li>Magic Keyboard supported</li>
+                    <li>iOS 18.5+ / watchOS 11.5+</li>
                     <li>Location, Motion & Fitness, HealthKit permissions</li>
                     <li>Works fully offline</li>
                   </ul>
@@ -1256,7 +1352,7 @@
               <div class="d-inline-block text-start">
                 <p class="small mb-1"><strong>Created by:</strong> Yu Yao-Hsing</p>
                 <p class="small mb-1"><strong>App Store ID:</strong> 6764729098</p>
-                <p class="small mb-1"><strong>Frameworks:</strong> SwiftUI · CoreLocation · HealthKit · ActivityKit · CarPlay</p>
+                <p class="small mb-1"><strong>Frameworks:</strong> SwiftUI · CoreLocation · Core Motion · HealthKit · ActivityKit · CarPlay</p>
                 <p class="small mb-1"><strong>Stack:</strong> Pure Swift / SwiftUI</p>
                 <p class="small mb-0"><strong>Status:</strong> Live on App Store (approved May 18, 2026)</p>
               </div>
@@ -1268,6 +1364,9 @@
               </a>
               <a href="https://github.com/yu314-coder/GPS-location-app" target="_blank" rel="noopener noreferrer" class="badge-btn">
                 GitHub Repository
+              </a>
+              <a href="https://github.com/yu314-coder/GPS-location-app/blob/main/paper/velocity_mode.pdf" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                Velocity Mode paper
               </a>
               <a href="privacy.html#gps-location-app" class="badge-btn">
                 Privacy policy
@@ -1313,18 +1412,23 @@
               <span class="feature-badge">Keyboard &amp; trackpad</span>
               <span class="feature-badge">Apple Pencil</span>
               <span class="feature-badge">Picture in Picture</span>
+              <span class="feature-badge">Encrypted file transfer</span>
+              <span class="feature-badge">Clipboard sync</span>
               <span class="feature-badge">Shutdown Handoff</span>
             </div>
 
             <div class="mb-4">
               <h4 class="h5 fw-bold mb-3">Key Capabilities</h4>
               <ul class="list-unstyled">
-                <li class="mb-2">HiDPI H.264 stream sized from the iPad's own display, 1440&ndash;2880&nbsp;px wide and up to 40&nbsp;fps on the direct route</li>
+                <li class="mb-2">HiDPI H.264 stream with Adaptive, 1080p, 2K or 4K quality &mdash; up to 3840&nbsp;px wide at a 60&nbsp;FPS target</li>
                 <li class="mb-2">Three routes tried in order &mdash; encrypted local network, Apple peer-to-peer as a nearby fallback, and Apple's own System Sidecar left as a separate, explicit choice</li>
                 <li class="mb-2">Every route does an ephemeral Curve25519 key agreement, then encrypts screen and input with direction-separated ChaChaPoly keys and replay-protected counters</li>
-                <li class="mb-2">Pairing uses a rotating 16-character code proved by role-separated HMACs; a trusted-device credential then lives in the Data Protection Keychain, so it only asks once</li>
+                <li class="mb-2">Pairing uses a rotating 16-digit code &mdash; typed, or scanned from the Mac's QR code &mdash; proved by role-separated HMACs; a trusted-device credential then lives in the Data Protection Keychain, so it only asks once</li>
                 <li class="mb-2">Encrypted heartbeats check the route every three seconds, show real round-trip latency in both apps, and rebuild stale sessions on their own</li>
-                <li class="mb-2">Picture in Picture keeps the stream alive when you switch iPad apps; the Mac drops to 15&nbsp;fps in the background and restores quality on return</li>
+                <li class="mb-2">Picture in Picture keeps the stream alive when you switch iPad apps; background and resume no longer deliberately drop to 2 or 15&nbsp;FPS &mdash; capture and encoding keep the 60&nbsp;FPS target, and on return the Mac sends a fresh keyframe</li>
+                <li class="mb-2">Two-way file transfer over the same encrypted session, up to 512&nbsp;MB a file, each one handed over only after its SHA-256 digest checks out; received files land in an iPad File Manager</li>
+                <li class="mb-2">Opt-in clipboard sync for text and files, and pinch zoom from 100&ndash;400% with pointer coordinates translated through the zoom</li>
+                <li class="mb-2">Optional Mac Screen Sharing (VNC) reaches macOS's built-in Screen Sharing without the companion app &mdash; legacy VNC is unencrypted, so it is an explicit, user-started choice for a trusted network</li>
                 <li class="mb-2">Shutdown Handoff holds a remote session open while the Mac logs out or restarts, and cancels the shutdown rather than leaving the Mac uncontrollable</li>
               </ul>
             </div>
@@ -1348,7 +1452,7 @@
                   <ol class="small mb-0 text-start">
                     <li>Install SidecarBridge on the Mac and on the iPhone or iPad &mdash; one free listing covers all three</li>
                     <li>Allow Local Network on both devices</li>
-                    <li>Enter the Mac's one-time pairing code once</li>
+                    <li>Scan the Mac's QR code or enter its 16-digit pairing code once</li>
                     <li>Pick In-App Display, or open System Sidecar</li>
                   </ol>
                 </div>
@@ -1370,7 +1474,7 @@
                 <p class="small mb-1"><strong>App Store ID:</strong> 6792298083 &mdash; one universal listing for iPhone, iPad and Mac (<code>io.sidecarbridge.mac</code>)</p>
                 <p class="small mb-1"><strong>Frameworks:</strong> SwiftUI &middot; ScreenCaptureKit &middot; Network.framework &middot; Multipeer Connectivity &middot; CryptoKit &middot; VideoToolbox</p>
                 <p class="small mb-1"><strong>Transport:</strong> Bonjour + Network.framework on port 45454, Multipeer Connectivity as nearby fallback</p>
-                <p class="small mb-0"><strong>Status:</strong> Live on the App Store &mdash; version <span data-appver="6764729098">1.3</span>, free, 6.6&nbsp;MB, Utilities, rated 4+</p>
+                <p class="small mb-0"><strong>Status:</strong> Live on the App Store &mdash; version <span data-appver="6792298083">1.3</span>, free, 7.4&nbsp;MB, Utilities, rated 4+</p>
               </div>
             </div>
 
@@ -1410,7 +1514,7 @@
                 <span class="badge-neutral mono">sparse MoE</span>
                 <span class="badge-neutral mono">paper + code</span>
               </div>
-              <p class="lead mb-0">A complete static reverse-engineering of Apple's on-device foundation model &mdash; the sparse Mixture-of-Experts backbone shipped with Apple&nbsp;Intelligence &mdash; decoded from its container formats down to a component-validated PyTorch forward pass, plus a working CLI/server over Apple's own runtime. <strong>Original research only: the teardown paper and decode code &mdash; no Apple weights or tokenizer data are included or distributed.</strong> Everything operates on the asset files already present on an Apple device you own.</p>
+              <p class="lead mb-0">A complete static reverse-engineering of Apple's on-device foundation model &mdash; the sparse Mixture-of-Experts backbone shipped with Apple&nbsp;Intelligence &mdash; decoded from its container formats down to a component-validated PyTorch forward pass. The outcome is a controlled negative result: every shipped byte is recovered and individually correct, yet the assembled forward pass does not predict text. <strong>Original research only: the teardown paper and decode code &mdash; no Apple weights or tokenizer data are included or distributed.</strong> Everything operates on the asset files already present on an Apple device you own.</p>
             </header>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
@@ -1418,8 +1522,8 @@
               <span class="feature-badge">4-bit LUT codec</span>
               <span class="feature-badge">ANE 8&times;128 de-swizzle</span>
               <span class="feature-badge">Container stack decoded</span>
-              <span class="feature-badge">From-weights forward pass</span>
-              <span class="feature-badge">CLI + OpenAI server</span>
+              <span class="feature-badge">Reconstructed forward pass</span>
+              <span class="feature-badge">Controlled negative result</span>
             </div>
 
             <div class="mb-4">
@@ -1428,7 +1532,7 @@
                 <li class="mb-2"><strong>The whole model, as data</strong> &mdash; all 9.86&nbsp;B stored weights recovered (100% of the file), the container stack (Cryptex, BBBB, odix, hwx, MPSGraph) fully characterized, and the 4-bit&nbsp;LUT + per-1024 fp16 block-scale weight codec validated against Apple's own <code>coreml2hwx</code> toolchain</li>
                 <li class="mb-2"><strong>A corrected &ldquo;fatal blocker&rdquo;</strong> &mdash; the expert-selection router&rarr;physical-expert map, long thought unrecoverable, is <em>mathematically irrelevant</em>: the IFP sparse FFN is an <em>ungated</em>, permutation-invariant SwiGLU sum over experts, so no selection map is needed to run it</li>
                 <li class="mb-2"><strong>The architecture</strong> &mdash; 32 full-QKV + 12 KV-reuse attention layers; 12 dense + 32 expert-FFN layers, d=1536, GQA, RoPE, SwiGLU, 219 routable experts/layer with Instruction-Following Pruning. The learned RMSNorm &gamma; turned out to be compile-time <em>folded</em> into the adjacent linears, not missing</li>
-                <li class="mb-2"><strong>It runs the real thing</strong> &mdash; <code>afm</code>, a Swift CLI and OpenAI-compatible server over Apple's <code>FoundationModels</code> runtime, alongside a reconstructed PyTorch forward pass. Component-complete, one mechanical assembly step from coherent from-weights text</li>
+                <li class="mb-2"><strong>A controlled negative result</strong> &mdash; 42 controlled experiments establish that every shipped byte is recovered and individually correct, yet the assembled forward pass does not predict text; the defect localizes to a residual-axis basis convention that no static statistic can see</li>
               </ul>
             </div>
 
@@ -1448,9 +1552,9 @@
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">What's in the repo</h5>
                   <ul class="small mb-0 text-start">
-                    <li>15-page teardown paper (LaTeX) + condensed <code>FINDINGS.md</code></li>
+                    <li>Teardown paper (LaTeX) + condensed <code>FINDINGS.md</code></li>
                     <li>Python: ANE de-swizzle, LUT-codec cracker, <code>odix</code> parser, weight export, forward pass</li>
-                    <li>Swift: <code>afm</code> CLI + OpenAI-compatible server</li>
+                    <li>Running the model is left to Apple's public <code>FoundationModels</code> framework &mdash; not part of the repo</li>
                     <li>No weights or tokenizer data &mdash; runs on assets already on your own device</li>
                   </ul>
                 </div>
@@ -1462,9 +1566,9 @@
               <div class="d-inline-block text-start">
                 <p class="small mb-1"><strong>Created by:</strong> Yu Yao-Hsing</p>
                 <p class="small mb-1"><strong>Category:</strong> Research &mdash; reverse engineering / ML systems</p>
-                <p class="small mb-1"><strong>Languages:</strong> TeX &middot; Python &middot; Swift</p>
-                <p class="small mb-1"><strong>Target:</strong> Apple on-device <code>afmplus-v11.0-ifp</code> (Apple&nbsp;Intelligence, macOS&nbsp;26/27)</p>
-                <p class="small mb-0"><strong>Status:</strong> Component-complete teardown; runs the real model via <code>afm</code></p>
+                <p class="small mb-1"><strong>Languages:</strong> TeX &middot; Python</p>
+                <p class="small mb-1"><strong>Target:</strong> Apple on-device <code>afmplus-v11.0-ifp</code> (Apple&nbsp;Intelligence, macOS&nbsp;26/27); devices now run <code>afmplus-v11.2-ifp</code></p>
+                <p class="small mb-0"><strong>Status:</strong> Controlled negative result &mdash; the assembled forward pass does not predict text</p>
               </div>
             </div>
 
@@ -1512,7 +1616,7 @@
           <div class="kpi kpi--accent">
             <div class="kpi-val">6<span class="unit">/6</span></div>
             <div class="kpi-lab">Targets</div>
-            <div class="kpi-sub">macOS, Windows, Linux &mdash; each on x86-64 and ARM64</div>
+            <div class="kpi-sub">macOS, Windows, Linux &mdash; each on x86-64 and ARM64, all six executed</div>
           </div>
           <div class="kpi">
             <div class="kpi-val">886<span class="unit">/889</span></div>
@@ -1525,9 +1629,9 @@
             <div class="kpi-sub">Build and runtime both empty; enforced by tests</div>
           </div>
           <div class="kpi">
-            <div class="kpi-val">1,828</div>
+            <div class="kpi-val">2,030</div>
             <div class="kpi-lab">Tests</div>
-            <div class="kpi-sub">Plus 1,494 of 1,500 randomly generated programs matching CPython exactly</div>
+            <div class="kpi-sub">Plus 1,494 of 1,500 randomly generated programs matching CPython exactly, and 359 C and C++ programs matching <code>clang++</code></div>
           </div>
         </div>
 
@@ -1587,12 +1691,12 @@
                 <tr><th scope="col">Platform</th><th scope="col">x86-64</th><th scope="col">ARM64</th></tr>
               </thead>
               <tbody>
-                <tr><th scope="row">macOS</th><td><span class="chip-ok">Rosetta&nbsp;2</span></td><td><span class="chip-ok">native &middot; app</span></td></tr>
-                <tr><th scope="row">Windows</th><td><span class="chip-ok">real hardware &middot; app</span></td><td><span class="chip-no">built, never started</span></td></tr>
+                <tr><th scope="row">macOS</th><td><span class="chip-ok">real Intel Mac</span></td><td><span class="chip-ok">native &middot; app</span></td></tr>
+                <tr><th scope="row">Windows</th><td><span class="chip-ok">real hardware &middot; app</span></td><td><span class="chip-ok">ARM64 VM</span></td></tr>
                 <tr><th scope="row">Linux</th><td><span class="chip-ok">container</span></td><td><span class="chip-ok">container &middot; app</span></td></tr>
               </tbody>
             </table>
-            <p class="small mt-3 mb-0" style="color:var(--ink-3); line-height:1.5;">All six build, and each is held to the same bar &mdash; the 889-program corpus compiled for it, every program's output and exit code compared against CPython's. macOS agrees on <strong>886</strong> and differs on 3, inherently: CPython's &ldquo;Did you mean&rdquo; needs a live Python frame to suggest from, the repr of a compiled function really is a builtin function's, and <code>"v" is "v"</code> turns on an interning the compiler doesn't reproduce. <strong>The cells say how far each target is actually proven, because they differ.</strong> &ldquo;app&rdquo; marks one a complete third-party GUI application has been built and run on &mdash; ManimStudio, 10,100 lines with pywebview, Pillow and manim. Windows x86-64 was run on a physical machine, and that run found four bugs fatal to every Windows program the compiler produced &mdash; all in packaging rather than compiled code, none reachable by comparing output, because the program never got as far as a <code>print</code>. <strong>Windows ARM64 has never been started:</strong> the images are parsed and checked against the format and nothing more, and that is the honest limit of what has been verified.</p>
+            <p class="small mt-3 mb-0" style="color:var(--ink-3); line-height:1.5;">All six build, and each is held to the same bar &mdash; the 889-program corpus compiled for it, every program's output and exit code compared against CPython's. macOS agrees on <strong>886</strong> and differs on 3, inherently: CPython's &ldquo;Did you mean&rdquo; needs a live Python frame to suggest from, the repr of a compiled function really is a builtin function's, and <code>"v" is "v"</code> turns on an interning the compiler doesn't reproduce. <strong>The cells say how far each target is actually proven, because they differ.</strong> &ldquo;app&rdquo; marks one a complete third-party GUI application has been built and run on &mdash; ManimStudio, 10,100 lines with pywebview, Pillow and manim. Windows x86-64 was run on a physical machine, and that run found four bugs fatal to every Windows program the compiler produced &mdash; all in packaging rather than compiled code, none reachable by comparing output, because the program never got as far as a <code>print</code>. macOS x86-64 has run on a real Intel Mac, where Rosetta&nbsp;2 had passed builds carrying two faults a real Intel CPU refuses outright &mdash; a misaligned stack and a stale code signature. <strong>Windows ARM64 runs too</strong>, on a Windows 11 ARM64 virtual machine &mdash; ARM64 instructions on an ARM64 processor &mdash; so all six targets have now been executed, none of them under emulation. macOS can also be built as one <code>darwin-universal2</code> binary holding both slices, which runs on either machine.</p>
           </div>
           <div>
             <div class="sec-head">
@@ -1868,11 +1972,15 @@
                 <span class="app-icon app-icon-sm"><picture><source srcset="assets/img/app-icons/whisperkit.webp" type="image/webp"><img src="assets/img/app-icons/whisperkit.png" alt="WhisperKit icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
                 <h5 class="card-title mb-0">WhisperKit <span class="badge-accent ms-1">NEW</span></h5>
               </div>
-              <p class="card-text flex-grow-1">On-device speech transcription for iPhone &amp; iPad — Whisper models running entirely on Apple's Neural Engine. Record, import audio/video, or pick from Photos; transcripts never leave your device.</p>
+              <p class="card-text">On-device transcription for iPhone &amp; iPad (iOS 18.5+). Record, import, Share to Whisper, or paste a link to an audio or video file; 99 languages (Chinese in Simplified or Traditional), four models, export to TXT, SRT, VTT, Markdown or JSON.</p>
+              <p class="card-text flex-grow-1">A new Music tab (beta) turns a description into a song, made entirely on your device with ACE-Step 1.5. On iOS 26 and later, transcriptions, downloads and music keep running when you switch apps.</p>
               <a href="https://apps.apple.com/app/whisperkit/id6764759491" target="_blank" rel="noopener noreferrer" class="store-badge store-badge-sm mt-auto mb-2" aria-label="Download WhisperKit on the App Store">
                 <img src="assets/img/badges/appstore.svg" alt="Download on the App Store">
               </a>
-              <a href="privacy.html#whisper" class="btn btn-ghost btn-sm">Privacy policy</a>
+              <div class="d-flex gap-2 align-items-center">
+                <a href="https://github.com/yu314-coder/WhisperKit" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm flex-fill">GitHub</a>
+                <a href="privacy.html#whisper" class="btn btn-ghost btn-sm">Privacy</a>
+              </div>
             </div>
           </div>
         </div>
