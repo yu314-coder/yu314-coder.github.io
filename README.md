@@ -10,14 +10,10 @@ The research is mine. The apps, packages and this site are built with AI coding 
 
 ## Research
 
-<a href="https://doi.org/10.4310/CJJS.260626162006"><img src="assets/img/research/cjjs-cover.jpg" alt="Cambridge Journal for Junior Scientists, cover" width="170" align="right"></a>
-
 - **Paper** — on the limiting spectral distributions of products of sample covariance matrices with deterministic
   sequences. *Cambridge Journal for Junior Scientists*, Vol. 3 (2026) No. 2, pp. 365–382,
   doi:[10.4310/CJJS.260626162006](https://doi.org/10.4310/CJJS.260626162006).
 - **2025 S. T. Yau High School Science Award** — Grand Finals, Bronze Medal; Asia Regional, Silver Medal.
-
-<br clear="right">
 
 ---
 
