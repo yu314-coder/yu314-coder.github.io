@@ -1,179 +1,193 @@
 # Yu, Yao-Hsing 尤耀星 — Personal Portfolio
 
-Personal portfolio website showcasing apps, libraries, research, and achievements in mathematics, AI, and software development.
+My research in random matrix theory, the apps and packages that came out of it, and the live data pages behind them.
 
 **Live site:** [yu314-coder.github.io](https://yu314-coder.github.io/)
 
----
-
-## Interactive Data Pages
-
-### 🌀 Typhoon Tracks — [/typhoon-tracks.html](https://yu314-coder.github.io/typhoon-tracks.html)
-A Western Pacific typhoon explorer that runs entirely in the browser on real agency data — nothing simulated.
-
-**Track mode (history, 1985–present)**
-- Base archive: **IBTrACS v04r01 (NOAA NCEI)**, pre-sharded per season for instant loads
-- **Two-layer live top-up straight from NOAA/JTWC**: active storms come from NCEI's IBTrACS *active-storms* feed (3-hourly), then are extended with the **JTWC working best track** (ATCF b-deck via UCAR/RAL, updated several times a day) so a storm's history runs to the very latest fix — marked `LIVE` in the picker; falls back cleanly to the static archive if a feed is down
-- Per-point **wind radii** — Beaufort **force 8 / 10 / 12** (JTWC's 34 / 50 / 64 kt quadrant radii; gale / storm / hurricane-force) — drawn as rings on a zoomable Plotly map
-- Intensity color scale from Tropical Depression → **C5 Super Typhoon** (C5 in magenta so the top category reads clearly apart from C4)
-- Time scrubber with per-frame interpolation: position, wind, pressure, Dvorak T-number, radii, and the intensity-chart cursor all animate together (in-place Plotly restyles, no per-frame trace churn)
-- **Two classification standards**: Saffir–Simpson-style (on 1-minute winds), and Taiwan **CWA** on CWA's official 10-minute thresholds (17.2 / 32.7 / 51.0 m/s) applied to **JMA's real 10-minute wind analysis** per point (IBTrACS `TOKYO_WIND`), interpolated between JMA's 6-hourly records — so storms class the way CWA's own record does (e.g. Doksuri 2023 as mostly 中度), not inflated by a converted 1-minute wind
-- Season overview (every track at once, colored by peak intensity), ACE, rapid-intensification detection, ENSO badges (real NOAA CPC ONI), and a 1985-present season climatology chart
-
-**Forecast mode (live JMA)**
-- Official **JMA** 5-day forecasts fetched in-browser (CORS-open JSON), reissued every few hours
-- Past leg enriched with per-observation wind radii from **Digital Typhoon** (NII) best track
-- Real satellite **Dvorak T-numbers from UW-CIMSS ADT** for the past; forecast T anchored to the current real value and carried by JMA's intensity trend
-- One-timeline sweep animation: past (real radii) → now → +120 h (forecast radii + probability circles), with play/pause/speed/scrub controls
-
-**Experimental AI overlay — my own track model, running in your browser**
-- An optional **"🧪 Overlay Yu's AI model track"** button (live-forecast mode) and **"🧪 Predict from here"** (history mode) run my own **[TrackFormer v23](https://github.com/yu314-coder/typhoon-predict)** — a 13.1 M-parameter transformer (triple-stream kinematic/thermodynamic/environment history encoders, chain-of-thought steering-flow prediction conditioned on its own t-24h/t-12h/now temporal history) that forecasts the **full storm state** at 20 six-hourly lead times: motion, max wind, central pressure, RMW, and the 34/50/64 kt wind radii in four quadrants
-- **Track-only in the browser, no live atmosphere.** v23's full architecture is built around a real deep-layer-mean steering-wind field, which gets it to 434.96 km on the project's held-out test — but that field can't be fetched live in a static site, so it runs here in the project's own documented "IBTrACS-only" mode (steering zero-filled, explicit availability flag, never fabricated): 9 six-hourly history fixes (position, wind, pressure, wind radii) and **no ERA5, no live field fetch, nothing external**, so nothing off-site can make it fail. Verified on the exact deployed artifacts: **530.69 km** (WP+EP 2020+, all leads pooled) vs the field-free v10 it replaces at 549.30 km on the identical test set — a real, honest improvement even without the steering data v23 was designed around
-- Ships as a genuine **5-of-10-seed ensemble** (per-seed noise is 4–7 km on this model, so a single seed isn't trustworthy) — every seed run separately in your browser and averaged, matching the model's own reference CLI. Runs **entirely client-side via [onnxruntime-web](https://onnxruntime.ai/docs/tutorials/web/)** — each seed exported to **int8 ONNX (~15 MB, 75 MB total, lazily loaded only when you ask for a forecast)**, verified bit-exact to PyTorch (fp32, 1e-5) and cross-checked against the deployed int8 artifacts on real storm data. **No backend, no server, no cold start**
-- Draws the predicted track (dashed emerald with a soft casing so it reads against JMA's violet line) + an **uncertainty cone** built from the model's own per-step spread; hovering any point gives the lead time, predicted position **and predicted intensity**. Clearly flagged **experimental — not an operational forecast**
-- In **history mode** you can scrub to any point on a past storm and forecast forward, drawn against the white line of what the storm *actually* did next — a genuine, location-aware hindcast (needs ~2 days of prior track). The overlay stays on screen through the sweep ending, map rebuilds and storm switches, and **re-runs on the latest data** when you switch storms or JMA reissues
-
-### 📦 PyPI Stats — [/pypi-stats.html](https://yu314-coder.github.io/pypi-stats.html)
-Live download analytics for any PyPI package (mine pre-listed), by country / package version / Python version.
-- Queries the public **ClickPy ClickHouse** dataset directly from the browser — no backend, nothing sent to me
-- Downloads-over-time chart, country/version breakdowns, full country×version matrix, and an author explorer
-- The ClickHouse dataset runs **several days behind**, so the downloads chart is served from **pypistats.org** instead (fresher by about a week). For my own packages a nightly GitHub Action snapshots it into `assets/pypi-tracker/data/` and the page reads that **same-origin** — no runtime proxy to break. The country / version / Python breakdowns (which pypistats doesn't publish) stay on ClickHouse, and the page states each panel's source and cut-off date
-- Guarded by **Byte**, a hand-drawn canvas robot companion who watches your cursor, reacts while you type, and celebrates when the stats land
-
-### Why track-only
-
-I trained two forecasters (both in [typhoon-predict](https://github.com/yu314-coder/typhoon-predict)): **StormFusion-MT v2**, which ingests ERA5 reanalysis patches (26- and 14-channel, five pressure levels, 65×65 grid) plus track history, and **TrackFormer**, which sees only track. On the WP-2020+ held-out test the earlier track-only models **matched or beat** the ERA5 one on every metric. ERA5 is heavy, high-latency (Copernicus CDS, ~5-day lag), and can't be fetched per web-request — so the site has always run **TrackFormer**, with no atmospheric data and no external dependency at all.
-
-The newer TrackFormer v23 (deployed now) tells a more specific story: its full architecture *is* built around a real steering-wind field, and that field genuinely helps — 434.96 km with it vs 530.69 km without, on the identical held-out test. The field just can't be fetched live from a static site, so v23 runs here in its own documented "IBTrACS-only" mode. It's still a real, verified 18.6 km improvement over v10 in that mode — the atmosphere isn't free lunch here, it's *headroom the browser can't reach yet*.
+The research is mine. The apps, packages and this site are built with AI coding assistants (Claude, ChatGPT).
 
 ---
 
-## Featured Projects
+## Research
 
-### ManimStudio
-GUI application for creating mathematical animations with Manim.
-- **Windows** (v1.1.3.0) — bundled with Python 3.12.7 + MiKTeX, no admin rights. [Microsoft Store](https://apps.microsoft.com/detail/9NZFT55DVCBS)
-- **iOS / iPadOS** — fully offline studio with Monaco editor + VideoToolbox H.264 render. [App Store](https://apps.apple.com/app/manimstudio/id6764472686) · [GitHub (ios)](https://github.com/yu314-coder/manim_app/tree/ios)
-
-### CodeBench
-A self-contained, fully offline developer / scientific / AI workstation for iPad & Mac — Monaco editor, integrated terminal, Python 3.14, C/C++/Fortran, on-device pdflatex, and local LLMs (llama.cpp + ExecuTorch).
-- [GitHub](https://github.com/yu314-coder/CodeBench)
-
-### python-ios-lib
-Full Python 3.14 runtime for iOS/iPadOS with 30+ native offline libraries — the **first public native PyTorch build on iOS** (with a Metal GPU bridge for a 2–10× on-device training speedup), HuggingFace transformers, Rust tokenizers, NumPy, SciPy, scikit-learn, manim, PyAV/FFmpeg, Cairo, plus C/C++/Fortran interpreters and a Flask/Dash/Streamlit web stack.
-- [GitHub](https://github.com/yu314-coder/python-ios-lib)
-
-### Generalized Covariance Matrix — ESD Analysis Tool
-Eigenvalue spectral distribution analysis for generalized covariance matrices (the research tool behind the Yau Award paper).
-- [Microsoft Store](https://apps.microsoft.com/detail/9nzj475s7b01)
-
-### EigenDenoise
-Native macOS image denoiser using random matrix theory — the macOS counterpart to Generalized Covariance Matrix.
-- [Mac App Store](https://apps.apple.com/app/eigendenoise/id6764759636) · [GitHub](https://github.com/yu314-coder/EigenDenoise)
-
-### GPS-location-app
-Precision GPS workout tracker for iPhone & Apple Watch — Kalman-filtered location, HealthKit sync, Live Activities, CarPlay, route analytics.
-- [App Store](https://apps.apple.com/app/gps-location-app/id6764729098) · [GitHub](https://github.com/yu314-coder/GPS-location-app)
+- **Paper** — on the limiting spectral distributions of products of sample covariance matrices with deterministic
+  sequences. *Cambridge Journal for Junior Scientists*, Vol. 3 (2026) No. 2, pp. 365–382,
+  doi:[10.4310/CJJS.260626162006](https://doi.org/10.4310/CJJS.260626162006).
+- **2025 S. T. Yau High School Science Award** — Grand Finals, Bronze Medal; Asia Regional, Silver Medal.
 
 ---
 
-## Apps on Stores
+## Pages
 
-| App | Platform | Store |
-|-----|----------|-------|
-| ManimStudio | Windows 10+ | [Microsoft Store](https://apps.microsoft.com/detail/9NZFT55DVCBS) |
-| ManimStudio | iOS / iPadOS | [App Store](https://apps.apple.com/app/manimstudio/id6764472686) |
-| Generalized Covariance Matrix | Windows 10+ | [Microsoft Store](https://apps.microsoft.com/detail/9nzj475s7b01) |
-| t-SNE Visualization | Windows 10+ | [Microsoft Store](https://apps.microsoft.com/detail/9P969D6N7P6J) |
-| EigenDenoise | macOS | [Mac App Store](https://apps.apple.com/app/eigendenoise/id6764759636) |
-| GPS-location-app | iOS / watchOS | [App Store](https://apps.apple.com/app/gps-location-app/id6764729098) |
+| Page | What it is |
+|------|------------|
+| [Home](https://yu314-coder.github.io/) | Animated eigenvalue-spiral hero, the published-research bar, live counters (apps shipped, app downloads, PyPI installs, countries) and ten "selected work" cards whose version badges come from the store snapshots |
+| [About](https://yu314-coder.github.io/about.html) | Education, the paper and its advisors, skills, timeline |
+| [Projects](https://yu314-coder.github.io/projects.html) | Grouped tiles: **Apps** (ManimStudio, CodeBench, Bootbox, GPS-location-app, SidecarBridge, others), **Research & AI** (Generalized Covariance + EigenDenoise, Apple on-device model teardown), **Tools** (py2bin). Versions are filled from the snapshots |
+| [PyPI Stats](https://yu314-coder.github.io/pypi-stats.html) | Download analytics for my packages |
+| [Store Stats](https://yu314-coder.github.io/store-stats.html) | App Store and Microsoft Store download dashboard |
+| [Typhoon Tracks](https://yu314-coder.github.io/typhoon-tracks.html) | Western Pacific typhoon explorer with the Trackformer AI overlay |
+| [Trackformer](https://yu314-coder.github.io/trackformer.html) | Model card for Trackformer 1.2, my typhoon-forecast model |
+| [Privacy](https://yu314-coder.github.io/privacy.html) | Privacy policies for every published app |
+
+### 🌀 Typhoon Tracks
+A Western Pacific explorer on real agency data — nothing simulated, nothing filled in where a source hasn't published.
+
+**History (IBTrACS v04r01, WP basin, 1945–present)** — about 2,090 storms in per-season shards under
+`assets/data/typhoons/`, refreshed daily. Active storms are topped up in the browser from NCEI's IBTrACS
+active-storms feed and the JTWC working best track (ATCF b-deck via UCAR/RAL), marked `LIVE`. Per-point Beaufort
+force 8/10/12 wind radii, a time scrubber that animates position, wind, pressure, Dvorak T and radii together, season
+overviews, ACE, rapid-intensification detection and ENSO (NOAA CPC ONI) badges. Two classification standards:
+Saffir–Simpson-style on 1-minute winds, and Taiwan **CWA** on its official 10-minute thresholds applied to JMA's
+10-minute wind analysis.
+
+**Forecast (live JMA)** — JMA's 5-day forecasts fetched in the browser, the past leg enriched with Digital Typhoon
+(NII) wind radii and UW-CIMSS ADT Dvorak numbers.
+
+**AI overlay — Trackformer** ([typhoon-predict](https://github.com/yu314-coder/typhoon-predict))
+- **Trackformer 1.2 first, read live in the visitor's browser** from the Trackformer Weather Lab API
+  (`https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site`: `/api/history/v1/storms/{id}`,
+  `/api/history/v1/forecasts/{id}`, `/api/history/live`, `/api/benchmarks/released`). Nothing is mirrored into this
+  repo. Every forecast is checked against the released checkpoint's SHA. A live run is only used within 12 h of the
+  JMA analysis on screen. The shaded band is 1.2's published mean track error per lead, not the spread of the run.
+  1.2 publishes no wind radii, so none are drawn.
+- **Trackformer 1.1 as the fallback** — a live run written every few hours by `refresh-typhoon-forecast.yml` (a
+  causal route built only from GFS analyses), and committed history hindcasts: 1,221 storms, seasons 1979–2026,
+  44,620 runs under `assets/typhoon-tracker/model/trackformer11/`.
+- **Track mode** ("Run my AI model") forecasts from any scrubbed point on a past storm and draws it against what the
+  storm actually did.
+- An **intensity chip** names the model and gives the category at +24 / 48 / 72 / 96 / 120 h on the chosen scale
+  (Saffir–Simpson-style or CWA 輕度 / 中度 / 強烈).
+- If neither model has a run for a time, nothing is drawn rather than a different model substituted. Clearly
+  flagged experimental — not an operational forecast.
+
+### Trackformer
+The model card for Trackformer 1.2 (released 29 Sep 2026):
+- **Model:** 21.5 M parameters, MIT licence, western North Pacific; trained 2000–2021, validated 2022–2023, tested
+  2024–2025.
+- **Track benchmark:** 1,473 daily starts from 270 storms — mean track error **471.2 km** vs 798.4 km for 1.1.
+  Intensity is stated as no established gain.
+- **Examples:** 50-member mean forecast videos streamed from
+  [Hugging Face](https://huggingface.co/euler314/typhoon-predict) (Mangkhut, Fung-wong, Meranti, Soudelor).
+- **Also on the page:** the archive of 32,230 forecasts, how to run it, the paper (PDF + BibTeX), and the version
+  history (1.0, 16 Jul · 1.1, 20 Aug · 1.2, 29 Sep).
+- Its figures refresh live from the same Weather Lab API; the values in the markup are only the fallback.
+
+### 📊 Store Stats
+- **App Store** (ManimStudio, EigenDenoise, SidecarBridge, GPS-location-app, WhisperKit):
+  - Daily **first-time downloads** (redownloads and updates excluded), impressions and product-page views.
+  - An iPhone / iPad / Mac / Apple Watch split, countries, and release marks on the charts.
+  - Pulled by `refresh-appstore-stats.yml` from App Store Connect (sales reports, Analytics Reports API, app
+    versions). It uses the repo secrets `APPSTORE_ISSUER_ID`, `APPSTORE_KEY_ID`, `APPSTORE_PRIVATE_KEY` and
+    `APPSTORE_VENDOR_NUMBER`.
+- **Microsoft Store** (ManimStudio, t-SNE Visualization, Generalized Covariance Matrix):
+  - The Partner Center funnel — page views → install attempts → successful installs (= downloads) → first launches —
+    plus weekly installs for ManimStudio.
+  - **Manual** (a personal Microsoft account can't get API access): export the CSVs, then run
+    `python3 scripts/build_store_stats_from_csv.py`. App versions are automated.
+- The two stores count differently, so the page keeps their wording separate. Charts are hand-drawn SVG
+  (`assets/js/stats-core.js`).
+
+### 📦 PyPI Stats
+- **Package cards and a "real installs, mirrors removed" panel** — read from same-origin snapshots that
+  `refresh-pypi-stats.yml` takes from pypistats.org twice a day.
+- **Country / version / Python breakdowns** — queried live from the public ClickPy ClickHouse dataset in the browser.
+- Guarded by **Byte**, a canvas robot that watches your cursor.
 
 ---
 
-## PyPI Packages
+## Apps on stores
 
-| Package | Description | Links |
-|---------|-------------|-------|
-| ollama-installer | Install Ollama from a Python CLI | [GitHub](https://github.com/yu314-coder/python-ollama) · [PyPI](https://pypi.org/project/ollama-installer/) |
-| narrate | Local text-to-speech (Kokoro + Chatterbox) | [GitHub](https://github.com/yu314-coder/narrate) · [PyPI](https://pypi.org/project/narrate/) |
-| rmt-denoise | Image denoising via Random Matrix Theory (v2.3.0) | [GitHub](https://github.com/yu314-coder/rmt-denoise) · [PyPI](https://pypi.org/project/rmt-denoise/) |
-| cairometal | pycairo-compatible 2D graphics on the Apple GPU via Metal (macOS arm64 wheel) | [GitHub](https://github.com/yu314-coder/cairometal) · [PyPI](https://pypi.org/project/cairometal/) |
+| App | Platform | Store | Source |
+|-----|----------|-------|--------|
+| ManimStudio | iOS / iPadOS | [App Store](https://apps.apple.com/app/manimstudio/id6764472686) | [GitHub (ios)](https://github.com/yu314-coder/manim_app/tree/ios) |
+| ManimStudio | Windows 10+ | [Microsoft Store](https://apps.microsoft.com/detail/9NZFT55DVCBS) | [GitHub](https://github.com/yu314-coder/manim_app) |
+| WhisperKit | iOS | [App Store](https://apps.apple.com/app/whisperkit/id6764759491) | [GitHub](https://github.com/yu314-coder/WhisperKit) |
+| SidecarBridge | iOS / iPadOS / macOS | [App Store](https://apps.apple.com/app/sidecarbridge/id6792298083) | [GitHub](https://github.com/yu314-coder/SidecarBridge) |
+| GPS-location-app | iOS / watchOS | [App Store](https://apps.apple.com/app/gps-location-app/id6764729098) | [GitHub](https://github.com/yu314-coder/GPS-location-app) |
+| EigenDenoise | macOS | [Mac App Store](https://apps.apple.com/app/eigendenoise/id6764759636) | [GitHub](https://github.com/yu314-coder/EigenDenoise) |
+| Generalized Covariance Matrix | Windows 10+ | [Microsoft Store](https://apps.microsoft.com/detail/9nzj475s7b01) | [GitHub](https://github.com/yu314-coder/random_matrix_ESD) |
+| t-SNE Visualization | Windows 10+ | [Microsoft Store](https://apps.microsoft.com/detail/9P969D6N7P6J) | [GitHub](https://github.com/yu314-coder/t-sne) |
 
----
+Current versions are on the site; the snapshots refresh them hourly.
 
-## Other Open-Source Projects
+## Other projects
 
-| Project | Description | Links |
-|---------|-------------|-------|
+| Project | What it is | Links |
+|---------|------------|-------|
+| CodeBench | Offline developer / scientific / AI workstation for iPad and Mac | [GitHub](https://github.com/yu314-coder/CodeBench) |
+| python-ios-lib | Python 3.14 for iOS / iPadOS with native offline libraries, including PyTorch with a Metal bridge | [GitHub](https://github.com/yu314-coder/python-ios-lib) · [torchmetal](https://github.com/yu314-coder/torchmetal) |
+| Bootbox | A boot manager for iPad: real operating systems (64-bit Linux, Android 12, classic Windows) in a WebKit-hosted emulation stack | [GitHub](https://github.com/yu314-coder/Bootbox) |
+| Apple on-device model teardown | A static reverse-engineering of Apple's on-device foundation model (the sparse Mixture-of-Experts backbone in Apple Intelligence), down to a component-validated PyTorch forward pass | [GitHub](https://github.com/yu314-coder/afm-ifp-teardown) |
+| py2bin | Stdlib-only Python compiler to ELF / PE / Mach-O | [GitHub](https://github.com/yu314-coder/python_to_binary) · [PyPI](https://pypi.org/project/python-to-binary/) |
 | NeonScribe | Creative writing and text processing tool | [GitHub](https://github.com/yu314-coder/NeonScribe) |
-| Sound Transfer | TCP-based audio streaming between devices | [GitHub](https://github.com/yu314-coder/sound_transfer) |
-| Google Drive Download | Python tool for downloading from Google Drive | [GitHub](https://github.com/yu314-coder/google_drive_download) |
+| Sound Transfer | TCP audio streaming between devices | [GitHub](https://github.com/yu314-coder/sound_transfer) |
+| Google Drive Download | Downloading from Google Drive in Python | [GitHub](https://github.com/yu314-coder/google_drive_download) |
+
+## PyPI packages
+
+| Package | What it is | Links |
+|---------|------------|-------|
+| rmt-denoise | Image denoising via random matrix theory (MP law + generalized covariance) | [GitHub](https://github.com/yu314-coder/rmt-denoise) · [PyPI](https://pypi.org/project/rmt-denoise/) |
+| cairometal | pycairo-compatible 2D graphics on the Apple GPU via Metal (macOS arm64) | [GitHub](https://github.com/yu314-coder/cairometal) · [PyPI](https://pypi.org/project/cairometal/) |
+| narrate | Local text-to-speech (Kokoro, Chatterbox) | [GitHub](https://github.com/yu314-coder/narrate) · [PyPI](https://pypi.org/project/narrate/) |
+| ollama-installer | Install Ollama from a Python CLI | [GitHub](https://github.com/yu314-coder/python-ollama) · [PyPI](https://pypi.org/project/ollama-installer/) |
+| python-to-binary | The py2bin compiler | [GitHub](https://github.com/yu314-coder/python_to_binary) · [PyPI](https://pypi.org/project/python-to-binary/) |
 
 ---
 
-## Awards
+## Automation (GitHub Actions)
 
-- **2025 S. T. Yau High School Science Award — Grand Finals (Bronze Medal)**
-  Research on the limiting spectral distributions of products of sample covariance matrices with deterministic sequences.
-- **2025 S. T. Yau High School Science Award — Asia Regional (Silver Medal)**
+| Workflow | When | What it does |
+|----------|------|--------------|
+| `refresh-typhoon-archive.yml` | daily | Rebuilds the recent IBTrACS seasons and bumps the tracker's cache tokens |
+| `refresh-typhoon-forecast.yml` | every 20 min (GitHub runs it every few hours in practice) | Runs Trackformer 1.1 on the live JMA storm and commits the fallback forecast |
+| `build-trackformer11-history.yml` | hourly schedule | Adds Trackformer 1.1 history hindcasts (CFSR/CDAS reanalysis, plus recovered live runs) |
+| `backfill-tf11-gfs.yml` | manual | Batch hindcasts from the GFS archive, one commit |
+| `refresh-appstore-stats.yml` | hourly, and after the other refreshes | App Store sales and analytics, app versions on both stores, PyPI versions |
+| `refresh-pypi-stats.yml` | twice a day | pypistats snapshots for my packages |
+| `refresh-data.yml` | every 2 h on weekdays | Refreshes data embedded in the home page |
+| `bench-autopilot.yml` | daily, and on arcade changes | Plays the home-page arcade headless to check its autopilot still reaches a floor level |
+| `train-arcade-policy.yml` | weekly | Trains the arcade's aiming policy; commits it only if it beats the incumbent on held-out seeds |
+| `probe-*.yml` | manual | Read-only probes of the App Store analytics and the NCEI analysis archives |
 
----
-
-## Project Structure
+## Project structure
 
 ```
 yu314-coder.github.io/
+├── index.html · about.html · projects.html · trackformer.html · privacy.html · 404.html
+├── typhoon-tracks.html           # wrapper for assets/typhoon-tracker/
+├── store-stats.html · pypi-stats.html
 ├── assets/
-│   ├── css/
-│   │   └── style.css              # Site styles (design tokens, dark zones)
-│   ├── js/
-│   │   ├── ui.js                  # Scroll-reveal, counters, hero spiral canvas, live PyPI total
-│   │   ├── main.js                # Home page scripts (arcade, admin panel)
-│   │   └── script.js              # Shared page scripts
-│   ├── typhoon-tracker/           # Typhoon Tracks app (iframe): Plotly geo map,
-│   │   │                          #   track/forecast modes, live NOAA/JMA/CIMSS feeds
-│   │   ├── index.html · app.js · styles.css
-│   │   └── model/                 #   TrackFormer v23 5-seed int8 ONNX ensemble + meta/ensemble/consensus (in-browser AI overlay)
-│   ├── pypi-tracker/              # PyPI stats app (iframe): ClickHouse queries,
-│   │   │                          #   Plotly chart, Byte the robot companion
-│   │   ├── index.html · app.js · creature.js · styles.css
-│   │   └── data/                  #   nightly pypistats snapshots (fresh downloads chart)
-│   ├── data/typhoons/             # IBTrACS v04r01 baked data: index.json,
-│   │   │                          #   per-season shards, climatology.json (ONI/ACE)
-│   ├── img/
-│   │   ├── app-icons/             # App icons (WebP + PNG fallback)
-│   │   ├── badges/                # Official store badges
-│   │   └── og-image.png           # Social share preview image
-│   └── docs/
-│       └── yau-science-award-research-paper.pdf
-├── index.html                     # Home — hero (animated eigenvalue spiral), spotlights
-├── about.html                     # About — education, skills, interests, timeline
-├── projects.html                  # Projects — tabbed (per flagship + PyPI + others)
-├── pypi-stats.html                # PyPI download analytics (live ClickPy data)
-├── typhoon-tracks.html            # Typhoon track explorer (live NOAA/JMA data)
-├── privacy.html                   # Privacy policies for all published apps
-├── scripts/
-│   └── refresh_pypistats.py       # Snapshots pypistats → assets/pypi-tracker/data
+│   ├── css/style.css
+│   ├── js/                       # ui.js (hero spiral, counters), main.js (home page, arcade),
+│   │                             #   stats-core.js (store / PyPI charts)
+│   ├── typhoon-tracker/          # the explorer (index.html · app.js · styles.css)
+│   │   └── model/                #   Trackformer 1.1 live forecast + history hindcasts
+│   ├── data/typhoons/            # IBTrACS season shards, index, climatology
+│   ├── appstore-tracker/data/    # App Store snapshots
+│   ├── store-tracker/            # Microsoft Store snapshots (+ the CSVs they're built from)
+│   ├── pypi-tracker/             # PyPI snapshots + the ClickHouse iframe app (Byte lives here)
+│   ├── img/                      # app icons, store badges, typhoon figures, og-image
+│   ├── afm/                      # Apple on-device model teardown paper
+│   └── docs/                     # research paper PDF
+├── scripts/                      # the refresh / build scripts the workflows run
 ├── .github/workflows/
-│   └── refresh-pypi-stats.yml     # Nightly: run that snapshot, commit if changed
-├── 404.html · sitemap.xml · robots.txt
+├── sitemap.xml · robots.txt
 └── README.md
 ```
 
----
+## Tech stack
 
-## Tech Stack
+- Static HTML / CSS / JavaScript on **GitHub Pages** — no build step, no framework, no server of my own.
+- **Bootstrap 5.3.3**. **Plotly 2.35.2** (geo and basic bundles) for the typhoon map and the PyPI iframe charts.
+  Hand-drawn SVG for the store and PyPI dashboards.
+- **Google Fonts** — Space Grotesk, Sora, JetBrains Mono, Source Serif 4.
+- **Live sources** — NOAA NCEI IBTrACS (archive and active storms), JTWC b-deck via UCAR/RAL, JMA *bosai* forecasts,
+  Digital Typhoon (NII), UW-CIMSS ADT, NOAA CPC ONI, the Trackformer Weather Lab API, App Store Connect,
+  Microsoft Partner Center exports, pypistats.org and ClickPy ClickHouse.
 
-- **HTML5 / CSS3 / JavaScript (ES5-compatible)** — no build step, no framework, no bundler
-- **Bootstrap 5.3.3** — responsive layout, pills/tabs, components
-- **Plotly.js** (geo + basic bundles, deferred) — typhoon map, intensity charts, download charts
-- **onnxruntime-web** — runs my TrackFormer v23 typhoon model (5-seed int8 ONNX ensemble) *in the browser*, no backend
-- **Google Fonts** — Inter, JetBrains Mono, Source Serif 4
-- **GitHub Pages** — static hosting; every data feed is fetched **client-side**, no server of my own
-- **Cross-platform parity** — identical behaviour on Windows and macOS across Chrome / Edge / Firefox / Safari (ES5 syntax, `-webkit-` + `-moz-` slider styling, motion that renders on every engine)
-- **Live data sources** — NOAA NCEI IBTrACS (archive, active-storms feed, and JMA `TOKYO_WIND` 10-min analysis), JTWC ATCF b-deck (via UCAR/RAL), JMA *bosai* forecasts + storm/gale radii, Digital Typhoon (NII) best-track radii, UW-CIMSS ADT Dvorak analyses, NOAA CPC ONI, ClickPy ClickHouse + **pypistats.org** (PyPI downloads)
-
-Every figure on both data pages traces to a named public agency — nothing is invented, simulated, or filled in when a source hasn't published it yet.
+Every figure on the data pages traces to a named source.
 
 ---
 
