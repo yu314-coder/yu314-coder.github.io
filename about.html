@@ -29,22 +29,24 @@
   <meta name="twitter:image" content="https://yu314-coder.github.io/assets/img/og-image.png">
 
   <title>About Me | Yu, Yao-Hsing 尤耀星 - Developer & Data Enthusiast</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="48x48">
+  <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+  <link rel="canonical" href="https://yu314-coder.github.io/about.html">
 
-  <!-- Bootstrap 5 (UNCHANGED — keep loaded for grid + tab/collapse JS) -->
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <link href="assets/vendor/bootstrap-5.3.3/bootstrap.min.css" rel="stylesheet">
 
-  <!-- Fonts: retire Roboto entirely. Load all four families in ONE request. -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@200;300;400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+  <!-- Fonts: self-hosted (assets/fonts, @font-face in style.css). The body and heading faces are on the first screen of every page, so they start downloading now rather than after style.css is parsed. -->
+  <link rel="preload" href="assets/fonts/sora-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
 
   <!-- Site stylesheet (single source of truth) -->
-  <link rel="stylesheet" href="assets/css/style.css?v=20261003-tflive">
+  <link rel="stylesheet" href="assets/css/style.css?v=20261006-perf">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
 <body class="theme-dark">
+  <script>/* The device class before the first paint. main.js / script.js set the same value at DOMContentLoaded (same test, kept in step with DeviceDetect.detect), but by then the page had painted, and the phone layout it switches on -- a smaller hero headline, a taller hero -- moved the page under the reader. */(function(){var u=(navigator.userAgent||'').toLowerCase(),w=Math.min(innerWidth,screen.width||innerWidth),t=('ontouchstart' in window)||navigator.maxTouchPoints>0,k=(/iphone|ipod|android.*mobile|windows phone|blackberry|bb10/.test(u)||(t&&w<600))?'phone':(/ipad/.test(u)||(u.indexOf('macintosh')>-1&&t)||(/android/.test(u)&&!/mobile/.test(u))||(t&&w>=600&&w<1180))?'tablet':'desktop';document.body.setAttribute('data-device',k)})()</script>
   <!-- Navigation -->
   <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
     <div class="container">
@@ -95,10 +97,10 @@
              in the timeline. -->
         <div class="mb-5">
           <p class="eyebrow eyebrow--rule reveal">Publication</p>
-          <h3 class="mb-4 reveal">Peer-reviewed research</h3>
+          <h2 class="h3 h-sub mb-4 reveal">Peer-reviewed research</h2>
           <div class="card reveal">
             <div class="card-body p-4">
-              <h5 class="mb-2">Limiting spectral distributions of random matrices</h5>
+              <h3 class="h5 h-sub mb-2">Limiting spectral distributions of random matrices</h3>
               <p class="mb-2" style="color:var(--ink-2);">
                 Yao-Hsing Yu. <em>Cambridge Journal for Junior Scientists</em>,
                 Volume&nbsp;3 (2026), Number&nbsp;2, pp.&nbsp;365&ndash;382.
@@ -118,10 +120,10 @@
         <!-- Education Section -->
         <div class="mb-5">
           <p class="eyebrow eyebrow--rule reveal">Education</p>
-          <h3 class="mb-4 reveal">Education</h3>
+          <h2 class="h3 h-sub mb-4 reveal">Education</h2>
           <div class="card reveal">
             <div class="card-body p-4">
-              <h5>Taipei Municipal Chien Kuo High School</h5>
+              <h3 class="h5 h-sub">Taipei Municipal Chien Kuo High School</h3>
               <p class="mb-0">Currently diving into advanced computer science, applied mathematics, and data analytics. This academic environment inspires me to push the boundaries of what's possible and constantly challenge myself.</p>
             </div>
           </div>
@@ -130,13 +132,13 @@
         <!-- Skills Section -->
         <div class="mb-5">
           <p class="eyebrow eyebrow--rule reveal">Skills &amp; expertise</p>
-          <h3 class="mb-4 reveal">Skills &amp; Expertise</h3>
+          <h2 class="h3 h-sub mb-4 reveal">Skills &amp; Expertise</h2>
           <div class="row g-3">
             <div class="col-md-6">
               <div class="card h-100 reveal">
                 <div class="card-body">
                   <p class="mono mb-2" style="color:var(--accent); font-size:.8rem;">01</p>
-                  <h5>Mathematical Research</h5>
+                  <h3 class="h5 h-sub">Mathematical Research</h3>
                   <p class="mb-0">Random Matrix Theory, Stieltjes Transform, M-P Law, spectral distributions</p>
                 </div>
               </div>
@@ -145,7 +147,7 @@
               <div class="card h-100 reveal reveal-delay-1">
                 <div class="card-body">
                   <p class="mono mb-2" style="color:var(--accent); font-size:.8rem;">02</p>
-                  <h5>Machine Learning &amp; AI</h5>
+                  <h3 class="h5 h-sub">Machine Learning &amp; AI</h3>
                   <p class="mb-0">PyTorch, HuggingFace transformers, on-device LLMs, scikit-learn</p>
                 </div>
               </div>
@@ -154,7 +156,7 @@
               <div class="card h-100 reveal">
                 <div class="card-body">
                   <p class="mono mb-2" style="color:var(--accent); font-size:.8rem;">03</p>
-                  <h5>iOS &amp; Apple Platforms</h5>
+                  <h3 class="h5 h-sub">iOS &amp; Apple Platforms</h3>
                   <p class="mb-0">Swift, SwiftUI, iOS / iPadOS / macOS apps, HealthKit, CarPlay, Metal</p>
                 </div>
               </div>
@@ -163,7 +165,7 @@
               <div class="card h-100 reveal reveal-delay-1">
                 <div class="card-body">
                   <p class="mono mb-2" style="color:var(--accent); font-size:.8rem;">04</p>
-                  <h5>Systems &amp; Cross-Compilation</h5>
+                  <h3 class="h5 h-sub">Systems &amp; Cross-Compilation</h3>
                   <p class="mb-0">Native iOS arm64 builds, Rust (PyO3), C / C++ / Fortran, Metal GPU bridges</p>
                 </div>
               </div>
@@ -172,7 +174,7 @@
               <div class="card h-100 reveal">
                 <div class="card-body">
                   <p class="mono mb-2" style="color:var(--accent); font-size:.8rem;">05</p>
-                  <h5>Software Engineering</h5>
+                  <h3 class="h5 h-sub">Software Engineering</h3>
                   <p class="mb-0">Windows Store apps, GUI applications, Python packaging, web development</p>
                 </div>
               </div>
@@ -181,7 +183,7 @@
               <div class="card h-100 reveal reveal-delay-1">
                 <div class="card-body">
                   <p class="mono mb-2" style="color:var(--accent); font-size:.8rem;">06</p>
-                  <h5>Data Science &amp; Visualization</h5>
+                  <h3 class="h5 h-sub">Data Science &amp; Visualization</h3>
                   <p class="mb-0">Data analysis, Manim animations, matplotlib / Plotly, FFmpeg / Cairo</p>
                 </div>
               </div>
@@ -192,7 +194,7 @@
         <!-- Interests Section -->
         <div class="mb-5">
           <p class="eyebrow eyebrow--rule reveal">Interests</p>
-          <h3 class="mb-4 reveal">Interests</h3>
+          <h2 class="h3 h-sub mb-4 reveal">Interests</h2>
           <div class="card reveal">
             <div class="card-body p-4">
               <p class="mb-3">I'm fascinated by the convergence of machine learning, mathematics, and coding — especially pushing heavy compute (PyTorch, transformers, LaTeX, Manim) onto devices people actually carry. I spend my time researching random matrix theory, building offline-first apps, and cross-compiling "impossible" libraries to iOS.</p>
@@ -211,25 +213,25 @@
         <!-- Timeline Section -->
         <div class="mb-5">
           <p class="eyebrow eyebrow--rule reveal">Experience &amp; timeline</p>
-          <h3 class="mb-4 reveal">Experience &amp; Timeline</h3>
+          <h2 class="h3 h-sub mb-4 reveal">Experience &amp; Timeline</h2>
           <div class="timeline">
             <div class="timeline-item reveal">
               <p class="timeline-date">July 2026</p>
-              <h5>Paper published &mdash; <em>Cambridge Journal for Junior Scientists</em></h5>
+              <h3 class="h5 h-sub">Paper published &mdash; <em>Cambridge Journal for Junior Scientists</em></h3>
               <p>&ldquo;Limiting spectral distributions of random matrices&rdquo;, Volume&nbsp;3 (2026), Number&nbsp;2, pp.&nbsp;365&ndash;382, open access via International Press of Boston. The peer-reviewed form of the award work from the year before.
               <a href="https://intlpress.com/JDetail/2070421842305069058" target="_blank" rel="noopener noreferrer">Read it &rarr;</a></p>
             </div>
 
             <div class="timeline-item reveal">
               <p class="timeline-date">2026</p>
-              <h5>Weather forecasting &mdash; Trackformer</h5>
+              <h3 class="h5 h-sub">Weather forecasting &mdash; Trackformer</h3>
               <p>A typhoon-track model running as a quantised ONNX file small enough to sit in a browser tab, driving both the live JMA overlay and hindcasts of past storms on the
               <a href="typhoon-tracks.html">Typhoon Tracks</a> page. The interesting part was the honesty problem: knowing, and saying, how much of a drawn track is the model and how much is persistence.</p>
             </div>
 
             <div class="timeline-item reveal">
               <p class="timeline-date">2026</p>
-              <h5>Seven apps across three stores</h5>
+              <h3 class="h5 h-sub">Seven apps across three stores</h3>
               <p><strong>App&nbsp;Store &amp; Mac&nbsp;App&nbsp;Store</strong> &mdash; ManimStudio, EigenDenoise, SidecarBridge, WhisperKit, GPS-location-app.<br>
               <strong>Microsoft&nbsp;Store</strong> &mdash; ManimStudio, Generalized Covariance Matrix, t-SNE Visualization.<br><br>
               EigenDenoise and Generalized Covariance Matrix are the paper made usable: the eigenvalue-support result turned into an image denoiser. Real download numbers for all of them are on the <a href="store-stats.html">Store Stats</a> page &mdash; including the ones that barely registered, since publishing only the flattering numbers would defeat the point.</p>
@@ -237,7 +239,7 @@
 
             <div class="timeline-item reveal">
               <p class="timeline-date">2026</p>
-              <h5>Python where it is not supposed to run</h5>
+              <h3 class="h5 h-sub">Python where it is not supposed to run</h3>
               <p><strong><a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer">python-ios-lib</a></strong> &mdash; a Python&nbsp;3.14 runtime for iOS and iPadOS with 30+ native libraries, including the <strong>first public native PyTorch build on iOS</strong> and a Metal GPU bridge worth a 2&ndash;10&times; on-device training speedup.<br><br>
               <strong><a href="https://github.com/yu314-coder/CodeBench" target="_blank" rel="noopener noreferrer">CodeBench</a></strong> &mdash; an offline developer and scientific workstation for iPad and Mac: Monaco editor, a real terminal, C/C++/Fortran, on-device pdflatex, and local LLMs.<br><br>
               <strong>Bootbox</strong> and the WebAssembly work (<a href="https://github.com/yu314-coder/qemu-wasm" target="_blank" rel="noopener noreferrer">qemu-wasm</a>, <a href="https://github.com/yu314-coder/container2wasm" target="_blank" rel="noopener noreferrer">container2wasm</a>) &mdash; booting whole operating systems in a browser tab.</p>
@@ -245,14 +247,14 @@
 
             <div class="timeline-item reveal">
               <p class="timeline-date">2026</p>
-              <h5>Five packages on PyPI</h5>
+              <h3 class="h5 h-sub">Five packages on PyPI</h3>
               <p><strong>rmt-denoise</strong> (random-matrix image denoising, the library counterpart to EigenDenoise), <strong>cairometal</strong> (pycairo-compatible 2D vector graphics on the Apple GPU via Metal &mdash; the first GPU cairo on PyPI), <strong>python-to-binary</strong> (Python&nbsp;&rarr;&nbsp;machine code with no C toolchain, assembler, linker, or dependencies at all), <strong>narrate</strong>, and <strong>ollama-installer</strong>.
               Download numbers &mdash; with mirror traffic separated out &mdash; are on the <a href="pypi-stats.html">PyPI Stats</a> page.</p>
             </div>
 
             <div class="timeline-item reveal">
               <p class="timeline-date">2025</p>
-              <h5>S.-T. Yau High School Science Award &mdash; Bronze Medal, Grand Finals</h5>
+              <h3 class="h5 h-sub">S.-T. Yau High School Science Award &mdash; Bronze Medal, Grand Finals</h3>
               <p class="mono mb-3" style="font-size:.76rem; color:var(--ink-3); letter-spacing:.02em;">2025 丘成桐中學科學獎總決賽</p>
               <p class="pull-quote serif mb-3">Geometric analysis of the eigenvalue range of the generalized covariance matrix &mdash; explicit support bounds for two-point limiting measures, via the Intermediate Value Theorem and Stieltjes transform inversion.</p>
               <p class="serif">Bronze in Mathematics at the Grand Finals, after Silver at the Asia regional. Applications in statistics, signal processing, and wireless communications. Published in peer-reviewed form the following July.</p>
@@ -263,19 +265,19 @@
 
             <div class="timeline-item reveal">
               <p class="timeline-date">2023 &ndash; 2024</p>
-              <h5>Research, and the first things that shipped</h5>
+              <h3 class="h5 h-sub">Research, and the first things that shipped</h3>
               <p>Beginning the random matrix theory work at Chien Kuo High School, alongside early AI projects &mdash; and putting the first applications on the Microsoft Store, which is where the habit of measuring what people actually download started.</p>
             </div>
 
             <div class="timeline-item reveal">
               <p class="timeline-date">2021 &ndash; 2023</p>
-              <h5>Mathematical modelling</h5>
+              <h3 class="h5 h-sub">Mathematical modelling</h3>
               <p>Projects in mathematical modelling and spectral distribution analysis &mdash; the groundwork the later papers rest on.</p>
             </div>
 
             <div class="timeline-item reveal">
               <p class="timeline-date">2019 &ndash; 2021</p>
-              <h5>Self-study</h5>
+              <h3 class="h5 h-sub">Self-study</h3>
               <p>Working through programming languages and tools on personal projects, with nobody assigning any of it.</p>
             </div>
           </div>
@@ -303,7 +305,7 @@
   </footer>
 
   <!-- Bootstrap 5 JS Bundle (includes Popper) -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous" defer></script>
+  <script src="assets/vendor/bootstrap-5.3.3/bootstrap.bundle.min.js" defer></script>
 
   <!-- Site motion -->
   <script src="assets/js/ui.js?v=20260828-countup" defer></script>

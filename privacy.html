@@ -33,22 +33,24 @@
   <meta name="twitter:description" content="Privacy policies for applications developed by Yu, Yao-Hsing 尤耀星">
 
   <title>Yu, Yao-Hsing 尤耀星 | Privacy Policy</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="48x48">
+  <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+  <link rel="canonical" href="https://yu314-coder.github.io/privacy.html">
 
-  <!-- Bootstrap 5 (UNCHANGED — keep loaded for grid + tab/collapse JS) -->
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <link href="assets/vendor/bootstrap-5.3.3/bootstrap.min.css" rel="stylesheet">
 
-  <!-- Fonts: retire Roboto entirely. Load all four families in ONE request. -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@200;300;400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+  <!-- Fonts: self-hosted (assets/fonts, @font-face in style.css). The body and heading faces are on the first screen of every page, so they start downloading now rather than after style.css is parsed. -->
+  <link rel="preload" href="assets/fonts/sora-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
 
   <!-- Site stylesheet (single source of truth) -->
-  <link rel="stylesheet" href="assets/css/style.css?v=20261003-tflive">
+  <link rel="stylesheet" href="assets/css/style.css?v=20261006-perf">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
 <body class="theme-dark privacy-page" id="top">
+  <script>/* The device class before the first paint. main.js / script.js set the same value at DOMContentLoaded (same test, kept in step with DeviceDetect.detect), but by then the page had painted, and the phone layout it switches on -- a smaller hero headline, a taller hero -- moved the page under the reader. */(function(){var u=(navigator.userAgent||'').toLowerCase(),w=Math.min(innerWidth,screen.width||innerWidth),t=('ontouchstart' in window)||navigator.maxTouchPoints>0,k=(/iphone|ipod|android.*mobile|windows phone|blackberry|bb10/.test(u)||(t&&w<600))?'phone':(/ipad/.test(u)||(u.indexOf('macintosh')>-1&&t)||(/android/.test(u)&&!/mobile/.test(u))||(t&&w>=600&&w<1180))?'tablet':'desktop';document.body.setAttribute('data-device',k)})()</script>
   <!-- Navigation -->
   <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
     <div class="container">
@@ -860,13 +862,13 @@
   </footer>
 
   <!-- Bootstrap 5 JS Bundle (includes Popper) -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous" defer></script>
+  <script src="assets/vendor/bootstrap-5.3.3/bootstrap.bundle.min.js" defer></script>
 
   <!-- Site motion (scroll-reveal, counters) -->
   <script src="assets/js/ui.js?v=20260828-countup" defer></script>
 
   <!-- Custom JavaScript -->
-  <script src="assets/js/main.js?v=20260813-lawn15" defer></script>
+  <script src="assets/js/main.js?v=20261006-split" defer></script>
 
   <!-- Side nav follows the policy being read; on a phone the chip row scrolls
        to keep the current one in view. Enhancement only: the links work as

@@ -1,4 +1,4 @@
-// Headless harness for the hidden arcade in assets/js/main.js.
+// Headless harness for the hidden arcade in assets/js/arcade.js (split out of main.js 2026-10-06).
 //
 // The games can't be exercised in a browser tab that isn't focused —
 // requestAnimationFrame is parked and timers are clamped — so this stubs just
@@ -14,7 +14,7 @@ const vm = require('vm');
 
 // Resolved per run, not at module load: arcade-bench.js switches builds
 // between calls, and capturing this once meant it compared a build to itself.
-const DEFAULT_SRC = path.join(__dirname, '..', 'assets', 'js', 'main.js');
+const DEFAULT_SRC = path.join(__dirname, '..', 'assets', 'js', 'arcade.js');
 const srcPath = () => process.env.MAIN_JS || DEFAULT_SRC;
 
 function makeCtx() {
@@ -195,7 +195,7 @@ function run(opts) {
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
-  vm.runInContext(code, sandbox, { filename: 'main.js' });
+  vm.runInContext(code, sandbox, { filename: 'arcade.js' });
   h.document.fire('DOMContentLoaded');
   h.els['gameControls'].children.forEach((c) => { if (c.id) h.els[c.id] = c; });
   return h;

@@ -159,9 +159,12 @@ yu314-coder.github.io/
 ├── typhoon-tracks.html           # wrapper for assets/typhoon-tracker/
 ├── store-stats.html · pypi-stats.html
 ├── assets/
-│   ├── css/style.css
-│   ├── js/                       # ui.js (hero spiral, counters), main.js (home page, arcade),
+│   ├── css/style.css             # also the @font-face rules for assets/fonts
+│   ├── js/                       # ui.js (hero spiral, counters), main.js (navbar, visitor panel),
+│   │                             #   arcade.js (the hidden arcade, fetched only when opened),
 │   │                             #   stats-core.js (store / PyPI charts)
+│   ├── fonts/                    # self-hosted WOFF2 + each family's OFL licence
+│   ├── vendor/bootstrap-5.3.3/   # Bootstrap CSS + JS bundle, served from here
 │   ├── typhoon-tracker/          # the explorer (index.html · app.js · styles.css)
 │   │   └── model/                #   Trackformer 1.1 live forecast + history hindcasts
 │   ├── data/typhoons/            # IBTrACS season shards, index, climatology
@@ -173,16 +176,18 @@ yu314-coder.github.io/
 │   └── docs/                     # research paper PDF
 ├── scripts/                      # the refresh / build scripts the workflows run
 ├── .github/workflows/
-├── sitemap.xml · robots.txt
+├── sitemap.xml · robots.txt · favicon.svg · favicon.ico
+├── .nojekyll                     # Pages serves the files as they are; no Jekyll build
 └── README.md
 ```
 
 ## Tech stack
 
 - Static HTML / CSS / JavaScript on **GitHub Pages** — no build step, no framework, no server of my own.
-- **Bootstrap 5.3.3**. **Plotly 2.35.2** (geo and basic bundles) for the typhoon map and the PyPI iframe charts.
-  Hand-drawn SVG for the store and PyPI dashboards.
-- **Google Fonts** — Space Grotesk, Sora, JetBrains Mono, Source Serif 4.
+- **Bootstrap 5.3.3**, served from this repository. **Plotly 2.35.2** (geo and basic bundles, from its CDN) for the
+  typhoon map and the PyPI iframe charts. Hand-drawn SVG for the store and PyPI dashboards.
+- **Fonts** — Space Grotesk, Sora, JetBrains Mono, Source Serif 4 (SIL OFL), self-hosted as variable WOFF2; the
+  first screen needs nothing from another host. See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 - **Live sources** — NOAA NCEI IBTrACS (archive and active storms), JTWC b-deck via UCAR/RAL, JMA *bosai* forecasts,
   Digital Typhoon (NII), UW-CIMSS ADT, NOAA CPC ONI, the Trackformer Weather Lab API, App Store Connect,
   Microsoft Partner Center exports, pypistats.org and ClickPy ClickHouse.

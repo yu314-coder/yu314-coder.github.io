@@ -8,7 +8,7 @@ name: Benchmark arcade autopilot
 # something the bot has to cope with, and a fully green suite is perfectly
 # compatible with it quietly getting worse at the game.
 #
-# It really plays: the harness loads assets/js/main.js, clicks the actual
+# It really plays: the harness loads assets/js/arcade.js, clicks the actual
 # autopilot button and pumps frames. Nothing is injected -- with the autopilot
 # off the paddle never moves and the run is lost, which is the control that
 # proves the frames are the only thing being supplied.
@@ -32,7 +32,7 @@ on:
         default: "4"
   push:
     paths:
-      - "assets/js/main.js"          # the only file that can change how it plays
+      - "assets/js/arcade.js"        # the only file that can change how it plays (split out of main.js)
       - "tests/bench-autopilot.js"
 
 permissions:

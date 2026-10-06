@@ -12,7 +12,7 @@ const { run, score } = require('./arcade-harness');
 const N = Number(process.argv[2] || 60);
 const FRAMES = 12000;
 const A = process.argv[3] || path.join(__dirname, 'baseline-main.js');
-const B = process.argv[4] || path.join(__dirname, '..', 'assets', 'js', 'main.js');
+const B = process.argv[4] || path.join(__dirname, '..', 'assets', 'js', 'arcade.js');
 
 function once(src) {
   process.env.MAIN_JS = src;

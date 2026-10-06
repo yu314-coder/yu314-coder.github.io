@@ -33,20 +33,23 @@
   <meta name="twitter:image" content="https://yu314-coder.github.io/assets/img/og-image.png">
 
   <title>Yu, Yao-Hsing 尤耀星 | Home - Developer & Data Enthusiast</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="48x48">
+  <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+  <link rel="canonical" href="https://yu314-coder.github.io/">
 
-  <!-- Bootstrap 5 CSS -->
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <!-- Bootstrap 5.3.3 CSS (served from this site: assets/vendor) -->
 
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-  <!-- Fonts: retire Roboto entirely. Load all four families in ONE request. -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@200;300;400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+  <link href="assets/vendor/bootstrap-5.3.3/bootstrap.min.css" rel="stylesheet">
+  <!-- Fonts: self-hosted (assets/fonts, @font-face in style.css). The body and heading faces are on the first screen of every page, so they start downloading now rather than after style.css is parsed. -->
+  <link rel="preload" href="assets/fonts/sora-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="assets/css/style.css?v=20261003-tflive">
+  <link rel="stylesheet" href="assets/css/style.css?v=20261006-perf">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
 <body class="theme-dark">
+  <script>/* The device class before the first paint. main.js / script.js set the same value at DOMContentLoaded (same test, kept in step with DeviceDetect.detect), but by then the page had painted, and the phone layout it switches on -- a smaller hero headline, a taller hero -- moved the page under the reader. */(function(){var u=(navigator.userAgent||'').toLowerCase(),w=Math.min(innerWidth,screen.width||innerWidth),t=('ontouchstart' in window)||navigator.maxTouchPoints>0,k=(/iphone|ipod|android.*mobile|windows phone|blackberry|bb10/.test(u)||(t&&w<600))?'phone':(/ipad/.test(u)||(u.indexOf('macintosh')>-1&&t)||(/android/.test(u)&&!/mobile/.test(u))||(t&&w>=600&&w<1180))?'tablet':'desktop';document.body.setAttribute('data-device',k)})()</script>
   <!-- Navigation -->
   <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
     <div class="container">
@@ -189,8 +192,8 @@
               </div>
               <p class="card-text flex-grow-1">A GUI for creating mathematical animations with Manim — bundled Python and MiKTeX, no admin rights. On the Microsoft Store and App Store.</p>
               <div class="d-flex gap-2 mt-auto align-items-center flex-wrap">
-                <a class="store-badge store-badge-sm" href="https://apps.microsoft.com/detail/9NZFT55DVCBS" target="_blank" rel="noopener noreferrer" aria-label="Get ManimStudio from the Microsoft Store"><img src="assets/img/badges/microsoft-store.svg" alt="Get it from Microsoft"></a>
-                <a class="store-badge store-badge-sm" href="https://apps.apple.com/app/manimstudio/id6764472686" target="_blank" rel="noopener noreferrer" aria-label="Download ManimStudio on the App Store"><img src="assets/img/badges/appstore.svg" alt="Download on the App Store"></a>
+                <a class="store-badge store-badge-sm" href="https://apps.microsoft.com/detail/9NZFT55DVCBS" target="_blank" rel="noopener noreferrer" aria-label="Get ManimStudio from the Microsoft Store"><img src="assets/img/badges/microsoft-store.svg" alt="Get it from Microsoft" width="111" height="40"></a>
+                <a class="store-badge store-badge-sm" href="https://apps.apple.com/app/manimstudio/id6764472686" target="_blank" rel="noopener noreferrer" aria-label="Download ManimStudio on the App Store"><img src="assets/img/badges/appstore.svg" alt="Download on the App Store" width="120" height="40"></a>
               </div>
             </div>
           </div>
@@ -210,7 +213,7 @@
               <p class="card-text flex-grow-1">A self-contained, offline dev / scientific / AI workstation — Monaco editor, integrated terminal, Python 3.14 + C/C++/Fortran, on-device pdflatex, and local LLMs via llama.cpp.</p>
               <div class="d-flex gap-2 mt-auto flex-wrap">
                 <a href="https://github.com/yu314-coder/CodeBench" target="_blank" rel="noopener noreferrer" class="badge-btn">GitHub</a>
-                <a href="projects.html" class="badge-btn">Learn more</a>
+                <a href="projects.html" class="badge-btn">Learn more<span class="visually-hidden"> about CodeBench</span></a>
               </div>
             </div>
           </div>
@@ -230,7 +233,7 @@
               <p class="card-text flex-grow-1">A full Python runtime for iOS with the first public native PyTorch build, HuggingFace transformers, Rust tokenizers, NumPy/SciPy/scikit-learn, manim, and C/C++/Fortran interpreters. Powers CodeBench.</p>
               <div class="d-flex gap-2 mt-auto flex-wrap">
                 <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="badge-btn">GitHub</a>
-                <a href="projects.html" class="badge-btn">Learn more</a>
+                <a href="projects.html" class="badge-btn">Learn more<span class="visually-hidden"> about python-ios-lib</span></a>
               </div>
             </div>
           </div>
@@ -249,8 +252,8 @@
               </div>
               <p class="card-text flex-grow-1">My Yau-award research shipped as software, twice. <strong>EigenDenoise</strong> is a Metal-accelerated macOS image denoiser built on random matrix theory; <strong>Generalized Covariance Matrix</strong> is the Windows research tool for eigenvalue spectral distributions — analyse ESDs, visualise spectral densities and export results, fully offline.</p>
               <div class="d-flex gap-2 mt-auto align-items-center flex-wrap">
-                <a class="store-badge store-badge-sm" href="https://apps.apple.com/app/eigendenoise/id6764759636" target="_blank" rel="noopener noreferrer" aria-label="Download EigenDenoise on the Mac App Store"><img src="assets/img/badges/macappstore.svg" alt="Download on the Mac App Store"></a>
-                <a class="store-badge store-badge-sm" href="https://apps.microsoft.com/detail/9nzj475s7b01" target="_blank" rel="noopener noreferrer" aria-label="Get Generalized Covariance Matrix from the Microsoft Store"><img src="assets/img/badges/microsoft-store.svg" alt="Get it from Microsoft"></a>
+                <a class="store-badge store-badge-sm" href="https://apps.apple.com/app/eigendenoise/id6764759636" target="_blank" rel="noopener noreferrer" aria-label="Download EigenDenoise on the Mac App Store"><img src="assets/img/badges/macappstore.svg" alt="Download on the Mac App Store" width="156" height="40"></a>
+                <a class="store-badge store-badge-sm" href="https://apps.microsoft.com/detail/9nzj475s7b01" target="_blank" rel="noopener noreferrer" aria-label="Get Generalized Covariance Matrix from the Microsoft Store"><img src="assets/img/badges/microsoft-store.svg" alt="Get it from Microsoft" width="111" height="40"></a>
               </div>
             </div>
           </div>
@@ -270,7 +273,7 @@
               <p class="card-text flex-grow-1">A boot manager for your iPad. It boots real operating systems — 64-bit Linux, classic Windows, graphical desktops — inside a WebKit-hosted emulation stack, with real internet and real multi-core. Everything runs on-device: no servers, no streaming, no jailbreak.</p>
               <div class="d-flex gap-2 mt-auto flex-wrap">
                 <a href="https://github.com/yu314-coder/Bootbox" target="_blank" rel="noopener noreferrer" class="badge-btn">GitHub</a>
-                <a href="projects.html" class="badge-btn">Learn more</a>
+                <a href="projects.html" class="badge-btn">Learn more<span class="visually-hidden"> about Bootbox</span></a>
               </div>
             </div>
           </div>
@@ -289,7 +292,7 @@
               </div>
               <p class="card-text flex-grow-1">A secure remote window into your Mac, with iPhone and iPad keyboard, trackpad, touch and Apple Pencil input. Everything stays on your own network — the Mac's screen is never published to the Internet.</p>
               <div class="d-flex gap-2 mt-auto align-items-center flex-wrap">
-                <a class="store-badge store-badge-sm" href="https://apps.apple.com/app/sidecarbridge/id6792298083" target="_blank" rel="noopener noreferrer" aria-label="Download SidecarBridge on the App Store"><img src="assets/img/badges/appstore.svg" alt="Download on the App Store"></a>
+                <a class="store-badge store-badge-sm" href="https://apps.apple.com/app/sidecarbridge/id6792298083" target="_blank" rel="noopener noreferrer" aria-label="Download SidecarBridge on the App Store"><img src="assets/img/badges/appstore.svg" alt="Download on the App Store" width="120" height="40"></a>
               </div>
             </div>
           </div>
@@ -328,7 +331,7 @@
               </div>
               <p class="card-text flex-grow-1">Precision GPS workout tracker. Kalman-filtered location, HealthKit sync, Live Activities, CarPlay and route analytics in a clean SwiftUI interface.</p>
               <div class="d-flex gap-2 mt-auto align-items-center flex-wrap">
-                <a class="store-badge store-badge-sm" href="https://apps.apple.com/app/gps-location-app/id6764729098" target="_blank" rel="noopener noreferrer" aria-label="Download GPS-location-app on the App Store"><img src="assets/img/badges/appstore.svg" alt="Download on the App Store"></a>
+                <a class="store-badge store-badge-sm" href="https://apps.apple.com/app/gps-location-app/id6764729098" target="_blank" rel="noopener noreferrer" aria-label="Download GPS-location-app on the App Store"><img src="assets/img/badges/appstore.svg" alt="Download on the App Store" width="120" height="40"></a>
               </div>
             </div>
           </div>
@@ -348,7 +351,7 @@
               <p class="card-text flex-grow-1">A compiler and application builder written with nothing but the Python standard library. It turns Python into real machine code — and where it needs C in the middle, it compiles that C with a C compiler it also wrote. No Cython, Nuitka, Rust, gcc or clang at any point.</p>
               <div class="d-flex gap-2 mt-auto flex-wrap">
                 <a href="https://github.com/yu314-coder/python_to_binary" target="_blank" rel="noopener noreferrer" class="badge-btn">GitHub</a>
-                <a href="projects.html" class="badge-btn">Learn more</a>
+                <a href="projects.html" class="badge-btn">Learn more<span class="visually-hidden"> about python-to-binary</span></a>
               </div>
             </div>
           </div>
@@ -368,7 +371,7 @@
               <p class="card-text flex-grow-1">A static reverse-engineering of Apple's on-device foundation model — the sparse Mixture-of-Experts backbone in Apple Intelligence — decoded from its container formats down to a component-validated PyTorch forward pass. Original research only: no Apple weights or tokenizer are redistributed.</p>
               <div class="d-flex gap-2 mt-auto flex-wrap">
                 <a href="https://github.com/yu314-coder/afm-ifp-teardown" target="_blank" rel="noopener noreferrer" class="badge-btn">GitHub</a>
-                <a href="projects.html" class="badge-btn">Learn more</a>
+                <a href="projects.html" class="badge-btn">Learn more<span class="visually-hidden"> about Apple Foundation Model Teardown</span></a>
               </div>
             </div>
           </div>
@@ -386,22 +389,22 @@
       <div class="row g-5 capability-grid">
         <div class="col-md-6 col-lg-3 reveal">
           <p class="mono mb-2" style="color:var(--accent); font-size:.8rem;">01</p>
-          <h4 class="mb-2">Mathematical research</h4>
+          <h3 class="h4 h-sub mb-2">Mathematical research</h3>
           <p class="mb-0">Random matrix theory, the Stieltjes transform, limiting spectral distributions, and statistical modeling.</p>
         </div>
         <div class="col-md-6 col-lg-3 reveal reveal-delay-1">
           <p class="mono mb-2" style="color:var(--accent); font-size:.8rem;">02</p>
-          <h4 class="mb-2">AI and machine learning</h4>
+          <h3 class="h4 h-sub mb-2">AI and machine learning</h3>
           <p class="mb-0">On-device PyTorch, HuggingFace transformers, scikit-learn, and local LLMs running fully offline.</p>
         </div>
         <div class="col-md-6 col-lg-3 reveal reveal-delay-2">
           <p class="mono mb-2" style="color:var(--accent); font-size:.8rem;">03</p>
-          <h4 class="mb-2">Cross-platform apps</h4>
+          <h3 class="h4 h-sub mb-2">Cross-platform apps</h3>
           <p class="mb-0">Windows Store and App Store apps, native iOS frameworks, and open-source packages on PyPI.</p>
         </div>
         <div class="col-md-6 col-lg-3 reveal reveal-delay-3">
           <p class="mono mb-2" style="color:var(--accent); font-size:.8rem;">04</p>
-          <h4 class="mb-2">Media and graphics</h4>
+          <h3 class="h4 h-sub mb-2">Media and graphics</h3>
           <p class="mb-0">Math animation with Manim, hardware video encoding with FFmpeg, and GPU 2D graphics with Cairo on Metal.</p>
         </div>
       </div>
@@ -462,7 +465,7 @@
   </div>
 
   <!-- Bootstrap 5 JS Bundle (includes Popper) -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous" defer></script>
+  <script src="assets/vendor/bootstrap-5.3.3/bootstrap.bundle.min.js" defer></script>
 
   <!-- Site motion / counters / live downloads -->
   <!-- Fill the hero counters from the committed snapshots.
@@ -607,7 +610,7 @@
 
   <script src="assets/js/ui.js?v=20260828-countup" defer></script>
   <!-- Custom JavaScript (arcade easter egg) -->
-  <script src="assets/js/main.js?v=20260813-lawn15" defer></script>
+  <script src="assets/js/main.js?v=20261006-split" defer></script>
 
   <div id="q-l" hidden aria-hidden="true" role="dialog">
     <div class="q-in">

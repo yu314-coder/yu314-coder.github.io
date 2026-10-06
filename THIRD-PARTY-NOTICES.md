@@ -5,9 +5,37 @@ they came under.
 
 ---
 
-## Nothing is currently bundled
+## Bundled
 
-Every asset shipped from this repository is its own work.
+Served from this repository since 2026-10-06, so a first visit doesn't wait on
+two more hosts (cdn.jsdelivr.net, fonts.googleapis.com / fonts.gstatic.com).
+Both were loaded from those CDNs before; the files are unmodified.
+
+### Bootstrap 5.3.3
+
+`assets/vendor/bootstrap-5.3.3/` — `bootstrap.min.css` and
+`bootstrap.bundle.min.js` (which includes Popper), byte-identical to the
+jsDelivr copies the pages used to load (same SRI hashes). MIT licence,
+© 2011–2024 The Bootstrap Authors; the full text is in `LICENSE` beside them.
+Popper is © 2019 Federico Zivolo, MIT.
+
+### Fonts
+
+`assets/fonts/` — Space Grotesk, Sora, JetBrains Mono and Source Serif 4, the
+WOFF2 files Google Fonts serves for them, under the SIL Open Font License 1.1.
+Each family's copyright line and the licence text are in
+`assets/fonts/OFL-<family>.txt`.
+
+| Family | Copyright |
+|--------|-----------|
+| Space Grotesk | 2020 The Space Grotesk Project Authors |
+| Sora | 2019 The Sora Project Authors |
+| JetBrains Mono | 2020 The JetBrains Mono Project Authors |
+| Source Serif 4 | 2014 The Source Serif 4 Project Authors |
+
+---
+
+## Not bundled
 
 ### Lawn Siege art
 

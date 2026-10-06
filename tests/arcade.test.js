@@ -1,4 +1,4 @@
-// Regression tests for the hidden arcade (assets/js/main.js).
+// Regression tests for the hidden arcade (assets/js/arcade.js).
 //
 //   node tests/arcade.test.js
 //

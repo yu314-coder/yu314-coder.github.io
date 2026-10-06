@@ -14,6 +14,10 @@
 <!-- defer both scripts (Plotly first in DOM order) so the controls/stats shell
      paints without waiting on the large Plotly bundle to download and parse. -->
 <script src="https://cdn.plot.ly/plotly-geo-2.35.2.min.js" charset="utf-8" defer></script>
+<!-- Inside typhoon-tracks.html on a phone, the host pins this frame and hands the map its height
+     (markPinned there). Ask for both here, before the first paint: waiting for the frame's load event laid the
+     page out once without them and then moved everything below the map. Opened on its own, it does nothing. -->
+<script>try{if(parent!==window&&parent.__ttMarkPinned)parent.__ttMarkPinned(document)}catch(e){}</script>
 <link rel="stylesheet" href="styles.css?v=b18a7135">
 </head>
 <body>
