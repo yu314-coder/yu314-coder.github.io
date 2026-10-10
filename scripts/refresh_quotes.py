@@ -34,6 +34,28 @@ RANGES = [("1D", "1d", "5m"), ("1W", "5d", "30m"), ("1M", "1mo", "1d"),
 BLOB_RE = re.compile(r'var EMBEDDED = JSON\.parse\(atob\("([A-Za-z0-9+/=]+)"\)\);')
 
 
+def px(v):
+    """A price at the precision the panel shows (2 dp; 4 below 1). Yahoo revises
+    single bars by 0.001 after the close, and at 4 dp each revision rewrote the
+    file and made a commit nobody could see."""
+    if v is None:
+        return None
+    return round(v, 2) if abs(v) >= 1 else round(v, 4)
+
+
+def tidy(q):
+    for k in ("price", "prev_close", "change", "day_high", "day_low", "w52_high", "w52_low",
+              "ext_price", "ext_change"):
+        q[k] = px(q.get(k))
+    for k in ("change_pct", "ext_change_pct"):
+        if q.get(k) is not None:
+            q[k] = round(q[k], 2)
+    q["series"] = {r: [px(c) for c in v] for r, v in (q.get("series") or {}).items()}
+    if q.get("day"):
+        q["day"]["pts"] = [[t, px(c)] for t, c in q["day"].get("pts") or []]
+    return q
+
+
 def get(sym, rng, iv):
     req = urllib.request.Request(API.format(sym, rng, iv), headers=UA)
     with urllib.request.urlopen(req, timeout=30) as r:
@@ -161,7 +183,7 @@ def main():
     for q in old.get("quotes", []):
         sym = q.get("symbol")
         try:
-            nq = fetch(sym)
+            nq = tidy(fetch(sym))
             nq["name"] = q.get("name")
             nq["market"] = q.get("market")
             rows.append(nq)
