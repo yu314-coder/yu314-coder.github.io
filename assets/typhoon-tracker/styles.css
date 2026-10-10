@@ -581,7 +581,7 @@ body {
 }
 /* The valid time is the thing you read while scrubbing, so it leads. */
 .tt-float--timeline .tt-scrubber { flex-wrap: wrap; }
-.tt-float--timeline .tt-time-readout { order: -1; width: 100%; text-align: center; color: var(--text); font-weight: 650; font-size: 12.5px; }
+.tt-float--timeline .tt-time-readout { order: -1; width: 100%; text-align: center; color: var(--text); font-weight: 650; font-size: 12.5px; min-height: 1lh; }
 
 /* --- Legend, bottom-right ----------------------------------- */
 .tt-float--legend { right: 12px; top: 118px; width: 200px; }
@@ -697,6 +697,8 @@ body {
   .tt-float--timeline .tt-fc-time {
     white-space: normal; font-size: 11.5px; line-height: 1.35; text-align: center; width: 100%;
   }
+  /* a line held for the reading before the track arrives (two on a phone, below) */
+  .tt-float--timeline .tt-time-readout { min-height: 1.35em; }
 
   .tt-float--legend { top: 10px; bottom: auto; right: 62px; width: 178px; }
   .tt-zoom-controls { top: 10px; right: 10px; }
@@ -813,6 +815,15 @@ html.tt-pinned .tt-map { height: var(--tt-map-h, 68vh); min-height: 320px; }
 }
 .tt-map:focus-visible ~ .tt-key-hint { opacity: 1; }
 
+/* On a phone the readout ("2013-11-07 18:00:00 · 170 kt · 895 mb · C5 Super Typhoon") wraps to two lines for
+   most storms and fits one for some. It used to start empty and grow to two when the track arrived -- pushing
+   the stats and chart down -- and to step between one and two while the track played. Hold two lines. */
+@media (max-width: 479px) {
+  .tt-float--timeline .tt-time-readout {
+    min-height: 2.7em; display: flex; align-items: center; justify-content: center;
+  }
+}
+
 /* ---------------------------------------------------------------------------
    Watch-sized
    ---------------------------------------------------------------------------
@@ -839,7 +850,7 @@ html.tt-pinned .tt-map { height: var(--tt-map-h, 68vh); min-height: 320px; }
   .tt-float--controls .tt-controls { grid-template-columns: 1fr; }
   .tt-float--controls select { height: 36px; font-size: 13px; }
   .tt-float--timeline { margin: 4px 4px 0; padding: 6px 8px 8px; }
-  .tt-float--timeline .tt-time-readout { font-size: 10px; line-height: 1.3; }
+  .tt-float--timeline .tt-time-readout { font-size: 10px; line-height: 1.3; min-height: 2.6em; }
   .tt-float--timeline .tt-play-btn { min-width: 36px; min-height: 36px; width: 36px; height: 36px; }
   .tt-stats { grid-template-columns: 1fr 1fr; gap: 6px; }
   .tt-map, html.tt-pinned .tt-map { min-height: 180px; }

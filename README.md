@@ -34,15 +34,17 @@ The research is mine. The apps, packages and this site are built with AI coding 
 A Western Pacific explorer on real agency data — nothing simulated, nothing filled in where a source hasn't published.
 
 **History (IBTrACS v04r01, WP basin, 1945–present)** — about 2,090 storms in per-season shards under
-`assets/data/typhoons/`, refreshed daily. Active storms are topped up in the browser from NCEI's IBTrACS
-active-storms feed and the JTWC working best track (ATCF b-deck via UCAR/RAL), marked `LIVE`. Per-point Beaufort
+`assets/data/typhoons/`, refreshed daily. A storm that crosses in from the east Pacific or the Indian Ocean keeps its
+whole track. Active storms are topped up in the browser from NCEI's IBTrACS active-storms feed and the JTWC working
+best track (ATCF b-deck via UCAR/RAL, mirrored into `assets/data/typhoons/live/`), marked `LIVE`. Per-point Beaufort
 force 8/10/12 wind radii, a time scrubber that animates position, wind, pressure, Dvorak T and radii together, season
 overviews, ACE, rapid-intensification detection and ENSO (NOAA CPC ONI) badges. Two classification standards:
 Saffir–Simpson-style on 1-minute winds, and Taiwan **CWA** on its official 10-minute thresholds applied to JMA's
 10-minute wind analysis.
 
 **Forecast (live JMA)** — JMA's 5-day forecasts fetched in the browser, the past leg enriched with Digital Typhoon
-(NII) wind radii and UW-CIMSS ADT Dvorak numbers.
+(NII) wind radii and UW-CIMSS ADT Dvorak numbers (mirrored, matched to the JMA storm by position), and joined to the
+storm's earlier life when it formed in another basin.
 
 **AI overlay — Trackformer** ([typhoon-predict](https://github.com/yu314-coder/typhoon-predict))
 - **Trackformer 1.2 first, read live in the visitor's browser** from the Trackformer Weather Lab API
@@ -142,6 +144,7 @@ Current versions are on the site; the snapshots refresh them hourly.
 |----------|------|--------------|
 | `refresh-typhoon-archive.yml` | daily | Rebuilds the recent IBTrACS seasons and bumps the tracker's cache tokens |
 | `refresh-typhoon-forecast.yml` | every 20 min (GitHub runs it every few hours in practice) | Runs Trackformer 1.1 on the live JMA storm and commits the fallback forecast |
+| `mirror-live-feeds.yml` | every 30 min (about hourly in practice) | Mirrors active storms' JTWC b-decks and CIMSS ADT histories, which browsers can't fetch (no CORS) |
 | `build-trackformer11-history.yml` | hourly schedule | Adds Trackformer 1.1 history hindcasts (CFSR/CDAS reanalysis, plus recovered live runs) |
 | `backfill-tf11-gfs.yml` | manual | Batch hindcasts from the GFS archive, one commit |
 | `refresh-appstore-stats.yml` | hourly, and after the other refreshes | App Store sales and analytics, app versions on both stores, PyPI versions |

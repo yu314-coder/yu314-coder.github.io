@@ -1,0 +1,69 @@
+name: Mirror live storm feeds
+
+# Copies the two live feeds the typhoon tracker can't read from a browser --
+# JTWC's b-deck (via UCAR/RAL) and the CIMSS ADT Dvorak history -- into
+# assets/data/typhoons/live/feeds.json for the western-Pacific storms that are
+# active now. Neither source sends a CORS header, and the public CORS proxies
+# the tracker used to go through have all stopped answering.
+#
+# Asks for every 30 minutes; GitHub delivers frequent schedules late (see
+# refresh-typhoon-forecast.yml: 67 minutes at best), so expect roughly hourly.
+# The b-deck itself only moves every 6 hours. Nothing in the file is a clock of
+# the run, so a quiet run commits nothing, and with no storm active the file
+# empties once and then stays put.
+on:
+  schedule:
+    - cron: "10,40 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mirror-live-feeds
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch the b-decks and CIMSS histories
+        run: python scripts/mirror_live_feeds.py
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          F=assets/data/typhoons/live/feeds.json
+          git add $F
+          if git diff --staged --quiet; then
+            echo "no change — nothing to commit"
+            exit 0
+          fi
+          git commit -m "Mirror live storm feeds"
+
+          # The file is regenerated whole each run, so replay it on main rather
+          # than rebase (see refresh-typhoon-forecast.yml). --mixed, never --soft,
+          # and add only this file: the rest of the working tree is this
+          # runner's older checkout.
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "main moved; replaying on top of it (attempt $attempt)"
+            git fetch origin main
+            git reset --mixed origin/main
+            git add $F
+            if git diff --staged --quiet; then
+              echo "main already has these feeds"
+              exit 0
+            fi
+            git commit -m "Mirror live storm feeds"
+          done
+          echo "::warning title=Could not push::main kept moving; the next run redoes this"

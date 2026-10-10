@@ -18,7 +18,7 @@
      (markPinned there). Ask for both here, before the first paint: waiting for the frame's load event laid the
      page out once without them and then moved everything below the map. Opened on its own, it does nothing. -->
 <script>try{if(parent!==window&&parent.__ttMarkPinned)parent.__ttMarkPinned(document)}catch(e){}</script>
-<link rel="stylesheet" href="styles.css?v=b18a7135">
+<link rel="stylesheet" href="styles.css?v=5a97d851">
 </head>
 <body>
 <div class="tt-app mode-track">
@@ -26,6 +26,15 @@
   <div class="tt-mapwrap">
     <div class="tt-map-shell">
       <div id="tt-map" class="tt-map"></div>
+      <!-- In the touch layout the map box starts a screen tall and fitMapBoxToDrawing (app.js) shrinks it to
+           what Plotly draws -- seconds later, after the ~1 MB bundle -- and everything under the map moved up by
+           ~170 px (most of the 0.12 layout shift left on typhoon-tracks.html, 2026-10-10). The cold load always
+           opens Haiyan 2013 (DEFAULT_STORM), so its drawing can be worked out now: geoWindow frames its track
+           plus padding as 71.68 deg of longitude, a box this narrow caps latitude at MAX_LAT_SPAN 88 deg, and
+           Plotly draws that at GEO_PIXEL_K 0.87 under a 6 px top margin. That matched the fitted box to 1 px
+           from 360 to 430 px wide. The fit then finds nothing to change, and later storms keep this inline
+           height just as they kept the fitted one. Only when the fit would act (a gap of 10 px or more). -->
+      <script>(function(){try{if(!matchMedia('(max-width: 999px), (hover: none) and (pointer: coarse)').matches)return;var m=document.getElementById('tt-map'),r=m.getBoundingClientRect(),h=Math.round(r.width*88/(0.87*71.68))+6;if(r.width&&h<=r.height-10)m.style.height=h+'px'}catch(e){}})()</script>
 
       <!-- Floating panels over the map. The map is the subject of this page, so
            the chrome sits on top of it rather than pushing it down the screen.
@@ -187,7 +196,11 @@
     <aside class="tt-predict-panel" id="tt-predict-panel" aria-label="Forecast details"></aside>
   </div>
 
-  <div class="tt-stats" id="tt-stats"></div>
+  <!-- Placeholders for the cold-load storm's six cards (Haiyan has a rapid-intensification one), so the strip
+       has its height before the data arrives instead of pushing the chart down when it does. buildStats replaces them.
+       The RI value is two figure dashes because Haiyan's is "+60 kt/24h": a figure dash is a digit wide, so the
+       placeholder wraps in a phone-width card exactly where the real value does. An em dash is narrower and didn't. -->
+  <div class="tt-stats" id="tt-stats"><div class="tt-stat"><div class="tt-stat-label">Peak wind</div><div class="tt-stat-value">&mdash;</div></div><div class="tt-stat"><div class="tt-stat-label">Min. pressure</div><div class="tt-stat-value">&mdash;</div></div><div class="tt-stat"><div class="tt-stat-label">ACE</div><div class="tt-stat-value">&mdash;</div></div><div class="tt-stat"><div class="tt-stat-label">Duration</div><div class="tt-stat-value">&mdash;</div></div><div class="tt-stat"><div class="tt-stat-label">Track points</div><div class="tt-stat-value">&mdash;</div></div><div class="tt-stat tt-stat--hot"><div class="tt-stat-label">Rapid intensification</div><div class="tt-stat-value">+&#8210;&#8210; kt/24h</div></div></div>
 
   <p class="tt-season-hint">Whole-season view — every storm's track at once, colored by peak intensity. Click any track to open that storm.</p>
 
@@ -205,7 +218,8 @@
 
   <div id="tt-chart" class="tt-chart"></div>
 
-  <div class="tt-legend" id="tt-legend"></div>
+  <!-- the default (Saffir-Simpson-style) key, as buildLegend writes it, so it has its height before app.js runs -->
+  <div class="tt-legend" id="tt-legend"><span class="tt-legend-item"><span class="tt-legend-swatch" style="background:rgb(240,0,150)"></span>C5 Super Typhoon</span><span class="tt-legend-item"><span class="tt-legend-swatch" style="background:rgb(255,63,0)"></span>C4 Very Strong Typhoon</span><span class="tt-legend-item"><span class="tt-legend-swatch" style="background:rgb(255,127,0)"></span>C3 Strong Typhoon</span><span class="tt-legend-item"><span class="tt-legend-swatch" style="background:rgb(255,191,0)"></span>C2 Typhoon</span><span class="tt-legend-item"><span class="tt-legend-swatch" style="background:rgb(255,255,0)"></span>C1 Typhoon</span><span class="tt-legend-item"><span class="tt-legend-swatch" style="background:rgb(0,220,220)"></span>Tropical Storm</span><span class="tt-legend-item"><span class="tt-legend-swatch" style="background:rgb(150,190,215)"></span>Tropical Depression</span></div>
 
   <details class="tt-clim" id="tt-clim">
     <summary>Season climatology &mdash; storms &amp; energy by year, 1985&ndash;present</summary>
@@ -216,6 +230,6 @@
   <p class="tt-source-note">Track, intensity, and wind-radius data: <a href="https://www.ncei.noaa.gov/products/international-best-track-archive" target="_blank" rel="noopener noreferrer">IBTrACS v04r01</a> (NOAA NCEI), Western Pacific basin. JTWC stops issuing on a system that dies over land, so a storm that crosses China and re-forms is filed by IBTrACS as two records; this archive rejoins the halves when they share a JTWC ATCF id, which across all 82 seasons happens once &mdash; Saudel&nbsp;2026 (WP172026), one storm in CMA’s record too, filed as 2618. The overland stretch such a break leaves is filled from the agencies that kept fixing the depression after JTWC stopped, each supplying only what the one before it could not: first the <a href="http://typhoon.nmc.cn/web.html" target="_blank" rel="noopener noreferrer">CMA National Meteorological Center</a> track service, which over the Chinese mainland is both the responsible agency and the detailed one &mdash; for Saudel it carries the storm 3-hourly across Fujian, Jiangxi and Guangdong &mdash; and then JMA’s analyses (via NII’s <a href="http://agora.ex.nii.ac.jp/digital-typhoon/" target="_blank" rel="noopener noreferrer">Digital Typhoon</a> archive), which resume over Zhanjiang on the Leizhou peninsula where CMA’s stop. Borrowed points say <em>CMA fix</em> or <em>JMA fix</em> on hover; their winds are unit-converted and nothing more &mdash; CMA reports a 2-minute mean, JMA a 10-minute one &mdash; so they stay out of peak wind and ACE, which remain on the 1-minute JTWC basis the rest of the archive uses. Together they cut Saudel’s unfixed stretch from 78 hours to 15. What is left, where no agency has a fix at all, is drawn as a dotted bridge rather than track, because a straight line between two distant fixes is an artefact of joining them, not an observed path. Storms marked <strong>LIVE</strong> are fetched straight from NOAA NCEI's IBTrACS <em>active-storms</em> feed in your browser, then topped up from the JTWC working best track itself (the ATCF b-deck, openly mirrored by <a href="https://hurricanes.ral.ucar.edu/" target="_blank" rel="noopener noreferrer">UCAR/RAL</a>, updated several times a day) — so an active typhoon's history runs to the latest fix, and its 50/64&nbsp;kt radii appear the moment JTWC publishes them (the working best track reports the 34&nbsp;kt radii first; 50/64&nbsp;kt usually arrive in post-analysis, which is also why 2025-onward storms show only Level&nbsp;7 (34&nbsp;kt) circles for now). Taiwan (CWA) classes use CWA's official <em>10-minute</em> thresholds (17.2 / 32.7 / 51.0&nbsp;m/s) applied to <strong>JMA's real 10-minute wind analysis</strong> for each point (carried in IBTrACS as TOKYO_WIND — the same averaging convention CWA uses, so storms class the way CWA's own record does, e.g. Doksuri&nbsp;2023 as mostly 中度 rather than the inflated 強烈 a converted 1-minute wind gives); points between JMA's 6-hourly analyses interpolate, and only storms with no 10-minute record at all fall back to 0.88-converted 1-minute winds. CWA's and JMA's own analyses can still differ slightly — both are real agency data. Wind circle radii (level 7/10/12 &mdash; gale/storm/hurricane-force, JTWC's 34/50/64kt radii, per quadrant) are JTWC (USA agency) reports, which is why coverage starts in 2001 &mdash; systematic quadrant reporting didn't exist before then, for any storm in this archive, so it can't be extended back to 1985. Radius shapes interpolate between the four reported quadrant extents; treat them as an approximation, not a precise wind-field boundary. The Dvorak T-number is estimated from each point's wind speed via the standard Dvorak CI-number/wind-speed table — a standard approximation, not an independent satellite reading. ACE, rapid intensification (&ge;30&nbsp;kt/24&nbsp;h), and the season climatology are all computed from this same best-track wind record. The <strong>forecast cone</strong> is a persistence baseline — it simply projects the storm's current heading and speed forward, with a cone sized to typical average track error; it is the naive benchmark real forecasts are measured against, shown to contrast with the actual track, not a skilful prediction. ENSO tags use real NOAA CPC ASO ONI values.</p>
 
 </div>
-<script src="app.js?v=a232b5d8" defer></script>
+<script src="app.js?v=21dd18bd" defer></script>
 </body>
 </html>

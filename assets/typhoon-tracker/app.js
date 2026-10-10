@@ -8,6 +8,8 @@
 
   var DATA_BASE = "../data/typhoons/";
   var DATA_V = "?v=d660622dd";   // bump when the season/index JSON is regenerated (e.g. RMW added)
+  // Changing the cold-load storm? index.html pre-sizes the phone map for this
+  // one (its framed longitude span) and placeholders its six stat cards.
   var DEFAULT_STORM = { name: "Haiyan", season: 2013 };
   var DEFAULT_GEO = { lon: 150, lat: 20, lonRange: [95, 205], latRange: [-2, 55], scale: 1 };
 
@@ -297,7 +299,9 @@
   /* ---------------------------------------------------------------------------
      Data loading
      ------------------------------------------------------------------------- */
-  fetch(DATA_BASE + "index.json" + DATA_V)
+  // Settles (never rejects) once the index is in, or has failed -- for the
+  // forecast side, which may need it before the user ever opens track mode.
+  var indexReady = fetch(DATA_BASE + "index.json" + DATA_V)
     .then(function (r) { return r.json(); })
     .then(function (data) {
       indexData = data;
@@ -428,21 +432,37 @@
     var col = {};
     lines[0].split(",").forEach(function (h, i) { col[h.trim()] = i; });
     if (col.SID == null || col.BASIN == null || col.ISO_TIME == null) return null;
+    // Keep every row of any storm that spends time in the west Pacific, not just
+    // its WP rows -- the same rule the archive build uses. A row filter cut Nolo
+    // 2026, born off Mexico, down to its last 25 fixes, and because the live
+    // copy replaces the archived one the full 221-fix track vanished with it.
+    // The same goes for a storm that crosses from or into the Indian Ocean.
+    var inWp = {};
+    for (var w0 = 2; w0 < lines.length; w0++) {
+      var c0 = lines[w0].split(",");
+      if (c0.length >= 40 && (c0[col.BASIN] || "").trim() === "WP") inWp[(c0[col.SID] || "").trim()] = true;
+    }
     var storms = {};
     for (var i = 2; i < lines.length; i++) {           // rows 0-1 are headers
       var c = lines[i].split(",");
-      if (c.length < 40 || (c[col.BASIN] || "").trim() !== "WP") continue;
+      if (c.length < 40) continue;
       var sid = (c[col.SID] || "").trim();
+      if (!inWp[sid]) continue;
       var t = (c[col.ISO_TIME] || "").trim().replace(" ", "T");
       var la = csvNum(c[col.USA_LAT]); if (la == null) la = csvNum(c[col.LAT]);
       var lo = csvNum(c[col.USA_LON]); if (lo == null) lo = csvNum(c[col.LON]);
+      // USA_LON is signed (-108.5 off Mexico); the archive is 0-360 east, so
+      // an east Pacific fix would otherwise be drawn across the whole map
+      if (lo != null && lo < 0) lo += 360;
       if (!sid || !t || la == null || lo == null) continue;
       if (!storms[sid]) {
         var raw = (c[col.NAME] || "").trim();
         storms[sid] = {
           name: raw && raw !== "NOT_NAMED" ? raw.charAt(0) + raw.slice(1).toLowerCase() : "Unnamed",
           season: csvNum(c[col.SEASON]) || Number(sid.slice(0, 4)),
-          atcf: (c[col.USA_ATCF_ID] || "").trim(),   // e.g. WP092026 — keys the JTWC b-deck
+          // e.g. WP092026 — keys the JTWC b-deck. A crossover keeps the id it
+          // was born with (Nolo 2026 is EP152026), and so does its b-deck.
+          atcf: (c[col.USA_ATCF_ID] || "").trim(),
           pts: []
         };
       }
@@ -581,10 +601,26 @@
   // Second freshness layer: the ATCF b-deck (JTWC working best track, mirrored
   // openly by UCAR/RAL) updates several times a DAY — usually a day or two
   // ahead of the IBTrACS ACTIVE csv — and is the primary source for the
-  // 34/50/64 kt quadrant radii. CORS-blocked, so it rides the same public
-  // proxy the CIMSS Dvorak feed uses. When JTWC starts publishing R50/R64
-  // for a storm, they appear here first. Best-effort, per storm.
-  var BDECK_BASE = "https://hurricanes.ral.ucar.edu/repository/data/bdecks_open/";
+  // 34/50/64 kt quadrant radii. When JTWC starts publishing R50/R64 for a
+  // storm, they appear here first. Best-effort, per storm.
+  //
+  // UCAR and CIMSS send no CORS header. Both used to come through public CORS
+  // proxies until those all stopped answering (corsproxy.io now wants a key),
+  // so .github/workflows/mirror-live-feeds.yml copies the active storms' files
+  // into one same-origin file instead. It runs about hourly at best (GitHub
+  // throttles schedules), which is well inside the b-deck's 6-hour cadence.
+  var LIVE_FEEDS_URL = DATA_BASE + "live/feeds.json";
+  var liveFeedsP = null, liveFeedsAt = 0;
+  function liveFeeds() {
+    if (!liveFeedsP || Date.now() - liveFeedsAt > 10 * 60000) {
+      liveFeedsAt = Date.now();
+      // no-cache = revalidate: a 304 while the mirror hasn't moved, never a stale copy
+      liveFeedsP = fetch(LIVE_FEEDS_URL, { cache: "no-cache" })
+        .then(function (r) { if (!r.ok) throw new Error("feeds " + r.status); return r.json(); })
+        .catch(function () { liveFeedsAt = 0; return null; });
+    }
+    return liveFeedsP;
+  }
   function parseATCFCoord(s) {
     var m = /^(\d+)([NSEW])$/.exec((s || "").trim());
     if (!m) return null;
@@ -600,6 +636,7 @@
       var t = ts.slice(0, 4) + "-" + ts.slice(4, 6) + "-" + ts.slice(6, 8) + "T" + ts.slice(8, 10) + ":00:00";
       var la = parseATCFCoord(f[6]), lo = parseATCFCoord(f[7]);
       if (la == null || lo == null) return;
+      if (lo < 0) lo += 360;            // 0-360 east, like the archive (east Pacific crossovers)
       var pt = byTime[t];
       if (!pt) {
         var w = csvNum(f[8]), p = csvNum(f[9]);
@@ -651,24 +688,22 @@
     return changed;
   }
   function fetchBdecks(storms) {
-    Object.keys(storms).forEach(function (sid) {
-      var st = storms[sid];
-      if (!/^WP\d{6}$/.test(st.atcf || "")) return;
-      var url = BDECK_BASE + st.atcf.slice(4) + "/b" + st.atcf.toLowerCase() + ".dat";
-      fetch(CIMSS_PROXY + encodeURIComponent(url))
-        .then(function (r) { if (!r.ok) throw new Error("bdeck " + r.status); return r.text(); })
-        .then(function (text) {
-          var bpts = parseBdeck(text);
-          if (!bpts || !mergeBdeckPts(st, bpts)) return;
-          var single = {}; single[sid] = st;
-          mergeLiveStorms(single);   // refresh index entry, shard patch, pickers
-          // if that storm is on screen, redraw it with the fresher track --
-          // under the id it is filed as, which for an absorbed half is the
-          // record that swallowed it, not the id the b-deck came in under.
-          var shown = absorbedInto(sid) || sid;
-          if (appMode === "track" && viewMode === "storm" && currentSid === shown) loadStorm(st.season, shown);
-        })
-        .catch(function () { /* best-effort */ });
+    liveFeeds().then(function (feeds) {
+      var decks = (feeds && feeds.bdeck) || {};
+      Object.keys(storms).forEach(function (sid) {
+        var st = storms[sid];
+        var deck = st.atcf && decks[st.atcf];   // WP, or a crossover's EP/CP/IO id
+        if (!deck) return;
+        var bpts = parseBdeck(deck.text);
+        if (!bpts || !mergeBdeckPts(st, bpts)) return;
+        var single = {}; single[sid] = st;
+        mergeLiveStorms(single);   // refresh index entry, shard patch, pickers
+        // if that storm is on screen, redraw it with the fresher track --
+        // under the id it is filed as, which for an absorbed half is the
+        // record that swallowed it, not the id the b-deck came in under.
+        var shown = absorbedInto(sid) || sid;
+        if (appMode === "track" && viewMode === "storm" && currentSid === shown) loadStorm(st.season, shown);
+      });
     });
   }
 
@@ -807,14 +842,21 @@
     }).join("");
   }
 
+  function seasonShard(season) {
+    if (seasonCache[season]) return Promise.resolve(seasonCache[season]);
+    return fetch(DATA_BASE + "seasons/" + season + ".json" + DATA_V)
+      .then(function (r) { return r.json(); })
+      .catch(function () { return {}; })   // a season may exist only via live NOAA storms
+      .then(function (d) {
+        // a concurrent load may have filled (and live-patched) it meanwhile; keep that one
+        if (!seasonCache[season]) seasonCache[season] = applyLiveToShard(season, fixTaiwanCats(d));
+        return seasonCache[season];
+      });
+  }
+
   function loadStorm(season, sid) {
     stopPlay();
-    var p = seasonCache[season]
-      ? Promise.resolve(seasonCache[season])
-      : fetch(DATA_BASE + "seasons/" + season + ".json" + DATA_V)
-          .then(function (r) { return r.json(); })
-          .catch(function () { return {}; })   // a season may exist only via live NOAA storms
-          .then(function (d) { seasonCache[season] = applyLiveToShard(season, fixTaiwanCats(d)); return seasonCache[season]; });
+    var p = seasonShard(season);
 
     p.then(function (seasonStorms) {
       var storm = seasonStorms[sid];
@@ -1632,8 +1674,7 @@
 
     els.dPos.textContent =
       (pt.la != null ? Math.abs(pt.la).toFixed(1) + "°" + (pt.la >= 0 ? "N" : "S") : "—") +
-      "   " +
-      (pt.lo != null ? Math.abs(pt.lo).toFixed(1) + "°" + (pt.lo >= 0 ? "E" : "W") : "—");
+      "   " + (pt.lo != null ? fmtLon(pt.lo) : "—");
 
     tweenNumber("r34", els.dR34, avgRadius(pt.r3), 0, " km", animate);
     tweenNumber("r50", els.dR50, avgRadius(pt.r5), 0, " km", animate);
@@ -1861,37 +1902,64 @@
   }
 
   // Real satellite Dvorak T-numbers from UW-CIMSS ADT (the objective Dvorak
-  // technique). CIMSS is CORS-blocked, so route through a public CORS proxy
-  // (best-effort; falls back to wind-derived T). The history file gives the
-  // CI# every ~30 min for the storm's whole life.
-  var CIMSS_PROXY = "https://corsproxy.io/?url=";
-  var CIMSS_BASE = "https://tropic.ssec.wisc.edu/real-time/adt/";
-  var CIMSS_MON = { JAN: 0, FEB: 1, MAR: 2, APR: 3, MAY: 4, JUN: 5, JUL: 6, AUG: 7, SEP: 8, OCT: 9, NOV: 10, DEC: 11 };
-
-  function parseCimss(text, id) {
-    if (!text || text.indexOf(id) === -1) return null;   // empty / wrong storm
-    var out = [];
-    text.split("\n").forEach(function (line) {
-      var m = line.match(/^(\d{4})([A-Z]{3})(\d{2})\s+(\d{6})\s+([\d.]+)\s+[\d.]+\s+[\d.]+/);
-      if (!m) return;
-      var mo = CIMSS_MON[m[2]], ciNum = parseFloat(m[5]);
-      if (mo == null || isNaN(ciNum)) return;
-      out.push({ timeMs: Date.UTC(+m[1], mo, +m[3], +m[4].slice(0, 2), +m[4].slice(2, 4), 0), ci: ciNum });
+  // technique), from the same mirrored feeds file as the b-deck (best-effort;
+  // falls back to wind-derived T). The history gives the CI# every ~30 min for
+  // the storm's whole life.
+  //
+  // CIMSS files a storm under its JTWC number and JMA numbers its own way --
+  // JMA 2629 was JTWC 27W -- so match on position, not number: the CIMSS storm
+  // whose latest fix is nearest JMA's analysis point, if it is close enough to
+  // be the same storm and its history runs up to about now.
+  var CIMSS_MATCH_KM = 500;
+  function fetchCimss(p, analysisMs) {
+    var at = p.points[0];
+    if (!at || at.lat == null || at.lon == null) return Promise.resolve(null);
+    return liveFeeds().then(function (feeds) {
+      var all = (feeds && feeds.cimss) || {}, best = null, bd = CIMSS_MATCH_KM;
+      Object.keys(all).forEach(function (id) {
+        var c = all[id];
+        if (!c || !c.ci || !c.ci.length) return;
+        // reject a stale / finished storm: latest CIMSS fix must be near "now"
+        if (analysisMs && Math.abs(c.last - analysisMs) > 2 * 86400000) return;
+        var dd = gcDist({ la: at.lat, lo: at.lon }, { la: c.lat, lo: c.lon });
+        if (dd < bd) { bd = dd; best = c; }
+      });
+      return best ? best.ci.map(function (r) { return { timeMs: r[0], ci: r[1] }; }) : null;
     });
-    return out.length ? out : null;
   }
-  function fetchCimss(jmaNumber, analysisMs) {
-    var id = /^\d{3,4}$/.test(jmaNumber || "") ? jmaNumber.slice(-2) + "W" : null;
-    if (!id) return Promise.resolve(null);
-    return fetch(CIMSS_PROXY + encodeURIComponent(CIMSS_BASE + id + "-list.txt"))
-      .then(function (r) { return r.ok ? r.text() : ""; })
-      .then(function (text) {
-        var list = parseCimss(text, id);
-        if (!list) return null;
-        // reject a stale / mismatched storm: latest CIMSS fix must be near "now"
-        if (analysisMs && Math.abs(list[list.length - 1].timeMs - analysisMs) > 2 * 86400000) return null;
-        return list;
-      }).catch(function () { return null; });
+  // A storm born in another basin -- Nolo 2026 off Mexico, or one out of the
+  // Bay of Bengal -- reaches JMA's area days old, and JMA's observed track
+  // starts where JMA picked it up (Nolo: at the dateline). The archive, with
+  // the live overlay on it, has the whole life; return the part before JMA's
+  // first fix so the forecast map draws one connected track. Only for such
+  // crossovers: an ordinary storm's JMA track already starts at genesis.
+  function priorTrack(p) {
+    var first = p.observed && p.observed[0];
+    var nm = String((p.name && p.name.en) || "").toUpperCase();
+    var yr = Number(String(p.issue || "").slice(0, 4)) || new Date().getUTCFullYear();
+    if (!first || first[0] == null || first[1] == null || !nm) return Promise.resolve(null);
+    var at = { la: first[0], lo: first[1] < 0 ? first[1] + 360 : first[1] };
+    return indexReady.then(function () {
+      var hit = indexData.filter(function (e) {
+        return (e.season === yr || e.season === yr - 1) && String(e.name || "").toUpperCase() === nm;
+      }).sort(function (a, b) { return String(a.end) < String(b.end) ? 1 : -1; })[0];
+      if (!hit) return null;
+      return seasonShard(hit.season).then(function (shard) {
+        var pts = shard && shard[hit.sid] && shard[hit.sid].pts;
+        if (!pts || pts.length < 2) return null;
+        var bi = -1, bd = 300;              // km: JMA's first fix must be on this track
+        for (var i = 0; i < pts.length; i++) {
+          if (pts[i].la == null || pts[i].lo == null) continue;
+          var dd = gcDist(at, pts[i]);
+          if (dd < bd) { bd = dd; bi = i; }
+        }
+        if (bi < 1) return null;
+        var before = pts.slice(0, bi + 1).filter(function (q) { return q.la != null && q.lo != null; })
+          .map(function (q) { return [q.la, q.lo]; });
+        var crossed = before.some(function (q) { return q[1] > 180 || q[1] < 100; });
+        return crossed && before.length > 1 ? before : null;
+      });
+    }).catch(function () { return null; });
   }
   function cimssNowT(d) { return (d && d.cimss && d.cimss.length) ? d.cimss[d.cimss.length - 1].ci : null; }
   function nearestCimssCi(list, timeMs) {
@@ -1928,7 +1996,7 @@
       if (!p) return null;
       // Past wind radii AND pressure from JMA best-track (via Digital Typhoon —
       // two separate pages for the same per-fix grid, merged by timestamp below),
-      // and real past Dvorak T-numbers from CIMSS ADT (via CORS proxy). All best-effort.
+      // and real past Dvorak T-numbers from CIMSS ADT (mirrored feed). All best-effort.
       var dtId = /^\d{4}$/.test(p.number) ? "20" + p.number : null;
       var dtWindPromise = dtId
         ? fetch(DT_WIND + dtId + ".html.en").then(function (r) { return r.text(); })
@@ -1939,9 +2007,10 @@
             .then(function (html) { return parseDTPressure(html); }).catch(function () { return null; })
         : Promise.resolve(null);
       var analysisMs = (p.points[0] && p.points[0].valid) ? Date.parse(p.points[0].valid.UTC) : null;
-      return Promise.all([dtWindPromise, dtPresPromise, fetchCimss(p.number, analysisMs)]).then(function (r2) {
+      return Promise.all([dtWindPromise, dtPresPromise, fetchCimss(p, analysisMs), priorTrack(p)]).then(function (r2) {
         p.past = mergeDTPressure(r2[0], r2[1]);
         p.cimss = r2[2];
+        p.before = r2[3];
         jmaCache[tcId] = p;
         return p;
       });
@@ -2031,7 +2100,8 @@
           }
           if (cur) {
             if (!cur.past && prevCur && prevCur.past) cur.past = prevCur.past;         // keep history on a
-            if (!cur.cimss && prevCur && prevCur.cimss) cur.cimss = prevCur.cimss;     // transient proxy miss
+            if (!cur.cimss && prevCur && prevCur.cimss) cur.cimss = prevCur.cimss;     // transient feed miss
+            if (!cur.before && prevCur && prevCur.before) cur.before = prevCur.before;
             if (oldCurKey && jmaIssueKey(cur) === oldCurKey) return;   // viewed storm unchanged — dropdown was enough
             renderForecast(cur);         // aiRestoreOrClear sees the new dataKey and re-runs the AI on it
           } else {                       // the viewed storm dissipated — show the strongest remaining one
@@ -2088,8 +2158,13 @@
   }
 
   function fmtLatLon(lat, lon) {
-    return Math.abs(lat).toFixed(1) + "°" + (lat >= 0 ? "N" : "S") + " " +
-           Math.abs(lon).toFixed(1) + "°" + (lon >= 0 ? "E" : "W");
+    return Math.abs(lat).toFixed(1) + "°" + (lat >= 0 ? "N" : "S") + " " + fmtLon(lon);
+  }
+  // Tracks are stored 0-360 east so a dateline crossing stays continuous, but a
+  // fix east of 180 reads in west longitude: Nolo off Hawaii is 160.8°W, not 199.2°E.
+  function fmtLon(lon) {
+    var e = ((lon % 360) + 540) % 360 - 180;   // -180..180
+    return Math.abs(e).toFixed(1) + "°" + (e >= 0 ? "E" : "W");
   }
 
   function buildForecastMap(d) {
@@ -2097,6 +2172,15 @@
     var pts = d.points, a = pts[0];
     var traces = [];
 
+    // the crossover's life before JMA took it on, joined to JMA's first fix in
+    // the same style, so it reads as the one track it is
+    if (d.before && d.before.length > 1) {
+      var bl = d.before.concat(d.observed.length ? [d.observed[0]] : []);
+      traces.push({ type: "scattergeo", mode: "lines",
+        lat: bl.map(function (p) { return p[0]; }),
+        lon: bl.map(function (p) { return p[1] < 0 ? p[1] + 360 : p[1]; }),
+        line: { color: "rgba(255,255,255,0.45)", width: 1.6 }, hoverinfo: "skip", showlegend: false });
+    }
     if (d.observed.length) {
       traces.push({ type: "scattergeo", mode: "lines",
         lat: d.observed.map(function (p) { return p[0]; }),
