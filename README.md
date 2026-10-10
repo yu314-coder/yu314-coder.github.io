@@ -53,6 +53,10 @@ storm's earlier life when it formed in another basin.
   repo. Every forecast is checked against the released checkpoint's SHA. A live run is only used within 12 h of the
   JMA analysis on screen. The shaded band is 1.2's published mean track error per lead, not the spread of the run.
   1.2 publishes no wind radii, so none are drawn.
+  - The forecast under the playhead is fetched as soon as the storm is idle, so the button draws at once. The rest
+    of the storm's runs follow in playback order, six at a time.
+  - Runs a browser has fetched are kept in its localStorage (24 storms), so a storm seen before makes no Lab request.
+  - The overlay is drawn on its own SVG layer over the map, so playback stays at 60 fps.
 - **Trackformer 1.1 as the fallback** — a live run written every few hours by `refresh-typhoon-forecast.yml` (a
   causal route built only from GFS analyses), and committed history hindcasts: 1,221 storms, seasons 1979–2026,
   44,620 runs under `assets/typhoon-tracker/model/trackformer11/`.

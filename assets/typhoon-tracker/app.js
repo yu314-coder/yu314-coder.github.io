@@ -1123,7 +1123,7 @@
   function buildMap() {
     // a full track rebuild (storm/classification/view change) wipes every trace,
     // so drop any hindcast overlay state that was sitting on the old map.
-    hindcastTraceCount = 0; hindcastDrawnKey = null;
+    hindcastTraceCount = 0; hindcastDrawnKey = null; dyn.hind = null; hindHoverPending = null;
     if (els.hindcastBtn) {
       els.hindcastBtn.setAttribute("aria-pressed", "false"); els.hindcastBtn.classList.remove("is-on");
       if (hindcastOffLabel) els.hindcastBtn.textContent = hindcastOffLabel;
@@ -1420,9 +1420,12 @@
      map's own projection (identical pixels: checked against Plotly's drawn
      marker), so a frame costs next to nothing. It follows pans and zooms through
      Plotly's relayouting events, and sits under Plotly's info and hover layers.
+     The AI forecast that follows the playhead is drawn here too, in a group under
+     the marker (see setHind): as Plotly traces, every new run under the playhead
+     redrew the whole map, twice a second during play.
      ------------------------------------------------------------------------- */
   var SVG_NS = "http://www.w3.org/2000/svg";
-  var dyn = { owner: null, shapes: null, layer: null, bound: false, clipDirty: true };
+  var dyn = { owner: null, shapes: null, hind: null, hindDirty: true, layer: null, bound: false, clipDirty: true };
   function dynLayer() {
     var host = els.map && els.map.querySelector(".svg-container");
     if (!host) return null;
@@ -1437,15 +1440,76 @@
     var defs = document.createElementNS(SVG_NS, "defs");
     defs.appendChild(cp);
     svg.appendChild(defs);
-    var g = document.createElementNS(SVG_NS, "g");
-    g.setAttribute("clip-path", "url(#tt-dyn-clip)");
-    svg.appendChild(g);
+    var clip = document.createElementNS(SVG_NS, "g");
+    clip.setAttribute("clip-path", "url(#tt-dyn-clip)");
+    clip.setAttribute("stroke-miterlimit", "2");          // Plotly's, for the same corners
+    var gh = document.createElementNS(SVG_NS, "g"), g = document.createElementNS(SVG_NS, "g");
+    clip.appendChild(gh); clip.appendChild(g);           // the AI forecast under the marker
+    svg.appendChild(clip);
     // after Plotly's plot svg, before its info and hover svgs
     var papers = host.querySelectorAll("svg.main-svg");
     host.insertBefore(svg, papers[1] || null);
-    dyn.layer = { svg: svg, rect: rect, g: g };
-    dyn.clipDirty = true;
+    dyn.layer = { svg: svg, rect: rect, g: g, gh: gh };
+    dyn.clipDirty = true; dyn.hindDirty = true;
     return dyn.layer;
+  }
+  // A path through lat/lon points, broken at nulls and at points the projection drops.
+  // Each leg follows the great circle, as Plotly's geo lines do: drawn straight, the
+  // ~1,000 km end of a 120 h cone sat 2-3 px off the one Plotly drew.
+  var RAD = Math.PI / 180;
+  function dynPathD(proj, lat, lon, close) {
+    var d = "", pen = false, pl = null, po = null;
+    function put(la, lo) {
+      var q = proj([lo, la]);
+      if (!q) { pen = false; return; }
+      d += (pen ? "L" : "M") + q[0].toFixed(1) + "," + q[1].toFixed(1);
+      pen = true;
+    }
+    function leg(la0, lo0, la1, lo1) {   // points along the arc, every ~0.5 degrees
+      var p0 = la0 * RAD, l0 = lo0 * RAD, p1 = la1 * RAD, l1 = lo1 * RAD;
+      var ax = Math.cos(p0) * Math.cos(l0), ay = Math.cos(p0) * Math.sin(l0), az = Math.sin(p0);
+      var bx = Math.cos(p1) * Math.cos(l1), by = Math.cos(p1) * Math.sin(l1), bz = Math.sin(p1);
+      var w = Math.acos(Math.max(-1, Math.min(1, ax * bx + ay * by + az * bz))), n = Math.ceil(w / (0.5 * RAD));
+      for (var k = 1; k < n; k++) {
+        var t = k / n, f0 = Math.sin((1 - t) * w) / Math.sin(w), f1 = Math.sin(t * w) / Math.sin(w);
+        var x = f0 * ax + f1 * bx, y = f0 * ay + f1 * by, z = f0 * az + f1 * bz;
+        put(Math.atan2(z, Math.sqrt(x * x + y * y)) / RAD, Math.atan2(y, x) / RAD);
+      }
+    }
+    var first = null;
+    for (var i = 0; i < lat.length; i++) {
+      if (lat[i] == null || lon[i] == null) { pen = false; pl = null; continue; }
+      if (pl != null && pen) leg(pl, po, lat[i], lon[i]);
+      put(lat[i], lon[i]);
+      if (!pen) { pl = null; continue; }
+      if (first == null) first = [lat[i], lon[i]];
+      pl = lat[i]; po = lon[i];
+    }
+    if (d && close && first && pl != null) leg(pl, po, first[0], first[1]);
+    return d && close ? d + "Z" : d;
+  }
+  // The AI forecast in the styles its Plotly traces had (aiDrawHindcast keeps them,
+  // invisible, for hover): cone, member routes, 34 kt rings, actual track, then the
+  // dashed mean with its category dots.
+  var HIND_EMERALD = "rgba(52,211,153,0.28)";
+  function hindSvg(proj, h) {
+    var d = h.d, out = "";
+    function path(lat, lon, close, fill, stroke, w, dash) {
+      var pd = lat && lat.length > 1 ? dynPathD(proj, lat, lon, close) : "";
+      if (pd) out += '<path d="' + pd + '" fill="' + fill + '" stroke="' + stroke + '" stroke-width="' + w + '"'
+        + (dash ? ' stroke-dasharray="' + dash + '"' : "") + "/>";
+    }
+    path(d.coneLat, d.coneLon, true, "rgba(52,211,153,0.08)", HIND_EMERALD, 1);
+    path(h.sp.lat, h.sp.lon, false, "none", "rgba(52,211,153,0.14)", 1);
+    d.rings.forEach(function (r) { path(r.lat, r.lon, true, "rgba(52,211,153,0.05)", HIND_EMERALD, 1); });
+    path(d.actLat, d.actLon, false, "none", "rgba(255,255,255,0.9)", 2.5);
+    path(d.meanLat, d.meanLon, false, "none", "rgb(52,211,153)", 3, "9,9");
+    for (var i = 0; i < d.meanLat.length; i++) {
+      var q = proj([d.meanLon[i], d.meanLat[i]]);
+      if (q) out += '<circle cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="3.5" fill="'
+        + (d.meanColors[i] || "#fff") + '" stroke="rgba(52,211,153,0.95)" stroke-width="1.6"/>';
+    }
+    return out;
   }
   function drawDyn() {
     var L = dynLayer();
@@ -1454,7 +1518,10 @@
     var live = dyn.shapes && proj &&
       ((dyn.owner === "track" && appMode === "track" && viewMode === "storm") ||
        (dyn.owner === "fc" && appMode === "predict"));
-    if (!live) { if (L.g.firstChild) L.g.textContent = ""; return; }
+    var hindLive = dyn.hind && proj && appMode === "track" && viewMode === "storm";
+    if (!hindLive && L.gh.firstChild) L.gh.textContent = "";
+    if (!live && L.g.firstChild) L.g.textContent = "";
+    if (!live && !hindLive) return;
     if (dyn.clipDirty) {           // size and clip, re-read only after Plotly redraws or moves the map
       // Sized like Plotly's own svgs, in px: their container has no height of its own,
       // so a 100% height came out 0 and clipped the whole layer away.
@@ -1467,7 +1534,12 @@
         L.rect.setAttribute("width", a.width); L.rect.setAttribute("height", a.height);
         dyn.clipDirty = false;
       }
+      dyn.hindDirty = true;        // the map moved under it
     }
+    // The forecast only when it or the map changed: during play the marker below
+    // redraws every frame, the forecast twice a second at most.
+    if (hindLive && dyn.hindDirty) { L.gh.innerHTML = hindSvg(proj, dyn.hind); dyn.hindDirty = false; }
+    if (!live) return;
     var out = "";
     dyn.shapes.forEach(function (sh) {
       if (sh.r != null) {           // a marker
@@ -1489,6 +1561,17 @@
   function setDyn(owner, shapes) {
     dyn.owner = owner;
     dyn.shapes = shapes;
+    dynBind();
+    drawDyn();
+  }
+  // The AI forecast's drawing (tfHindcastData + member routes), or null to remove it.
+  function setHind(d, sp) {
+    dyn.hind = d ? { d: d, sp: sp || { lat: [], lon: [] } } : null;
+    dyn.hindDirty = true;
+    dynBind();
+    drawDyn();
+  }
+  function dynBind() {
     if (!dyn.bound && els.map && els.map.on) {
       dyn.bound = true;
       var moved = function () { dyn.clipDirty = true; drawDyn(); };
@@ -1496,7 +1579,6 @@
       els.map.on("plotly_relayouting", moved);   // every step of a pan or zoom
       els.map.on("plotly_relayout", moved);
     }
-    drawDyn();
   }
 
   var STATIC_TRACES = 3; // track line, unfixed-stretch bridge, intensity markers
@@ -2667,6 +2749,7 @@
   var tf12Issues = {}, tf12IssuesLoading = {}, tf12IssuesAt = {};
   function tf12EnsureIssues(sid) {
     if (!sid) return Promise.resolve(null);
+    if (tf12Issues[sid] === undefined) tf12Hydrate(sid);
     if (tf12Issues[sid] !== undefined) {
       if (Date.now() - (tf12IssuesAt[sid] || 0) > TF12_STALE_MS && !tf12IssuesLoading[sid]) {
         var had = (tf12Issues[sid] || []).length;
@@ -2711,6 +2794,7 @@
         tf12Issues[sid] = list.length ? list : null;
         tf12IssuesAt[sid] = Date.now();
         delete tf12IssuesLoading[sid];
+        tf12Save(sid);
         return tf12Issues[sid];
       }, function (e) { tf12Err = e; delete tf12IssuesLoading[sid]; return tf12Issues[sid] || null; });
     return tf12IssuesLoading[sid];
@@ -2765,6 +2849,7 @@
         if (run || tf12Runs[id] === undefined) tf12Runs[id] = run;
         tf12RunsAt[id] = Date.now();
         delete tf12RunsLoading[id];
+        if (run && currentSid && tf12Issues[currentSid]) tf12Save(currentSid);
         return tf12Runs[id] || null;
       }, function (e) {
         tf12Err = e; delete tf12RunsLoading[id];
@@ -2777,22 +2862,95 @@
       });
     return tf12RunsLoading[id];
   }
+  // Kept in this browser between visits: a storm's 1.2 issue list and every forecast
+  // fetched for it. A saved run does not change once its wind is in, so a storm seen
+  // before draws and plays with no request to the Lab at all; the list, and any run
+  // still without wind, are re-checked behind it exactly as in a session
+  // (TF12_STALE_MS). The 24 storms opened most recently are kept, ~60 KB for a
+  // three-week storm; a full store drops the oldest. Only what the Lab sent is kept,
+  // not this page's score of it, so a storm whose best track grows is rescored.
+  var TF12_STORE = "tt-tf12:", TF12_STORE_KEEP = 24, tf12SaveTimer = {};
+  var TF12_RUN_KEYS = ["id", "src", "kind", "members", "issue_time_utc", "source_note",
+                       "base_lat", "base_lon", "lats", "lons", "pres_hpa", "vmax_kt", "wind"];
+  function tf12Store(fn) { try { return fn(window.localStorage); } catch (e) { return null; } }
+  function tf12Hydrate(sid) {
+    var b = tf12Store(function (ls) { return JSON.parse(ls.getItem(TF12_STORE + sid) || "null"); });
+    if (!b || b.ck !== TF12_CHECKPOINT || !b.issues || !b.issues.length) return false;
+    tf12Issues[sid] = b.issues;
+    tf12IssuesAt[sid] = b.at || 0;
+    Object.keys(b.runs || {}).forEach(function (id) {
+      if (tf12Runs[id] !== undefined) return;
+      var r = b.runs[id];
+      r.lead_hours = TF12_LEADS;
+      tf12Runs[id] = r;
+      tf12RunsAt[id] = (b.runsAt && b.runsAt[id]) || b.at || 0;
+    });
+    return true;
+  }
+  function tf12Save(sid) {
+    clearTimeout(tf12SaveTimer[sid]);
+    tf12SaveTimer[sid] = setTimeout(function () { tf12SaveNow(sid); }, 1500);
+  }
+  // and at once if the page is closed or hidden before the timer fires
+  function tf12SaveAll() {
+    Object.keys(tf12SaveTimer).forEach(function (sid) {
+      if (tf12SaveTimer[sid]) { clearTimeout(tf12SaveTimer[sid]); tf12SaveNow(sid); }
+    });
+  }
+  window.addEventListener("pagehide", tf12SaveAll);
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") tf12SaveAll(); });
+  function tf12SaveNow(sid) {
+    tf12SaveTimer[sid] = 0;
+    var issues = tf12Issues[sid];
+    if (!issues) return;
+    var runs = {}, runsAt = {};
+    issues.forEach(function (i) {
+      var r = tf12Runs[i.id];
+      if (!r) return;
+      var keep = {};
+      TF12_RUN_KEYS.forEach(function (k) { keep[k] = r[k]; });
+      runs[i.id] = keep; runsAt[i.id] = tf12RunsAt[i.id] || 0;
+    });
+    var json = JSON.stringify({ ck: TF12_CHECKPOINT, at: tf12IssuesAt[sid] || 0, issues: issues, runs: runs, runsAt: runsAt });
+    tf12Store(function (ls) {
+      var idx = JSON.parse(ls.getItem(TF12_STORE + "index") || "[]").filter(function (x) { return x !== sid; });
+      idx.unshift(sid);
+      while (idx.length > TF12_STORE_KEEP) ls.removeItem(TF12_STORE + idx.pop());
+      for (var tries = 0; tries < 8; tries++) {
+        try { ls.setItem(TF12_STORE + sid, json); break; }
+        catch (e) { if (idx.length <= 1) return; ls.removeItem(TF12_STORE + idx.pop()); }
+      }
+      ls.setItem(TF12_STORE + "index", JSON.stringify(idx));
+    });
+  }
   // The published benchmark's mean track error per lead, drawn as a band around the
   // route: how far off 1.2 typically is at that lead, measured, not a spread of the
   // run on screen (the Lab publishes no per-run spread). Fetched once.
   var tf12Bench = null, tf12BenchLoading = null;
+  // Its twenty numbers are kept in this browser too and re-read once a day, so the band
+  // is there with the first drawing rather than arriving a request later.
   function tf12EnsureBench() {
     if (tf12Bench) return Promise.resolve(tf12Bench);
     if (tf12BenchLoading) return tf12BenchLoading;
+    var kept = tf12Store(function (ls) { return JSON.parse(ls.getItem(TF12_STORE + "bench") || "null"); });
+    if (kept && kept.ck === TF12_CHECKPOINT && kept.km && kept.km.length === TF12_LEADS.length) {
+      tf12Bench = { km: kept.km, starts: kept.starts, storms: kept.storms };
+      if (Date.now() - (kept.at || 0) < 24 * 3600000) return Promise.resolve(tf12Bench);
+    }
     tf12BenchLoading = tf12Get("/api/benchmarks/released").then(function (j) {
       var km = j && j.per_lead_track && j.per_lead_track["1.2"];
       var c = (j && j.cohort) || {};
-      tf12Bench = (km && km.length === TF12_LEADS.length)
-        ? { km: km, starts: c.daily_issues, storms: c.storms } : null;
+      if (km && km.length === TF12_LEADS.length) {
+        tf12Bench = { km: km, starts: c.daily_issues, storms: c.storms };
+        tf12Store(function (ls) {
+          ls.setItem(TF12_STORE + "bench", JSON.stringify({ ck: TF12_CHECKPOINT, at: Date.now(),
+            km: km, starts: c.daily_issues, storms: c.storms }));
+        });
+      }
       tf12BenchLoading = null;
       return tf12Bench;
-    }, function () { tf12BenchLoading = null; return null; });
-    return tf12BenchLoading;
+    }, function () { tf12BenchLoading = null; return tf12Bench; });
+    return tf12Bench ? Promise.resolve(tf12Bench) : tf12BenchLoading;
   }
   function tf12Band(fc) {
     if (tf12Bench && tf12Bench.km) tfTf11Cone(fc, { cone_km: tf12Bench.km });
@@ -3546,6 +3704,14 @@
     Promise.all([tf12EnsureIssues(sid), tfEnsureTf11()]).then(function (r) {
       if (!b || sid !== currentSid) return;          // storm changed while loading
       var i12 = r[0], h11 = r[1] && r[1].hindcasts && r[1].hindcasts[sid];
+      // And the one 1.2 forecast under the playhead (~4 KB), once the page is idle:
+      // the Lab can take seconds to answer a first request, and this way the button
+      // usually finds it here. Only that one; the rest wait for the button.
+      if (i12) setTimeout(function () {
+        if (sid !== currentSid || hindcastTraceCount > 0) return;
+        var pick = tfHindPick(Number(els.slider.value));
+        if (pick && pick.src === "trackformer12") tf12EnsureRun(pick);
+      }, 1500);
       var span11 = h11 ? "Trackformer1.1 runs " + String(h11.first_issue_utc).slice(0, 10) + " to "
         + String(h11.last_issue_utc).slice(0, 10) + " (" + h11.runs + " initialisations)" : "";
       b.classList.toggle("tt-ai-btn--none", !i12 && !h11);
@@ -3571,6 +3737,8 @@
     var idx = tfTraceIdx(TF_HIND);
     if (idx.length) Plotly.deleteTraces(els.map, idx);
     hindcastTraceCount = 0; hindcastDrawnKey = null;
+    hindHoverPending = null; clearTimeout(hindHoverTimer);
+    setHind(null);
     if (els.hindcastBtn) {
       els.hindcastBtn.setAttribute("aria-pressed", "false"); els.hindcastBtn.classList.remove("is-on");
       els.hindcastBtn.textContent = hindcastOffLabel || HINDCAST_LABEL;
@@ -3677,8 +3845,31 @@
   // 1.2's issues come from the Weather Lab per storm (see the client above); 1.1's
   // runs are this site's own published files. A 1.2 issue is only metadata until
   // its forecast is fetched, so picking a run and drawing it are separate steps.
-  function tfEnsureHindRuns(sid) {
-    return Promise.all([tf12EnsureIssues(sid), tfEnsureTf11Runs(sid), tf12EnsureBench()]);
+  // What turning the overlay on has to wait for: the storm's 1.2 issue list, and
+  // Trackformer1.1's runs only where 1.2 has nothing at the playhead (they are its
+  // fallback, ~700 KB for a long storm). The published benchmark, which only widens
+  // the band, and 1.1 where it is not needed arrive behind the first drawing and
+  // redraw it then. Waiting on all three made the first drawing take 8 s.
+  function tfEnsureHindRuns(sid, initHour) {
+    function redraw() { if (sid === currentSid && hindcastTraceCount > 0) hindcastFollowTick(true); }
+    tf12EnsureBench().then(redraw);
+    return tf12EnsureIssues(sid).then(function () {
+      var tf11 = tfEnsureTf11Runs(sid);
+      if (sid === currentSid && tfHindPick(initHour)) { tf11.then(redraw); return null; }
+      return tf11;
+    });
+  }
+  // Start on intent -- the pointer reaching the button, focus, a touch -- so the
+  // click finds the forecast under the playhead already here or on its way.
+  function tfWarmHind() {
+    if (appMode !== "track" || viewMode !== "storm" || !currentSid || hindcastTraceCount > 0 || aiLoading) return;
+    var sid = currentSid, h = Number(els.slider.value);
+    tf12EnsureBench();
+    tf12EnsureIssues(sid).then(function () {
+      if (sid !== currentSid) return;
+      var pick = tfHindPick(h);
+      if (pick) tfHindResolve(pick); else tfEnsureTf11Runs(sid);
+    });
   }
   // The run that stands for the initialisation at `ms`: within 3 h, an exact match
   // first, then one issued before that moment (it could not have seen what is on
@@ -3734,24 +3925,38 @@
     return out;
   }
   function tfModelName(run) { return run && run.src === "trackformer12" ? "Trackformer 1.2" : "Trackformer1.1"; }
-  // Fetch the rest of this storm's 1.2 forecasts behind the first one, nearest the
-  // playhead first and three at a time, so pressing play does not wait on the
-  // network at every step. Roughly 25 KB a forecast; stops if the storm changes.
-  var tf12PrefetchSid = null;
-  function tf12Prefetch(sid, initHour) {
+  // Fetch the rest of this storm's 1.2 forecasts behind the first one, in the order
+  // playback reaches them: forward from the playhead, then from the storm's start,
+  // where play begins again. Six at a time over the one connection: a forecast is
+  // ~4 KB but the Lab takes 0.2-2 s to answer one, and play crosses a new 6-hourly
+  // run about twice a second, so three in nearest-first order fell behind it. Called
+  // again when play starts or the scrubber is let go, it re-orders what is left.
+  var TF12_LANES = 6;
+  var tf12Q = { sid: null, queue: [], active: 0 };
+  function tf12Prefetch(sid, fromHour) {
     var issues = tf12Issues[sid];
-    if (!issues || tf12PrefetchSid === sid) return;
-    tf12PrefetchSid = sid;
-    var ms = tfStormTimeAt(initHour);
-    var queue = issues.filter(function (i) { return tf12Runs[i.id] === undefined; });
-    if (ms != null) queue.sort(function (x, y) {
-      return Math.abs(Date.parse(x.issue_time_utc) - ms) - Math.abs(Date.parse(y.issue_time_utc) - ms);
-    });
-    function next() {
-      if (currentSid !== sid || !queue.length) return null;
-      return tf12EnsureRun(queue.shift()).then(next);
+    if (!issues) return;
+    if (tf12Q.sid !== sid) tf12Q = { sid: sid, queue: [], active: 0 };
+    function t(i) { return Date.parse(i.issue_time_utc); }
+    var todo = issues.filter(function (i) { return tf12Runs[i.id] === undefined && !tf12RunsLoading[i.id]; })
+      .sort(function (a, b) { return t(a) - t(b); });
+    var ms = tfStormTimeAt(fromHour);
+    if (ms != null) {
+      var cut = ms - 3 * 3600000;    // the run under the playhead can be issued up to 3 h before it
+      todo = todo.filter(function (i) { return t(i) >= cut; }).concat(todo.filter(function (i) { return t(i) < cut; }));
     }
-    next(); next(); next();
+    tf12Q.queue = todo;
+    while (tf12Q.active < TF12_LANES && tf12Q.queue.length) tf12Lane(tf12Q);
+  }
+  function tf12Lane(q) {
+    while (q.queue.length) {
+      var next = q.queue.shift();
+      if (tf12Q !== q || currentSid !== q.sid) { q.queue = []; return; }
+      if (tf12Runs[next.id] !== undefined || tf12RunsLoading[next.id]) continue;
+      q.active++;
+      tf12EnsureRun(next).then(function () { q.active--; if (tf12Q === q) tf12Lane(q); });
+      return;
+    }
   }
   // Mean distance from the real track over the leads the best track covers, on this
   // site's own fixes. Computed here because the Lab keeps observations separate.
@@ -3992,27 +4197,29 @@
     aiClearHindcast();
     var d = tfHindcastData(fc, initHour), sp = tfSpaghettiFor(fc);
     hindcastDrawnKey = JSON.stringify([d, sp]);
-    function ring(r) { return { type: "scattergeo", mode: "lines", lat: r.lat, lon: r.lon, fill: "toself", meta: TF_HIND,
-      fillcolor: "rgba(52,211,153,0.05)", line: { color: "rgba(52,211,153,0.28)", width: 1 }, hoverinfo: "text", text: r.text, showlegend: false }; }
-    // Fixed 7-trace block so the follow-the-playhead restyle stays in place:
+    // What you see is drawn on the map overlay (setHind), so that a new run under
+    // the playhead costs nothing. These traces are only there for hover: opacity 0,
+    // in the colours the hover labels take, and the cone and member routes, which
+    // never had hover, left empty so a redraw does not carry them.
+    function ring(r) { return { type: "scattergeo", mode: "lines", lat: r.lat, lon: r.lon, meta: TF_HIND, opacity: 0,
+      line: { color: "rgba(52,211,153,0.28)", width: 1 }, hoverinfo: "text", text: r.text, showlegend: false }; }
+    // Fixed 7-trace block so the hover targets can be restyled in place:
     // cone, ensemble routes (one null-separated trace), 3 rings, actual, mean.
     // Every trace is tagged so it can be found by tag rather than by tail position —
     // that lets the consensus overlay coexist with this one during the animation.
     var traces = [
-      { type: "scattergeo", mode: "lines", lat: d.coneLat, lon: d.coneLon, fill: "toself", meta: TF_HIND,
-        fillcolor: "rgba(52,211,153,0.08)", line: { color: "rgba(52,211,153,0.28)", width: 1 }, hoverinfo: "skip", showlegend: false },
-      { type: "scattergeo", mode: "lines", lat: sp.lat, lon: sp.lon, connectgaps: false, meta: TF_HIND,
-        line: { color: "rgba(52,211,153,0.14)", width: 1 }, hoverinfo: "skip", showlegend: false },
+      { type: "scattergeo", mode: "lines", lat: [], lon: [], meta: TF_HIND, hoverinfo: "skip", showlegend: false },
+      { type: "scattergeo", mode: "lines", lat: [], lon: [], meta: TF_HIND, hoverinfo: "skip", showlegend: false },
       ring(d.rings[0]), ring(d.rings[1]), ring(d.rings[2]),
-      { type: "scattergeo", mode: "lines", lat: d.actLat, lon: d.actLon, meta: TF_HIND,
+      { type: "scattergeo", mode: "lines", lat: d.actLat, lon: d.actLon, meta: TF_HIND, opacity: 0,
         line: { color: "rgba(255,255,255,0.9)", width: 2.5 }, hoverinfo: "text", text: ACT_HOVER, showlegend: false },
-      { type: "scattergeo", mode: "lines+markers", lat: d.meanLat, lon: d.meanLon, meta: TF_HIND,
-        line: { color: "rgb(52,211,153)", width: 3, dash: "dash" },
-        marker: { size: 7, color: d.meanColors, line: { width: 1.6, color: "rgba(52,211,153,0.95)" } },   // dots by predicted category, emerald-ringed = AI
+      { type: "scattergeo", mode: "markers", lat: d.meanLat, lon: d.meanLon, meta: TF_HIND, opacity: 0,
+        marker: { size: 7, color: d.meanColors, line: { width: 1.6, color: "rgba(52,211,153,0.95)" } },
         text: d.meanTxt, hoverinfo: "text", showlegend: false }
     ];
     Plotly.addTraces(els.map, traces);
     hindcastTraceCount = traces.length;   // fixed 7, so a follow-update can restyle in place
+    setHind(d, sp);
     if (els.hindcastBtn) { els.hindcastBtn.setAttribute("aria-pressed", "true"); els.hindcastBtn.classList.add("is-on"); }
     hindcastShowModel(fc);
     hindcastLastSource = fc && fc.trackSource;
@@ -4024,20 +4231,15 @@
   function aiUpdateHindcast(fc, initHour) {
     var block = tfTraceIdx(TF_HIND);
     if (hindcastTraceCount !== 7 || block.length !== 7) { aiDrawHindcast(fc, initHour); return; }
-    var d = tfHindcastData(fc, initHour), sp = tfSpaghettiFor(fc), i0 = block[0];
-    // Every restyle redraws the whole map, basemap included (~80 ms), so make one,
-    // and only when the drawing changed: during play that is when the playhead
-    // reaches the next run, not on every tick. undefined leaves a trace's value alone.
+    var d = tfHindcastData(fc, initHour), sp = tfSpaghettiFor(fc);
+    // Only when the drawing changed: during play that is when the playhead reaches
+    // the next run, not on every tick. The overlay takes it at once; the hover
+    // targets follow once nothing is moving (hindHoverLater).
     var key = JSON.stringify([d, sp]);
     if (key !== hindcastDrawnKey) {
       hindcastDrawnKey = key;
-      var no;
-      Plotly.restyle(els.map, {
-        lat: [d.coneLat, sp.lat, d.rings[0].lat, d.rings[1].lat, d.rings[2].lat, d.actLat, d.meanLat],
-        lon: [d.coneLon, sp.lon, d.rings[0].lon, d.rings[1].lon, d.rings[2].lon, d.actLon, d.meanLon],
-        text: [no, no, d.rings[0].text, d.rings[1].text, d.rings[2].text, ACT_HOVER, d.meanTxt],
-        "marker.color": [no, no, no, no, no, no, d.meanColors]
-      }, [i0, i0 + 1, i0 + 2, i0 + 3, i0 + 4, i0 + 5, i0 + 6]);
+      setHind(d, sp);
+      hindHoverLater(d);
     }
     hindcastShowModel(fc);
     if (fc && fc.trackSource !== hindcastLastSource) {
@@ -4051,13 +4253,37 @@
     }
     hindcastLastRunId = fc && fc.tf12 ? fc.tf12.id : null;
   }
+  // The hover targets (aiDrawHindcast) catch up with the drawing only when the map is
+  // still: a restyle redraws the whole map, basemap included (~80 ms on an M4, ~4x
+  // that on a phone), which is the stutter the overlay exists to avoid. So not during
+  // play (stopPlay flushes) and not mid-drag of the scrubber (300 ms after it rests).
+  var hindHoverPending = null, hindHoverTimer = 0;
+  function hindHoverLater(d) {
+    hindHoverPending = d;
+    clearTimeout(hindHoverTimer);
+    if (!playRaf) hindHoverTimer = setTimeout(hindHoverFlush, 300);
+  }
+  function hindHoverFlush() {
+    var d = hindHoverPending, block = tfTraceIdx(TF_HIND);
+    hindHoverPending = null;
+    if (!d || block.length !== 7 || hindcastTraceCount !== 7) return;
+    var i0 = block[0], no;           // undefined leaves that trace's value alone
+    Plotly.restyle(els.map, {
+      lat: [no, no, d.rings[0].lat, d.rings[1].lat, d.rings[2].lat, d.actLat, d.meanLat],
+      lon: [no, no, d.rings[0].lon, d.rings[1].lon, d.rings[2].lon, d.actLon, d.meanLon],
+      text: [no, no, d.rings[0].text, d.rings[1].text, d.rings[2].text, ACT_HOVER, d.meanTxt],
+      "marker.color": [no, no, no, no, no, no, d.meanColors]
+    }, [i0, i0 + 1, i0 + 2, i0 + 3, i0 + 4, i0 + 5, i0 + 6]);
+  }
   // While the overlay is on, re-forecast from the current playhead as the animation
   // (or a manual scrub) moves — throttled + in-flight-guarded + updated in place.
   // Keeps the last good forecast if the playhead is too early (<~2 days of history).
   function hindcastFollowTick(force) {
     if (hindcastTraceCount === 0 || !currentStorm || hindcastFollowRun) return;
     var now = Date.now();
-    if (!force && now - hindcastFollowTs < 240) return;
+    // Cheap now that the drawing is on the overlay: a run switches within ~1.5 h of
+    // storm time of the playhead crossing it, at full play speed.
+    if (!force && now - hindcastFollowTs < 120) return;
     var h = Number(els.slider.value);
     hindcastFollowTs = now;
     // Trackformer 1.2 where it has a run, Trackformer1.1 where only it does. Past both
@@ -4415,7 +4641,7 @@
     // this initialisation. Nothing runs in the browser; the rest of the storm's 1.2
     // forecasts are fetched behind it so play does not stall.
     var sid = currentSid;
-    tfEnsureHindRuns(sid)
+    tfEnsureHindRuns(sid, initHour)
       .then(function () {
         if (sid !== currentSid) return true;
         return tfHindResolve(tfHindPick(initHour)).then(function (run) {
@@ -4823,7 +5049,12 @@
   if (els.fcReplay) els.fcReplay.addEventListener("click", replayForecastAnim);
   if (els.fcSpeed) els.fcSpeed.addEventListener("click", cycleForecastSpeed);
   if (els.aiBtn) els.aiBtn.addEventListener("click", aiToggle);
-  if (els.hindcastBtn) els.hindcastBtn.addEventListener("click", aiHindcastToggle);
+  if (els.hindcastBtn) {
+    els.hindcastBtn.addEventListener("click", aiHindcastToggle);
+    ["pointerenter", "focus", "touchstart"].forEach(function (ev) {
+      els.hindcastBtn.addEventListener(ev, tfWarmHind, { passive: true });
+    });
+  }
 
   // Floating-panel collapse. Plotly sizes itself to its container, so every
   // show/hide has to be followed by a resize or the map keeps the old width
@@ -5039,7 +5270,10 @@
     hindcastFollowTick();          // estimate follows a manual scrub too (throttled)
     consensusFollowTick();         // actual track walks out to the playhead
   });
-  els.slider.addEventListener("change", function () { hindcastFollowTick(true); consensusFollowTick(true); });   // settle on release
+  els.slider.addEventListener("change", function () {    // settle on release
+    hindcastFollowTick(true); consensusFollowTick(true);
+    if (hindcastTraceCount > 0 && currentSid) tf12Prefetch(currentSid, Number(els.slider.value));
+  });
   els.play.addEventListener("click", togglePlay);
 
   // Build the climatology chart the first time its panel is opened (a collapsed
@@ -5209,6 +5443,8 @@
   function togglePlay() {
     if (playRaf) { stopPlay(); return; }
     if (currentHour >= Number(els.slider.max)) currentHour = 0;
+    // the AI forecasts still to fetch, in the order this run of play will reach them
+    if (hindcastTraceCount > 0 && currentSid) tf12Prefetch(currentSid, currentHour);
     els.play.textContent = "⏸";
     els.play.setAttribute("aria-label", "Pause track animation");
     var lastTs = null;
@@ -5230,6 +5466,7 @@
   }
   function stopPlay() {
     if (playRaf) { cancelAnimationFrame(playRaf); playRaf = null; }
+    if (hindHoverPending) { clearTimeout(hindHoverTimer); hindHoverTimer = setTimeout(hindHoverFlush, 150); }
     els.play.textContent = "▶";
     els.play.setAttribute("aria-label", "Play track animation");
   }
