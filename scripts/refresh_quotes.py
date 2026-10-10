@@ -1,12 +1,21 @@
 #!/usr/bin/env python3
-"""Refresh the price data embedded in index.html.
+"""Refresh the home page's unlisted watchlist snapshot, assets/data/sx.txt.
 
-The symbols are read from the base64 blob already in index.html, so no ticker
-list lives in the repo as plaintext — this script is generic and works off
-whatever is currently embedded. It re-fetches each symbol from Yahoo's keyless
-chart endpoint (server-side, so no CORS and no key) and writes the updated blob
-back. Run on a schedule by .github/workflows/refresh-data.yml. A symbol that
-fails to fetch keeps its previous values rather than dropping out.
+The file is base64 JSON, so no ticker list lives in the repo as plaintext --
+this script is generic and works off whatever symbols the file already holds.
+It re-fetches each from Yahoo's keyless chart endpoint (server-side, so no
+CORS and no key) and writes the file back. A symbol that fails to fetch keeps
+its previous values rather than dropping out. Run on a schedule by
+.github/workflows/refresh-data.yml.
+
+The snapshot used to be embedded in index.html (41 KB of a 105 KB page that
+every visitor downloaded for a panel almost nobody opens), with the page
+refreshing it live through public CORS proxies. Those all stopped answering in
+October 2026, so this file is now the panel's only source and is fetched when
+the panel opens. The first run moves the old embedded blob out of index.html.
+
+The file is only rewritten when a quote changed: updated_utc alone moving is
+not a change, so the frequent schedule commits nothing while markets are shut.
 """
 import base64
 import datetime
@@ -17,6 +26,7 @@ import time
 import urllib.request
 
 PAGE = "index.html"
+SNAP = os.path.join("assets", "data", "sx.txt")
 API = "https://query1.finance.yahoo.com/v8/finance/chart/{}?range={}&interval={}&includePrePost=true"
 UA = {"User-Agent": "Mozilla/5.0 (compatible; site-refresh/1.0)"}
 RANGES = [("1D", "1d", "5m"), ("1W", "5d", "30m"), ("1M", "1mo", "1d"),
@@ -75,6 +85,10 @@ def fetch(sym):
         "day_high": m.get("regularMarketDayHigh"), "day_low": m.get("regularMarketDayLow"),
         "w52_high": m.get("fiftyTwoWeekHigh"), "w52_low": m.get("fiftyTwoWeekLow"),
         "market_time": m.get("regularMarketTime"), "session": sess,
+        # The trading periods this snapshot saw, so the page can tell "open" from
+        # "closed" by its own clock between snapshots.
+        "tp": {k: [(cp.get(k) or {}).get("start"), (cp.get(k) or {}).get("end")]
+               for k in ("pre", "regular", "post")},
         "ext_price": ext_price,
         "ext_change": (ext_price - ext_ref) if (ext_price is not None and ext_ref) else None,
         "ext_change_pct": ((ext_price - ext_ref) / ext_ref * 100) if (ext_price and ext_ref) else None,
@@ -120,13 +134,29 @@ def fetch(sym):
     return out
 
 
-def main():
+def load_old():
+    """The current snapshot: the file, or (first run) the blob still embedded in index.html."""
+    if os.path.exists(SNAP):
+        with open(SNAP, encoding="ascii") as f:
+            return json.loads(base64.b64decode(f.read().strip()))
+    m = BLOB_RE.search(open(PAGE, encoding="utf-8").read())
+    return json.loads(base64.b64decode(m.group(1))) if m else None
+
+
+def strip_embedded():
+    """Drop the old embedded blob from index.html once the file exists (first run only)."""
     html = open(PAGE, encoding="utf-8").read()
     m = BLOB_RE.search(html)
-    if not m:
-        print("No embedded blob found — nothing to refresh.")
+    if m:
+        open(PAGE, "w", encoding="utf-8").write(html[:m.start()] + html[m.end():])
+        print(f"moved the embedded snapshot out of {PAGE}")
+
+
+def main():
+    old = load_old()
+    if not old:
+        print("No snapshot found — nothing to refresh.")
         return 0
-    old = json.loads(base64.b64decode(m.group(1)))
     rows = []
     for q in old.get("quotes", []):
         sym = q.get("symbol")
@@ -139,19 +169,20 @@ def main():
         except Exception as exc:
             print(f"{sym:10s} FAILED ({exc}) — keeping previous")
             rows.append(q)                               # never drop a symbol
+    if os.path.exists(SNAP) and rows == old.get("quotes"):
+        print("no change")
+        return 0
     out = {
         "updated_utc": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "source": old.get("source", "Yahoo Finance chart API (no key)"),
         "ranges": [r[0] for r in RANGES],
         "quotes": rows,
     }
-    b64 = base64.b64encode(json.dumps(out, separators=(",", ":")).encode()).decode()
-    new = html[:m.start()] + 'var EMBEDDED = JSON.parse(atob("%s"));' % b64 + html[m.end():]
-    if new != html:
-        open(PAGE, "w", encoding="utf-8").write(new)
-        print(f"updated {PAGE}")
-    else:
-        print("no change")
+    os.makedirs(os.path.dirname(SNAP), exist_ok=True)
+    with open(SNAP, "w", encoding="ascii") as f:
+        f.write(base64.b64encode(json.dumps(out, separators=(",", ":")).encode()).decode() + "\n")
+    print(f"updated {SNAP}")
+    strip_embedded()
     return 0
 
 

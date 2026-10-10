@@ -149,7 +149,7 @@ Current versions are on the site; the snapshots refresh them hourly.
 | `backfill-tf11-gfs.yml` | manual | Batch hindcasts from the GFS archive, one commit |
 | `refresh-appstore-stats.yml` | hourly, and after the other refreshes | App Store sales and analytics, app versions on both stores, PyPI versions |
 | `refresh-pypi-stats.yml` | twice a day | pypistats snapshots for my packages |
-| `refresh-data.yml` | every 2 h on weekdays | Refreshes data embedded in the home page |
+| `refresh-data.yml` | every 30 min on weekdays (about hourly in practice) | Refreshes the home page's unlisted watchlist snapshot (`assets/data/sx.txt`); commits only when a quote moved |
 | `bench-autopilot.yml` | daily, and on arcade changes | Plays the home-page arcade headless to check its autopilot still reaches a floor level |
 | `train-arcade-policy.yml` | weekly | Trains the arcade's aiming policy; commits it only if it beats the incumbent on held-out seeds |
 | `probe-*.yml` | manual | Read-only probes of the App Store analytics and the NCEI analysis archives |

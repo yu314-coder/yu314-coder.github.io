@@ -1,12 +1,18 @@
 name: Refresh data
 
-# Keeps the price data embedded in index.html current, so the offline fallback
-# isn't stale between visits. The page still refreshes live in the browser; this
-# just backstops it. Every 2 hours on weekdays — quiet markets don't change the
-# blob, so no commit happens outside trading hours. Also runnable on demand.
+# Keeps the home page's unlisted watchlist snapshot (assets/data/sx.txt) current.
+# It is the panel's only source: the browser used to refresh it live through
+# public CORS proxies, and those all stopped answering in October 2026.
+#
+# Asks for every 30 minutes on weekdays, plus Saturday's first hours UTC for the
+# end of Friday's US after-hours session. GitHub delivers frequent schedules late
+# (see refresh-typhoon-forecast.yml), so expect roughly hourly. The script only
+# rewrites the file when a quote moved, so runs while every market is shut
+# commit nothing. Also runnable on demand.
 on:
   schedule:
-    - cron: "5 */2 * * 1-5"
+    - cron: "*/30 * * * 1-5"
+    - cron: "*/30 0-1 * * 6"
   workflow_dispatch:
 
 permissions:
@@ -19,30 +25,31 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Fetch quotes and rewrite the embedded blob
-        run: python scripts/refresh_embedded.py
+      - name: Fetch quotes and rewrite the snapshot
+        run: python scripts/refresh_quotes.py
 
       - name: Commit if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html
+          F=assets/data/sx.txt
+          git add $F
           if git diff --staged --quiet; then
             echo "no change — nothing to commit"
             exit 0
           fi
-          git commit -m "Refresh embedded quotes"
+          git commit -m "Refresh quotes snapshot"
 
-          # Replay rather than rebase. Everything staged here is regenerated
-          # whole on each run, so two overlapping runs conflict on it every
-          # time and there is nothing to reconcile line by line -- ours is
-          # simply the newer generation.
+          # Replay rather than rebase. The file is regenerated whole on each run,
+          # so two overlapping runs conflict on it every time and there is nothing
+          # to reconcile line by line -- ours is simply the newer generation.
           for attempt in 1 2 3; do
             if git push; then
               exit 0
@@ -56,13 +63,16 @@ jobs:
             # removed the autopilot benchmark, its workflow, five storm files
             # and reverted a trainer change, all in a commit titled "Add Trackformer1.1
             # history hindcasts". --mixed resets the index to main and leaves
-            # our files in the working tree, so the next add stages only ours.
+            # the working tree alone -- which is this runner's OLD checkout of
+            # everything else -- so add ONLY this job's file. `git add -A` here
+            # used to stage those stale copies and revert whatever main had
+            # changed during the run.
             git reset --mixed origin/main
-            git add -A
+            git add $F
             if git diff --staged --quiet; then
               echo "main already has an equivalent version"
               exit 0
             fi
-            git commit -m "Refresh embedded quotes"
+            git commit -m "Refresh quotes snapshot"
           done
           echo "::warning title=Could not push::main kept moving; the next run redoes this"
