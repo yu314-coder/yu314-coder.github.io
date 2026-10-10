@@ -1123,7 +1123,7 @@
   function buildMap() {
     // a full track rebuild (storm/classification/view change) wipes every trace,
     // so drop any hindcast overlay state that was sitting on the old map.
-    hindcastTraceCount = 0;
+    hindcastTraceCount = 0; hindcastDrawnKey = null;
     if (els.hindcastBtn) {
       els.hindcastBtn.setAttribute("aria-pressed", "false"); els.hindcastBtn.classList.remove("is-on");
       if (hindcastOffLabel) els.hindcastBtn.textContent = hindcastOffLabel;
@@ -1186,10 +1186,10 @@
 
     traces = traces.concat(dynamicTraces());
 
-    lastMarkerColor = null; // force the next scrub frame to sync the marker color
     Plotly.react(els.map, traces, geoLayout(), { displayModeBar: false, responsive: true, scrollZoom: true });
     fitMapBoxToDrawing();
     bindMapClick();
+    updateDynamic();          // the marker and rings for this storm, on the overlay
   }
 
   // Which Natural Earth coastline set to draw.
@@ -1398,54 +1398,115 @@
     loadStorm(entry.season, sid);
   }
 
-  function radiusTraces(pt) {
-    var out = [];
-    var bands = [
-      { key: "r3", show: els.r34.checked, fill: "rgba(0,220,220,0.10)", line: "rgba(0,220,220,0.55)" },
-      { key: "r5", show: els.r50.checked, fill: "rgba(255,180,0,0.14)", line: "rgba(255,180,0,0.6)" },
-      { key: "r6", show: els.r64.checked, fill: "rgba(255,60,60,0.18)", line: "rgba(255,60,60,0.7)" }
-    ];
-    bands.forEach(function (b) {
-      if (!b.show || !pt[b.key]) { out.push(emptyGeoTrace()); return; }
-      var poly = radiusPolygon(pt.la, pt.lo, pt[b.key]);
-      if (!poly) { out.push(emptyGeoTrace()); return; }
-      out.push({
-        type: "scattergeo", mode: "lines", lat: poly.lat, lon: poly.lon,
-        fill: "toself", fillcolor: b.fill, line: { color: b.line, width: 1.2 },
-        hoverinfo: "skip", showlegend: false
-      });
-    });
-    return out;
-  }
-
   function emptyGeoTrace() {
     return { type: "scattergeo", mode: "lines", lat: [], lon: [], hoverinfo: "skip", showlegend: false };
   }
 
-  function currentPositionTrace(pt) {
-    var f = catFields();
-    return {
-      type: "scattergeo", mode: "markers", lat: [pt.la], lon: [pt.lo],
-      marker: { size: 15, symbol: "circle-open", color: pt[f.color] || "#fff", line: { width: 2.5, color: pt[f.color] || "#fff" } },
-      hoverinfo: "skip", showlegend: false
-    };
+  // The four slots after the static traces -- three wind-radius rings, then the
+  // current-position marker. They stay EMPTY: what moves is drawn by the overlay
+  // below, not by Plotly. They are kept so every trace index after them holds.
+  function dynamicTraces() {
+    return [emptyGeoTrace(), emptyGeoTrace(), emptyGeoTrace(), emptyGeoTrace()];
   }
 
-  // Everything that moves as the scrubber advances: wind-radius rings, then
-  // the current-position marker last (on top).
-  function dynamicTraces() {
-    var pt = interpAt(currentHour);
-    return radiusTraces(pt).concat([currentPositionTrace(pt)]);
+  /* ---------------------------------------------------------------------------
+     The moving parts -- the current-position marker and its wind rings in track
+     mode, the forecast sweep's marker and rings -- are drawn in a thin SVG of
+     their own over Plotly's map, not as Plotly traces. Restyling a geo trace
+     makes Plotly re-project every coastline and border on the map: 77 ms a frame
+     on an M4 at the 1:50m coastline, so playing a track ran at 12-13 fps, and the
+     looping forecast sweep kept a core busy for as long as forecast mode was on
+     screen (2026-10-11). The overlay projects a marker and three rings with the
+     map's own projection (identical pixels: checked against Plotly's drawn
+     marker), so a frame costs next to nothing. It follows pans and zooms through
+     Plotly's relayouting events, and sits under Plotly's info and hover layers.
+     ------------------------------------------------------------------------- */
+  var SVG_NS = "http://www.w3.org/2000/svg";
+  var dyn = { owner: null, shapes: null, layer: null, bound: false, clipDirty: true };
+  function dynLayer() {
+    var host = els.map && els.map.querySelector(".svg-container");
+    if (!host) return null;
+    if (dyn.layer && dyn.layer.svg.parentNode === host) return dyn.layer;
+    var svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("class", "tt-dyn");
+    svg.setAttribute("aria-hidden", "true");
+    var cp = document.createElementNS(SVG_NS, "clipPath");
+    cp.setAttribute("id", "tt-dyn-clip");
+    var rect = document.createElementNS(SVG_NS, "rect");
+    cp.appendChild(rect);
+    var defs = document.createElementNS(SVG_NS, "defs");
+    defs.appendChild(cp);
+    svg.appendChild(defs);
+    var g = document.createElementNS(SVG_NS, "g");
+    g.setAttribute("clip-path", "url(#tt-dyn-clip)");
+    svg.appendChild(g);
+    // after Plotly's plot svg, before its info and hover svgs
+    var papers = host.querySelectorAll("svg.main-svg");
+    host.insertBefore(svg, papers[1] || null);
+    dyn.layer = { svg: svg, rect: rect, g: g };
+    dyn.clipDirty = true;
+    return dyn.layer;
+  }
+  function drawDyn() {
+    var L = dynLayer();
+    if (!L) return;
+    var fl = els.map._fullLayout, sub = fl && fl.geo && fl.geo._subplot, proj = sub && sub.projection;
+    var live = dyn.shapes && proj &&
+      ((dyn.owner === "track" && appMode === "track" && viewMode === "storm") ||
+       (dyn.owner === "fc" && appMode === "predict"));
+    if (!live) { if (L.g.firstChild) L.g.textContent = ""; return; }
+    if (dyn.clipDirty) {           // size and clip, re-read only after Plotly redraws or moves the map
+      // Sized like Plotly's own svgs, in px: their container has no height of its own,
+      // so a 100% height came out 0 and clipped the whole layer away.
+      L.svg.setAttribute("width", fl.width);
+      L.svg.setAttribute("height", fl.height);
+      var bg = els.map.querySelector(".geo .bg");
+      if (bg) {
+        var a = bg.getBoundingClientRect(), h = L.svg.getBoundingClientRect();
+        L.rect.setAttribute("x", a.left - h.left); L.rect.setAttribute("y", a.top - h.top);
+        L.rect.setAttribute("width", a.width); L.rect.setAttribute("height", a.height);
+        dyn.clipDirty = false;
+      }
+    }
+    var out = "";
+    dyn.shapes.forEach(function (sh) {
+      if (sh.r != null) {           // a marker
+        var c = proj([sh.lon, sh.lat]);
+        if (c) out += '<circle cx="' + c[0].toFixed(1) + '" cy="' + c[1].toFixed(1) + '" r="' + sh.r +
+          '" fill="' + sh.fill + '" stroke="' + sh.stroke + '" stroke-width="' + sh.width + '"/>';
+        return;
+      }
+      if (!sh.lat || sh.lat.length < 3) return;
+      var d = "";
+      for (var i = 0; i < sh.lat.length; i++) {
+        var q = proj([sh.lon[i], sh.lat[i]]);
+        if (q) d += (d ? "L" : "M") + q[0].toFixed(1) + "," + q[1].toFixed(1);
+      }
+      if (d) out += '<path d="' + d + 'Z" fill="' + sh.fill + '" stroke="' + sh.stroke + '" stroke-width="' + sh.width + '"/>';
+    });
+    L.g.innerHTML = out;
+  }
+  function setDyn(owner, shapes) {
+    dyn.owner = owner;
+    dyn.shapes = shapes;
+    if (!dyn.bound && els.map && els.map.on) {
+      dyn.bound = true;
+      var moved = function () { dyn.clipDirty = true; drawDyn(); };
+      els.map.on("plotly_afterplot", moved);     // any redraw, resize or rebuild
+      els.map.on("plotly_relayouting", moved);   // every step of a pan or zoom
+      els.map.on("plotly_relayout", moved);
+    }
+    drawDyn();
   }
 
   var STATIC_TRACES = 3; // track line, unfixed-stretch bridge, intensity markers
-  // buildMap appends exactly four dynamic traces — the three wind-radius rings
-  // then the current-position marker — and they persist for the storm's whole
-  // life. So the scrubber updates them IN PLACE with Plotly.restyle instead of
-  // deleting every dynamic trace and re-adding it each frame (which reallocated
-  // SVG groups and janked playback). Same approach the forecast sweep uses.
-  var DYN_IDX = [STATIC_TRACES, STATIC_TRACES + 1, STATIC_TRACES + 2, STATIC_TRACES + 3];
-  var lastMarkerColor = null;
+  // buildMap appends exactly four placeholder traces after the static ones (see
+  // dynamicTraces); what they stood for is now the overlay above.
+  var RING_STYLE = {
+    r3: { fill: "rgba(0,220,220,0.10)", stroke: "rgba(0,220,220,0.55)", width: 1.2 },
+    r5: { fill: "rgba(255,180,0,0.14)", stroke: "rgba(255,180,0,0.6)", width: 1.2 },
+    r6: { fill: "rgba(255,60,60,0.18)", stroke: "rgba(255,60,60,0.7)", width: 1.2 }
+  };
   function ringLatLon(pt, key, show) {
     if (!show || !pt[key]) return { lat: [], lon: [] };
     var poly = radiusPolygon(pt.la, pt.lo, pt[key]);
@@ -1453,28 +1514,16 @@
   }
   function updateDynamic(pt) {
     if (!currentStorm || appMode !== "track" || viewMode !== "storm") return;
-    // Slots not built yet (defensive — buildMap always creates them): add once.
-    if (!els.map.data || els.map.data.length <= STATIC_TRACES) {
-      if (els.map.data) Plotly.addTraces(els.map, dynamicTraces());
-      return;
-    }
     if (!pt) pt = interpAt(currentHour);
-    var r3 = ringLatLon(pt, "r3", els.r34.checked);
-    var r5 = ringLatLon(pt, "r5", els.r50.checked);
-    var r6 = ringLatLon(pt, "r6", els.r64.checked);
-    // One restyle → one redraw of the data layer, no trace churn.
-    Plotly.restyle(els.map, {
-      lat: [r3.lat, r5.lat, r6.lat, [pt.la]],
-      lon: [r3.lon, r5.lon, r6.lon, [pt.lo]]
-    }, DYN_IDX);
-    // Marker color tracks the category, which only changes at discrete wind
-    // thresholds — so restyle it only when it actually changes, keeping the
-    // common frame down to the single restyle above.
+    var shapes = [];
+    [["r3", els.r34], ["r5", els.r50], ["r6", els.r64]].forEach(function (b) {
+      var ring = ringLatLon(pt, b[0], b[1].checked), st = RING_STYLE[b[0]];
+      shapes.push({ lat: ring.lat, lon: ring.lon, fill: st.fill, stroke: st.stroke, width: st.width });
+    });
+    // the open circle Plotly drew as a 15 px "circle-open" marker with a 2.5 px line
     var color = pt[catFields().color] || "#fff";
-    if (color !== lastMarkerColor) {
-      lastMarkerColor = color;
-      Plotly.restyle(els.map, { "marker.color": color, "marker.line.color": color }, [DYN_IDX[3]]);
-    }
+    shapes.push({ lat: pt.la, lon: pt.lo, r: 7.5, fill: "none", stroke: color, width: 2.5 });
+    setDyn("track", shapes);
   }
 
   /* ---------------------------------------------------------------------------
@@ -1488,7 +1537,6 @@
     var pres = pts.map(function (p) { return p.p; });
     var colors = pts.map(function (p) { return p[f.color] || "rgb(150,190,215)"; });
 
-    var t0 = formatUTC(absTimeAt(currentHour));
     var traces = [
       {
         x: times, y: winds, type: "scatter", mode: "lines+markers", name: "Wind (kt)",
@@ -1501,11 +1549,9 @@
         line: { color: "rgba(168,85,247,0.85)", width: 1.5, dash: "dot" },
         yaxis: "y2"
       },
-      { // time cursor — a 2-point trace on a hidden full-height axis. As a
-        // TRACE it scrubs via a cheap data-only Plotly.restyle each frame; as
-        // a layout shape (the old way) every frame forced a full relayout
-        // pass, the single heaviest per-frame cost while playing.
-        x: [t0, t0], y: [0, 1], yaxis: "y3", type: "scatter", mode: "lines",
+      { // time cursor slot, left empty: the cursor is a line laid over the chart
+        // (updateChartMarker). The trace stays so the indices around it hold.
+        x: [], y: [], yaxis: "y3", type: "scatter", mode: "lines",
         line: { color: "rgba(255,255,255,0.55)", width: 1, dash: "dash" },
         hoverinfo: "skip", showlegend: false
       }
@@ -1526,14 +1572,36 @@
     };
 
     Plotly.react(els.chart, traces, layout, { displayModeBar: false, responsive: true });
+    updateChartMarker();
   }
 
-  var CHART_CURSOR_IDX = 2; // the time-cursor trace buildChart appends last
-
+  // The time cursor is a 1 px line laid over the chart, not a Plotly trace. As a
+  // trace (and before that a layout shape) every frame of play re-ran the chart's
+  // whole plot -- defaults, axes, labels -- which was two thirds of a phone's frame
+  // once the map stopped costing (2026-10-11). Placed with the chart's own axis,
+  // so it sits on exactly the pixel the trace did, and re-placed after any redraw.
+  var chartCursor = null, chartCursorBound = false;
   function updateChartMarker() {
-    if (!els.chart.data || els.chart.data.length <= CHART_CURSOR_IDX) return;
-    var t = formatUTC(absTimeAt(currentHour));
-    Plotly.restyle(els.chart, { x: [[t, t]] }, [CHART_CURSOR_IDX]);
+    var fl = els.chart && els.chart._fullLayout, xa = fl && fl.xaxis;
+    var host = els.chart && els.chart.querySelector(".svg-container");
+    if (!xa || !xa.d2p || !host || !currentStorm) return;
+    if (!chartCursor || chartCursor.parentNode !== host) {
+      chartCursor = document.createElement("div");
+      chartCursor.className = "tt-chart-cursor";
+      host.insertBefore(chartCursor, host.querySelectorAll("svg.main-svg")[1] || null);
+    }
+    if (!chartCursorBound && els.chart.on) {
+      chartCursorBound = true;
+      els.chart.on("plotly_afterplot", updateChartMarker);
+    }
+    var x = xa._offset + xa.d2p(formatUTC(absTimeAt(currentHour)));
+    var inside = isFinite(x) && x >= xa._offset - 1 && x <= xa._offset + xa._length + 1;
+    chartCursor.style.display = inside ? "" : "none";
+    if (inside) {
+      chartCursor.style.left = (x - 0.5).toFixed(1) + "px";     // a 1 px line centred on x
+      chartCursor.style.top = fl._size.t + "px";
+      chartCursor.style.height = fl._size.h + "px";
+    }
   }
 
   // One scrub/play frame: interpolate the storm state ONCE and feed the same
@@ -2231,7 +2299,7 @@
       fill: "toself", fillcolor: "rgba(255,120,0,0.14)", line: { color: "rgba(255,150,0,0.85)", width: 1.6 },
       hoverinfo: "skip", showlegend: false });
     fcSweepMarkerIdx = traces.length;
-    traces.push({ type: "scattergeo", mode: "markers", lat: [a.lat], lon: [a.lon],
+    traces.push({ type: "scattergeo", mode: "markers", lat: [], lon: [],   // drawn on the overlay
       marker: { size: 11, color: "#ffd54a", line: { width: 2, color: "rgba(20,26,46,0.9)" } },
       hoverinfo: "skip", showlegend: false });
 
@@ -3088,6 +3156,7 @@
   var hindcastTraceCount = 0;
   var hindcastLastSource = null;   // so the status follows the track between Trackformer 1.2 and 1.1
   var hindcastLastRunId = null;    // and from one 1.2 run to the next
+  var hindcastDrawnKey = null;     // what the overlay's traces hold now, to skip no-op redraws
   var consensusTraceCount = 0;
   // Overlay tags. Both overlays can be on at once (the consensus stays visible while the
   // hindcast animates), so traces are located by tag, never by position in els.map.data.
@@ -3501,7 +3570,7 @@
   function aiClearHindcast() {
     var idx = tfTraceIdx(TF_HIND);
     if (idx.length) Plotly.deleteTraces(els.map, idx);
-    hindcastTraceCount = 0;
+    hindcastTraceCount = 0; hindcastDrawnKey = null;
     if (els.hindcastBtn) {
       els.hindcastBtn.setAttribute("aria-pressed", "false"); els.hindcastBtn.classList.remove("is-on");
       els.hindcastBtn.textContent = hindcastOffLabel || HINDCAST_LABEL;
@@ -3523,8 +3592,11 @@
     // or Trackformer1.1's own 90% member radius. Both are laid perpendicular the same way.
     var coneLat = [fc.initial_lat].concat(pts.map(function (p) { return p.p90_lat; })).concat(rev.map(function (p) { return p.p10_lat; }));
     var coneLon = [fc.initial_lon].concat(pts.map(function (p) { return p.p90_lon; })).concat(rev.map(function (p) { return p.p10_lon; }));
+    // What really happened after the forecast's own start. Cut at the playhead
+    // instead, it changed every few storm-hours of play and redrew the whole map.
+    var from = fc.initHour != null ? fc.initHour : initHour;
     var actLat = [fc.initial_lat], actLon = [fc.initial_lon];
-    currentStorm.pts.forEach(function (p) { if (p.h > initHour + 0.01 && p.la != null) { actLat.push(p.la); actLon.push(p.lo); } });
+    currentStorm.pts.forEach(function (p) { if (p.h > from + 0.01 && p.la != null) { actLat.push(p.la); actLon.push(p.lo); } });
     var rings = [24, 72, 120].map(function (L) {
       var p = null, i; for (i = 0; i < pts.length; i++) if (pts[i].lead_hours === L) { p = pts[i]; break; }
       if (p && p.radiiKm) {
@@ -3710,11 +3782,12 @@
     if (!run || !run.lats) return null;
     var fc = tfPrecomputed12Fc(run, null);
     // the issue-time wind for the first dot's colour, from the best track at that time
+    // (and that fix's scrub hour, where the actual track it is judged against starts)
     var spts = (currentStorm && currentStorm.pts) || [], want = Date.parse(run.issue_time_utc), bd = Infinity;
     for (var i = 0; i < spts.length; i++) {
       var t = String(spts[i].t || ""); if (!/[Zz]$|[+\-]\d\d:?\d\d$/.test(t)) t += "Z";
       var d = Math.abs(Date.parse(t) - want);
-      if (d < bd) { bd = d; fc.initial_vmax = spts[i].w; }
+      if (d < bd) { bd = d; fc.initial_vmax = spts[i].w; fc.initHour = spts[i].h; }
     }
     tf12Score(run);
     return fc;
@@ -3792,13 +3865,17 @@
   }
   // A complete forecast built from a published Trackformer1.1 run alone — no Trackformer1.0, no ONNX.
   function tfTf11Forecast(run, initHour) {
+    // Start from the fix at the run's own issue time. The playhead only picks the
+    // run; anchored to it, the first leg bent every time play crossed a fix.
+    var at = tfHourForRun(run);
+    if (at == null) at = initHour;
     var base = null, bd = Infinity, spts = (currentStorm && currentStorm.pts) || [];
     for (var i = 0; i < spts.length; i++) {
-      var d = Math.abs(spts[i].h - initHour);
+      var d = Math.abs(spts[i].h - at);
       if (d < bd && spts[i].la != null) { bd = d; base = spts[i]; }
     }
     if (!base || !run.has_intensity) return null;   // without intensity there'd be nothing to hover
-    var fc = { initial_lat: base.la, initial_lon: base.lo, initial_vmax: base.w,
+    var fc = { initial_lat: base.la, initial_lon: base.lo, initial_vmax: base.w, initHour: base.h,
                points: [], motion: null, trackSource: "trackformer11", tf11: run };
     for (var n = 0; n < run.lead_hours.length; n++) {
       fc.points.push({
@@ -3914,6 +3991,7 @@
   function aiDrawHindcast(fc, initHour) {
     aiClearHindcast();
     var d = tfHindcastData(fc, initHour), sp = tfSpaghettiFor(fc);
+    hindcastDrawnKey = JSON.stringify([d, sp]);
     function ring(r) { return { type: "scattergeo", mode: "lines", lat: r.lat, lon: r.lon, fill: "toself", meta: TF_HIND,
       fillcolor: "rgba(52,211,153,0.05)", line: { color: "rgba(52,211,153,0.28)", width: 1 }, hoverinfo: "text", text: r.text, showlegend: false }; }
     // Fixed 7-trace block so the follow-the-playhead restyle stays in place:
@@ -3947,12 +4025,20 @@
     var block = tfTraceIdx(TF_HIND);
     if (hindcastTraceCount !== 7 || block.length !== 7) { aiDrawHindcast(fc, initHour); return; }
     var d = tfHindcastData(fc, initHour), sp = tfSpaghettiFor(fc), i0 = block[0];
-    Plotly.restyle(els.map, {
-      lat: [d.coneLat, sp.lat, d.rings[0].lat, d.rings[1].lat, d.rings[2].lat, d.actLat, d.meanLat],
-      lon: [d.coneLon, sp.lon, d.rings[0].lon, d.rings[1].lon, d.rings[2].lon, d.actLon, d.meanLon]
-    }, [i0, i0 + 1, i0 + 2, i0 + 3, i0 + 4, i0 + 5, i0 + 6]);
-    Plotly.restyle(els.map, { text: [d.rings[0].text, d.rings[1].text, d.rings[2].text, ACT_HOVER, d.meanTxt] }, [i0 + 2, i0 + 3, i0 + 4, i0 + 5, i0 + 6]);
-    Plotly.restyle(els.map, { "marker.color": [d.meanColors] }, [i0 + 6]);
+    // Every restyle redraws the whole map, basemap included (~80 ms), so make one,
+    // and only when the drawing changed: during play that is when the playhead
+    // reaches the next run, not on every tick. undefined leaves a trace's value alone.
+    var key = JSON.stringify([d, sp]);
+    if (key !== hindcastDrawnKey) {
+      hindcastDrawnKey = key;
+      var no;
+      Plotly.restyle(els.map, {
+        lat: [d.coneLat, sp.lat, d.rings[0].lat, d.rings[1].lat, d.rings[2].lat, d.actLat, d.meanLat],
+        lon: [d.coneLon, sp.lon, d.rings[0].lon, d.rings[1].lon, d.rings[2].lon, d.actLon, d.meanLon],
+        text: [no, no, d.rings[0].text, d.rings[1].text, d.rings[2].text, ACT_HOVER, d.meanTxt],
+        "marker.color": [no, no, no, no, no, no, d.meanColors]
+      }, [i0, i0 + 1, i0 + 2, i0 + 3, i0 + 4, i0 + 5, i0 + 6]);
+    }
     hindcastShowModel(fc);
     if (fc && fc.trackSource !== hindcastLastSource) {
       hindcastLastSource = fc.trackSource;
@@ -4454,17 +4540,18 @@
   // frame and every zoom. It is why a typhoon showed its Trackformer1.1 route and
   // the tropical storms beside it showed none, with a complete forecast sitting in
   // memory for all of them.
-  // ONE combined restyle → one map redraw per frame instead of three (the
-  // marker.size entries for the two line-mode ring traces are inert).
+  // Drawn on the overlay (see drawDyn), not by restyling the three sweep traces,
+  // which stay empty: a restyle re-projected the whole map on every frame of a
+  // sweep that loops for as long as forecast mode is open.
   function restyleSweep(p, pulse) {
     if (fcSweepCircleIdx < 0) return;
     var gale = (p.galeKm > 0) ? circlePolygon(p.lat, p.lon, p.galeKm) : { lat: [], lon: [] };
     var storm = (p.stormKm > 0) ? circlePolygon(p.lat, p.lon, p.stormKm) : { lat: [], lon: [] };
-    Plotly.restyle(els.map, {
-      lat: [gale.lat, storm.lat, [p.lat]],
-      lon: [gale.lon, storm.lon, [p.lon]],
-      "marker.size": [1, 1, pulse]
-    }, [fcSweepGaleIdx, fcSweepCircleIdx, fcSweepMarkerIdx]);
+    setDyn("fc", [
+      { lat: gale.lat, lon: gale.lon, fill: "rgba(255,205,60,0.06)", stroke: "rgba(255,210,80,0.65)", width: 1 },
+      { lat: storm.lat, lon: storm.lon, fill: "rgba(255,120,0,0.14)", stroke: "rgba(255,150,0,0.85)", width: 1.6 },
+      { lat: p.lat, lon: p.lon, r: (pulse / 2).toFixed(1), fill: "#ffd54a", stroke: "rgba(20,26,46,0.9)", width: 2 }
+    ]);
   }
   // Live readout element (updated per frame; not a full innerHTML rebuild).
   function updateSweepLive(p) {
@@ -4497,7 +4584,7 @@
   // independent); disabled under prefers-reduced-motion (rests at "now").
   // State lives in fcState so the play/pause/replay/speed controls can drive it.
   var FC_PAST_SECONDS = 6, FC_FUTURE_SECONDS = 9, FC_HOLD_SECONDS = 1.6;
-  var FC_DRAW_MS = 33;          // cap sweep redraws at ~30fps — a Plotly geo restyle is the cost, not the math
+  var FC_DRAW_MS = 0;           // every frame: the sweep is drawn on the overlay now, not by a Plotly geo restyle
   var fcState = null;
   var fcMapVisible = true;      // false while the forecast map is scrolled out of view (animation rests)
   function cancelForecastAnim() {

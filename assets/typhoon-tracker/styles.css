@@ -273,6 +273,14 @@ body {
 /* Map + live details, side by side */
 .tt-mapwrap { display: flex; gap: 12px; margin-bottom: 12px; align-items: stretch; }
 .tt-map-shell { flex: 1 1 auto; min-width: 0; position: relative; }
+/* the moving marker and rings, drawn over Plotly's map (drawDyn in app.js) */
+.tt-dyn { position: absolute; left: 0; top: 0; pointer-events: none; overflow: hidden; }
+/* the intensity chart's time cursor (updateChartMarker), formerly a Plotly trace drawn
+   1 px wide with dash "dash" -- Plotly's 9 px on, 9 px off, from the bottom */
+.tt-chart-cursor {
+  position: absolute; width: 1px; pointer-events: none;
+  background: repeating-linear-gradient(to top, rgba(255,255,255,0.55) 0 9px, transparent 9px 18px);
+}
 .tt-map {
   width: 100%; min-height: 460px;
   background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
