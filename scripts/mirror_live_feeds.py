@@ -23,15 +23,26 @@ CIMSS is keyed by the JTWC number, not JMA's, and the two disagree (JMA 2629
 was JTWC 27W, JMA 2628 was 15E), so each entry carries its latest fix position;
 the tracker matches a JMA storm to the CIMSS storm nearest its analysis point.
 
+It also carries "lab": which Trackformer Weather Lab ids hold runs for each
+IBTrACS storm. The Lab files a storm it forecast live under JMA's id (TC2634)
+rather than the IBTrACS one the tracker keys on (2026278N11168), so the
+history view asked for the wrong one and heard "no saved forecast" for storms
+with ~200 runs. Each such id is matched once, by where its latest run starts,
+and kept.
+
+    "lab": {"2026278N11168": ["TC2634"], "2026254N11252": ["TC2635"]}
+
 Nothing in the file is a clock of this run, so a run that finds nothing new
 rewrites nothing and the workflow commits nothing. A feed that fails to answer
 keeps its previous entries while they are still recent. Run on a schedule by
 .github/workflows/mirror-live-feeds.yml.
 """
 import calendar
+import csv
 import datetime
 import io
 import json
+import math
 import os
 import re
 import time
@@ -53,6 +64,14 @@ BDECK_NEWEST = 10            # numbered storms run in order, so the live ones ar
 BDECK_BASINS = ("wp", "ep", "cp", "io")
 WP_LON = (100.0, 180.0)      # degrees east; CIMSS entries are kept a little either side
 MON = {m.upper(): i for i, m in enumerate(calendar.month_abbr) if m}
+
+LAB = "https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site"
+SEASONS = os.path.join(ROOT, "assets", "data", "typhoons", "seasons")
+NOAA_ACTIVE = ("https://www.ncei.noaa.gov/data/international-best-track-archive-for-climate-stewardship-ibtracs/"
+               "v04r01/access/csv/ibtracs.ACTIVE.list.v04r01.csv")
+SID_RE = re.compile(r"^\d{7}[NS]\d{5}$")
+LAB_MATCH_KM = 300           # a run's start must sit on the storm's own track
+LAB_MATCH_H = 6
 
 
 def get(url, tries=3):
@@ -183,6 +202,130 @@ def mirror_cimss(old, now):
     return out
 
 
+def km(la1, lo1, la2, lo2):
+    r = math.radians
+    h = (math.sin(r(la2 - la1) / 2) ** 2 +
+         math.cos(r(la1)) * math.cos(r(la2)) * math.sin(r(lo2 - lo1) / 2) ** 2)
+    return 2 * 6371 * math.asin(min(1, math.sqrt(h)))
+
+
+def iso_ms(t):
+    return calendar.timegm(time.strptime(t[:19].replace(" ", "T"), "%Y-%m-%dT%H:%M:%S")) * 1000
+
+
+def archived_tracks(seasons):
+    """{sid: [(ms, lat, lon east)]} from the committed season shards."""
+    tracks = {}
+    for season in seasons:
+        path = os.path.join(SEASONS, "%d.json" % season)
+        if not os.path.exists(path):
+            continue
+        with io.open(path, encoding="utf-8") as f:
+            for sid, st in json.load(f).items():
+                tracks[sid] = [(iso_ms(p["t"]), p["la"], p["lo"] % 360) for p in st.get("pts", [])
+                               if p.get("t") and p.get("la") is not None and p.get("lo") is not None]
+    return tracks
+
+
+def active_tracks():
+    """The same from NCEI's active-storms csv, for a storm too new for the archive."""
+    tracks = {}
+    for r in csv.DictReader(io.StringIO(get(NOAA_ACTIVE))):
+        if not SID_RE.match(r.get("SID") or ""):
+            continue
+        try:
+            tracks.setdefault(r["SID"], []).append((iso_ms(r["ISO_TIME"]), float(r["LAT"]), float(r["LON"]) % 360))
+        except (KeyError, ValueError):
+            continue
+    return tracks
+
+
+def match_track(tracks, ms, lat, lon):
+    best, best_km = None, LAB_MATCH_KM
+    for sid, pts in tracks.items():
+        near = min(pts, key=lambda p: abs(p[0] - ms), default=None)
+        if not near or abs(near[0] - ms) > LAB_MATCH_H * 3600000:
+            continue
+        d = km(lat, lon, near[1], near[2])
+        if d < best_km:
+            best, best_km = sid, d
+    return best
+
+
+def map_lab_ids(old, now):
+    """{IBTrACS sid: [every Lab id to ask]} for storms the Lab files under some other id.
+
+    The list includes the sid itself only when the Lab's catalog has it too, so the
+    tracker never asks for an id it knows will 404."""
+    seasons = [now.year] + ([now.year - 1] if now.month == 1 else [])
+    known = {lid: sid for sid, ids in old.items() for lid in ids if lid != sid}
+    out_inv, tracks, active, by_sid = {}, None, None, set()
+    for season in seasons:
+        try:
+            catalog = json.loads(get("%s/api/history/v1/catalog?season=%d" % (LAB, season)))
+        except Exception as exc:
+            print("Lab catalog %d failed (%s); keeping the known ids" % (season, exc))
+            out_inv.update({lid: sid for lid, sid in known.items() if sid[:4] == str(season)})
+            continue
+        by_sid.update(st.get("id") for st in catalog.get("storms", [])
+                      if SID_RE.match(st.get("id") or "") and st.get("issues"))
+        for st in catalog.get("storms", []):
+            lid = st.get("id") or ""
+            if SID_RE.match(lid) or not st.get("issues"):
+                continue
+            if lid in known:
+                out_inv[lid] = known[lid]
+                continue
+            # Where a run starts places the storm. Not the latest run: NCEI's track
+            # lags the storm by a day or two, so a recent start lies past its end.
+            # The earliest, then a day and two days on -- JMA can pick a storm up
+            # half a day before IBTrACS starts it (Koguma: TC2634 from 10-04 12Z,
+            # 2026278N11168 from 10-05 00Z). One fetch per try, once per storm.
+            issues = sorted(st["issues"], key=lambda i: i.get("issue_time_utc") or "9")
+            t0 = iso_ms(issues[0]["issue_time_utc"])
+            tries = []
+            for day in (0, 1, 2):
+                nxt = next((i for i in issues if iso_ms(i["issue_time_utc"]) >= t0 + day * 86400000), None)
+                if nxt and nxt not in tries:
+                    tries.append(nxt)
+            sid = where = None
+            for issue in tries:
+                try:
+                    fc = json.loads(get("%s/api/history/v1/forecasts/%s" % (LAB, issue["id"])))
+                    p0 = [p for p in fc.get("route") or [] if p.get("lead_hours") == 0][0]
+                    ms, lat, lon = iso_ms(p0["valid_time_utc"]), p0["lat"], p0["lon"] % 360
+                except Exception as exc:
+                    print("Lab %s: no usable run start in %s (%s)" % (lid, issue["id"], exc))
+                    continue
+                where = "%.1f,%.1f %s" % (lat, lon, p0["valid_time_utc"])
+                if tracks is None:
+                    tracks = archived_tracks(seasons)
+                sid = match_track(tracks, ms, lat, lon)
+                if not sid:
+                    if active is None:
+                        try:
+                            active = active_tracks()
+                        except Exception as exc:
+                            print("NCEI active csv failed (%s)" % exc)
+                            active = {}
+                    sid = match_track(active, ms, lat, lon)
+                if sid:
+                    break
+            if sid:
+                out_inv[lid] = sid
+                print("Lab %s (%s) -> %s" % (lid, st.get("name") or "-", sid))
+            else:
+                print("Lab %s (%s): no IBTrACS storm at %s yet" % (lid, st.get("name") or "-", where))
+    out = {}
+    for lid, sid in out_inv.items():
+        out.setdefault(sid, []).append(lid)
+    known_sids = {s for ids in old.values() for s in ids if SID_RE.match(s)}
+    for sid in out:
+        if sid in by_sid or (sid in known_sids and not by_sid):   # keep it through a catalog outage
+            out[sid].append(sid)
+    return {sid: sorted(ids) for sid, ids in out.items()}
+
+
 def main():
     now = datetime.datetime.now(datetime.timezone.utc)
     old = {}
@@ -190,7 +333,8 @@ def main():
         with io.open(OUT, encoding="utf-8") as f:
             old = json.load(f)
     feeds = {"bdeck": mirror_bdecks(old.get("bdeck", {}), now),
-             "cimss": mirror_cimss(old.get("cimss", {}), now)}
+             "cimss": mirror_cimss(old.get("cimss", {}), now),
+             "lab": map_lab_ids(old.get("lab", {}), now)}
     text = json.dumps(feeds, sort_keys=True, separators=(",", ":")) + "\n"
     prev = None
     if os.path.exists(OUT):
@@ -202,8 +346,8 @@ def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with io.open(OUT, "w", encoding="utf-8") as f:
         f.write(text)
-    print("wrote %s (%d b-decks, %d CIMSS, %.1f KB)" % (os.path.relpath(OUT, ROOT), len(feeds["bdeck"]),
-                                                       len(feeds["cimss"]), len(text) / 1024))
+    print("wrote %s (%d b-decks, %d CIMSS, %d Lab mappings, %.1f KB)" % (
+        os.path.relpath(OUT, ROOT), len(feeds["bdeck"]), len(feeds["cimss"]), len(feeds["lab"]), len(text) / 1024))
     return 0
 
 

@@ -2610,13 +2610,34 @@
     }
     return tf12FetchIssues(sid);
   }
+  // The Lab files a storm it forecast live under JMA's id (TC2634), not the IBTrACS
+  // id this page keys on (2026278N11168), so asking by sid alone heard "no saved
+  // forecast" for storms with ~200 runs. The feeds mirror maps the two (feeds.lab:
+  // sid -> every Lab id holding its runs, the sid included only when the Lab has it,
+  // matched by where the runs start); ask under each and merge. Only recent seasons
+  // can have such ids, so older storms don't wait on the file.
+  function tf12LabIds(sid) {
+    if (!(Number(String(sid).slice(0, 4)) >= new Date().getUTCFullYear() - 1)) return Promise.resolve([sid]);
+    return liveFeeds().then(function (f) {
+      var ids = f && f.lab && f.lab[sid];
+      return ids && ids.length ? ids : [sid];
+    });
+  }
   function tf12FetchIssues(sid) {
     if (tf12IssuesLoading[sid]) return tf12IssuesLoading[sid];
-    tf12IssuesLoading[sid] = tf12Get("/api/history/v1/storms/" + encodeURIComponent(sid))
-      .then(function (j) {
-        var list = (j && j.issues || []).map(function (i) {
-          return { id: i.id, issue_time_utc: i.issue_time_utc, members: i.members || 1,
-                   kind: i.kind, src: "trackformer12" };
+    tf12IssuesLoading[sid] = tf12LabIds(sid)
+      .then(function (ids) {
+        return Promise.all(ids.map(function (id) { return tf12Get("/api/history/v1/storms/" + encodeURIComponent(id)); }));
+      })
+      .then(function (js) {
+        var seen = {}, list = [];
+        js.forEach(function (j) {
+          (j && j.issues || []).forEach(function (i) {
+            if (seen[i.id]) return;
+            seen[i.id] = true;
+            list.push({ id: i.id, issue_time_utc: i.issue_time_utc, members: i.members || 1,
+                        kind: i.kind, src: "trackformer12" });
+          });
         });
         list.sort(function (a, b) { return Date.parse(a.issue_time_utc) - Date.parse(b.issue_time_utc); });
         tf12Issues[sid] = list.length ? list : null;
@@ -3820,7 +3841,8 @@
       var q = fc.tf12 || {};
       var kindNote = q.members > 1
         ? " This run is the mean of " + q.members + " input-perturbed members"
-          + (q.kind === "retrospective-hindcast" ? ", one of the daily starts in 1.2's published benchmark." : ".")
+          + (q.kind === "retrospective-hindcast" ? ", one of the daily starts in 1.2's published benchmark."
+             : /^live/.test(q.kind || "") ? ", run live while the storm was happening." : ".")
         : " This is a single deterministic run" + (q.kind === "automatic-historical-hindcast" ? " from the six-hourly backfill." : ".");
       var yr = Number(currentStorm.season);
       var sample = yr >= 2024 ? " This storm comes after the years 1.2 was trained and validated on (2000–23)."

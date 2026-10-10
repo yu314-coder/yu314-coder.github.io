@@ -6,6 +6,11 @@ name: Mirror live storm feeds
 # active now. Neither source sends a CORS header, and the public CORS proxies
 # the tracker used to go through have all stopped answering.
 #
+# It also maps the Trackformer Weather Lab's ids for storms it filed under
+# JMA's TC number (TC2634) to the IBTrACS ids the tracker uses (2026278N11168),
+# so the history view finds their runs. One small catalog request per run; a
+# new id costs up to three forecast reads, once.
+#
 # Asks for every 30 minutes; GitHub delivers frequent schedules late (see
 # refresh-typhoon-forecast.yml: 67 minutes at best), so expect roughly hourly.
 # The b-deck itself only moves every 6 hours. Nothing in the file is a clock of

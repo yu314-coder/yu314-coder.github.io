@@ -144,7 +144,7 @@ Current versions are on the site; the snapshots refresh them hourly.
 |----------|------|--------------|
 | `refresh-typhoon-archive.yml` | daily | Rebuilds the recent IBTrACS seasons and bumps the tracker's cache tokens |
 | `refresh-typhoon-forecast.yml` | every 20 min (GitHub runs it every few hours in practice) | Runs Trackformer 1.1 on the live JMA storm and commits the fallback forecast |
-| `mirror-live-feeds.yml` | every 30 min (about hourly in practice) | Mirrors active storms' JTWC b-decks and CIMSS ADT histories, which browsers can't fetch (no CORS) |
+| `mirror-live-feeds.yml` | every 30 min (about hourly in practice) | Mirrors active storms' JTWC b-decks and CIMSS ADT histories, which browsers can't fetch (no CORS), and maps Weather Lab storm ids filed under JMA numbers to IBTrACS ids |
 | `build-trackformer11-history.yml` | hourly schedule | Adds Trackformer 1.1 history hindcasts (CFSR/CDAS reanalysis, plus recovered live runs) |
 | `backfill-tf11-gfs.yml` | manual | Batch hindcasts from the GFS archive, one commit |
 | `refresh-appstore-stats.yml` | hourly, and after the other refreshes | App Store sales and analytics, app versions on both stores, PyPI versions |
