@@ -2733,8 +2733,11 @@
   var TF12_CHECKPOINT = "f194a23d3f91ea76ad776dfad942fabd669eeae8b3fd665815463095367e9ee0";
   var TF12_LEADS = [6, 12, 18, 24, 30, 36, 42, 48, 54, 60, 66, 72, 78, 84, 90, 96, 102, 108, 114, 120];
   var tf12Err = null;                       // the last time the service did not answer
-  function tf12Get(path) {
-    return fetch(TF12_API + path).then(function (r) {
+  // fresh: a re-check for something that may have changed (a storm's growing issue
+  // list, a run whose wind had not been exported). It goes past the browser's HTTP
+  // cache, so a long max-age on the Lab can never hide the update it is looking for.
+  function tf12Get(path, fresh) {
+    return fetch(TF12_API + path, fresh ? { cache: "no-cache" } : undefined).then(function (r) {
       if (r.status === 404) return null;
       if (!r.ok) throw new Error("the Trackformer 1.2 data service answered " + r.status);
       return r.json();
@@ -2753,7 +2756,7 @@
     if (tf12Issues[sid] !== undefined) {
       if (Date.now() - (tf12IssuesAt[sid] || 0) > TF12_STALE_MS && !tf12IssuesLoading[sid]) {
         var had = (tf12Issues[sid] || []).length;
-        tf12FetchIssues(sid).then(function (list) {
+        tf12FetchIssues(sid, true).then(function (list) {
           if ((list || []).length !== had) tf12OnFresh(sid, null);
         });
       }
@@ -2774,11 +2777,11 @@
       return ids && ids.length ? ids : [sid];
     });
   }
-  function tf12FetchIssues(sid) {
+  function tf12FetchIssues(sid, fresh) {
     if (tf12IssuesLoading[sid]) return tf12IssuesLoading[sid];
     tf12IssuesLoading[sid] = tf12LabIds(sid)
       .then(function (ids) {
-        return Promise.all(ids.map(function (id) { return tf12Get("/api/history/v1/storms/" + encodeURIComponent(id)); }));
+        return Promise.all(ids.map(function (id) { return tf12Get("/api/history/v1/storms/" + encodeURIComponent(id), fresh); }));
       })
       .then(function (js) {
         var seen = {}, list = [];
@@ -2834,15 +2837,15 @@
       // No wind yet usually means "not exported yet" while the Lab backfills; ask again
       // later, and redraw if it has arrived.
       if (r0 && !r0.vmax_kt && Date.now() - (tf12RunsAt[id] || 0) > TF12_STALE_MS && !tf12RunsLoading[id]) {
-        tf12FetchRun(id).then(function (r1) { if (r1 && r1.vmax_kt) tf12OnFresh(null, id); });
+        tf12FetchRun(id, true).then(function (r1) { if (r1 && r1.vmax_kt) tf12OnFresh(null, id); });
       }
       return Promise.resolve(r0 || null);
     }
     return tf12FetchRun(id);
   }
-  function tf12FetchRun(id) {
+  function tf12FetchRun(id, fresh) {
     if (tf12RunsLoading[id]) return tf12RunsLoading[id];
-    tf12RunsLoading[id] = tf12Get("/api/history/v1/forecasts/" + encodeURIComponent(id))
+    tf12RunsLoading[id] = tf12Get("/api/history/v1/forecasts/" + encodeURIComponent(id), fresh)
       .then(function (fc) {
         var run = tf12RunFrom(fc);
         // keep a good copy rather than swap it for an unusable re-read
