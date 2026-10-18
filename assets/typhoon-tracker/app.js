@@ -7,7 +7,7 @@
   "use strict";
 
   var DATA_BASE = "../data/typhoons/";
-  var DATA_V = "?v=d7ef84901";   // bump when the season/index JSON is regenerated (e.g. RMW added)
+  var DATA_V = "?v=d91e6c43b";   // bump when the season/index JSON is regenerated (e.g. RMW added)
   // Changing the cold-load storm? index.html pre-sizes the phone map for this
   // one (its framed longitude span) and placeholders its six stat cards.
   var DEFAULT_STORM = { name: "Haiyan", season: 2013 };
@@ -838,6 +838,8 @@
         " — " + s.cat + " (" + Math.round(s.maxWind || 0) + "kt" +
         (s.ace != null ? " · ACE " + s.ace : "") + ")" +
         (s.live ? " · LIVE" : "") +
+        // a storm IBTrACS has no record of yet, drawn from JMA's own analyses (refresh_typhoon_archive.py)
+        (s.src === "JMA" ? " · JMA track" : "") +
         (s.hasRadius ? "" : " · no radius data") + "</option>";
     }).join("");
   }
@@ -1147,7 +1149,11 @@
         // the rest of the line is drawn from: CMA reports a 2-minute mean wind
         // where JTWC reports a 1-minute peak, so the kt figure beside it is
         // not measuring quite the same thing as its neighbours.
-        (p.src ? "<br><i>" + p.src + " fix</i>" : "");
+        (p.src ? "<br><i>" + p.src + " fix</i>" : "") +
+        // A storm IBTrACS has no record of yet (2026: Haishen, Kujira, Gaenari) is drawn from JMA's
+        // analyses: its kt figure is JMA's 10-minute wind divided by 0.88, not a JTWC 1-minute reading.
+        (currentStorm && currentStorm.src === "JMA"
+          ? "<br><i>JMA analysis" + (p.wj != null ? " · " + p.wj + " kt 10-min" : "") + "</i>" : "");
     });
 
     // Draw a stretch nobody fixed as a dashed bridge rather than as track.

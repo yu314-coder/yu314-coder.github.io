@@ -19,6 +19,19 @@ already had and diffing until every field of every point matched exactly.
     r3  USA_R34_{NE,SE,SW,NW}, nm -> km, whole km
     r5  USA_R50_*   r6  USA_R64_*
 
+Unnamed storms (2026-10-18, user: "it seems miss some typhoons" -- the 2013 system that crossed from the
+west Pacific to Somalia, JTWC 30W, which JMA never named): a storm IBTrACS lists without a name is kept
+when some agency's record has it at tropical-storm strength (34 kt) and it is not a spur or a second
+copy of a named storm (admit_unnamed). It is titled "Unnamed 30W" from its JTWC number, or "Unnamed".
+
+The current season (reconcile_jma): IBTrACS's provisional season is JTWC's, and JTWC does not track
+every storm JMA names -- in 2026 it had no record at all of Haishen, Kujira or Gaenari, and Champi was
+an unnamed depression. JMA's list and its operational analyses, read from NII's Digital Typhoon, fill
+that: an unnamed IBTrACS record JMA named takes JMA's name; a stretch of another storm's record that is
+JMA's storm is split off; a storm IBTrACS has no record of comes from JMA's own fixes, marked "src":
+"JMA". It retires itself when IBTrACS carries the storm (normally once JMA's best track is in, the
+following year).
+
 Chinese names are not in IBTrACS. They are carried over per storm id, and for a
 name new to a season taken from the most recent season in this archive that
 used it -- never invented.
@@ -354,6 +367,173 @@ def is_named(name):
     return (name or "").strip().upper() not in ("", "NOT_NAMED", "UNNAMED", "NONAME")
 
 
+# ---- unnamed storms ---------------------------------------------------------------------------------
+TS_KT = 34.0                    # tropical-storm strength, in any agency's record
+WIND_COLS = ("USA_WIND", "WMO_WIND", "TOKYO_WIND", "CMA_WIND", "HKO_WIND")
+
+
+def hav_km(a, b):
+    la1, lo1, la2, lo2 = (x * 3.141592653589793 / 180 for x in (a[0], a[1], b[0], b[1]))
+    import math
+    h = math.sin((la2 - la1) / 2) ** 2 + math.cos(la1) * math.cos(la2) * math.sin((lo2 - lo1) / 2) ** 2
+    return 2 * 6371.0 * math.asin(min(1.0, math.sqrt(h)))
+
+
+def named_context(by_storm):
+    """Every named storm's JTWC ids and fixes by time: what an unnamed record must not duplicate."""
+    atcf, fixes = set(), {}
+    for rows in by_storm.values():
+        if not is_named(rows[0].get("NAME")):
+            continue
+        atcf |= {(r.get("USA_ATCF_ID") or "").strip() for r in rows if (r.get("USA_ATCF_ID") or "").strip()}
+        for r in rows:
+            la, lo = num(r.get("LAT")), num(r.get("LON"))
+            if la is not None and lo is not None:
+                fixes.setdefault(r["ISO_TIME"], []).append((la, lo))
+    return atcf, fixes
+
+
+def admit_unnamed(rows, ctx):
+    """An unnamed record is a storm of its own when (1) some agency had it at 34 kt -- JMA rated 30W 2013 a
+    depression throughout, JTWC gave it 35 kt; (2) it is not a spur (IBTrACS's own mark for a piece of
+    another track: drop_spur_tracks only removes a spur when a main record of the SAME name survives,
+    which says nothing for "UNNAMED"); (3) it shares no JTWC id with a named storm; and (4) it does not
+    run alongside one, within 300 km at the same hour for half its fixes -- another agency's copy. Since
+    1945 that keeps 211 of 797 unnamed records; the rest never reached 34 kt."""
+    winds = [num(r.get(c)) for r in rows for c in WIND_COLS]
+    winds = [w for w in winds if w is not None]
+    if not winds or max(winds) < TS_KT:
+        return False
+    kinds = {(r.get("TRACK_TYPE") or "").strip() for r in rows}
+    if kinds and all(k.startswith("spur") for k in kinds):
+        return False
+    atcf, fixes = ctx
+    if {(r.get("USA_ATCF_ID") or "").strip() for r in rows} & atcf:
+        return False
+    near = 0
+    for r in rows:
+        la, lo = num(r.get("LAT")), num(r.get("LON"))
+        if la is not None and any(hav_km((la, lo), f) < 300 for f in fixes.get(r["ISO_TIME"], [])):
+            near += 1
+    return near < 0.5 * len(rows)
+
+
+def unnamed_title(rows):
+    """'Unnamed 30W' from JTWC's number (WP302013), else 'Unnamed'; the menu adds dates to tell repeats apart."""
+    for r in rows:
+        m = re.match(r"^WP(\d\d)\d{4}$", (r.get("USA_ATCF_ID") or "").strip())
+        if m:
+            return "Unnamed %dW" % int(m.group(1))
+    return "Unnamed"
+
+
+# ---- the current season against JMA's list (Digital Typhoon) ----------------------------------------
+DT_YEAR = "https://agora.ex.nii.ac.jp/digital-typhoon/year/wnp/%d.html.en"
+MATCH_KM, MATCH_MIN = 150.0, 3   # a record "is" a JMA storm where >= 3 common fixes sit within 150 km
+JUMP_KMH = 45.0                  # faster than a tropical cyclone moves: a seam between two systems
+
+
+def jma_list(season):
+    """[(number '2611', NAME)] JMA's named storms for a season, from Digital Typhoon's year page."""
+    import fill_track_gaps as F
+    page = F.get(DT_YEAR % season)
+    out = []
+    for row in re.findall(r"<tr[^>]*>(.*?)</tr>", page, re.S):
+        cells = [re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", c)).strip()
+                 for c in re.findall(r"<t[dh][^>]*>(.*?)</t[dh]>", row, re.S)]
+        if len(cells) >= 3 and re.match(r"^%d\d\d$" % season, cells[1]):
+            out.append((cells[1][2:], cells[2].strip().upper()))
+    return out
+
+
+def jma_sid(pts):
+    """An IBTrACS-style id from the first fix (year, day of year, hemisphere, lat, lon), so a JMA-only storm
+    keys like the rest -- and keys the same as IBTrACS will if its genesis matches."""
+    t, la, lo = pts[0][0], pts[0][1], pts[0][2]
+    return "%04d%03d%s%02d%03d" % (t.year, t.timetuple().tm_yday, "N" if la >= 0 else "S", round(abs(la)), round(lo % 360))
+
+
+def jma_points(pts):
+    """JMA's 3-hourly fixes as archive points. wj is JMA's own 10-minute wind; w, the 1-minute basis the
+    tracker's categories use, is that divided by 0.88 -- the conversion the CWA classes already apply the
+    other way -- and the storm is marked src "JMA" so the page can say so."""
+    base = pts[0][0]
+    out = []
+    for t, la, lo, pres, w10 in pts:
+        p = {"t": t.isoformat(), "h": (t - base).total_seconds() / 3600.0, "la": la, "lo": lo,
+             "w": round(w10 / 0.88, 1) if w10 else None, "p": pres}
+        if w10:
+            p["wj"] = w10
+        out.append(p)
+    return out
+
+
+def reconcile_jma(season, storms, by_storm, existing):
+    """Bring a provisional season in line with JMA's list. Changes `storms` ({sid: meta}) in place and
+    returns a log. Each JMA-named storm missing from it by name is, in order:
+      * an unnamed IBTrACS record that is that storm -> it takes JMA's name (Champi 2026 <- WP29);
+      * a stretch of another named record -> the stretch is cut off that record and the storm is built
+        from JMA's fixes (Kujira 2026: JTWC's WP13 ran from Kujira, west of Luzon, straight on into
+        Peilou -- a 650 km jump in 12 h -- and IBTrACS filed both as Peilou);
+      * otherwise JMA's own fixes (Haishen, Gaenari 2026).
+    If Digital Typhoon cannot be read, the JMA-sourced storms already in the archive are kept as they are."""
+    import fill_track_gaps as F
+    log = []
+    try:
+        jl = jma_list(season)
+    except Exception as e:  # noqa: BLE001
+        for sid, st in existing.items():
+            if st.get("src") == "JMA" and sid not in storms:
+                storms[sid] = {"name": st["name"], "season": season, "jma_pts": st["pts"], "src": "JMA",
+                               "jma": st.get("jma")}
+        return ["Digital Typhoon unavailable (%s): kept the archive's JMA storms" % e]
+    have = {m["name"].upper().replace(" ", "-") for m in storms.values()}
+    season_rows = {sid: rows for sid, rows in by_storm.items() if int(rows[0]["SEASON"]) == season}
+    for number, name in jl:
+        if name in have:
+            continue
+        try:
+            pts = F.jma_points(season, name, listing_hint=number)
+        except Exception as e:  # noqa: BLE001
+            log.append("%s (%s): no JMA track (%s)" % (name, number, e))
+            continue
+        if len(pts) < 2:
+            continue
+        at = {p[0].strftime("%Y-%m-%d %H:%M:%S"): p for p in pts}
+        covers = []
+        for sid, rows in season_rows.items():
+            d = [hav_km((at[r["ISO_TIME"]][1], at[r["ISO_TIME"]][2]), (num(r["LAT"]), num(r["LON"])))
+                 for r in rows if r["ISO_TIME"] in at and num(r.get("LAT")) is not None]
+            if len(d) >= MATCH_MIN and sorted(d)[len(d) // 2] < MATCH_KM:
+                covers.append(sid)
+        un = [s for s in covers if not is_named(season_rows[s][0].get("NAME"))]
+        if un:
+            sid = un[0]
+            storms[sid] = {"name": title(name), "season": season, "rows": season_rows[sid], "jma": number}
+            log.append("%s (%s): IBTrACS %s, unnamed there, takes JMA's name" % (title(name), number, sid))
+            continue
+        for sid in covers:
+            if sid not in storms:
+                continue
+            rows = storms[sid]["rows"]
+            last = max(r["ISO_TIME"] for r in rows if r["ISO_TIME"] in at)
+            if last >= rows[len(rows) // 2]["ISO_TIME"]:
+                continue                       # the storm is the record's middle or end: leave it alone
+            i = max(k for k, r in enumerate(rows) if r["ISO_TIME"] <= last) + 1
+            while i < len(rows):               # on to the seam: the first leg faster than a cyclone moves
+                a, b = rows[i - 1], rows[i]
+                hrs = (parse_time(b["ISO_TIME"]) - parse_time(a["ISO_TIME"])).total_seconds() / 3600.0
+                if hrs > 0 and hav_km((num(a["LAT"]), num(a["LON"])), (num(b["LAT"]), num(b["LON"]))) / hrs > JUMP_KMH:
+                    break
+                i += 1
+            storms[sid]["rows"] = rows[i:]
+            log.append("%s: %d fixes up to %s are JMA's %s -- cut off it" % (storms[sid]["name"], i, rows[i - 1]["ISO_TIME"], title(name)))
+        new = jma_sid(pts)
+        storms[new] = {"name": title(name), "season": season, "jma_pts": jma_points(pts), "src": "JMA", "jma": number}
+        log.append("%s (%s): %d JMA fixes, %s to %s, as %s" % (title(name), number, len(pts), pts[0][0], pts[-1][0], new))
+    return log
+
+
 def title(name):
     """IBTrACS shouts (YUN-YEUNG); the archive title-cases every part, including
     across hyphens -- Yun-Yeung, Kong-Rey, not Yun-yeung."""
@@ -390,19 +570,20 @@ def sync_archive_counts():
     shell = os.path.join(ROOT, "typhoon-tracks.html")
     if not os.path.exists(shell):
         return
-    storms = points = 0
+    storms = unnamed = points = 0
     for name in sorted(os.listdir(SEASONS)):
         if not name.endswith(".json"):
             continue
         with io.open(os.path.join(SEASONS, name), encoding="utf-8") as f:
             season = json.load(f)
-        storms += len(season)
+        storms += sum(1 for st in season.values() if not st.get("unnamed"))
+        unnamed += sum(1 for st in season.values() if st.get("unnamed"))
         points += sum(len(st["pts"]) for st in season.values())
     with io.open(shell, encoding="utf-8") as f:
         text = f.read()
-    new = re.sub(r"([\d,]+) named storms, ~[\d,]+ track observations",
-                 "{:,} named storms, ~{:,} track observations".format(
-                     storms, int(round(points, -3))),
+    new = re.sub(r"([\d,]+) named storms(?: and [\d,]+ unnamed tropical storms)?, ~[\d,]+ track observations",
+                 "{:,} named storms and {:,} unnamed tropical storms, ~{:,} track observations".format(
+                     storms, unnamed, int(round(points, -3))),
                  text)
     if new != text:
         with io.open(shell, "w", encoding="utf-8") as f:
@@ -530,19 +711,29 @@ def main():
     by_storm, absorbed = merge_regenerations(raw)
 
     zh = zh_lookup()
+    ctx = named_context(by_storm)
     seasons = {}
     for sid, srows in by_storm.items():
         srows.sort(key=lambda r: r["ISO_TIME"])
         season = int(srows[0]["SEASON"])
         if args.seasons and season not in args.seasons:
             continue
-        if not is_named(srows[0].get("NAME")):
+        if is_named(srows[0].get("NAME")):
+            meta = {"name": title(srows[0].get("NAME")), "season": season, "rows": srows}
+        elif season >= 1945 and admit_unnamed(srows, ctx):
+            meta = {"name": unnamed_title(srows), "season": season, "rows": srows, "unnamed": True}
+        else:
             continue
-        seasons.setdefault(season, {})[sid] = {
-            "name": title(srows[0].get("NAME")),
-            "season": season,
-            "rows": srows,
-        }
+        seasons.setdefault(season, {})[sid] = meta
+
+    # The provisional seasons against JMA's own list: this year and last (a season already holding JMA's
+    # best track finds every name and changes nothing).
+    this_year = dt.datetime.now(dt.timezone.utc).year
+    for season in sorted(seasons):
+        if season >= this_year - 1:
+            existing_s = load_json(os.path.join(SEASONS, "%d.json" % season), {})
+            for line in reconcile_jma(season, seasons[season], by_storm, existing_s):
+                print("season %d: JMA: %s" % (season, line))
 
     index = load_json(os.path.join(DATA, "index.json"), [])
     climo = load_json(os.path.join(DATA, "climatology.json"), {})
@@ -573,14 +764,21 @@ def main():
         existing = load_json(path, {})
         out = {}
         for sid, meta in sorted(seasons[season].items()):
-            pts = keep_gap_fills(build_points(meta["rows"]),
-                                 (existing.get(sid) or {}).get("pts") or [])
+            if meta.get("jma_pts"):
+                pts = meta["jma_pts"]
+            else:
+                pts = keep_gap_fills(build_points(meta["rows"]),
+                                     (existing.get(sid) or {}).get("pts") or [])
             # Never invent a Chinese name, and never churn an existing one:
             # a storm already in the archive keeps exactly what it had (null
             # included), and only a genuinely new storm gets looked up, from the
             # most recent season of this archive that used the same name.
-            if sid in existing:
+            # ...unless IBTrACS has renamed it since: WP13 2026 was filed as KUJIRA in August, took Kujira's 鯨魚,
+            # and kept it after IBTrACS renamed the record PEILOU.
+            if sid in existing and existing[sid].get("name") == meta["name"]:
                 name_zh = existing[sid].get("nameZh")
+            elif meta.get("unnamed"):
+                name_zh = ""
             else:
                 name_zh = zh.get(meta["name"].upper(), "")
             out[sid] = {
@@ -589,6 +787,12 @@ def main():
                 "season": season,
                 "pts": pts,
             }
+            if meta.get("unnamed"):
+                out[sid]["unnamed"] = True
+            if meta.get("src"):
+                out[sid]["src"] = meta["src"]       # the whole track is JMA's (reconcile_jma)
+            if meta.get("jma"):
+                out[sid]["jma"] = meta["jma"]       # JMA's number, where JMA named it but IBTrACS did not
             # The ids this record swallowed. NOAA's ACTIVE feed still publishes
             # the absorbed half under its own id for a while after the storm
             # ends, and the tracker overlays that feed on the shard -- without
@@ -624,9 +828,9 @@ def main():
                 dropped.remove(old)
                 continue
             o = existing[old]
-            for new in added:
+            for new in (added if o.get("src") != "JMA" else list(out)):
                 n = out[new]
-                if n["name"] != o["name"]:
+                if n["name"] != o["name"] or new == old:
                     continue
                 if n["pts"][0]["t"][:10] > o["pts"][-1]["t"][:10]:
                     continue
@@ -684,6 +888,8 @@ def main():
                 "sid": sid,
                 "name": storm["name"],
                 **({"was": storm["was"]} if storm.get("was") else {}),
+                **({"unnamed": True} if storm.get("unnamed") else {}),
+                **({"src": storm["src"]} if storm.get("src") else {}),
                 "nameZh": storm["nameZh"],
                 "season": season,
                 "start": pts[0]["t"],
@@ -695,11 +901,17 @@ def main():
 
         # Climatology carries real NOAA CPC ONI values — recompute the counts
         # around them, never the ENSO fields.
+        # The chart is "named storms per season": unnamed storms are not counted, and ACE and the strongest
+        # storm stay on the JTWC basis, so a storm only JMA tracked is counted but adds no ACE.
+        named_ = [s for s in out.values() if not s.get("unnamed")]
+        if not named_ or (str(season) not in climo and season < 1985):
+            continue                           # the chart starts in 1985, where the ONI values do
         entry = climo.get(str(season), {})
-        strongest = max(out.values(), key=lambda s: max([p["w"] for p in s["pts"] if p.get("w") is not None] or [0]))
+        basis = [s for s in named_ if not s.get("src")] or named_
+        strongest = max(basis, key=lambda s: max([p["w"] for p in s["pts"] if p.get("w") is not None] or [0]))
         sw = max([p["w"] for p in strongest["pts"] if p.get("w") is not None] or [0])
-        entry["count"] = len(out)
-        entry["ace"] = round(sum(ace_of(s["pts"]) for s in out.values()), 1)
+        entry["count"] = len(named_)
+        entry["ace"] = round(sum(ace_of(s["pts"]) for s in basis), 1)
         entry["strongest"] = {"name": strongest["name"], "nameZh": strongest["nameZh"], "maxWind": sw}
         climo[str(season)] = entry
 

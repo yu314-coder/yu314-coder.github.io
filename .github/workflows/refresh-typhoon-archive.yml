@@ -62,8 +62,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # The script also bumps the tracker's ?v= data token.
-          git add assets/data/typhoons assets/typhoon-tracker/app.js assets/typhoon-tracker/index.html
+          # The script also bumps the tracker's ?v= data token, and on typhoon-tracks.html the iframe's token and
+          # the archive's storm counts -- left out, a browser holding the old page loads the old tracker and data.
+          git add assets/data/typhoons assets/typhoon-tracker/app.js assets/typhoon-tracker/index.html typhoon-tracks.html
           if git diff --staged --quiet; then
             echo "archive already current"
             exit 0
@@ -89,7 +90,7 @@ jobs:
             # history hindcasts". --mixed resets the index to main and leaves
             # our files in the working tree, so the next add stages only ours.
             git reset --mixed origin/main
-            git add assets/data/typhoons assets/typhoon-tracker/app.js assets/typhoon-tracker/index.html
+            git add assets/data/typhoons assets/typhoon-tracker/app.js assets/typhoon-tracker/index.html typhoon-tracks.html
             if git diff --staged --quiet; then
               echo "main already has an equivalent version"
               exit 0
