@@ -7,7 +7,7 @@
   "use strict";
 
   var DATA_BASE = "../data/typhoons/";
-  var DATA_V = "?v=d91e6c43b";   // bump when the season/index JSON is regenerated (e.g. RMW added)
+  var DATA_V = "?v=d783d9107";   // bump when the season/index JSON is regenerated (e.g. RMW added)
   // Changing the cold-load storm? index.html pre-sizes the phone map for this
   // one (its framed longitude span) and placeholders its six stat cards.
   var DEFAULT_STORM = { name: "Haiyan", season: 2013 };
