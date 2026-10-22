@@ -171,7 +171,7 @@ yu314-coder.github.io/
 │   │                             #   arcade.js (the hidden arcade, fetched only when opened),
 │   │                             #   stats-core.js (store / PyPI charts)
 │   ├── fonts/                    # self-hosted WOFF2 + each family's OFL licence
-│   ├── vendor/bootstrap-5.3.3/   # Bootstrap CSS + JS bundle, served from here
+│   ├── vendor/bootstrap-5.3.3/   # Bootstrap CSS + JS bundle; pages link the used-rules subset
 │   ├── typhoon-tracker/          # the explorer (index.html · app.js · styles.css)
 │   │   └── model/                #   Trackformer 1.1 live forecast + history hindcasts
 │   ├── data/typhoons/            # IBTrACS season shards, index, climatology
@@ -191,7 +191,8 @@ yu314-coder.github.io/
 ## Tech stack
 
 - Static HTML / CSS / JavaScript on **GitHub Pages** — no build step, no framework, no server of my own.
-- **Bootstrap 5.3.3**, served from this repository. **Plotly 2.35.2** (geo and basic bundles, from its CDN) for the
+- **Bootstrap 5.3.3**, served from this repository and trimmed to the rules the pages use (31 KB instead of 227 KB;
+  `scripts/purgecss.bootstrap.cjs`, rebuilt by a workflow on every push that touches a page). **Plotly 2.35.2** (geo and basic bundles, from its CDN) for the
   typhoon map and the PyPI iframe charts. Hand-drawn SVG for the store and PyPI dashboards.
 - **Fonts** — Space Grotesk, Sora, JetBrains Mono, Source Serif 4 (SIL OFL), self-hosted as variable WOFF2; the
   first screen needs nothing from another host. See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

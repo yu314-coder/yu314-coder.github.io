@@ -1,0 +1,56 @@
+name: Rebuild Bootstrap subset
+
+# The pages link bootstrap.site.min.css, the part of Bootstrap they use
+# (scripts/purgecss.bootstrap.cjs). A page edit that starts using a Bootstrap
+# class missing from it would render unstyled, so every push that touches a page
+# or script rebuilds the subset and commits it if it changed.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "*.html"
+      - "assets/js/**"
+      - "assets/*-tracker/**.js"
+      - "assets/*-tracker/*.html"
+      - "assets/vendor/bootstrap-5.3.3/**"
+      - "scripts/purgecss.bootstrap.cjs"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bootstrap-subset
+  cancel-in-progress: false
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Rebuild and commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for attempt in 1 2 3; do
+            npx -y purgecss@6.0.0 --config scripts/purgecss.bootstrap.cjs
+            git add assets/vendor/bootstrap-5.3.3/bootstrap.site.min.css
+            if git diff --cached --quiet; then
+              echo "Bootstrap subset is current."
+              exit 0
+            fi
+            git commit -m "chore: rebuild Bootstrap subset"
+            if git push; then
+              exit 0
+            fi
+            # Scheduled data jobs commit to main too; rebuild on top of theirs.
+            echo "main moved; rebuilding on top of it (attempt $attempt)"
+            git fetch origin main
+            git reset --hard origin/main
+          done
+          echo "::warning title=Could not push::main kept moving; the next page push rebuilds it anyway"

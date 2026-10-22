@@ -15,7 +15,9 @@ Both were loaded from those CDNs before; the files are unmodified.
 
 `assets/vendor/bootstrap-5.3.3/` — `bootstrap.min.css` and
 `bootstrap.bundle.min.js` (which includes Popper), byte-identical to the
-jsDelivr copies the pages used to load (same SRI hashes). MIT licence,
+jsDelivr copies the pages used to load (same SRI hashes). The pages link
+`bootstrap.site.min.css`, which is `bootstrap.min.css` with the rules no page
+uses removed (scripts/purgecss.bootstrap.cjs); its licence banner is kept. MIT licence,
 © 2011–2024 The Bootstrap Authors; the full text is in `LICENSE` beside them.
 Popper is © 2019 Federico Zivolo, MIT.
 
