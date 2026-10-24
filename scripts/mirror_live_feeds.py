@@ -336,38 +336,54 @@ def map_lab_ids(old, now):
 
 
 def mirror_official():
-    """NCDR's official forecasts for the storms active now (ncdr_official.py)."""
+    """Official forecasts for the storms active now: NCDR's (ncdr_official.py), with
+    the strength JMA, JTWC and CMA publish themselves added to their issues."""
     prev = {}
     if os.path.exists(ncdr_official.LIVE):
         with io.open(ncdr_official.LIVE, encoding="utf-8") as f:
             prev = json.load(f)
+    js = None
     try:
         summary = ncdr_official.fetch(summary=True)
         if prev and summary.get("agency_time") == prev.get("agency_time"):
             print("NCDR: no new issue")
-            return
-        js = ncdr_official.fetch()
+        else:
+            js = ncdr_official.fetch()
     except Exception as exc:
         print("NCDR failed (%s); keeping the last copy" % exc)
-        return
-    parsed = ncdr_official.parse(js)
-    now = datetime.datetime.now(datetime.timezone.utc)
-    tracks = ncdr_official.archived_tracks([str(now.year - 1), str(now.year)])
-    try:   # a storm a day or two old is in NCEI's active list before it is in the archive
-        for sid, pts in active_tracks().items():
-            tracks.setdefault(sid, ("", [(datetime.datetime.utcfromtimestamp(ms / 1000), la, lo) for ms, la, lo in pts]))
-    except Exception as exc:
-        print("NCEI active csv failed (%s)" % exc)
     by_sid, lost = {}, {}
-    for key, st in parsed.items():
-        sid = ncdr_official.match(st, tracks)
-        (by_sid if sid else lost)[sid or key] = st
-    ncdr_official.save(by_sid)
-    live = {"agency_time": js.get("agency_time") or {},
-            "storms": dict([(sid, ncdr_official.live_entry(st, sid)) for sid, st in by_sid.items()] +
-                           [("x" + key, ncdr_official.live_entry(st)) for key, st in lost.items()])}
+    if js is not None:
+        now = datetime.datetime.now(datetime.timezone.utc)
+        tracks = ncdr_official.archived_tracks([str(now.year - 1), str(now.year)])
+        try:   # a storm a day or two old is in NCEI's active list before it is in the archive
+            for sid, pts in active_tracks().items():
+                tracks.setdefault(sid, ("", [(datetime.datetime.fromtimestamp(ms / 1000, datetime.timezone.utc)
+                                              .replace(tzinfo=None), la, lo) for ms, la, lo in pts]))
+        except Exception as exc:
+            print("NCEI active csv failed (%s)" % exc)
+        for key, st in ncdr_official.parse(js).items():
+            sid = ncdr_official.match(st, tracks)
+            (by_sid if sid else lost)[sid or key] = st
+    else:
+        # Nothing new from NCDR, but the agencies' own feeds may have moved: the
+        # storms NCDR showed last time, from their files, to file their issues under.
+        for key in prev.get("storms") or {}:
+            st = ncdr_official.load_stored(key) if SID_RE.match(key) else None
+            if st:
+                by_sid[key] = st
+    pool = dict(by_sid)
+    pool.update({"x" + key: st for key, st in lost.items()})
+    print("own feeds: %d issue(s) placed" % ncdr_official.attach_own(pool, ncdr_official.own_issues()))
+    ncdr_official.save({sid: pool[sid] for sid in by_sid})
+    storms = {sid: ncdr_official.live_entry(ncdr_official.load_stored(sid) or pool[sid], sid) for sid in by_sid}
+    if js is not None:
+        storms.update({key: ncdr_official.live_entry(st) for key, st in pool.items() if key.startswith("x")})
+    else:
+        storms.update({k: v for k, v in (prev.get("storms") or {}).items() if k.startswith("x")})
+    live = {"agency_time": (js or prev).get("agency_time") or {}, "storms": storms}
     ncdr_official.write_if_changed(ncdr_official.LIVE, ncdr_official.dumps(live))
-    print("NCDR: %s" % ", ".join("%s %s" % (k, "/".join(sorted(v["fc"]))) for k, v in sorted(live["storms"].items())) or "no storms")
+    print("official: %s" % (", ".join("%s %s" % (k, "/".join(sorted(v["fc"]))) for k, v in sorted(storms.items()))
+                            or "no storms"))
 
 
 def main():

@@ -65,10 +65,10 @@ TD_NAME = re.compile(r"^(TD|T\.?D\.?)\s*\d*$", re.I)
 MATCH_KM = 150        # mean distance from CWA's track to an archived storm's, over shared times
 
 
-def get(url, tries=3):
+def get(url, tries=3, referer=None):
     for i in range(tries):
         try:
-            req = urllib.request.Request(url, headers=UA)
+            req = urllib.request.Request(url, headers=dict(UA, **({"Referer": referer} if referer else {})))
             with urllib.request.urlopen(req, timeout=60) as r:
                 return r.read().decode("utf-8", "replace")
         except Exception as exc:
@@ -153,6 +153,24 @@ def parse(js):
     return out
 
 
+def _merge_issue(old, new):
+    """One issue seen twice: positions from the newer copy, strength from whichever has it.
+
+    NCDR re-sends an issue without strength that an agency's own feed already filled
+    in (see own_issues), and an agency's own copy can carry leads NCDR's lacks."""
+    if not old:
+        return new
+    by_h = {p[0]: p for p in old}
+    out = []
+    for p in new:
+        q = by_h.get(p[0])
+        if (len(p) < 4 or p[3] is None) and q is not None and len(q) > 3 and q[3] is not None:
+            p = p[:3] + q[3:]
+        out.append(p)
+    have = {p[0] for p in out}
+    return sorted(out + [q for q in old if q[0] not in have], key=lambda p: p[0])
+
+
 def merge(into, parsed):
     """Fold one parsed map into a {key: storm} store. Later maps win on equal stamps."""
     for key, st in parsed.items():
@@ -162,7 +180,9 @@ def merge(into, parsed):
             cur["name"], cur["tyno"] = st["name"], st["tyno"] or cur["tyno"]
         cur["track"].update(st["track"])
         for ag, issues in st["fc"].items():
-            cur["fc"].setdefault(ag, {}).update(issues)
+            have = cur["fc"].setdefault(ag, {})
+            for issue, pts in issues.items():
+                have[issue] = _merge_issue(have.get(issue), pts)
     return into
 
 
@@ -292,7 +312,7 @@ def save(store):
     for sid, st in store.items():
         old = load_stored(sid)
         if old:
-            st = merge(old, {sid: st})[sid]
+            st = merge({sid: old}, {sid: st})[sid]
         if write_if_changed(os.path.join(OUT_DIR, storm_rel(sid) + ".json"), dumps(to_file(st))):
             written += 1
         index[sid] = storm_rel(sid)
@@ -309,6 +329,177 @@ def live_entry(st, sid=None):
     at = track[-1][1][:2] if track else next((v[1][0][1:3] for v in fc.values() if v[1]), None)
     return {"name": st["name"], "sid": sid, "at": at,
             "fix": [track[-1][0]] + track[-1][1] if track else None, "fc": fc}
+
+
+# --- strength from the agencies' own feeds ------------------------------------
+#
+# NCDR draws JTWC, JMA, KMA, CMA and HKO as tracks only. Three of them publish
+# their strength themselves while a storm is active, so each mirror run reads
+# them and puts it on the same issue (agency, issue time, lead), adding the
+# issue if NCDR has not shown it:
+#   JMA   bosai specifications.json            10-minute wind, kt; pressure
+#   JTWC  the warning text (wpNNYYweb.txt)     1-minute wind, kt; pressure at lead 0
+#   CMA   typhoon.nmc.cn view_<id>             2-minute wind, m/s; pressure -- every
+#                                              issue of a storm still active
+# The wind is stored as the agency gives it; the tracker knows each one's
+# averaging. Point rows are [lead h, lat, lon, wind, hPa]. Only live storms: none
+# of the three keeps forecasts once a storm is over, and KMA and HKO publish none
+# that can be read without a key.
+JMA_BOSAI = "https://www.jma.go.jp/bosai/typhoon/data/"
+JTWC_RSS = "https://www.metoc.navy.mil/jtwc/rss/jtwc.rss"
+JTWC_TXT = "https://www.metoc.navy.mil/jtwc/products/%sweb.txt"
+CMA_LIST = "http://typhoon.nmc.cn/weatherservice/typhoon/jsons/list_%d"
+CMA_VIEW = "http://typhoon.nmc.cn/weatherservice/typhoon/jsons/view_%s"
+CMA_REF = "http://typhoon.nmc.cn/web.html"
+OWN_MATCH_KM = 300
+
+
+def _int(v):
+    try:
+        return int(float(v))
+    except (TypeError, ValueError):
+        return None
+
+
+def _jma_issues(now):
+    out = []
+    for t in json.loads(get(JMA_BOSAI + "targetTc.json")) or []:
+        tc = t.get("tropicalCyclone")
+        if not tc:
+            continue
+        rows, issue = [], None
+        for o in json.loads(get(JMA_BOSAI + tc + "/specifications.json"))[1:]:
+            h, pos = o.get("advancedHours"), (o.get("position") or {}).get("deg")
+            vt = (o.get("validtime") or {}).get("UTC")
+            if h is None or not pos or not vt or h % 6:     # +1/+2/+5 h are estimates, not forecasts
+                continue
+            if h == 0:
+                issue = vt[:13].replace("-", "").replace("T", "")
+            kt = _int(((o.get("maximumWind") or {}).get("sustained") or {}).get("kt"))
+            rows.append([h, round(pos[0], 2), round(pos[1] % 360, 2), kt or None, _int(o.get("pressure"))])
+        if issue and rows[0][0] == 0:
+            out.append(("jma", issue, rows))
+    return out
+
+
+JTWC_POS = re.compile(r"^\s*(\d{2})(\d{2})(\d{2})Z\s+---\s+(?:NEAR\s+)?(\d+\.\d)([NS])\s+(\d+\.\d)([EW])")
+JTWC_WIND = re.compile(r"MAX SUSTAINED WINDS - (\d+) KT")
+JTWC_PRES = re.compile(r"MINIMUM CENTRAL PRESSURE AT \d{6}Z IS (\d+) MB")
+
+
+def _day_hour(now, dd, hh):
+    """A DDHH stamp in a JTWC message, in the month it was sent."""
+    t = now.replace(day=1, hour=hh, minute=0, second=0, microsecond=0)
+    if dd > now.day + 1:                         # last month's warning read early in this one
+        t = (t - datetime.timedelta(days=1)).replace(day=1)
+    return t.replace(day=dd)
+
+
+def _after(t0, dd, hh):
+    """A forecast's DDHH stamp: the first such time at or after the issue (it may be next month)."""
+    for months in (0, 1):
+        y, mo = t0.year + (t0.month - 1 + months) // 12, (t0.month - 1 + months) % 12 + 1
+        try:
+            t = t0.replace(year=y, month=mo, day=dd, hour=hh)
+        except ValueError:          # no such day this month
+            continue
+        if t >= t0:
+            return t
+    return None
+
+
+def _jtwc_parse(txt, now):
+    pts = []
+    for line in txt.splitlines():
+        m = JTWC_POS.match(line)
+        if m:
+            dd, hh = int(m.group(1)), int(m.group(2))
+            t = _after(pts[0][0], dd, hh) if pts else _day_hour(now, dd, hh)
+            if t is None:
+                continue
+            la = float(m.group(4)) * (1 if m.group(5) == "N" else -1)
+            lo = float(m.group(6)) if m.group(7) == "E" else 360 - float(m.group(6))
+            pts.append([t, round(la, 2), round(lo % 360, 2), None, None])
+            continue
+        m = JTWC_WIND.search(line)
+        if m and pts and pts[-1][3] is None:
+            pts[-1][3] = int(m.group(1))
+    if not pts:
+        return None
+    m = JTWC_PRES.search(txt)
+    if m:
+        pts[0][4] = int(m.group(1))
+    t0 = pts[0][0]
+    return t0.strftime("%Y%m%d%H"), [[int((p[0] - t0).total_seconds() // 3600)] + p[1:] for p in pts]
+
+
+def _jtwc_issues(now):
+    out = []
+    for prod in sorted(set(re.findall(r"products/(wp\d{4})web\.txt", get(JTWC_RSS)))):
+        got = _jtwc_parse(get(JTWC_TXT % prod).replace("\r", ""), now)
+        if got:
+            out.append(("jtwc",) + got)
+    return out
+
+
+def _jsonp(text):
+    return json.loads(text[text.index("(") + 1:text.rindex(")")])
+
+
+def _cma_issues(now):
+    out = []
+    for season in sorted({now.year, (now - datetime.timedelta(days=20)).year}):
+        for row in _jsonp(get(CMA_LIST % season, referer=CMA_REF)).get("typhoonList") or []:
+            if len(row) < 8 or row[7] == "stop":
+                continue
+            for p in _jsonp(get(CMA_VIEW % row[0], referer=CMA_REF))["typhoon"][8]:
+                fc = p[11].get("BABJ") if len(p) > 11 and isinstance(p[11], dict) else None
+                if not fc or int(p[1][8:10]) % 3:    # NCDR's cadence; CMA adds hourly issues near landfall
+                    continue
+                pts = [[0, round(p[5], 2), round(p[4] % 360, 2), _num(p[7]), _num(p[6])]]
+                pts += [[int(f[0]), round(f[3], 2), round(f[2] % 360, 2), _num(f[5]), _num(f[4])] for f in fc]
+                out.append(("cma", p[1][:10], pts))
+    return out
+
+
+def own_issues(now=None):
+    """[(agency, issue stamp, rows)] from the three feeds, each best-effort."""
+    now = now or datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None)
+    out = []
+    for name, fn in (("JMA", _jma_issues), ("JTWC", _jtwc_issues), ("CMA", _cma_issues)):
+        try:
+            got = fn(now)
+            out += got
+            print("%s: %d issue(s) with strength" % (name, len(got)))
+        except Exception as exc:
+            print("%s strength failed (%s)" % (name, exc))
+    return out
+
+
+def _storm_at(st, t):
+    """Where CWA had a storm at t (interpolated), or where an issue at t started it."""
+    track = sorted((stamp_dt(s), r[0], r[1]) for s, r in st["track"].items())
+    q = _at(track, t)
+    if q:
+        return q
+    s = t.strftime("%Y%m%d%H")
+    return next(((v[s][0][1], v[s][0][2]) for v in st["fc"].values() if s in v and v[s]), None)
+
+
+def attach_own(pool, issues):
+    """File each own-feed issue under the storm whose track it starts on. Returns how many."""
+    n = 0
+    for ag, issue, rows in issues:
+        t, best, best_km = stamp_dt(issue), None, OWN_MATCH_KM
+        for key, st in pool.items():
+            q = _storm_at(st, t)
+            d = km(rows[0][1], rows[0][2], q[0], q[1]) if q else None
+            if d is not None and d < best_km:
+                best, best_km = key, d
+        if best:
+            merge(pool, {best: {"name": "", "tyno": None, "track": {}, "fc": {ag: {issue: rows}}}})
+            n += 1
+    return n
 
 
 # --- the raw cache the backfill fetches into ----------------------------------

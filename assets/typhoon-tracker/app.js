@@ -1623,6 +1623,12 @@
     { k: "cma", name: "CMA", full: "China Meteorological Administration", color: "#f472b6" },
     { k: "hko", name: "HKO", full: "Hong Kong Observatory", color: "#d4a373" }
   ];
+  // Each agency's wind as it publishes it (scripts/ncdr_official.py): the factor to
+  // a 10-minute m/s for the scales, and how to print it. CMA's 2-minute wind is
+  // read as given, since CMA applies the same m/s thresholds to it.
+  var OFF_WIND = { cwa: [1, " m/s 10-min"], jma: [KT_TO_MS, " kt 10-min"],
+                   jtwc: [KT_TO_MS * ONE_MIN_TO_TEN_MIN, " kt 1-min"], cma: [1, " m/s 2-min"] };
+  function offMs10(k, w) { return w == null || !OFF_WIND[k] ? null : w * OFF_WIND[k][0]; }
   var OFF_STALE_H = 12;       // a forecast older than this at the playhead (or now, live) is not shown
   var OFF_LIVE_TTL_MS = 10 * 60 * 1000;
   var OFF_MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -1694,8 +1700,8 @@
       for (var i = 0; i < lat.length; i++) {
         var q = proj([lon[i], lat[i]]);
         if (!q) continue;
-        // CWA's points carry its 10-minute wind: filled by category, ringed in its colour
-        var cat = catOfMs10(o.pts[i][3])[1];
+        // a point with the agency's wind is filled by category, ringed in its colour
+        var cat = catOfMs10(offMs10(o.a.k, o.pts[i][3]))[1];
         out += '<circle cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="' + (cat ? 3.8 : i ? 3 : 2.4) +
           '" fill="' + (cat || o.a.color) + '" stroke="' + (cat ? o.a.color : "rgba(10,14,28,0.8)") +
           '" stroke-width="' + (cat ? 1.6 : 1) + '"/>';
@@ -1719,25 +1725,25 @@
     drawDyn();
   }
   function offStatus(text) { if (els.offStatus && els.offStatus.textContent !== text) els.offStatus.textContent = text; }
-  // CWA's strength where its forecast shows: its 10-minute wind now, on the scale
-  // picked, and the forecast's peak when that comes later.
-  function offCwaNote(o) {
-    var p = o.pts[0];
-    if (!p || p[3] == null) return "";
-    var pk = p;
-    o.pts.forEach(function (x) { if (x[3] != null && x[3] > pk[3]) pk = x; });
-    var txt = ": " + p[3] + " m/s" + (p[4] ? ", " + p[4] + " hPa" : "") + " (" + catOfMs10(p[3])[0] + ")";
-    if (pk !== p) txt += ", peak " + pk[3] + " m/s at +" + pk[0] + " h (" + catOfMs10(pk[3])[0] + ")";
+  // An agency's strength where its forecast shows: its wind at issue, in its own
+  // units with the class on the scale picked, and the forecast's peak if later.
+  function offStrengthNote(o) {
+    var u = OFF_WIND[o.a.k], p = o.pts[0], pk = null;
+    if (!u) return "";
+    o.pts.forEach(function (x) { if (x[3] != null && (!pk || x[3] > pk[3])) pk = x; });
+    if (!pk) return "";
+    function w(x) { return x[3] + u[1] + " (" + catOfMs10(offMs10(o.a.k, x[3]))[0] + ")"; }
+    var txt = p[3] != null ? ": " + w(p) + (p[4] ? ", " + p[4] + " hPa" : "") : "";
+    if (pk !== p && pk[3] > (p[3] || 0)) txt += (txt ? ", peak " : ": peak ") + w(pk) + " at +" + pk[0] + " h";
     return txt;
   }
   function offListText(list) {
     var bare = list.filter(function (o) { return !o.pts.some(function (x) { return x[3] != null; }); });
     return list.map(function (o) {
       var end = o.pts.length ? o.pts[o.pts.length - 1][0] : 0;
-      return o.a.name + " " + offStampText(o.issue) + offCwaNote(o) + ", to +" + end + " h";
+      return o.a.name + " " + offStampText(o.issue) + offStrengthNote(o) + ", to +" + end + " h";
     }).join(" · ") + (bare.length
-      ? ". " + bare.map(function (o) { return o.a.name; }).join(", ") + ": track only (NCDR publishes no strength for "
-        + (bare.length > 1 ? "them" : "it") + ")."
+      ? ". " + bare.map(function (o) { return o.a.name; }).join(", ") + ": track only, no strength on record."
       : "");
   }
   function offNothingText() {
