@@ -40,7 +40,14 @@ best track (ATCF b-deck via UCAR/RAL, mirrored into `assets/data/typhoons/live/`
 force 8/10/12 wind radii, a time scrubber that animates position, wind, pressure, Dvorak T and radii together, season
 overviews, ACE, rapid-intensification detection and ENSO (NOAA CPC ONI) badges. Two classification standards:
 Saffir–Simpson-style on 1-minute winds, and Taiwan **CWA** on its official 10-minute thresholds applied to JMA's
-10-minute wind analysis.
+10-minute wind analysis. Where CWA fixed a storm every hour (its warnings near Taiwan), the track runs through CWA's
+hourly positions instead of IBTrACS's 3-hourly ones, so Gaemi 2024's loop off Hualien draws as a loop.
+
+**Official forecasts (CWA, JMA, JTWC, KMA, CMA, HKO)** — as Taiwan's NCDR draws them on its
+[WATCH map](https://watch.ncdr.nat.gov.tw/watch_tracks_pro), copied here because NCDR sends no CORS header
+(`scripts/ncdr_official.py`). Live mode shows every agency's current forecast beside JMA's; the history view replays
+each agency's latest forecast under the playhead, beside Trackformer 1.2, for storms since 2016 (CWA only in 2016).
+Each agency can be switched on and off.
 
 **Forecast (live JMA)** — JMA's 5-day forecasts fetched in the browser, the past leg enriched with Digital Typhoon
 (NII) wind radii and UW-CIMSS ADT Dvorak numbers (mirrored, matched to the JMA storm by position), and joined to the
@@ -148,11 +155,13 @@ Current versions are on the site; the snapshots refresh them hourly.
 |----------|------|--------------|
 | `refresh-typhoon-archive.yml` | daily | Rebuilds the recent IBTrACS seasons and bumps the tracker's cache tokens |
 | `refresh-typhoon-forecast.yml` | every 20 min (GitHub runs it every few hours in practice) | Runs Trackformer 1.1 on the live JMA storm and commits the fallback forecast |
-| `mirror-live-feeds.yml` | every 30 min (about hourly in practice) | Mirrors active storms' JTWC b-decks and CIMSS ADT histories, which browsers can't fetch (no CORS), and maps Weather Lab storm ids filed under JMA numbers to IBTrACS ids |
+| `mirror-live-feeds.yml` | every 30 min (about hourly in practice) | Mirrors active storms' JTWC b-decks and CIMSS ADT histories and NCDR's official forecasts, which browsers can't fetch (no CORS), and maps Weather Lab storm ids filed under JMA numbers to IBTrACS ids |
+| `backfill-ncdr-official.yml` | manual | Fills in past official forecasts and CWA tracks from NCDR (2016 on), one season per job, and draws tracks through CWA's hourly fixes |
 | `build-trackformer11-history.yml` | hourly schedule | Adds Trackformer 1.1 history hindcasts (CFSR/CDAS reanalysis, plus recovered live runs) |
 | `backfill-tf11-gfs.yml` | manual | Batch hindcasts from the GFS archive, one commit |
 | `refresh-appstore-stats.yml` | hourly, and after the other refreshes | App Store sales and analytics, app versions on both stores, PyPI versions |
 | `refresh-pypi-stats.yml` | twice a day | pypistats snapshots for my packages |
+| `bootstrap-subset.yml` | on pushes that touch a page | Rebuilds the Bootstrap subset the pages link and commits it if a new class came into use |
 | `refresh-data.yml` | every 30 min on weekdays (about hourly in practice) | Refreshes the home page's unlisted watchlist snapshot (`assets/data/sx.txt`); commits only when a quote moved |
 | `bench-autopilot.yml` | daily, and on arcade changes | Plays the home-page arcade headless to check its autopilot still reaches a floor level |
 | `train-arcade-policy.yml` | weekly | Trains the arcade's aiming policy; commits it only if it beats the incumbent on held-out seeds |
@@ -197,7 +206,7 @@ yu314-coder.github.io/
 - **Fonts** — Space Grotesk, Sora, JetBrains Mono, Source Serif 4 (SIL OFL), self-hosted as variable WOFF2; the
   first screen needs nothing from another host. See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 - **Live sources** — NOAA NCEI IBTrACS (archive and active storms), JTWC b-deck via UCAR/RAL, JMA *bosai* forecasts,
-  Digital Typhoon (NII), UW-CIMSS ADT, NOAA CPC ONI, the Trackformer Weather Lab API, App Store Connect,
+  NCDR WATCH (official forecasts and CWA tracks), Digital Typhoon (NII), UW-CIMSS ADT, NOAA CPC ONI, the Trackformer Weather Lab API, App Store Connect,
   Microsoft Partner Center exports, pypistats.org and ClickPy ClickHouse.
 
 Every figure on the data pages traces to a named source.

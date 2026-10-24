@@ -1,0 +1,99 @@
+name: Backfill official forecasts (NCDR)
+
+# Fills assets/data/typhoons/official/ with every agency's past forecasts (CWA,
+# JTWC, JMA, KMA, CMA, HKO) and CWA's hourly track from NCDR's WATCH map, which
+# keeps them back to 2016 (scripts/backfill_ncdr_official.py), then draws each
+# storm through CWA's hourly fixes near Taiwan (refresh_typhoon_archive.py
+# --cwa-only: Gaemi 2024's loop off Hualien). The live mirror keeps the files
+# growing from here on (mirror-live-feeds.yml); this is for the past, run by hand.
+#
+# One season per job and never two at once, at a request every couple of
+# seconds: NCDR is a public service. Each season commits when it finishes. The
+# raw answers are cached between runs, so a rerun resumes where one stopped.
+on:
+  workflow_dispatch:
+    inputs:
+      seasons:
+        description: "Seasons, space-separated (NCDR's record starts in 2016)"
+        default: "2024 2025 2026 2023 2022 2021 2020 2019 2018 2017 2016"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: backfill-ncdr-official
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      seasons: ${{ steps.p.outputs.seasons }}
+    steps:
+      - id: p
+        env:
+          SEASONS: ${{ inputs.seasons }}
+        run: |
+          python3 -c 'import json, os, re; print("seasons=" + json.dumps([s for s in os.environ["SEASONS"].split() if re.fullmatch(r"20\d\d", s)]))' >> "$GITHUB_OUTPUT"
+
+  backfill:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        season: ${{ fromJson(needs.plan.outputs.seasons) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ncdr-official/${{ matrix.season }}
+          key: ncdr-official-${{ matrix.season }}-${{ github.run_id }}
+          restore-keys: ncdr-official-${{ matrix.season }}-
+
+      - name: Fetch and build ${{ matrix.season }}
+        run: python scripts/backfill_ncdr_official.py --seasons ${{ matrix.season }} --pause 1.5
+
+      - name: Draw tracks through CWA's hourly fixes
+        run: python scripts/refresh_typhoon_archive.py --cwa-only
+
+      - name: Commit if changed
+        env:
+          SEASON: ${{ matrix.season }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          F="assets/data/typhoons/official assets/data/typhoons/seasons assets/typhoon-tracker typhoon-tracks.html"
+          git add $F
+          if git diff --staged --quiet; then
+            echo "nothing new for $SEASON"
+            exit 0
+          fi
+          git commit -m "Backfill official forecasts: $SEASON"
+          # The storm files merge, so on a moved main they are rebuilt on top of
+          # main's copies from the cache, not replayed over them: the live mirror
+          # may have added an issue to a current storm in the meantime.
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "main moved; rebuilding on top of it (attempt $attempt)"
+            git fetch origin main
+            git reset --hard origin/main
+            python scripts/backfill_ncdr_official.py --seasons "$SEASON" --build-only
+            python scripts/refresh_typhoon_archive.py --cwa-only
+            git add $F
+            if git diff --staged --quiet; then
+              echo "main already has this"
+              exit 0
+            fi
+            git commit -m "Backfill official forecasts: $SEASON"
+          done
+          echo "::warning title=Could not push::main kept moving; run this season again"

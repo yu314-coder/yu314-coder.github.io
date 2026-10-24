@@ -11,6 +11,10 @@ name: Mirror live storm feeds
 # so the history view finds their runs. One small catalog request per run; a
 # new id costs up to three forecast reads, once.
 #
+# And it copies NCDR's official forecasts (CWA, JTWC, JMA, KMA, CMA, HKO) with
+# CWA's track into live/official.json and assets/data/typhoons/official/, so
+# live mode can draw them and the history view can replay them later.
+#
 # Asks for every 30 minutes; GitHub delivers frequent schedules late (see
 # refresh-typhoon-forecast.yml: 67 minutes at best), so expect roughly hourly.
 # The b-deck itself only moves every 6 hours. Nothing in the file is a clock of
@@ -45,7 +49,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          F=assets/data/typhoons/live/feeds.json
+          F="assets/data/typhoons/live assets/data/typhoons/official"
           git add $F
           if git diff --staged --quiet; then
             echo "no change — nothing to commit"
@@ -53,17 +57,21 @@ jobs:
           fi
           git commit -m "Mirror live storm feeds"
 
-          # The file is regenerated whole each run, so replay it on main rather
-          # than rebase (see refresh-typhoon-forecast.yml). --mixed, never --soft,
-          # and add only this file: the rest of the working tree is this
-          # runner's older checkout.
+          # feeds.json is regenerated whole each run, so it is replayed on main
+          # as it is (see refresh-typhoon-forecast.yml). The official/ files
+          # accumulate every issue NCDR has shown, so they are merged again on
+          # top of main's copies instead: replaying this runner's older ones
+          # could drop issues a newer commit (a backfill) had added.
           for attempt in 1 2 3; do
             if git push; then
               exit 0
             fi
             echo "main moved; replaying on top of it (attempt $attempt)"
+            cp assets/data/typhoons/live/feeds.json "$RUNNER_TEMP/feeds.json"
             git fetch origin main
-            git reset --mixed origin/main
+            git reset --hard origin/main
+            cp "$RUNNER_TEMP/feeds.json" assets/data/typhoons/live/feeds.json
+            python scripts/mirror_live_feeds.py --official-only
             git add $F
             if git diff --staged --quiet; then
               echo "main already has these feeds"

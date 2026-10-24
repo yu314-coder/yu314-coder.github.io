@@ -32,6 +32,12 @@ and kept.
 
     "lab": {"2026278N11168": ["TC2634"], "2026254N11252": ["TC2635"]}
 
+It also copies NCDR's official forecasts (CWA, JTWC, JMA, KMA, CMA, HKO) and
+CWA's own track for the storms active now, into live/official.json and each
+storm's file under official/ -- see ncdr_official.py. A 300-byte request says
+whether any agency has issued since the last run; the full map is fetched only
+then.
+
 Nothing in the file is a clock of this run, so a run that finds nothing new
 rewrites nothing and the workflow commits nothing. A feed that fails to answer
 keeps its previous entries while they are still recent. Run on a schedule by
@@ -45,8 +51,11 @@ import json
 import math
 import os
 import re
+import sys
 import time
 import urllib.request
+
+import ncdr_official
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "assets", "data", "typhoons", "live", "feeds.json")
@@ -326,8 +335,46 @@ def map_lab_ids(old, now):
     return {sid: sorted(ids) for sid, ids in out.items()}
 
 
+def mirror_official():
+    """NCDR's official forecasts for the storms active now (ncdr_official.py)."""
+    prev = {}
+    if os.path.exists(ncdr_official.LIVE):
+        with io.open(ncdr_official.LIVE, encoding="utf-8") as f:
+            prev = json.load(f)
+    try:
+        summary = ncdr_official.fetch(summary=True)
+        if prev and summary.get("agency_time") == prev.get("agency_time"):
+            print("NCDR: no new issue")
+            return
+        js = ncdr_official.fetch()
+    except Exception as exc:
+        print("NCDR failed (%s); keeping the last copy" % exc)
+        return
+    parsed = ncdr_official.parse(js)
+    now = datetime.datetime.now(datetime.timezone.utc)
+    tracks = ncdr_official.archived_tracks([str(now.year - 1), str(now.year)])
+    try:   # a storm a day or two old is in NCEI's active list before it is in the archive
+        for sid, pts in active_tracks().items():
+            tracks.setdefault(sid, ("", [(datetime.datetime.utcfromtimestamp(ms / 1000), la, lo) for ms, la, lo in pts]))
+    except Exception as exc:
+        print("NCEI active csv failed (%s)" % exc)
+    by_sid, lost = {}, {}
+    for key, st in parsed.items():
+        sid = ncdr_official.match(st, tracks)
+        (by_sid if sid else lost)[sid or key] = st
+    ncdr_official.save(by_sid)
+    live = {"agency_time": js.get("agency_time") or {},
+            "storms": dict([(sid, ncdr_official.live_entry(st, sid)) for sid, st in by_sid.items()] +
+                           [("x" + key, ncdr_official.live_entry(st)) for key, st in lost.items()])}
+    ncdr_official.write_if_changed(ncdr_official.LIVE, ncdr_official.dumps(live))
+    print("NCDR: %s" % ", ".join("%s %s" % (k, "/".join(sorted(v["fc"]))) for k, v in sorted(live["storms"].items())) or "no storms")
+
+
 def main():
     now = datetime.datetime.now(datetime.timezone.utc)
+    mirror_official()
+    if "--official-only" in sys.argv:   # the workflow's replay on a newer main
+        return 0
     old = {}
     if os.path.exists(OUT):
         with io.open(OUT, encoding="utf-8") as f:

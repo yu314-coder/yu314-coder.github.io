@@ -432,6 +432,32 @@ body {
 .tt-app.mode-predict .tt-hindcast,
 .tt-app.is-season .tt-hindcast { display: none; }
 
+/* Official forecasts (CWA, JMA, JTWC, KMA, CMA, HKO via NCDR), in both modes.
+   Blue for Taiwan's CWA, the default agency; each chip carries its line colour. */
+.tt-official { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; margin: -4px 0 14px; }
+.tt-app.is-season .tt-official { display: none; }
+.tt-off-btn {
+  border: 1px solid rgba(96,165,250,0.5); background: rgba(96,165,250,0.10);
+  color: #93c5fd; font: inherit; font-size: 12.5px; font-weight: 650;
+  padding: 7px 13px; border-radius: 8px; cursor: pointer;
+}
+.tt-off-btn:hover { background: rgba(96,165,250,0.18); }
+.tt-off-btn.is-on { background: rgba(96,165,250,0.2); border-color: #60a5fa; }
+.tt-off-chips { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tt-off-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--line); background: transparent; color: var(--muted);
+  font: inherit; font-size: 12px; font-weight: 650; padding: 4px 10px; border-radius: 999px; cursor: pointer;
+}
+.tt-off-chip i { width: 12px; height: 3px; border-radius: 2px; opacity: 0.4; }
+.tt-off-chip:hover { border-color: rgba(255,255,255,0.3); }
+.tt-off-chip.is-on { color: var(--text); border-color: rgba(255,255,255,0.28); background: rgba(255,255,255,0.05); }
+.tt-off-chip.is-on i { opacity: 1; }
+.tt-off-chip:disabled { opacity: 0.45; cursor: default; }
+.tt-off-chip[hidden] { display: none; }
+.tt-off-src { font-size: 11.5px; color: var(--muted); }
+.tt-off-status { flex-basis: 100%; min-height: 1.4em; }
+
 /* A value the readout took from Trackformer1.1 because JMA published none.
    Marked, so a number is never shown without saying where it came from. The
    class name keeps the old internal label; only what the reader sees changed. */
@@ -653,7 +679,7 @@ body {
      buttons stay hidden, because the model FAB already stands for them. */
   .tt-hindcast, .tt-ai-forecast { display: none !important; }
   .tt-stats { margin-top: 12px; }
-  .tt-stats, .tt-chart, .tt-legend, .tt-clim, .tt-source-note { padding-left: 10px; padding-right: 10px; }
+  .tt-stats, .tt-chart, .tt-legend, .tt-clim, .tt-source-note, .tt-official { padding-left: 10px; padding-right: 10px; }
 
   /* Controls: bottom sheet, closed by default, opened from the FAB. */
   .tt-float--controls {

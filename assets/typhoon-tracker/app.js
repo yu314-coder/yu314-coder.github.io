@@ -7,7 +7,7 @@
   "use strict";
 
   var DATA_BASE = "../data/typhoons/";
-  var DATA_V = "?v=d8a4ab6d2";   // bump when the season/index JSON is regenerated (e.g. RMW added)
+  var DATA_V = "?v=dbd1b3f82";   // bump when the season/index JSON is regenerated (e.g. RMW added)
   // Changing the cold-load storm? index.html pre-sizes the phone map for this
   // one (its framed longitude span) and placeholders its six stat cards.
   var DEFAULT_STORM = { name: "Haiyan", season: 2013 };
@@ -135,6 +135,9 @@
     aiStatus: document.getElementById("tt-ai-status"),
     hindcastBtn: document.getElementById("tt-hindcast-btn"),
     hindcastStatus: document.getElementById("tt-hindcast-status"),
+    offBtn: document.getElementById("tt-official-btn"),
+    offChips: document.getElementById("tt-official-chips"),
+    offStatus: document.getElementById("tt-official-status"),
     fcSlider: document.getElementById("tt-fc-slider"),
     fcTime: document.getElementById("tt-fc-time"),
     viewStorm: document.getElementById("tt-view-storm"),
@@ -1126,6 +1129,7 @@
     // a full track rebuild (storm/classification/view change) wipes every trace,
     // so drop any hindcast overlay state that was sitting on the old map.
     hindcastTraceCount = 0; hindcastDrawnKey = null; dyn.hind = null; hindHoverPending = null;
+    off.key = null; dyn.offDirty = true;
     if (els.hindcastBtn) {
       els.hindcastBtn.setAttribute("aria-pressed", "false"); els.hindcastBtn.classList.remove("is-on");
       if (hindcastOffLabel) els.hindcastBtn.textContent = hindcastOffLabel;
@@ -1196,6 +1200,7 @@
     fitMapBoxToDrawing();
     bindMapClick();
     updateDynamic();          // the marker and rings for this storm, on the overlay
+    offUpdateTrack();         // and the official forecasts under the playhead
   }
 
   // Which Natural Earth coastline set to draw.
@@ -1431,7 +1436,8 @@
      redrew the whole map, twice a second during play.
      ------------------------------------------------------------------------- */
   var SVG_NS = "http://www.w3.org/2000/svg";
-  var dyn = { owner: null, shapes: null, hind: null, hindDirty: true, layer: null, bound: false, clipDirty: true };
+  var dyn = { owner: null, shapes: null, hind: null, hindDirty: true, off: null, offDirty: true,
+              layer: null, bound: false, clipDirty: true };
   function dynLayer() {
     var host = els.map && els.map.querySelector(".svg-container");
     if (!host) return null;
@@ -1449,14 +1455,16 @@
     var clip = document.createElementNS(SVG_NS, "g");
     clip.setAttribute("clip-path", "url(#tt-dyn-clip)");
     clip.setAttribute("stroke-miterlimit", "2");          // Plotly's, for the same corners
-    var gh = document.createElementNS(SVG_NS, "g"), g = document.createElementNS(SVG_NS, "g");
-    clip.appendChild(gh); clip.appendChild(g);           // the AI forecast under the marker
+    var go = document.createElementNS(SVG_NS, "g"), gh = document.createElementNS(SVG_NS, "g"),
+        g = document.createElementNS(SVG_NS, "g");
+    // official forecasts under the AI forecast, both under the marker
+    clip.appendChild(go); clip.appendChild(gh); clip.appendChild(g);
     svg.appendChild(clip);
     // after Plotly's plot svg, before its info and hover svgs
     var papers = host.querySelectorAll("svg.main-svg");
     host.insertBefore(svg, papers[1] || null);
-    dyn.layer = { svg: svg, rect: rect, g: g, gh: gh };
-    dyn.clipDirty = true; dyn.hindDirty = true;
+    dyn.layer = { svg: svg, rect: rect, g: g, gh: gh, go: go };
+    dyn.clipDirty = true; dyn.hindDirty = true; dyn.offDirty = true;
     return dyn.layer;
   }
   // A path through lat/lon points, broken at nulls and at points the projection drops.
@@ -1525,9 +1533,11 @@
       ((dyn.owner === "track" && appMode === "track" && viewMode === "storm") ||
        (dyn.owner === "fc" && appMode === "predict"));
     var hindLive = dyn.hind && proj && appMode === "track" && viewMode === "storm";
+    var offLive = dyn.off && proj && dyn.off.mode === appMode && (appMode === "predict" || viewMode === "storm");
     if (!hindLive && L.gh.firstChild) L.gh.textContent = "";
+    if (!offLive && L.go.firstChild) L.go.textContent = "";
     if (!live && L.g.firstChild) L.g.textContent = "";
-    if (!live && !hindLive) return;
+    if (!live && !hindLive && !offLive) return;
     if (dyn.clipDirty) {           // size and clip, re-read only after Plotly redraws or moves the map
       // Sized like Plotly's own svgs, in px: their container has no height of its own,
       // so a 100% height came out 0 and clipped the whole layer away.
@@ -1541,10 +1551,12 @@
         dyn.clipDirty = false;
       }
       dyn.hindDirty = true;        // the map moved under it
+      dyn.offDirty = true;
     }
     // The forecast only when it or the map changed: during play the marker below
     // redraws every frame, the forecast twice a second at most.
     if (hindLive && dyn.hindDirty) { L.gh.innerHTML = hindSvg(proj, dyn.hind); dyn.hindDirty = false; }
+    if (offLive && dyn.offDirty) { L.go.innerHTML = offSvg(proj, dyn.off.list); dyn.offDirty = false; }
     if (!live) return;
     var out = "";
     dyn.shapes.forEach(function (sh) {
@@ -1584,6 +1596,221 @@
       els.map.on("plotly_afterplot", moved);     // any redraw, resize or rebuild
       els.map.on("plotly_relayouting", moved);   // every step of a pan or zoom
       els.map.on("plotly_relayout", moved);
+    }
+  }
+
+  /* ---------------------------------------------------------------------------
+     Official forecasts: CWA (Taiwan), JMA, JTWC, KMA, CMA and the Hong Kong
+     Observatory, as NCDR's WATCH map shows them (watch.ncdr.nat.gov.tw/
+     watch_tracks_pro). NCDR sends no CORS header, so scripts/ncdr_official.py
+     copies them here: live/official.json holds the storms active now (live mode),
+     official/<season>/<JMA number>.json every forecast issued for one storm since
+     2016 (track mode, where each agency's latest forecast follows the playhead
+     beside Trackformer 1.2). Drawn on the overlay under the AI forecast and
+     redrawn only when an issue changes, so play costs nothing extra.
+     ------------------------------------------------------------------------- */
+  var OFF_AGENCIES = [
+    { k: "cwa", name: "CWA", full: "Central Weather Administration, Taiwan", color: "#60a5fa" },
+    { k: "jma", name: "JMA", full: "Japan Meteorological Agency", color: "#c4b5fd" },
+    { k: "jtwc", name: "JTWC", full: "Joint Typhoon Warning Center, US", color: "#fb923c" },
+    { k: "kma", name: "KMA", full: "Korea Meteorological Administration", color: "#a3e635" },
+    { k: "cma", name: "CMA", full: "China Meteorological Administration", color: "#f472b6" },
+    { k: "hko", name: "HKO", full: "Hong Kong Observatory", color: "#d4a373" }
+  ];
+  var OFF_STALE_H = 12;       // a forecast older than this at the playhead (or now, live) is not shown
+  var OFF_LIVE_TTL_MS = 10 * 60 * 1000;
+  var OFF_MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  // Live mode shows every agency, as NCDR's map does; the history view starts with
+  // CWA and JMA, so the AI forecast beside them stays readable. Each mode keeps its own picks.
+  var off = { on: true, index: null, files: {}, data: {}, liveP: null, liveTs: 0, key: null,
+              enabled: { track: { cwa: true, jma: true, jtwc: false, kma: false, cma: false, hko: false },
+                         predict: { cwa: true, jma: true, jtwc: true, kma: true, cma: true, hko: true } } };
+  try {
+    var offSaved = JSON.parse(window.localStorage.getItem("tt-official") || "null");
+    if (offSaved && typeof offSaved.on === "boolean") off.on = offSaved.on;
+    ["track", "predict"].forEach(function (m) {
+      var e = offSaved && offSaved.enabled && offSaved.enabled[m];
+      if (e) OFF_AGENCIES.forEach(function (a) { if (typeof e[a.k] === "boolean") off.enabled[m][a.k] = e[a.k]; });
+    });
+  } catch (e) { /* storage blocked: the defaults */ }
+  function offEn() { return off.enabled[appMode === "predict" ? "predict" : "track"]; }
+  function offSavePrefs() {
+    try { window.localStorage.setItem("tt-official", JSON.stringify({ on: off.on, enabled: off.enabled })); } catch (e) { }
+  }
+  function offStampMs(s) { return Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8), +s.slice(8, 10)); }
+  function offStampText(s) { return +s.slice(6, 8) + " " + OFF_MON[+s.slice(4, 6) - 1] + " " + s.slice(8, 10) + "Z"; }
+  function offGetJson(url) {
+    return fetch(url).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+  }
+  // Issue times as ms, once, so picking under a moving playhead is a plain scan.
+  function offPrep(data) {
+    if (!data || data.ms) return data;
+    data.ms = {};
+    Object.keys(data.fc || {}).forEach(function (k) { data.ms[k] = data.fc[k].map(function (x) { return offStampMs(x[0]); }); });
+    return data;
+  }
+  var OFF_FIRST_SEASON = 2016;   // NCDR's record (CWA only that year)
+  function offStorm(sid) {
+    if (!off.files[sid] && +String(sid).slice(0, 4) < OFF_FIRST_SEASON) {   // no request for an older storm
+      off.data[sid] = null;
+      off.files[sid] = Promise.resolve(null);
+    }
+    if (!off.files[sid]) {
+      if (!off.index) off.index = offGetJson(DATA_BASE + "official/index.json");
+      off.files[sid] = off.index.then(function (idx) {
+        return idx && idx[sid] ? offGetJson(DATA_BASE + "official/" + idx[sid] + ".json") : null;
+      }).then(function (d) { off.data[sid] = offPrep(d) || null; return off.data[sid]; });
+    }
+    return off.files[sid];
+  }
+  // Each enabled agency's latest forecast issued at or before tMs, unless stale.
+  function offPick(data, tMs, skip) {
+    var out = [];
+    OFF_AGENCIES.forEach(function (a) {
+      var list = data.fc && data.fc[a.k], ms = data.ms[a.k];
+      if (!offEn()[a.k] || a.k === skip || !list || !list.length) return;
+      var i = ms.length - 1;
+      while (i >= 0 && ms[i] > tMs) i--;
+      if (i < 0 || tMs - ms[i] > OFF_STALE_H * 3600000) return;
+      out.push({ a: a, issue: list[i][0], pts: list[i][1] });
+    });
+    return out;
+  }
+  // A dashed route with a dot per forecast point and the agency's name at its end:
+  // the overlay takes no hover, so the line has to say whose it is.
+  function offSvg(proj, list) {
+    var out = "", placed = [];
+    list.forEach(function (o) {
+      var lat = o.pts.map(function (p) { return p[1]; }), lon = o.pts.map(function (p) { return p[2]; });
+      var pd = lat.length > 1 ? dynPathD(proj, lat, lon, false) : "", last = null;
+      if (pd) out += '<path d="' + pd + '" fill="none" stroke="' + o.a.color + '" stroke-width="' +
+        (o.a.k === "cwa" ? 2.6 : 2) + '" stroke-dasharray="7,5" stroke-linecap="round"/>';
+      for (var i = 0; i < lat.length; i++) {
+        var q = proj([lon[i], lat[i]]);
+        if (!q) continue;
+        out += '<circle cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="' + (i ? 3 : 2.4) +
+          '" fill="' + o.a.color + '" stroke="rgba(10,14,28,0.8)" stroke-width="1"/>';
+        last = q;
+      }
+      if (!last) return;
+      // routes that end together would print their names on top of each other: stack them
+      var lx = last[0] + 6, ly = last[1] + 4;
+      for (var tries = 0; tries < 8 && placed.some(function (q) { return Math.abs(q[0] - lx) < 36 && Math.abs(q[1] - ly) < 12; }); tries++) ly += 12;
+      placed.push([lx, ly]);
+      out += '<text x="' + lx.toFixed(1) + '" y="' + ly.toFixed(1) + '" fill="' + o.a.color +
+        '" font-size="11" font-weight="700" stroke="rgba(10,14,28,0.85)" stroke-width="3" paint-order="stroke"' +
+        ' font-family="Sora, system-ui, sans-serif">' + o.a.name + "</text>";
+    });
+    return out;
+  }
+  function setOff(list, mode) {
+    dyn.off = list && list.length ? { list: list, mode: mode } : null;
+    dyn.offDirty = true;
+    dynBind();
+    drawDyn();
+  }
+  function offStatus(text) { if (els.offStatus && els.offStatus.textContent !== text) els.offStatus.textContent = text; }
+  // CWA's own reading where its forecast shows: 10-minute wind and Taiwan's scale.
+  function offCwaNote(o) {
+    var p = o.pts[0];
+    if (o.a.k !== "cwa" || !p || p[3] == null) return "";
+    var cat = taiwanCatMs10(p[3])[0];
+    return ": " + p[3] + " m/s" + (p[4] ? ", " + p[4] + " hPa" : "") + (cat ? " (" + cat + ")" : "");
+  }
+  function offListText(list) {
+    return list.map(function (o) {
+      var end = o.pts.length ? o.pts[o.pts.length - 1][0] : 0;
+      return o.a.name + " " + offStampText(o.issue) + offCwaNote(o) + ", to +" + end + " h";
+    }).join(" · ");
+  }
+  function offNothingText() {
+    return OFF_AGENCIES.some(function (a) { return offEn()[a.k]; })
+      ? "None of the agencies picked had a forecast out at this point of the storm."
+      : "Pick an agency to show its forecast.";
+  }
+  // Track mode: called on every playhead move (renderScrub); does work only when
+  // the set of issues under the playhead changes.
+  function offUpdateTrack() {
+    if (appMode !== "track" || viewMode !== "storm" || !currentStorm) return;
+    var sid = currentSid;
+    if (!off.on) { if (off.key !== "off") { off.key = "off"; setOff(null); offStatus(""); } return; }
+    if (off.data[sid] === undefined) offStorm(sid);       // settles at once for a pre-2016 storm
+    var data = off.data[sid];
+    if (data === undefined) {
+      if (off.key !== "load:" + sid) { off.key = "load:" + sid; setOff(null); offStatus("Loading…"); }
+      offStorm(sid).then(function () { if (sid === currentSid) { off.key = null; offUpdateTrack(); } });
+      return;
+    }
+    if (!data) {
+      if (off.key !== "none:" + sid) {
+        off.key = "none:" + sid; setOff(null);
+        offStatus(currentStorm.season < OFF_FIRST_SEASON
+          ? "NCDR's record of official forecasts starts in 2016."
+          : "No official forecasts on record for this storm.");
+      }
+      return;
+    }
+    var list = offPick(data, absTimeAt(currentHour).getTime());
+    var key = sid + "|" + list.map(function (o) { return o.a.k + o.issue; }).join(",");
+    if (key === off.key) return;
+    off.key = key;
+    setOff(list, "track");
+    offStatus(list.length ? offListText(list) : offNothingText());
+  }
+  // Live mode: each agency's current forecast for the storm on screen, except
+  // JMA's, which the map already draws from JMA itself with its probability circles.
+  function offLiveLoad() {
+    var now = Date.now();
+    if (!off.liveP || now - off.liveTs > OFF_LIVE_TTL_MS) {
+      off.liveTs = now;
+      off.liveP = offGetJson(DATA_BASE + "live/official.json?_=" + Math.floor(now / OFF_LIVE_TTL_MS));
+    }
+    return off.liveP;
+  }
+  function offUpdateLive(d) {
+    if (appMode !== "predict" || !d) return;
+    if (!off.on) { setOff(null); offStatus(""); return; }
+    offLiveLoad().then(function (live) {
+      if (appMode !== "predict" || !els.typhoonSelect || els.typhoonSelect.value !== d.tcId) return;
+      // Found by where it is, not by number: CWA and JMA number storms differently
+      // (Champi 2026 is CWA's 202629, JMA's TC2636 / No.2630).
+      var a = d.points && d.points[0], st = null, best = 300;
+      Object.keys((live && live.storms) || {}).forEach(function (k) {
+        var s = live.storms[k];
+        if (!a || !s.at) return;
+        var km = gcDist({ la: a.lat, lo: a.lon }, { la: s.at[0], lo: s.at[1] });
+        if (km < best) { best = km; st = s; }
+      });
+      if (!st) { setOff(null); offStatus("NCDR shows no other agency's forecast for this storm right now."); return; }
+      var data = { fc: {} };
+      Object.keys(st.fc || {}).forEach(function (k) { data.fc[k] = [st.fc[k]]; });
+      var list = offPick(offPrep(data), Date.now(), "jma");
+      setOff(list, "predict");
+      offStatus(list.length ? offListText(list) : offNothingText());
+    });
+  }
+  function offSyncUi() {
+    if (els.offBtn) {
+      els.offBtn.setAttribute("aria-pressed", String(off.on));
+      els.offBtn.classList.toggle("is-on", off.on);
+      els.offBtn.textContent = off.on ? "Hide official forecasts" : "Show official forecasts";
+    }
+    if (els.offChips) Array.prototype.forEach.call(els.offChips.querySelectorAll("[data-ag]"), function (b) {
+      var k = b.getAttribute("data-ag"), en = offEn();
+      b.classList.toggle("is-on", !!en[k]);
+      b.setAttribute("aria-pressed", String(!!en[k]));
+      b.disabled = !off.on;
+      b.hidden = appMode === "predict" && k === "jma";     // live mode draws JMA already
+    });
+  }
+  function offRefresh() {
+    off.key = null;
+    offSyncUi();
+    if (appMode === "predict") {
+      var d = els.typhoonSelect && jmaCache[els.typhoonSelect.value];
+      if (d) offUpdateLive(d);
+    } else {
+      offUpdateTrack();
     }
   }
 
@@ -1700,6 +1927,7 @@
     updateDynamic(pt);
     updateChartMarker();
     updateReadout(false, pt);
+    offUpdateTrack();
   }
 
   /* ---------------------------------------------------------------------------
@@ -2258,7 +2486,7 @@
             if (!cur.past && prevCur && prevCur.past) cur.past = prevCur.past;         // keep history on a
             if (!cur.cimss && prevCur && prevCur.cimss) cur.cimss = prevCur.cimss;     // transient feed miss
             if (!cur.before && prevCur && prevCur.before) cur.before = prevCur.before;
-            if (oldCurKey && jmaIssueKey(cur) === oldCurKey) return;   // viewed storm unchanged — dropdown was enough
+            if (oldCurKey && jmaIssueKey(cur) === oldCurKey) { offUpdateLive(cur); return; }   // JMA unchanged; the others may not be
             renderForecast(cur);         // aiRestoreOrClear sees the new dataKey and re-runs the AI on it
           } else {                       // the viewed storm dissipated — show the strongest remaining one
             var def = fresh.slice().sort(function (a, b) {
@@ -2394,6 +2622,7 @@
     Plotly.react(els.map, traces, geoLayout(), { displayModeBar: false, responsive: true, scrollZoom: true });
     fitMapBoxToDrawing();
     aiRestoreOrClear(d);   // re-draw the AI overlay if it was on for this same storm
+    offUpdateLive(d);      // the other agencies' forecasts (NCDR), on the overlay
     startForecastAnim(d);
   }
 
@@ -5030,6 +5259,7 @@
   function setAppMode(mode) {
     appMode = mode;
     renderModelChip();
+    off.key = null; offSyncUi();
     els.app.classList.toggle("mode-track", mode === "track");
     els.app.classList.toggle("mode-predict", mode === "predict");
     // the season-view chrome (hint, hidden panels) must only apply inside Track
@@ -5058,6 +5288,16 @@
   if (els.fcReplay) els.fcReplay.addEventListener("click", replayForecastAnim);
   if (els.fcSpeed) els.fcSpeed.addEventListener("click", cycleForecastSpeed);
   if (els.aiBtn) els.aiBtn.addEventListener("click", aiToggle);
+  if (els.offBtn) els.offBtn.addEventListener("click", function () {
+    off.on = !off.on; offSavePrefs(); offRefresh();
+  });
+  if (els.offChips) els.offChips.addEventListener("click", function (ev) {
+    var b = ev.target.closest && ev.target.closest("[data-ag]");
+    if (!b || !off.on) return;
+    var k = b.getAttribute("data-ag");
+    offEn()[k] = !offEn()[k]; offSavePrefs(); offRefresh();
+  });
+  offSyncUi();
   if (els.hindcastBtn) {
     els.hindcastBtn.addEventListener("click", aiHindcastToggle);
     ["pointerenter", "focus", "touchstart"].forEach(function (ev) {

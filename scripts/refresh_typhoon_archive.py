@@ -328,7 +328,8 @@ def keep_gap_fills(pts, previous):
     so on the day NCEI ingests a season's CMA columns its own fixes win and the
     borrowed ones fall away by themselves.
     """
-    fills = [p for p in previous if p.get("src")]
+    # CWA's hours are not carried: apply_cwa_track rebuilds them from official/ every run.
+    fills = [p for p in previous if p.get("src") and p.get("src") != "CWA"]
     if not fills:
         return pts
     have = {p["t"] for p in pts}
@@ -341,6 +342,112 @@ def keep_gap_fills(pts, previous):
     for p in pts:
         p["h"] = (parse_time(p["t"].replace("T", " ")) - base).total_seconds() / 3600.0
     return pts
+
+
+OFFICIAL = os.path.join(DATA, "official")
+CWA_HOURLY_MIN = 6     # hourly CWA fixes in a row: CWA's warnings are up, the storm is near Taiwan
+
+
+def cwa_fixes(sid, official_index):
+    """CWA's own fixes for a storm, [(datetime, lat, lon)], from scripts/ncdr_official.py's copy."""
+    rel = official_index.get(sid)
+    if not rel:
+        return []
+    track = load_json(os.path.join(OFFICIAL, rel + ".json"), {}).get("track") or []
+    return [(dt.datetime.strptime(r[0], "%Y%m%d%H"), r[1], r[2]) for r in track
+            if r[1] is not None and r[2] is not None]
+
+
+def _lerp_point(a, b, f):
+    """Intensity between two fixes, for an hour CWA fixed and IBTrACS did not."""
+    q = {}
+    for key in ("w", "p", "rm"):
+        if a.get(key) is not None and b.get(key) is not None:
+            q[key] = round(a[key] + (b[key] - a[key]) * f, 1 if key == "rm" else 0)
+    for key, _ in RADII:
+        ra, rb = a.get(key), b.get(key)
+        if ra and rb:
+            q[key] = [None if x is None or y is None else float(round(x + (y - x) * f)) for x, y in zip(ra, rb)]
+    return q
+
+
+def apply_cwa_track(pts, fixes):
+    """Draw the storm through CWA's hourly fixes where CWA fixed it every hour.
+
+    IBTrACS is 3-hourly at best, and near Taiwan that loses real motion. Gaemi
+    2024 looped off Hualien on 24 July: 23.6N 121.7E at 12Z, east to 122.0E by
+    14Z, back north across its own inbound path by 16Z (CWA, hourly). IBTrACS has
+    12Z and 15Z only and draws a hairpin. CWA fixes a storm every hour while its
+    warnings are up, so inside each such stretch the track takes CWA's
+    positions: an IBTrACS fix keeps its intensity and is marked "ps": "CWA", and
+    CWA's hours in between are added as "src": "CWA" points with intensity
+    interpolated from the fixes either side, which keeps them out of peak wind,
+    ACE and RI like any borrowed fix. Idempotent, so it can run on a built shard.
+    """
+    runs, cur = [], []
+    for f in fixes:
+        if cur and f[0] - cur[-1][0] == dt.timedelta(hours=1):
+            cur.append(f)
+            continue
+        if len(cur) >= CWA_HOURLY_MIN:
+            runs.append(cur)
+        cur = [f]
+    if len(cur) >= CWA_HOURLY_MIN:
+        runs.append(cur)
+    pts = [p for p in pts if p.get("src") != "CWA"]
+    if not runs or len(pts) < 2:
+        return pts
+    by_t = {p["t"]: p for p in pts}
+    own = [p for p in pts if not p.get("src")]
+    lo_t, hi_t = pts[0]["t"], pts[-1]["t"]
+    add = []
+    for run in runs:
+        for t, la, lo in run:
+            key = t.isoformat()
+            p = by_t.get(key)
+            if p is not None:
+                if not p.get("src"):          # leave another agency's gap fill as it is
+                    p["la"], p["lo"], p["ps"] = la, lo, "CWA"
+                continue
+            if not (lo_t < key < hi_t):
+                continue
+            a = max((x for x in own if x["t"] < key), key=lambda x: x["t"], default=None)
+            b = min((x for x in own if x["t"] > key), key=lambda x: x["t"], default=None)
+            if not a or not b:
+                continue
+            ta, tb = parse_time(a["t"].replace("T", " ")), parse_time(b["t"].replace("T", " "))
+            q = _lerp_point(a, b, (t - ta).total_seconds() / (tb - ta).total_seconds())
+            q.update({"t": key, "la": la, "lo": lo, "src": "CWA"})
+            add.append(q)
+    pts = sorted(pts + add, key=lambda p: p["t"])
+    base = parse_time(pts[0]["t"].replace("T", " "))
+    for p in pts:
+        p["h"] = (parse_time(p["t"].replace("T", " ")) - base).total_seconds() / 3600.0
+    return pts
+
+
+def cwa_only():
+    """Apply CWA's hourly fixes to the committed shards, without downloading IBTrACS.
+
+    The nightly refresh does this for the seasons it rebuilds (the last three);
+    this covers the rest of NCDR's record, which starts in 2016, after a backfill."""
+    official_index = load_json(os.path.join(OFFICIAL, "index.json"), {})
+    seasons = sorted({int(sid[:4]) for sid in official_index})
+    touched = []
+    for season in seasons:
+        path = os.path.join(SEASONS, "%d.json" % season)
+        shard = load_json(path, {})
+        before = json.dumps(shard, sort_keys=True)
+        for sid, storm in shard.items():
+            if storm.get("src") != "JMA":
+                storm["pts"] = apply_cwa_track(storm["pts"], cwa_fixes(sid, official_index))
+        if json.dumps(shard, sort_keys=True) != before:
+            write_json(path, shard)
+            touched.append(season)
+    print("CWA tracks applied to seasons %s" % (touched or "none (already current)"))
+    bump_cache_token()
+    bump_tracker_tokens()
+    return 0
 
 
 def ace_of(pts):
@@ -705,7 +812,11 @@ def main():
     ap.add_argument("--full", action="store_true", help="download every WP season, not just the last three years")
     ap.add_argument("--seasons", nargs="*", type=int, help="restrict to these seasons")
     ap.add_argument("--check", action="store_true", help="report differences, write nothing")
+    ap.add_argument("--cwa-only", action="store_true",
+                    help="only apply CWA's hourly fixes (official/) to the committed shards")
     args = ap.parse_args()
+    if args.cwa_only:
+        return cwa_only()
 
     raw, spurs = drop_spur_tracks(read_storms(fetch(FULL if args.full else LAST3)))
     by_storm, absorbed = merge_regenerations(raw)
@@ -737,6 +848,7 @@ def main():
 
     index = load_json(os.path.join(DATA, "index.json"), [])
     climo = load_json(os.path.join(DATA, "climatology.json"), {})
+    official_index = load_json(os.path.join(OFFICIAL, "index.json"), {})
     index_pos = {e["sid"]: i for i, e in enumerate(index)}
 
     def put_index(sid, entry):
@@ -769,6 +881,7 @@ def main():
             else:
                 pts = keep_gap_fills(build_points(meta["rows"]),
                                      (existing.get(sid) or {}).get("pts") or [])
+                pts = apply_cwa_track(pts, cwa_fixes(sid, official_index))
             # Never invent a Chinese name, and never churn an existing one:
             # a storm already in the archive keeps exactly what it had (null
             # included), and only a genuinely new storm gets looked up, from the
