@@ -381,6 +381,12 @@
   function taiwanCat(w) {   // fallback: converted 1-min wind
     return taiwanCatMs10(w == null ? null : w * ONE_MIN_TO_TEN_MIN * KT_TO_MS);
   }
+  // An agency's 10-minute wind (m/s) on the scale picked: Taiwan's own thresholds,
+  // or the Saffir-Simpson-style one after the usual 0.88 conversion to 1-minute.
+  function catOfMs10(ms10) {
+    if (ms10 == null) return [null, null];
+    return standard === "taiwan" ? taiwanCatMs10(ms10) : atlanticCat(ms10 / KT_TO_MS / ONE_MIN_TO_TEN_MIN);
+  }
   // Reconstruct BOTH classification standards per point (the shards ship only
   // wind — ca/cc/ta/tc are all derived here to keep the files small). Atlantic
   // (ca/cc) comes straight from the 1-min wind; Taiwan (ta/tc) from JMA's 10-min
@@ -1688,8 +1694,11 @@
       for (var i = 0; i < lat.length; i++) {
         var q = proj([lon[i], lat[i]]);
         if (!q) continue;
-        out += '<circle cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="' + (i ? 3 : 2.4) +
-          '" fill="' + o.a.color + '" stroke="rgba(10,14,28,0.8)" stroke-width="1"/>';
+        // CWA's points carry its 10-minute wind: filled by category, ringed in its colour
+        var cat = catOfMs10(o.pts[i][3])[1];
+        out += '<circle cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="' + (cat ? 3.8 : i ? 3 : 2.4) +
+          '" fill="' + (cat || o.a.color) + '" stroke="' + (cat ? o.a.color : "rgba(10,14,28,0.8)") +
+          '" stroke-width="' + (cat ? 1.6 : 1) + '"/>';
         last = q;
       }
       if (!last) return;
@@ -1710,18 +1719,26 @@
     drawDyn();
   }
   function offStatus(text) { if (els.offStatus && els.offStatus.textContent !== text) els.offStatus.textContent = text; }
-  // CWA's own reading where its forecast shows: 10-minute wind and Taiwan's scale.
+  // CWA's strength where its forecast shows: its 10-minute wind now, on the scale
+  // picked, and the forecast's peak when that comes later.
   function offCwaNote(o) {
     var p = o.pts[0];
-    if (o.a.k !== "cwa" || !p || p[3] == null) return "";
-    var cat = taiwanCatMs10(p[3])[0];
-    return ": " + p[3] + " m/s" + (p[4] ? ", " + p[4] + " hPa" : "") + (cat ? " (" + cat + ")" : "");
+    if (!p || p[3] == null) return "";
+    var pk = p;
+    o.pts.forEach(function (x) { if (x[3] != null && x[3] > pk[3]) pk = x; });
+    var txt = ": " + p[3] + " m/s" + (p[4] ? ", " + p[4] + " hPa" : "") + " (" + catOfMs10(p[3])[0] + ")";
+    if (pk !== p) txt += ", peak " + pk[3] + " m/s at +" + pk[0] + " h (" + catOfMs10(pk[3])[0] + ")";
+    return txt;
   }
   function offListText(list) {
+    var bare = list.filter(function (o) { return !o.pts.some(function (x) { return x[3] != null; }); });
     return list.map(function (o) {
       var end = o.pts.length ? o.pts[o.pts.length - 1][0] : 0;
       return o.a.name + " " + offStampText(o.issue) + offCwaNote(o) + ", to +" + end + " h";
-    }).join(" · ");
+    }).join(" · ") + (bare.length
+      ? ". " + bare.map(function (o) { return o.a.name; }).join(", ") + ": track only (NCDR publishes no strength for "
+        + (bare.length > 1 ? "them" : "it") + ")."
+      : "");
   }
   function offNothingText() {
     return OFF_AGENCIES.some(function (a) { return offEn()[a.k]; })
@@ -2551,6 +2568,16 @@
     return Math.abs(e).toFixed(1) + "°" + (e >= 0 ? "E" : "W");
   }
 
+  // JMA's forecast points by strength: its 10-minute wind on the scale picked.
+  var fcJmaTraceIdx = -1;
+  function jmaCat(p) { return catOfMs10(p && p.windKt != null ? p.windKt * KT_TO_MS : null); }
+  function jmaCatColors(pts) {
+    return pts.map(function (p) { return jmaCat(p)[1] || "rgba(196,181,253,0.95)"; });
+  }
+  function jmaPointText(p, when) {
+    var c = jmaCat(p)[0];
+    return when + (p.windKt != null ? " · " + p.windKt + " kt (10-min)" : "") + (c ? " · " + c : "");
+  }
   function buildForecastMap(d) {
     currentGeoScale = DEFAULT_GEO.scale;
     var pts = d.points, a = pts[0];
@@ -2582,11 +2609,13 @@
         hoverinfo: "text", text: "+" + p.h + " h · 70% chance the centre is within " + p.circleKm + " km",
         showlegend: false });
     });
-    var flat = [a.lat], flon = [a.lon], ftext = ["now"];
-    pts.slice(1).forEach(function (p) { flat.push(p.lat); flon.push(p.lon); ftext.push("+" + p.h + " h"); });
+    var flat = [a.lat], flon = [a.lon], ftext = [jmaPointText(a, "now")];
+    pts.slice(1).forEach(function (p) { flat.push(p.lat); flon.push(p.lon); ftext.push(jmaPointText(p, "+" + p.h + " h")); });
+    fcJmaTraceIdx = traces.length;
     traces.push({ type: "scattergeo", mode: "lines+markers", lat: flat, lon: flon,
       line: { color: "rgba(196,181,253,0.95)", width: 2, dash: "dot" },
-      marker: { size: 6, color: "rgba(196,181,253,0.95)" },
+      // filled by category on the scale picked, ringed in JMA's violet
+      marker: { size: 8, color: jmaCatColors(pts), line: { width: 1.6, color: "rgba(196,181,253,0.95)" } },
       text: ftext, hoverinfo: "text", showlegend: false });
     traces.push({ type: "scattergeo", mode: "markers", lat: [a.lat], lon: [a.lon],
       marker: { size: 16, symbol: "circle-open", color: CAT_COLOR[a.catEn] || "#fff",
@@ -5484,8 +5513,18 @@
   });
   els.standard.addEventListener("change", function () {
     standard = els.standard.value;
-    // Forecast mode: recolour the AI overlay on the new scale, keep everything else.
-    if (appMode === "predict") { aiRedrawLive(); return; }
+    // Forecast mode: recolour the AI overlay, JMA's points and the official
+    // forecasts on the new scale, keep everything else.
+    if (appMode === "predict") {
+      aiRedrawLive();
+      var d = els.typhoonSelect && jmaCache[els.typhoonSelect.value];
+      if (d && fcJmaTraceIdx >= 0 && els.map.data && els.map.data[fcJmaTraceIdx]) {
+        Plotly.restyle(els.map, { "marker.color": [jmaCatColors(d.points)],
+          text: [d.points.map(function (p, i) { return jmaPointText(p, i ? "+" + p.h + " h" : "now"); })] }, [fcJmaTraceIdx]);
+      }
+      offRefresh();
+      return;
+    }
     if (!currentStorm || appMode !== "track" || viewMode !== "storm") return;
     var hindOn = hindcastTraceCount > 0, h = Number(els.slider.value);
     buildMap();
