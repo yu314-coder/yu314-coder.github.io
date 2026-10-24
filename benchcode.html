@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="BenchCode teaches programming and scientific computing on iPad and iPhone through short lessons you run yourself, with an on-device tutor and notebooks for practice. Offline, no account.">
+  <meta name="keywords" content="BenchCode, learn programming, Python lessons, scientific computing, students, education, offline, iPad, iPhone">
+  <meta name="author" content="Yu, Yao-Hsing 尤耀星">
+  <meta name="robots" content="index, follow">
+
+  <!-- Referrer policy is the only one of these that works as a <meta>.
+       X-Content-Type-Options / X-Frame-Options / X-XSS-Protection are
+       HTTP-header-only directives: as <meta http-equiv> they are ignored
+       (X-Frame-Options even errors in the console), and GitHub Pages
+       can't send custom headers, so they were inert. -->
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+
+  <!-- Open Graph / Social Media -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="BenchCode | Learn programming by running it">
+  <meta property="og:description" content="Short programming lessons you run yourself, a tutor on your device, and notebooks for practice.">
+  <meta property="og:url" content="https://yu314-coder.github.io/benchcode.html">
+  <meta property="og:image" content="https://yu314-coder.github.io/assets/img/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:image" content="https://yu314-coder.github.io/assets/img/og-image.png">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="BenchCode | Learn programming by running it">
+  <meta name="twitter:description" content="Short programming lessons you run yourself, a tutor on your device, and notebooks for practice.">
+
+  <title>BenchCode | Learn programming by running it</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="48x48">
+  <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+  <link rel="canonical" href="https://yu314-coder.github.io/benchcode.html">
+
+
+  <link href="assets/vendor/bootstrap-5.3.3/bootstrap.site.min.css" rel="stylesheet">
+
+  <!-- Fonts: self-hosted (assets/fonts, @font-face in style.css). The body and heading faces are on the first screen of every page, so they start downloading now rather than after style.css is parsed. -->
+  <link rel="preload" href="assets/fonts/sora-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
+
+  <!-- Site stylesheet (single source of truth) -->
+  <link rel="stylesheet" href="assets/css/style.css?v=20261006-perf">
+  <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
+</head>
+<body class="theme-dark privacy-page" id="top">
+  <script>/* The device class before the first paint. main.js / script.js set the same value at DOMContentLoaded (same test, kept in step with DeviceDetect.detect), but by then the page had painted, and the phone layout it switches on -- a smaller hero headline, a taller hero -- moved the page under the reader. */(function(){var u=(navigator.userAgent||'').toLowerCase(),w=Math.min(innerWidth,screen.width||innerWidth),t=('ontouchstart' in window)||navigator.maxTouchPoints>0,k=(/iphone|ipod|android.*mobile|windows phone|blackberry|bb10/.test(u)||(t&&w<600))?'phone':(/ipad/.test(u)||(u.indexOf('macintosh')>-1&&t)||(/android/.test(u)&&!/mobile/.test(u))||(t&&w>=600&&w<1180))?'tablet':'desktop';document.body.setAttribute('data-device',k)})()</script>
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+    <div class="container">
+      <a class="navbar-brand" href="index.html" aria-label="Yu, Yao-Hsing 尤耀星 Home">Yu, Yao-Hsing <span class="brand-cjk">尤耀星</span></a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="about.html">About</a></li>
+          <li class="nav-item"><a class="nav-link" href="projects.html">Projects</a></li>
+          <li class="nav-item"><a class="nav-link" href="pypi-stats.html">PyPI Stats</a></li>
+          <li class="nav-item"><a class="nav-link" href="store-stats.html">Store Stats</a></li>
+          <li class="nav-item"><a class="nav-link" href="typhoon-tracks.html">Typhoon Tracks</a></li>
+          <li class="nav-item"><a class="nav-link" href="trackformer.html">Trackformer</a></li>
+          <li class="nav-item"><a class="nav-link" href="privacy.html">Privacy</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Header Section -->
+  <header class="page-header pv-header">
+    <div class="container">
+      <p class="eyebrow eyebrow--rule">BenchCode · iPad and iPhone</p>
+      <h1>Learn programming by running it</h1>
+      <p class="lead-2">BenchCode teaches programming and scientific computing through short lessons you run yourself. Each lesson is a small real program with notes beside it: read a step, tap Run, change a number, run it again and watch the result change.</p>
+      <div class="pv-facts">
+        <span><b>12</b> lessons in <b>6</b> tracks</span>
+        <span>Works <b>offline</b>, no account</span>
+        <span>Support <a href="mailto:euler.yu@gmail.com">euler.yu@gmail.com</a></span>
+      </div>
+    </div>
+  </header>
+
+  <section class="container section-sm">
+    <div class="row g-4">
+      <div class="col-lg-6">
+        <div class="card h-100 reveal"><div class="card-body">
+          <h2 class="h4">Lessons</h2>
+          <p>Twelve guided lessons in six tracks: Python basics, data and charts, probability, maths and LaTeX, machine learning, and C programming. Every step says what to try next, your progress is saved, and each lesson's code is yours to edit or reset.</p>
+          <p class="mb-0">A program's result appears beside its code: printed text, a table, a chart or a typeset PDF.</p>
+        </div></div>
+      </div>
+      <div class="col-lg-6">
+        <div class="card h-100 reveal reveal-delay-1"><div class="card-body">
+          <h2 class="h4">A tutor on your device</h2>
+          <p>Ask about any line of your program, ask for a hint, or have your answer checked. The tutor explains; it doesn't take over. Code it suggests goes into the editor and runs only when you tap Run.</p>
+          <p class="mb-0">It uses Apple Intelligence where available, or an open model you download once and keep on your device.</p>
+        </div></div>
+      </div>
+      <div class="col-lg-6">
+        <div class="card h-100 reveal"><div class="card-body">
+          <h2 class="h4">Notebooks and the scientific Python stack</h2>
+          <p class="mb-0">Work through exercises cell by cell with text, maths, tables and charts in one notebook. The libraries used in university courses are built in: NumPy, SciPy, pandas, scikit-learn, statsmodels, PyTorch, SymPy, matplotlib and Plotly, with LaTeX for writing up reports.</p>
+        </div></div>
+      </div>
+      <div class="col-lg-6">
+        <div class="card h-100 reveal reveal-delay-1"><div class="card-body">
+          <h2 class="h4">Private and offline</h2>
+          <p class="mb-0">No account, no subscription and no ads. Your code and results stay on your device, so BenchCode works in class, in a lab or anywhere without a signal. See the <a href="privacy.html#benchcode">BenchCode privacy policy</a>.</p>
+        </div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="container section-sm" id="support" aria-labelledby="support-title">
+    <div class="card reveal"><div class="card-body">
+      <h2 class="h4" id="support-title">Support</h2>
+      <p>Questions, a lesson that doesn't run, or an idea for a new one: email <a href="mailto:euler.yu@gmail.com">euler.yu@gmail.com</a> and say which device and iPadOS or iOS version you use.</p>
+      <p class="mb-0">If the tutor answers slowly, open Settings › Tutor model: it shows how much of your device's memory the model uses, and a smaller model, or unloading it when you're done, keeps BenchCode responsive.</p>
+    </div></div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="site-footer text-center">
+    <div class="container py-4">
+      <div class="footer-links mb-3">
+        <a href="https://github.com/yu314-coder" target="_blank" rel="noopener noreferrer" aria-label="GitHub profile">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222 0 1.606-.014 2.898-.014 3.293 0 .322.216.694.825.576C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg> GitHub
+        </a>
+        <a href="https://pypi.org/user/euler314/" target="_blank" rel="noopener noreferrer" aria-label="PyPI profile">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8.186 1.113a.5.5 0 0 0-.372 0L1.846 3.5 8 5.961 14.154 3.5 8.186 1.113zM15 4.239l-6.5 2.6v7.922l6.5-2.6V4.24zM7.5 14.762V6.838L1 4.239v7.923l6.5 2.6zM7.443.184a1.5 1.5 0 0 1 1.114 0l7.129 2.852A.5.5 0 0 1 16 3.5v8.662a1 1 0 0 1-.629.928l-7.185 2.874a.5.5 0 0 1-.372 0L.63 13.09a1 1 0 0 1-.63-.928V3.5a.5.5 0 0 1 .314-.464L7.443.184z"/></svg> PyPI
+        </a>
+        <a href="mailto:euler.yu@gmail.com" aria-label="Email">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z"/></svg> Email
+        </a>
+      </div>
+      <p class="mb-0 footer-copy" title="psst… try typing 'easter'">&copy; 2026 Yu, Yao-Hsing <span class="cjk">尤耀星</span>. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Bootstrap 5 JS Bundle (includes Popper) -->
+  <script src="assets/vendor/bootstrap-5.3.3/bootstrap.bundle.min.js" defer></script>
+
+  <!-- Site motion (scroll-reveal, counters) -->
+  <script src="assets/js/ui.js?v=20260828-countup" defer></script>
+
+  <!-- Custom JavaScript -->
+  <script src="assets/js/main.js?v=20261006-split" defer></script>
+</body>
+</html>
