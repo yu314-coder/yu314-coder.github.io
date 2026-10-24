@@ -2,10 +2,11 @@
 """Fill assets/data/typhoons/official/ with past official forecasts from NCDR.
 
 The live mirror only sees forecasts issued while it runs. For the storms before
-that, this asks NCDR's map for each moment a storm was active -- every 6 hours
-while it was at least a 30 kt system in the west Pacific, every 3 hours while
-it was within 800 km of Taiwan, where CWA issues more often -- and keeps every
-agency's forecast and CWA's track (see ncdr_official.py for the format).
+that, this asks NCDR's map every 3 hours while a storm was in the west Pacific,
+from its depression stage on, and keeps every agency's forecast and CWA's track
+(see ncdr_official.py for the format). Every 3 hours because CWA, CMA and HKO
+issue that often (JMA, JTWC and KMA every 6): sampled 6-hourly, Gaemi 2024 lost
+8 to 12 of each of their issues while it was far from Taiwan.
 
 One request every few seconds, cached raw in ~/.cache/ncdr-official, so a run
 can be stopped and resumed and the files rebuilt without asking again:
@@ -20,7 +21,6 @@ forecasts in 2016.
 import argparse
 import datetime
 import json
-import math
 import os
 import sys
 import time
@@ -28,8 +28,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ncdr_official as N  # noqa: E402
 
-TAIWAN = (23.7, 121.0)
-NEAR_KM = 800
+MIN_KT = 20     # depressions too: CWA and JMA forecast them, and JTWC warns on them
 
 
 def wanted_times(seasons):
@@ -42,12 +41,10 @@ def wanted_times(seasons):
             shard = json.load(f)
         for st in shard.values():
             for p in st.get("pts", []):
-                if p.get("w") is None or p["w"] < 30 or not (100 <= p["lo"] <= 185):
+                if (p.get("w") is not None and p["w"] < MIN_KT) or not (100 <= p["lo"] <= 185):
                     continue
                 t = datetime.datetime.fromisoformat(p["t"][:19])
-                if t.minute or t.hour % 3:
-                    continue
-                if t.hour % 6 == 0 or N.km(p["la"], p["lo"], *TAIWAN) < NEAR_KM:
+                if not (t.minute or t.hour % 3):
                     want.add(t)
     return sorted(want)
 
