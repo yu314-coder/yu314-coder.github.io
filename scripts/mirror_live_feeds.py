@@ -261,14 +261,53 @@ def match_track(tracks, ms, lat, lon):
     return best
 
 
+def archived_names(seasons):
+    """{sid: storm name, upper case, letters and digits only} from the committed season shards."""
+    out = {}
+    for season in seasons:
+        path = os.path.join(SEASONS, "%d.json" % season)
+        if os.path.exists(path):
+            with io.open(path, encoding="utf-8") as f:
+                out.update({sid: re.sub(r"[^A-Z0-9]", "", (st.get("name") or "").upper())
+                            for sid, st in json.load(f).items()})
+    return out
+
+
+def drifted_sid(st, names, tracks):
+    """The archived storm a Lab storm filed under an old IBTrACS id is: same name, overlapping dates."""
+    name = re.sub(r"[^A-Z0-9]", "", (st.get("name") or "").upper())
+    times = sorted(iso_ms(i["issue_time_utc"]) for i in st["issues"] if i.get("issue_time_utc"))
+    if not name or name.startswith("UNNAMED") or not times:
+        return None
+    day = 86400000
+    hits = [sid for sid, nm in names.items() if nm == name and tracks.get(sid)
+            and times[0] <= tracks[sid][-1][0] + 2 * day and times[-1] >= tracks[sid][0][0] - 2 * day]
+    return hits[0] if len(hits) == 1 else None
+
+
 def map_lab_ids(old, now):
     """{IBTrACS sid: [every Lab id to ask]} for storms the Lab files under some other id.
 
     The list includes the sid itself only when the Lab's catalog has it too, so the
     tracker never asks for an id it knows will 404."""
-    seasons = [now.year] + ([now.year - 1] if now.month == 1 else [])
+    # Last season too, every run: a storm's IBTrACS id can change after it ends (below).
+    seasons = [now.year, now.year - 1]
+    tracks, active, by_sid = archived_tracks(seasons), None, set()
     known = {lid: sid for sid, ids in old.items() for lid in ids if lid != sid}
-    out_inv, tracks, active, by_sid = {}, None, None, set()
+    # A mapping whose storm the archive and NCEI no longer know (In-fa 2026 was 2026296N11166 when
+    # it was mapped, then 2026297N11166) is matched again rather than kept pointing at nothing.
+    gone = [lid for lid, sid in known.items() if sid not in tracks]
+    if gone:
+        try:
+            active = active_tracks()
+        except Exception as exc:
+            print("NCEI active csv failed (%s); keeping those mappings" % exc)
+            active = None
+        for lid in gone:
+            if active is not None and known[lid] not in active:
+                print("Lab %s pointed at %s, which IBTrACS no longer has; matching it again" % (lid, known.pop(lid)))
+    names = archived_names(seasons)
+    out_inv = {}
     for season in seasons:
         try:
             catalog = json.loads(get("%s/api/history/v1/catalog?season=%d" % (LAB, season)))
@@ -280,7 +319,17 @@ def map_lab_ids(old, now):
                       if SID_RE.match(st.get("id") or "") and st.get("issues"))
         for st in catalog.get("storms", []):
             lid = st.get("id") or ""
-            if SID_RE.match(lid) or not st.get("issues"):
+            if not st.get("issues"):
+                continue
+            if SID_RE.match(lid):
+                # An IBTrACS id the archive no longer uses: NCEI revised the storm's start after the Lab
+                # filed it (Fung-Wong 2025: the Lab has 2025308N09144, IBTrACS 2025308N09145). Same name
+                # and dates place it; an id of a storm that never entered the west Pacific matches none.
+                if lid not in tracks and lid[:4] in {str(y) for y in seasons}:
+                    sid = drifted_sid(st, names, tracks)
+                    if sid:
+                        out_inv[lid] = sid
+                        print("Lab %s (%s) -> %s (IBTrACS id changed)" % (lid, st.get("name") or "-", sid))
                 continue
             if lid in known:
                 out_inv[lid] = known[lid]

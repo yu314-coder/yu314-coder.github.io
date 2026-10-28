@@ -3964,11 +3964,12 @@
     var b = els.hindcastBtn;
     if (!b) return;
     var sid = currentSid;
-    // One small request: the storm's 1.2 issue list (~5 KB). 1.1 is never shown, so
-    // its index is not fetched.
-    tf12EnsureIssues(sid).then(function (i12) {
+    // One small request: the storm's 1.2 issue list (~5 KB), plus, for a pre-1996 storm
+    // only, the 1.1 index, so the label can say which model will answer.
+    var old = tfOldStorm();
+    Promise.all([tf12EnsureIssues(sid), old ? tfEnsureTf11() : null]).then(function (r) {
       if (!b || sid !== currentSid) return;          // storm changed while loading
-      var h11 = null;
+      var i12 = r[0], h11 = old && r[1] && r[1].hindcasts && r[1].hindcasts[sid];
       // And the one 1.2 forecast under the playhead (~4 KB), once the page is idle:
       // the Lab can take seconds to answer a first request, and this way the button
       // usually finds it here. Only that one; the rest wait for the button.
@@ -3977,13 +3978,20 @@
         var pick = tfHindPick(Number(els.slider.value));
         if (pick && pick.src === "trackformer12") tf12EnsureRun(pick);
       }, 1500);
-      b.classList.toggle("tt-ai-btn--none", !i12);
-      var label = i12 ? HINDCAST_LABEL : HINDCAST_LABEL + " — no run yet";
+      var span11 = h11 ? "Trackformer1.1 runs " + String(h11.first_issue_utc).slice(0, 10) + " to "
+        + String(h11.last_issue_utc).slice(0, 10) + " (" + h11.runs + " initialisations)" : "";
+      b.classList.toggle("tt-ai-btn--none", !i12 && !h11);
+      var label = i12 ? HINDCAST_LABEL : (h11 ? HINDCAST_LABEL_11 : HINDCAST_LABEL + " — no run yet");
       hindcastOffLabel = label;
       if (i12) {
         if (hindcastTraceCount === 0) b.textContent = label;
         b.title = "Trackformer 1.2 runs " + String(i12[0].issue_time_utc).slice(0, 10) + " to "
-          + String(i12[i12.length - 1].issue_time_utc).slice(0, 10) + " (" + i12.length + " initialisations)";
+          + String(i12[i12.length - 1].issue_time_utc).slice(0, 10) + " (" + i12.length + " initialisations)"
+          + (h11 ? "; " + span11 + " fill in where 1.2 has none (before 1996 only)" : "");
+      } else if (h11) {
+        if (hindcastTraceCount === 0) b.textContent = label;
+        b.title = (tf12Err ? "Trackformer 1.2's data service did not answer. " : "No Trackformer 1.2 run for this storm. ")
+          + span11;
       } else {
         if (hindcastTraceCount === 0) b.textContent = label;
         b.title = (tf12Err ? "Trackformer 1.2's data service did not answer." : "No Trackformer 1.2 run for this storm yet.")
@@ -4112,7 +4120,12 @@
   function tfEnsureHindRuns(sid, initHour) {
     function redraw() { if (sid === currentSid && hindcastTraceCount > 0) hindcastFollowTick(true); }
     tf12EnsureBench().then(redraw);
-    return tf12EnsureIssues(sid).then(function () { return null; });
+    return tf12EnsureIssues(sid).then(function () {
+      if (!tfOldStorm()) return null;                      // 1.1 is fetched for a pre-1996 storm only
+      var tf11 = tfEnsureTf11Runs(sid);
+      if (sid === currentSid && tfHindPick(initHour)) { tf11.then(redraw); return null; }
+      return tf11;
+    });
   }
   // Start on intent -- the pointer reaching the button, focus, a touch -- so the
   // click finds the forecast under the playhead already here or on its way.
@@ -4123,7 +4136,7 @@
     tf12EnsureIssues(sid).then(function () {
       if (sid !== currentSid) return;
       var pick = tfHindPick(h);
-      if (pick) tfHindResolve(pick);
+      if (pick) tfHindResolve(pick); else if (tfOldStorm()) tfEnsureTf11Runs(sid);
     });
   }
   // The run that stands for the initialisation at `ms`: within 3 h, an exact match
@@ -4145,10 +4158,14 @@
     }
     return best;
   }
+  // Trackformer 1.1 only before 1996 (user, 2026-10-29: "Pre 1996 can use 1.1 but after it should always have
+  // 1.2"): the Weather Lab's 1.2 backfill is six-hourly from 1996 and has only each storm's first issue before.
+  var TF11_BEFORE = 1996;
+  function tfOldStorm() { return !!(currentStorm && currentStorm.season < TF11_BEFORE); }
   function tfHindPick(initHour) {
     if (!currentSid) return null;
     var ms = tfStormTimeAt(initHour);
-    return tfRunNear(tf12Issues[currentSid], ms);     // 1.2 only: never 1.1 (user, 2026-10-29)
+    return tfRunNear(tf12Issues[currentSid], ms) || (tfOldStorm() ? tfRunNear(tfTf11Runs[currentSid], ms) : null);
   }
   // The drawable run for a pick if it is already here, else undefined (still to
   // fetch) or null (the Lab answered and it is unusable).
@@ -4168,7 +4185,7 @@
   }
   // Every issue of either model, nearest the scrub point first; 1.2 first on a tie.
   function tfHindNearestList(initHour) {
-    var a = (currentSid && tf12Issues[currentSid]) || [], b = [];
+    var a = (currentSid && tf12Issues[currentSid]) || [], b = (tfOldStorm() && currentSid && tfTf11Runs[currentSid]) || [];
     var out = a.filter(function (r) { return tf12Runs[r.id] !== false; }).concat(b), ms = tfStormTimeAt(initHour);
     if (out.length && ms != null) {
       out.sort(function (x, y) {
@@ -4256,10 +4273,17 @@
   function tfHindUnavailable() {
     var name = (currentStorm && currentStorm.name) || "This storm";
     var i12 = currentSid && tf12Issues[currentSid];
-    if (i12) {
-      return "🧪 " + name + " — no Trackformer 1.2 run covers this point in the storm. Its " + i12.length
-        + " initialisations span " + tf12Hhmm(i12[0].issue_time_utc) + " to " + tf12Hhmm(i12[i12.length - 1].issue_time_utc)
-        + ". Scrub inside that window. Nothing else is drawn here rather than substituting a different model.";
+    var h11 = tfOldStorm() && tfRT.tf11 && tfRT.tf11.hindcasts && currentSid && tfRT.tf11.hindcasts[currentSid];
+    if (i12 || h11) {
+      return "🧪 " + name + " — no AI run covers this point in the storm."
+        + (i12 ? " Trackformer 1.2's " + i12.length + " initialisations span " + tf12Hhmm(i12[0].issue_time_utc)
+                 + " to " + tf12Hhmm(i12[i12.length - 1].issue_time_utc) + "." : "")
+        + (h11 ? " Trackformer1.1's span " + tf12Hhmm(h11.first_issue_utc) + " to " + tf12Hhmm(h11.last_issue_utc) + "." : "")
+        + " Scrub inside a window. Nothing else is drawn here rather than substituting a different model.";
+    }
+    if (tfOldStorm()) {
+      return "🧪 " + name + " — " + (tf12Err ? "Trackformer 1.2's data service did not answer. " : "no Trackformer 1.2 run for this storm. ")
+        + tfTf11Unavailable().replace(/^🧪 [^—]*— /, "");
     }
     return tf12Issues[currentSid] === undefined && tf12Err
       ? "🧪 " + name + " — Trackformer 1.2's data service did not answer (" + (tf12Err.message || tf12Err) + ")."
