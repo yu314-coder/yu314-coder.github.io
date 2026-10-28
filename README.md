@@ -161,7 +161,7 @@ Current versions are on the site; the snapshots refresh them hourly.
 | `backfill-tf11-gfs.yml` | manual | Batch hindcasts from the GFS archive, one commit |
 | `refresh-appstore-stats.yml` | hourly, and after the other refreshes | App Store sales and analytics, app versions on both stores, PyPI versions |
 | `refresh-pypi-stats.yml` | twice a day | pypistats snapshots for my packages |
-| `bootstrap-subset.yml` | on pushes that touch a page | Rebuilds the Bootstrap subset the pages link and commits it if a new class came into use |
+| `bootstrap-subset.yml` | on pushes that touch a page or stylesheet | Runs `scripts/build_css.sh`: the Bootstrap subset and `style.min.css` the pages link, with a content-hash token; commits what changed |
 | `refresh-data.yml` | every 30 min on weekdays (about hourly in practice) | Refreshes the home page's unlisted watchlist snapshot (`assets/data/sx.txt`); commits only when a quote moved |
 | `bench-autopilot.yml` | daily, and on arcade changes | Plays the home-page arcade headless to check its autopilot still reaches a floor level |
 | `train-arcade-policy.yml` | weekly | Trains the arcade's aiming policy; commits it only if it beats the incumbent on held-out seeds |
@@ -175,7 +175,7 @@ yu314-coder.github.io/
 ├── typhoon-tracks.html           # wrapper for assets/typhoon-tracker/
 ├── store-stats.html · pypi-stats.html
 ├── assets/
-│   ├── css/style.css             # also the @font-face rules for assets/fonts
+│   ├── css/style.css             # also the @font-face rules for assets/fonts; pages link style.min.css (scripts/build_css.sh)
 │   ├── js/                       # ui.js (hero spiral, counters), main.js (navbar, visitor panel),
 │   │                             #   arcade.js (the hidden arcade, fetched only when opened),
 │   │                             #   stats-core.js (store / PyPI charts)

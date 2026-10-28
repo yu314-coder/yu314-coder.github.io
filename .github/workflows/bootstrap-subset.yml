@@ -1,9 +1,11 @@
-name: Rebuild Bootstrap subset
+name: Rebuild CSS
 
-# The pages link bootstrap.site.min.css, the part of Bootstrap they use
-# (scripts/purgecss.bootstrap.cjs). A page edit that starts using a Bootstrap
-# class missing from it would render unstyled, so every push that touches a page
-# or script rebuilds the subset and commits it if it changed.
+# The pages link built CSS (scripts/build_css.sh): bootstrap.site.min.css, the part of
+# Bootstrap they use, and style.min.css, assets/css/style.css minified, with a content-hash
+# token on its links. A page edit that starts using a Bootstrap class missing from the
+# subset would render unstyled, and an edit to style.css would not reach the site, so
+# every push that touches a page, a script or a stylesheet rebuilds both and commits
+# what changed.
 on:
   push:
     branches: [main]
@@ -12,8 +14,10 @@ on:
       - "assets/js/**"
       - "assets/*-tracker/**.js"
       - "assets/*-tracker/*.html"
+      - "assets/css/style.css"
       - "assets/vendor/bootstrap-5.3.3/**"
       - "scripts/purgecss.bootstrap.cjs"
+      - "scripts/build_css.sh"
   workflow_dispatch:
 
 permissions:
@@ -37,14 +41,15 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          F="assets/vendor/bootstrap-5.3.3/bootstrap.site.min.css assets/css/style.min.css *.html"
           for attempt in 1 2 3; do
-            npx -y purgecss@6.0.0 --config scripts/purgecss.bootstrap.cjs
-            git add assets/vendor/bootstrap-5.3.3/bootstrap.site.min.css
+            bash scripts/build_css.sh
+            git add $F
             if git diff --cached --quiet; then
-              echo "Bootstrap subset is current."
+              echo "CSS is current."
               exit 0
             fi
-            git commit -m "chore: rebuild Bootstrap subset"
+            git commit -m "chore: rebuild CSS"
             if git push; then
               exit 0
             fi
@@ -53,4 +58,4 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
           done
-          echo "::warning title=Could not push::main kept moving; the next page push rebuilds it anyway"
+          echo "::warning title=Could not push::main kept moving; the next push rebuilds it anyway"
