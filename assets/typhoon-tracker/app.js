@@ -4555,11 +4555,18 @@
   // Keeps the last good forecast if the playhead is too early (<~2 days of history).
   // Trackformer 1.2 for the storm on screen without a click, at the playhead only: unlike the button, it never
   // moves the scrubber to find a run. Where there is none, the follow draws one as soon as the playhead
-  // reaches it. Started at idle after the map is built, so it never holds up the first paint.
-  var hindAutoWait = false;
+  // reaches it. It fetches only the forecast under the playhead -- the rest are fetched when play or
+  // a scrub needs them, as with the button -- and the first time, it waits until the page has loaded
+  // and gone idle: started at once, its map redraw shared the page's main thread with the first paint
+  // and moved it ~1 s later on a throttled phone, and its prefetch sent ~40 requests to the Lab per view.
+  var hindAutoWait = false, hindAutoFirst = true;
   function hindcastAutoSoon() {
     if (!aiAuto) return;
-    (window.requestIdleCallback || function (fn) { return setTimeout(fn, 300); })(hindcastAuto, { timeout: 1500 });
+    var idle = window.requestIdleCallback || function (fn) { return setTimeout(fn, 300); };
+    if (!hindAutoFirst) { idle(hindcastAuto, { timeout: 1500 }); return; }
+    hindAutoFirst = false;
+    function later() { setTimeout(function () { idle(hindcastAuto, { timeout: 3000 }); }, 1500); }
+    if (document.readyState === "complete") later(); else window.addEventListener("load", later, { once: true });
   }
   function hindcastAuto() {
     if (!aiAuto || appMode !== "track" || viewMode !== "storm" || !currentStorm || hindcastTraceCount > 0 || aiLoading) return;
@@ -4579,7 +4586,7 @@
         return;
       }
       var fw = rw ? tfHindForecast(rw, hw) : null;
-      if (fw) { aiDrawHindcast(fw, hw); tf12Prefetch(sw, hw); }
+      if (fw) aiDrawHindcast(fw, hw);     // no prefetch here: play and scrubs fetch ahead as they need
       return;
     }
     if (hindcastTraceCount === 0 || !currentStorm || hindcastFollowRun) return;
