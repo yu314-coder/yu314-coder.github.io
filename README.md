@@ -124,6 +124,20 @@ The model card for Trackformer 1.2 (released 29 Sep 2026):
 
 Current versions are on the site; the snapshots refresh them hourly.
 
+**Every version number on the site comes from those snapshots.** Don't type one into a page.
+- **App Store cards:** a card that links to its App Store page gets a version badge on its own.
+- **Anywhere else:** mark the number with one of these attributes, on an element holding nothing but the number.
+
+  | Attribute | What it shows |
+  |---|---|
+  | `data-msstore="<store id>"` | Microsoft Store version |
+  | `data-appver="<app id>"` | App Store version |
+  | `data-pypi="<package>"` / `data-pkg` | PyPI version |
+  | `data-minos="<app id>"` | Apple's minimum OS |
+  | `data-appnext="<app id>" data-after="<version>"` | a "Coming next" label that becomes "New in vX" once the App Store ships past `data-after` |
+
+- **Fallback value:** the number left in the markup stays if the fetch fails. `scripts/sync_version_fallbacks.py` rewrites it nightly from the same snapshots.
+
 ## Other projects
 
 | Project | What it is | Links |

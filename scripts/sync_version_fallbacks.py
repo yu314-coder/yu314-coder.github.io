@@ -3,8 +3,9 @@
 
 Most versions on this site are injected at runtime from the committed JSON, so
 they cannot go stale. A few are also written into the markup as a fallback, shown
-if the fetch fails: the Windows badge on the projects page, rmt-denoise's on the
-PyPI page, and the App Store version named in SidecarBridge's status line. A fallback that is never updated is just a slower kind of rot —
+if the fetch fails: the Windows badges on the projects page, rmt-denoise's on the
+PyPI page, the App Store version named in SidecarBridge's status line, python-to-binary's
+version on its tab, and the lowest OS each App Store app installs on (min_os). A fallback that is never updated is just a slower kind of rot —
 it was a hand-typed v1.1.3.0 sitting under a live v1.1.4.0 badge that made the
 contradiction visible in the first place.
 
@@ -21,19 +22,23 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parents[1]
 
-# (html file, attribute, directory holding <key>.json)
+# (html file, attribute, directory holding <key>.json[, field in it -- "version" if left out])
 TARGETS = [
     ("projects.html", "data-msstore", "assets/store-tracker/data"),
     ("pypi-stats.html", "data-pkg", "assets/pypi-tracker/data"),
     ("index.html", "data-msstore", "assets/store-tracker/data"),
     # A version written into a sentence rather than a badge, so it carries no "v" prefix.
     ("projects.html", "data-appver", "assets/appstore-tracker/data"),
+    ("projects.html", "data-pypi", "assets/pypi-tracker/data"),
+    # "iOS 18.5+", "macOS 26.2 or later": Apple's minimumOsVersion, which the snapshot keeps as min_os.
+    ("projects.html", "data-minos", "assets/appstore-tracker/data", "min_os"),
 ]
 
 
 def main():
     changed = 0
-    for fname, attr, datadir in TARGETS:
+    for fname, attr, datadir, *rest in TARGETS:
+        field = rest[0] if rest else "version"
         path = HERE / fname
         if not path.exists():
             continue
@@ -53,7 +58,7 @@ def main():
             if not src.exists():
                 return m.group(0)
             try:
-                ver = json.loads(src.read_text()).get("version")
+                ver = json.loads(src.read_text()).get(field)
             except Exception:                                 # noqa: BLE001
                 return m.group(0)
             if not ver:
