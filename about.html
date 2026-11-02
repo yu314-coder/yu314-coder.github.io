@@ -92,6 +92,28 @@
           <p class="lead-2 mb-0">The through-line is stubbornness about the gap between a result and a working thing. A proof about eigenvalue supports became <a href="https://apps.apple.com/app/eigendenoise/id6764759636" target="_blank" rel="noopener noreferrer">an image denoiser</a> and <a href="https://pypi.org/project/rmt-denoise/" target="_blank" rel="noopener noreferrer">a PyPI package</a>; wanting PyTorch on an iPad became <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer">the first public native PyTorch build for iOS</a>.</p>
         </div>
 
+        <!-- Maker's portfolio reel. A 1080p web encode of the 4K master (Pages
+             refuses files over 100 MB): H.264 CRF 20, about 19 MB. preload="none"
+             so the page fetches nothing but the poster until someone presses play.
+             The captions come from the narration's own timing
+             (makers-portfolio/source/tools/make_vtt.py); re-run it, and re-encode,
+             whenever the reel is re-rendered, and change the dated names here. -->
+        <div class="mb-5">
+          <p class="eyebrow eyebrow--rule reveal">Maker&rsquo;s portfolio</p>
+          <h2 class="h3 h-sub mb-4 reveal">The two-minute version</h2>
+          <figure class="reveal mb-0">
+            <video controls playsinline preload="none" width="1920" height="1080"
+                   poster="assets/img/makers-portfolio-poster.webp"
+                   aria-label="Maker's portfolio video, two minutes, narrated"
+                   style="display:block; width:100%; height:auto; aspect-ratio:16 / 9; background:#08080c; border:1px solid var(--line-2); border-radius:var(--r);">
+              <source src="assets/video/makers-portfolio-2026-10-31-1080p.mp4" type="video/mp4">
+              <track kind="captions" src="assets/video/makers-portfolio-2026-10-31.en.vtt" srclang="en" label="English">
+              <a href="assets/video/makers-portfolio-2026-10-31-1080p.mp4">Watch the maker&rsquo;s portfolio video (MP4)</a>
+            </video>
+            <figcaption class="mt-3" style="color:var(--ink-2);">The paper, the apps in use, the download numbers and the typhoon forecaster, narrated, with captions in the player. The download figures are from the end of October 2026; the current ones are on <a href="store-stats.html">Store Stats</a> and <a href="pypi-stats.html">PyPI Stats</a>. The live demo from the forecasting part is here: <a href="https://trackformer-weatherlab.rudin-euler-8253.chatgpt.site/live-only" target="_blank" rel="noopener noreferrer">Trackformer&nbsp;1.2 on the West Pacific now</a>.</figcaption>
+          </figure>
+        </div>
+
         <!-- Publication. The paper is the thing several projects on this site
              descend from, so it goes above the skills list rather than buried
              in the timeline. -->

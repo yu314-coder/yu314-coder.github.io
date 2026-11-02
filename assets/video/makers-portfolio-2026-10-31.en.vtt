@@ -1,0 +1,94 @@
+WEBVTT
+
+00:00:00.600 --> 00:00:01.484
+I'm Yu Yao-Hsing.
+
+00:00:01.484 --> 00:00:05.887
+I study random matrix theory, and with AI writing the code, I ship real apps.
+
+00:00:06.300 --> 00:00:07.992
+I'm a high-school student in Taipei,
+
+00:00:07.992 --> 00:00:11.260
+and I want to make everything pocket-sized, through the iPad.
+
+00:00:11.800 --> 00:00:14.099
+Seven years, from self-study to research:
+
+00:00:14.099 --> 00:00:17.014
+studying high-dimensional noise through eigenvalues,
+
+00:00:17.014 --> 00:00:19.544
+to read noisy medical images reliably.
+
+00:00:19.800 --> 00:00:23.554
+My paper, on the limiting spectral distributions of random matrices,
+
+00:00:23.554 --> 00:00:27.267
+is published in the Cambridge Journal for Junior Scientists.
+
+00:00:27.700 --> 00:00:31.805
+The work behind it took bronze at the S.-T. Yau Science Award, in Beijing.
+
+00:00:33.800 --> 00:00:35.658
+That result became EigenDenoise:
+
+00:00:35.658 --> 00:00:40.645
+on-device image denoising and spectral analysis, based on random matrix theory.
+
+00:00:41.300 --> 00:00:46.449
+ManimStudio is a complete, offline Python animation studio for the iPad and iPhone.
+
+00:00:48.300 --> 00:00:51.778
+Whisper turns speech into accurate text, entirely on your device,
+
+00:00:51.778 --> 00:00:54.426
+and now composes music from a description.
+
+00:00:55.300 --> 00:00:59.560
+SidecarBridge turns an iPad into a private viewer and remote for your Mac.
+
+00:01:02.300 --> 00:01:06.673
+When GPS is lost, Force Velocity still draws the route: in a car from how it shakes,
+
+00:01:06.673 --> 00:01:10.300
+and in the air from the typical speed of real airline flights.
+
+00:01:13.300 --> 00:01:17.007
+Real downloads, counted by each store: over four thousand for the apps,
+
+00:01:17.007 --> 00:01:19.861
+and over seven thousand for my Python packages.
+
+00:01:20.300 --> 00:01:24.187
+A full Python runtime for iOS with real PyTorch, App Store safe;
+
+00:01:24.187 --> 00:01:29.445
+Metal GPU acceleration for it; and whole operating systems booting in a browser.
+
+00:01:29.800 --> 00:01:34.596
+py2bin turns Python into machine code using nothing but the Python standard library,
+
+00:01:34.596 --> 00:01:36.538
+so it even runs on an iPad.
+
+00:01:37.800 --> 00:01:38.620
+Last, typhoons.
+
+00:01:38.620 --> 00:01:42.608
+Trackformer 1.2 forecasts the surrounding sea-level pressure and a moving
+
+00:01:42.608 --> 00:01:47.160
+storm core together, five days ahead, from data that ends at the issue time.
+
+00:01:47.800 --> 00:01:51.588
+I believe impossible is often just an assumption waiting to be challenged,
+
+00:01:51.588 --> 00:01:54.557
+and I want to bring new possibilities into people's hands.
+
+00:01:54.557 --> 00:01:57.578
+I'll keep challenging it, one iPad at a time, for everyone.
+
+00:01:57.578 --> 00:01:58.848
+I'm Yu Yao-Hsing.
