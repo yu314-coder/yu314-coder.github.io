@@ -19,7 +19,7 @@ import json, os, sys, time, urllib.error, urllib.request
 BASE = "https://api.appstoreconnect.apple.com/v1"
 APPS = {"6764472686": "ManimStudio", "6764759636": "EigenDenoise",
         "6792298083": "SidecarBridge", "6764729098": "GPS-location-app",
-        "6764759491": "WhisperKit"}
+        "6764759491": "WhisperKit", "6782149582": "Bootbox"}
 
 # Apple offers ~70 reports per request, over 1,000 of them FRAMEWORK_USAGE for
 # APIs these apps never call. Only these two carry anything this site shows.

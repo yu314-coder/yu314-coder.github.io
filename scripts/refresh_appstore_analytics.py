@@ -45,13 +45,14 @@ HERE = pathlib.Path(__file__).resolve().parents[1]
 OUT = HERE / "assets/appstore-tracker/data"
 BASE = "https://api.appstoreconnect.apple.com/v1"
 
-# Same five apps the sales script tracks.
+# Same six apps the sales script tracks.
 APPS = {
     "6764472686": "ManimStudio",
     "6764759636": "EigenDenoise",
     "6792298083": "SidecarBridge",
     "6764729098": "GPS-location-app",
     "6764759491": "WhisperKit",
+    "6782149582": "Bootbox",
 }
 
 # Apple's category for discovery/engagement (impressions, page views, taps).

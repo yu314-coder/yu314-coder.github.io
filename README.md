@@ -117,6 +117,7 @@ The model card for Trackformer 1.2 (released 29 Sep 2026):
 | ManimStudio | Windows 10+ | [Microsoft Store](https://apps.microsoft.com/detail/9NZFT55DVCBS) | [GitHub](https://github.com/yu314-coder/manim_app) |
 | WhisperKit | iOS | [App Store](https://apps.apple.com/app/whisperkit/id6764759491) | [GitHub](https://github.com/yu314-coder/WhisperKit) |
 | SidecarBridge | iOS / iPadOS / macOS | [App Store](https://apps.apple.com/app/sidecarbridge/id6792298083) | [GitHub](https://github.com/yu314-coder/SidecarBridge) |
+| Bootbox | iOS / iPadOS | [App Store](https://apps.apple.com/app/bootbox/id6782149582) | [GitHub](https://github.com/yu314-coder/Bootbox) |
 | GPS-location-app | iOS / watchOS | [App Store](https://apps.apple.com/app/gps-location-app/id6764729098) | [GitHub](https://github.com/yu314-coder/GPS-location-app) |
 | EigenDenoise | macOS | [Mac App Store](https://apps.apple.com/app/eigendenoise/id6764759636) | [GitHub](https://github.com/yu314-coder/EigenDenoise) |
 | Generalized Covariance Matrix | Windows 10+ | [Microsoft Store](https://apps.microsoft.com/detail/9nzj475s7b01) | [GitHub](https://github.com/yu314-coder/random_matrix_ESD) |

@@ -60,6 +60,7 @@ APPS = {
     "6792298083": "SidecarBridge",
     "6764729098": "GPS-location-app",
     "6764759491": "WhisperKit",
+    "6782149582": "Bootbox",
 }
 
 # How far back to reach on a cold start: everything Apple keeps, which is about
