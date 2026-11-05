@@ -145,7 +145,7 @@ Current versions are on the site; the snapshots refresh them hourly.
 |---------|------------|-------|
 | CodeBench | Offline developer / scientific / AI workstation for iPad and Mac | [GitHub](https://github.com/yu314-coder/CodeBench) |
 | python-ios-lib | Python 3.14 for iOS / iPadOS with native offline libraries, including PyTorch with a Metal bridge | [GitHub](https://github.com/yu314-coder/python-ios-lib) · [torchmetal](https://github.com/yu314-coder/torchmetal) |
-| Bootbox | A boot manager for iPad: real operating systems (64-bit Linux, Android 12, classic Windows) in a WebKit-hosted emulation stack | [GitHub](https://github.com/yu314-coder/Bootbox) |
+| Bootbox | A virtual PC for iPad and iPhone: a Linux desktop or terminal and Android 12 on a 64-bit x86 PC emulated in WebAssembly | [App Store](https://apps.apple.com/app/bootbox/id6782149582) · [GitHub](https://github.com/yu314-coder/Bootbox) |
 | Apple on-device model teardown | A static reverse-engineering of Apple's on-device foundation model (the sparse Mixture-of-Experts backbone in Apple Intelligence), down to a component-validated PyTorch forward pass | [GitHub](https://github.com/yu314-coder/afm-ifp-teardown) |
 | py2bin | Stdlib-only Python compiler to ELF / PE / Mach-O | [GitHub](https://github.com/yu314-coder/python_to_binary) · [PyPI](https://pypi.org/project/python-to-binary/) |
 | NeonScribe | Creative writing and text processing tool | [GitHub](https://github.com/yu314-coder/NeonScribe) |

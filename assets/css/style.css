@@ -581,6 +581,10 @@ body.theme-dark .tracker-shell {
   content: ""; position: absolute; inset: 0 0 auto 0; height: 2px;
   background: var(--hue, var(--accent)); opacity: 0.85;
 }
+/* Project cards fill their width (grids, feature boxes); running text keeps a reading measure */
+.card--hue header .lead,
+.card--hue .list-unstyled,
+.card--hue .d-inline-block.text-start { max-width: 52rem; margin-left: auto; margin-right: auto; }
 
 /* featured / spotlight reuse .card; legacy classes map to flat surface */
 .featured-project, .spotlight-card {

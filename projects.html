@@ -42,7 +42,7 @@
   <link rel="preload" href="assets/fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
 
   <!-- Site stylesheet (single source of truth) -->
-  <link rel="stylesheet" href="assets/css/style.min.css?v=74d844c1">
+  <link rel="stylesheet" href="assets/css/style.min.css?v=7f67cedc">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
 <body class="theme-dark">
@@ -96,7 +96,7 @@
         <div class="pt-group__items" role="presentation">
           <button class="nav-link pt-tile active" id="tab-manim-btn" data-bs-toggle="pill" data-bs-target="#tab-manim" type="button" role="tab" aria-controls="tab-manim" aria-selected="true"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/manimstudio-win.webp" type="image/webp"><img src="assets/img/app-icons/manimstudio-win.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">ManimStudio</span><span class="pt-tile__sub">Math animation studio</span></span></button>
           <button class="nav-link pt-tile" id="tab-codebench-btn" data-bs-toggle="pill" data-bs-target="#tab-codebench" type="button" role="tab" aria-controls="tab-codebench" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/benchcode.webp" type="image/webp"><img src="assets/img/app-icons/benchcode.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">CodeBench</span><span class="pt-tile__sub">On-device dev workstation</span></span></button>
-          <button class="nav-link pt-tile" id="tab-bootbox-btn" data-bs-toggle="pill" data-bs-target="#tab-bootbox" type="button" role="tab" aria-controls="tab-bootbox" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/bootbox.webp" type="image/webp"><img src="assets/img/app-icons/bootbox.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">Bootbox</span><span class="pt-tile__sub">Boots real OSes on iPad</span></span></button>
+          <button class="nav-link pt-tile" id="tab-bootbox-btn" data-bs-toggle="pill" data-bs-target="#tab-bootbox" type="button" role="tab" aria-controls="tab-bootbox" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/bootbox.webp" type="image/webp"><img src="assets/img/app-icons/bootbox.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">Bootbox</span><span class="pt-tile__sub">Virtual PC for iPad &amp; iPhone</span></span></button>
           <button class="nav-link pt-tile" id="tab-gps-btn" data-bs-toggle="pill" data-bs-target="#tab-gps" type="button" role="tab" aria-controls="tab-gps" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/gps-location-app.webp" type="image/webp"><img src="assets/img/app-icons/gps-location-app.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">GPS-location-app</span><span class="pt-tile__sub">GPS workout tracker</span></span></button>
           <button class="nav-link pt-tile" id="tab-sidecar-btn" data-bs-toggle="pill" data-bs-target="#tab-sidecar" type="button" role="tab" aria-controls="tab-sidecar" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/sidecarbridge.webp" type="image/webp"><img src="assets/img/app-icons/sidecarbridge.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">SidecarBridge</span><span class="pt-tile__sub">Remote window into your Mac</span></span></button>
           <button class="nav-link pt-tile" id="tab-other-btn" data-bs-toggle="pill" data-bs-target="#tab-other" type="button" role="tab" aria-controls="tab-other" aria-selected="false"><span class="pt-tile__icon pt-tile__icon--glyph"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="4.5" width="6" height="6" rx="1.5"/><rect x="13.5" y="4.5" width="6" height="6" rx="1.5"/><rect x="4.5" y="13.5" width="6" height="6" rx="1.5"/><rect x="13.5" y="13.5" width="6" height="6" rx="1.5"/></svg></span><span class="pt-tile__text"><span class="pt-tile__name">Others</span><span class="pt-tile__sub">WhisperKit, t-SNE and more</span></span></button>
@@ -130,7 +130,7 @@
     <div class="card card--hue hue-manim-win mb-5 reveal">
       <div class="card-body p-4 p-md-5">
         <div class="row g-0 align-items-center justify-content-center">
-          <div class="col-lg-10 col-xl-9 text-center">
+          <div class="col-12 text-center">
             <header class="mb-4">
               <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
                 <span class="app-icon"><picture><source srcset="assets/img/app-icons/manimstudio-win.webp" type="image/webp"><img src="assets/img/app-icons/manimstudio-win.png" alt="ManimStudio icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
@@ -166,7 +166,7 @@
             </div>
 
             <div class="row g-3 mb-4 justify-content-center">
-              <div class="col-md-5">
+              <div class="col-md-6">
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">Requirements</h5>
                   <ul class="small mb-0 text-start">
@@ -177,7 +177,7 @@
                   </ul>
                 </div>
               </div>
-              <div class="col-md-5">
+              <div class="col-md-6">
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">Quick Install</h5>
                   <ol class="small mb-0 text-start">
@@ -224,7 +224,7 @@
     <div class="card card--hue hue-manim-ios mt-5 reveal">
       <div class="card-body p-4 p-md-5">
         <div class="row g-0 align-items-center justify-content-center">
-          <div class="col-lg-10 col-xl-9 text-center">
+          <div class="col-12 text-center">
             <header class="mb-4">
               <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
                 <span class="app-icon"><picture><source srcset="assets/img/app-icons/manimstudio-ios.webp" type="image/webp"><img src="assets/img/app-icons/manimstudio-ios.png" alt="ManimStudio iOS icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
@@ -266,7 +266,7 @@
             </div>
 
             <div class="row g-3 mb-4 justify-content-center">
-              <div class="col-md-5">
+              <div class="col-md-6">
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">Requirements</h5>
                   <ul class="small mb-0 text-start">
@@ -277,7 +277,7 @@
                   </ul>
                 </div>
               </div>
-              <div class="col-md-5">
+              <div class="col-md-6">
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">Render Pipeline</h5>
                   <ul class="small mb-0 text-start">
@@ -333,7 +333,7 @@
     <div class="card card--hue hue-codebench mb-5 reveal">
       <div class="card-body p-4 p-md-5">
         <div class="row g-0 align-items-center justify-content-center">
-          <div class="col-lg-11 col-xl-10 text-center">
+          <div class="col-12 text-center">
             <header class="mb-4">
               <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
                 <span class="app-icon"><picture><source srcset="assets/img/app-icons/benchcode.webp" type="image/webp"><img src="assets/img/app-icons/benchcode.png" alt="BenchCode icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
@@ -521,7 +521,7 @@
 
             <!-- Specs row -->
             <div class="row g-3 mb-4 justify-content-center">
-              <div class="col-md-5">
+              <div class="col-md-6">
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">Built On</h5>
                   <ul class="small mb-0 text-start">
@@ -533,7 +533,7 @@
                   </ul>
                 </div>
               </div>
-              <div class="col-md-5">
+              <div class="col-md-6">
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">Bundle Composition</h5>
                   <ul class="small mb-0 text-start">
@@ -580,7 +580,7 @@
     <div class="card card--hue hue-python-ios mb-5 reveal">
       <div class="card-body p-4 p-md-5">
         <div class="row g-0 align-items-center justify-content-center">
-          <div class="col-lg-11 col-xl-10 text-center">
+          <div class="col-12 text-center">
             <header class="mb-4">
               <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
                 <span class="app-icon app-icon--gh" role="img" aria-label="python-ios-lib on GitHub"></span>
@@ -853,7 +853,7 @@
 
             <!-- Specs row -->
             <div class="row g-3 mb-4 justify-content-center">
-              <div class="col-md-5">
+              <div class="col-md-6">
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">Requirements</h5>
                   <ul class="small mb-0 text-start">
@@ -864,7 +864,7 @@
                   </ul>
                 </div>
               </div>
-              <div class="col-md-5">
+              <div class="col-md-6">
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">Quick Start</h5>
                   <ol class="small mb-0 text-start">
@@ -908,32 +908,32 @@
     <div class="card card--hue hue-bootbox mb-5 reveal">
       <div class="card-body p-4 p-md-5">
         <div class="row g-0 align-items-center justify-content-center">
-          <div class="col-lg-10 col-xl-9 text-center">
+          <div class="col-12 text-center">
             <header class="mb-4">
               <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
                 <span class="app-icon"><picture><source srcset="assets/img/app-icons/bootbox.webp" type="image/webp"><img src="assets/img/app-icons/bootbox.png" alt="Bootbox icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
                 <div class="text-start">
                   <h3 class="h2 mb-1 fw-bold">Bootbox</h3>
                   <span class="badge-neutral mono">iPad · iPhone</span>
-                  <span class="badge-accent mono ms-1">On-Device Emulation</span>
+                  <span class="badge-accent mono ms-1">Virtual PC</span>
                   <span class="badge-neutral mono ms-1">No Jailbreak</span>
                 </div>
               </div>
-              <p class="lead mb-0">A boot manager for your iPad and iPhone. Bootbox is a native iOS app that boots real operating systems — 64-bit Linux (x86-64 and ARM64), Android 12, classic Windows, graphical desktops — inside a WebKit-hosted emulation stack, with real internet, real multi-core, files in the iOS Files app, and one-tap downloads for every guest image. Everything runs on-device: no servers, no streaming, no jailbreak.</p>
+              <p class="lead mb-0">A virtual PC for iPad and iPhone. Bootbox emulates a complete 64-bit x86 computer in software and boots real operating systems on it &mdash; a Linux desktop with a web browser, a Linux terminal with Python and Wine, and Android&nbsp;12 &mdash; with real internet, real multi-core and your files in the Files app. No jailbreak, no sign-in, no server.</p>
             </header>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
-              <span class="feature-badge">64-bit Linux (x86-64)</span>
-              <span class="feature-badge">Genuine ARM64</span>
-              <span class="feature-badge">Android 12 AOSP</span>
-              <span class="feature-badge">Windows 98 / 2000</span>
+              <span class="feature-badge">Linux Desktop</span>
+              <span class="feature-badge">WebKit Browser</span>
+              <span class="feature-badge">Python 3.12 + pip</span>
               <span class="feature-badge">wine-staging 11.5</span>
-              <span class="feature-badge">Multi-core (up to 8)</span>
+              <span class="feature-badge">Android 12 AOSP</span>
+              <span class="feature-badge">Up to 8 Cores</span>
               <span class="feature-badge">Real Internet (gVisor)</span>
-              <span class="feature-badge">Files App Integration</span>
-              <span class="feature-badge">Custom ISO/IMG Import</span>
-              <span class="feature-badge">noVNC GUI</span>
-              <span class="feature-badge">Boxedwine</span>
+              <span class="feature-badge">Files App</span>
+              <span class="feature-badge">Save &amp; Resume</span>
+              <span class="feature-badge">Benchmarks Hub</span>
+              <span class="feature-badge">Your Own ISO / IMG</span>
             </div>
 
             <!-- Capability Grid -->
@@ -941,101 +941,101 @@
 
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h4 class="h5 h-sub">64-bit Linux &amp; ARM64 <span class="lib-count-badge">QEMU-Wasm</span></h4>
-                  <p class="mt-1 mb-0" style="text-align:left;">Genuine aarch64 Alpine (<code>uname -m</code> really reports <code>aarch64</code>) alongside a dual-core x86-64 console guest with Python 3.12, pip/uv, wine-staging 11.5, and real internet.</p>
+                  <h4 class="h5 h-sub">Linux Desktop <span class="lib-count-badge">~240 MB</span></h4>
+                  <p class="mt-1 mb-0" style="text-align:left;">An Openbox desktop with a taskbar, terminal, PCManFM, a text editor and Python&nbsp;3.12, plus <strong>bbweb</strong>, a WebKitGTK browser tuned for emulation that runs Wikipedia, DuckDuckGo and GitHub inside the emulated PC. Its Web icon can hand a page to the device's own, far faster browser.</p>
                 </div>
               </div>
 
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h4 class="h5 h-sub">Classic Windows <span class="lib-count-badge">v86</span></h4>
-                  <p class="mt-1 mb-0" style="text-align:left;">Windows 98 SE and Windows 2000 Pro boot natively to the desktop via v86, with working internet on Windows 2000 through the NDIS relay.</p>
+                  <h4 class="h5 h-sub">Linux Terminal <span class="lib-count-badge">~310 MB</span></h4>
+                  <p class="mt-1 mb-0" style="text-align:left;">Alpine with Python&nbsp;3.12 and <code>pip</code> backed by uv, ~24 packages pre-installed, <code>mc</code>, a built-in file browser, and wine-staging 11.5 for Windows command-line programs. <code>pip install numpy</code> is pinned to the 1.x line, which runs correctly on the emulated CPU.</p>
                 </div>
               </div>
 
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h4 class="h5 h-sub">Android 12 <span class="lib-count-badge">AOSP</span></h4>
-                  <p class="mt-1 mb-0" style="text-align:left;">A real 64-bit x86-64 AOSP userspace — Android framework, ART, System UI and Launcher3 with touch and keyboard, a writable 2 GiB <code>/data</code>, 1–4 cores. About 591 MB, downloaded once. AOSP, so no Google Play.</p>
+                  <h4 class="h5 h-sub">Android 12 <span class="lib-count-badge">~900 MB</span></h4>
+                  <p class="mt-1 mb-0" style="text-align:left;">A real 64-bit AOSP userspace &mdash; framework, ART, System UI and Launcher3, touch and keyboard, a writable <code>/data</code>. A cold boot would take many minutes, so the image carries a snapshot taken at the home screen and resumes from it in seconds. AOSP, so no Google Play.</p>
                 </div>
               </div>
 
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
                   <h4 class="h5 h-sub">Real Multi-core <span class="lib-count-badge">up to 8</span></h4>
-                  <p class="mt-1 mb-0" style="text-align:left;">The x86-64 guest boots dual-core by default with genuine parallel execution (measured 2.0× wall-clock speedup). A cores selector (1/2/4/6/8) sits in the toolbar and UEFI Setup.</p>
-                </div>
-              </div>
-
-              <div class="col-md-6 col-lg-4">
-                <div class="lib-category-card">
-                  <h4 class="h5 h-sub">4× Lower Idle Power</h4>
-                  <p class="mt-1 mb-0" style="text-align:left;">A patched engine sleeps on a real futex between polls instead of busy-spinning. Measured: idle ~120% → ~32% host CPU, boot time 30s → ~20s, cooler iPad, longer battery.</p>
-                </div>
-              </div>
-
-              <div class="col-md-6 col-lg-4">
-                <div class="lib-category-card">
-                  <h4 class="h5 h-sub">Python That Works <span class="lib-count-badge">uv</span></h4>
-                  <p class="mt-1 mb-0" style="text-align:left;"><code>pip install</code> backed by uv with ~24 packages pre-installed and 10-minute download timeouts for large wheels. A baked-in constraints file resolves NumPy to the 1.x line for correctness on the emulated CPU.</p>
-                </div>
-              </div>
-
-              <div class="col-md-6 col-lg-4">
-                <div class="lib-category-card">
-                  <h4 class="h5 h-sub">Files App Integration <span class="lib-count-badge">iSH-style</span></h4>
-                  <p class="mt-1 mb-0" style="text-align:left;">A classic <code>NSFileProviderExtension</code> exposes the Bootbox folder in the iOS Files app. Materialized files are hard links — drop in <code>.iso</code>/<code>.img</code>, pull guest exports out, zero-copy.</p>
+                  <p class="mt-1 mb-0" style="text-align:left;">Each virtual CPU is its own WebAssembly worker, so the cores really run in parallel: at four cores the guest gets about four cores' worth of CPU time. Two by default; pick 1&ndash;8 in the toolbar or UEFI Setup &mdash; fewer runs cooler, more runs faster.</p>
                 </div>
               </div>
 
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
                   <h4 class="h5 h-sub">Real Internet <span class="lib-count-badge">gVisor</span></h4>
-                  <p class="mt-1 mb-0" style="text-align:left;"><code>Iosnet.xcframework</code> embeds a gVisor userspace TCP/IP stack — the guest's virtio NIC frames travel over a local WebSocket into native sockets. <code>pip</code>, <code>apk</code>, <code>wget</code>, DNS all work, fully on-device.</p>
+                  <p class="mt-1 mb-0" style="text-align:left;"><code>Iosnet.xcframework</code> embeds gVisor's userspace TCP/IP stack, so the guest's network frames become native sockets on the device. <code>pip</code>, <code>apk</code>, <code>wget</code> and DNS just work, straight to the sites they contact.</p>
                 </div>
               </div>
 
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h4 class="h5 h-sub">Your Own Images</h4>
-                  <p class="mt-1 mb-0" style="text-align:left;">Import any <code>.iso</code>/<code>.img</code> via the Files app; paired save-states let a custom install resume in about a second instead of rebooting.</p>
+                  <h4 class="h5 h-sub">Your Files <span class="lib-count-badge">Files app</span></h4>
+                  <p class="mt-1 mb-0" style="text-align:left;">The Bootbox folder appears in the iOS Files app through a classic File Provider. Files are hard links, so even multi-GB disk images are never copied. The console's Files tab saves a guest file to the device or copies one in.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h4 class="h5 h-sub">Benchmarks Hub</h4>
+                  <p class="mt-1 mb-0" style="text-align:left;">CPU-Z (the real Windows program, under Wine), 7-Zip, sysbench, glmark2 and a web benchmark, one at a time or with Run all, with a history you can screenshot.</p>
+                </div>
+              </div>
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h4 class="h5 h-sub">Your Own Images <span class="lib-count-badge">v86</span></h4>
+                  <p class="mt-1 mb-0" style="text-align:left;">Import an <code>.iso</code> or <code>.img</code> &mdash; your own Windows install media, say &mdash; through the Files app and boot it on the 32-bit v86 engine. Paired save-states resume it in about a second. Bootbox ships no Windows.</p>
                 </div>
               </div>
 
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
                   <h4 class="h5 h-sub">A Boot Experience</h4>
-                  <p class="mt-1 mb-0" style="text-align:left;">GRUB-style boot menu with per-system notes, a classic Aptio-blue UEFI Setup screen, then serial console on the left and GUI on the right — keyboard routing follows your last tap.</p>
+                  <p class="mt-1 mb-0" style="text-align:left;">A GRUB-style boot menu with notes for each system, a classic Aptio-blue UEFI Setup with working RAM, cores, boot-order and network settings, then the serial console on the left and the screen on the right.</p>
                 </div>
               </div>
 
             </div>
 
             <div class="row g-3 mb-4 justify-content-center">
-              <div class="col-md-5">
+              <div class="col-md-6">
                 <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">Built On</h5>
+                  <h5 class="h6 fw-bold mb-3">Measured</h5>
                   <ul class="small mb-0 text-start">
-                    <li>QEMU-Wasm — x86-64 (SMP/ACPI) &amp; ARM64 engines</li>
-                    <li>v86 — fast 32-bit x86 (Win98 / 2000, i686)</li>
-                    <li>Boxedwine — Wine in the browser</li>
-                    <li>noVNC — graphical guest output</li>
-                    <li>Iosnet.xcframework — gVisor netstack (gomobile)</li>
+                    <li>CPU-Z single / multi thread: 15.4 / 42.0 (in WebKit 12.0&ndash;12.7 / 29&ndash;31)</li>
+                    <li>7-Zip single / multi thread: 301 / 907 MIPS</li>
+                    <li>glmark2, every pixel drawn by the emulated CPU: 45</li>
+                    <li>Android cold app launch, Settings / Contacts: 21 s / 15 s</li>
+                    <li>On an Apple M4 Mac with 4 virtual cores; iPads land in the same range or somewhat lower. A month earlier the same CPU-Z test scored 0.59 / 1.48.</li>
                   </ul>
                 </div>
               </div>
-              <div class="col-md-5">
+              <div class="col-md-6">
                 <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">What It Boots</h5>
+                  <h5 class="h6 fw-bold mb-3">Built On</h5>
                   <ul class="small mb-0 text-start">
-                    <li>64-bit Linux + Python &amp; wine-staging 11.5 (x86-64, 1–8 cores)</li>
-                    <li>64-bit Linux Desktop (Openbox, Dillo, PCManFM, Claude Code CLI)</li>
-                    <li>64-bit Linux — genuine ARM64 Alpine</li>
-                    <li>Android 12 AOSP (x86-64, 1–4 cores)</li>
-                    <li>Windows 98 SE &amp; Windows 2000 Pro</li>
-                    <li>Any imported <code>.iso</code> / <code>.img</code></li>
+                    <li>QEMU compiled to WebAssembly &mdash; the patched x86-64 engine's source is in the repository</li>
+                    <li>v86 &mdash; 32-bit x86 for your own images</li>
+                    <li>container2wasm &mdash; guest images built from ordinary Docker images</li>
+                    <li>gVisor netstack (Iosnet.xcframework, via gomobile)</li>
+                    <li>noVNC, Boxedwine and xterm.js</li>
                   </ul>
                 </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">Honest limits</h4>
+              <div class="d-inline-block text-start">
+                <p class="small mb-1">iOS gives apps no Hypervisor.framework, so every guest instruction is translated in software and the emulated PC runs at a few percent of a native CPU core. It is built for learning Linux, scripting, retro computing and experiments, not heavy work.</p>
+                <p class="small mb-0">Android needs about 2.4&nbsp;GB of guest memory, so newer devices with more RAM run it best. More cores run faster but also warmer, since each one is a whole software CPU.</p>
               </div>
             </div>
 
@@ -1045,8 +1045,11 @@
                 <p class="small mb-1"><strong>Created by:</strong> Yu Yao-Hsing</p>
                 <p class="small mb-1"><strong>Platform:</strong> iPad and iPhone, iOS <span data-minos="6782149582">16.0</span> or later (Swift host app + WKWebView)</p>
                 <p class="small mb-1"><strong>App Store ID:</strong> 6782149582 (<code>euleryu.bootbox</code>)</p>
+                <p class="small mb-1"><strong>Engine:</strong> QEMU &rarr; WebAssembly, compiled to native code by WebKit's own JIT; no Hypervisor.framework or JIT entitlement</p>
                 <p class="small mb-1"><strong>Networking:</strong> gVisor userspace TCP/IP via Iosnet.xcframework</p>
-                <p class="small mb-1"><strong>App size:</strong> 72.8&nbsp;MB · guest images download on demand, once, and are cached</p>
+                <p class="small mb-1"><strong>Idle:</strong> ~3&ndash;6% of a host core, from a futex-sleeping engine and tickless guest kernels</p>
+                <p class="small mb-1"><strong>App size:</strong> 72.8&nbsp;MB · each system downloads once from GitHub Releases and is cached</p>
+                <p class="small mb-1"><strong>License:</strong> MIT app source; the engines keep their own (QEMU is GPL-2.0, its modified source published in the repository)</p>
                 <p class="small mb-0"><strong>Status:</strong> Live on the App Store &mdash; version <span data-appver="6782149582">1.0</span>, free, Utilities, rated 17+</p>
               </div>
             </div>
@@ -1084,7 +1087,7 @@
     <div class="card card--hue hue-covariance reveal">
       <div class="card-body p-4 p-md-5">
         <div class="row g-0 align-items-center justify-content-center">
-          <div class="col-lg-10 col-xl-9 text-center">
+          <div class="col-12 text-center">
             <header class="mb-4">
               <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
                 <span class="app-icon"><picture><source srcset="assets/img/app-icons/generalized-covariance.webp" type="image/webp"><img src="assets/img/app-icons/generalized-covariance.png" alt="Generalized Covariance Matrix icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
@@ -1117,7 +1120,7 @@
             </div>
 
             <div class="row g-3 mb-4 justify-content-center">
-              <div class="col-md-5">
+              <div class="col-md-6">
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">System Requirements</h5>
                   <ul class="small mb-0 text-start">
@@ -1127,7 +1130,7 @@
                   </ul>
                 </div>
               </div>
-              <div class="col-md-5">
+              <div class="col-md-6">
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">Get Started</h5>
                   <ol class="small mb-0 text-start">
@@ -1177,7 +1180,7 @@
     <div class="card card--hue hue-eigendenoise mt-5 reveal">
       <div class="card-body p-4 p-md-5">
         <div class="row g-0 align-items-center justify-content-center">
-          <div class="col-lg-10 col-xl-9 text-center">
+          <div class="col-12 text-center">
             <header class="mb-4">
               <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
                 <span class="app-icon"><picture><source srcset="assets/img/app-icons/eigendenoise.webp" type="image/webp"><img src="assets/img/app-icons/eigendenoise.png" alt="EigenDenoise icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
@@ -1214,7 +1217,7 @@
             </div>
 
             <div class="row g-3 mb-4 justify-content-center">
-              <div class="col-md-5">
+              <div class="col-md-6">
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">System Requirements</h5>
                   <ul class="small mb-0 text-start">
@@ -1225,7 +1228,7 @@
                   </ul>
                 </div>
               </div>
-              <div class="col-md-5">
+              <div class="col-md-6">
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">Tech Stack</h5>
                   <ul class="small mb-0 text-start">
@@ -1286,7 +1289,7 @@
     <div class="card card--hue hue-gps reveal">
       <div class="card-body p-4 p-md-5">
         <div class="row g-0 align-items-center justify-content-center">
-          <div class="col-lg-10 col-xl-9 text-center">
+          <div class="col-12 text-center">
             <header class="mb-4">
               <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
                 <span class="app-icon"><picture><source srcset="assets/img/app-icons/gps-location-app.webp" type="image/webp"><img src="assets/img/app-icons/gps-location-app.png" alt="GPS-location-app icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
@@ -1337,7 +1340,7 @@
             </div>
 
             <div class="row g-3 mb-4 justify-content-center">
-              <div class="col-md-5">
+              <div class="col-md-6">
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">Requirements</h5>
                   <ul class="small mb-0 text-start">
@@ -1347,7 +1350,7 @@
                   </ul>
                 </div>
               </div>
-              <div class="col-md-5">
+              <div class="col-md-6">
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">Get Started</h5>
                   <ol class="small mb-0 text-start">
@@ -1401,7 +1404,7 @@
     <div class="card card--hue hue-sidecar reveal">
       <div class="card-body p-4 p-md-5">
         <div class="row g-0 align-items-center justify-content-center">
-          <div class="col-lg-10 col-xl-9 text-center">
+          <div class="col-12 text-center">
             <header class="mb-4">
               <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
                 <span class="app-icon"><picture><source srcset="assets/img/app-icons/sidecarbridge.webp" type="image/webp"><img src="assets/img/app-icons/sidecarbridge.png" alt="SidecarBridge icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
@@ -1447,7 +1450,7 @@
             </div>
 
             <div class="row g-3 mb-4 justify-content-center">
-              <div class="col-md-5">
+              <div class="col-md-6">
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">Requirements</h5>
                   <ul class="small mb-0 text-start">
@@ -1459,7 +1462,7 @@
                   </ul>
                 </div>
               </div>
-              <div class="col-md-5">
+              <div class="col-md-6">
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">Get Started</h5>
                   <ol class="small mb-0 text-start">
@@ -1518,7 +1521,7 @@
     <div class="card card--hue hue-afm reveal">
       <div class="card-body p-4 p-md-5">
         <div class="row g-0 align-items-center justify-content-center">
-          <div class="col-lg-10 col-xl-9 text-center">
+          <div class="col-12 text-center">
             <header class="mb-4">
               <h3 class="h2 mb-2 fw-bold">Apple On-Device Model Teardown</h3>
               <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
@@ -1550,7 +1553,7 @@
             </div>
 
             <div class="row g-3 mb-4 justify-content-center">
-              <div class="col-md-5">
+              <div class="col-md-6">
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">The model</h5>
                   <ul class="small mb-0 text-start">
@@ -1561,7 +1564,7 @@
                   </ul>
                 </div>
               </div>
-              <div class="col-md-5">
+              <div class="col-md-6">
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">What's in the repo</h5>
                   <ul class="small mb-0 text-start">
