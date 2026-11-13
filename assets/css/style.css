@@ -894,6 +894,57 @@ body.theme-dark { --pv-ok: #7ee2b8; --pv-net: #67dcef; --pv-perm: #f5c26b; }
 .pv-tag--net  { color: var(--pv-net);  border-color: color-mix(in srgb, var(--pv-net) 40%, transparent);  background: color-mix(in srgb, var(--pv-net) 9%, transparent); }
 .pv-tag--perm { color: var(--pv-perm); border-color: color-mix(in srgb, var(--pv-perm) 40%, transparent); background: color-mix(in srgb, var(--pv-perm) 9%, transparent); }
 
+/* Twelve apps on three platforms: the cards are grouped by platform, and a
+   chip row + search narrows cards, nav and full policies together. */
+.pv-toolbar {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.8rem 1.2rem;
+  margin: 0 0 0.9rem; padding: 0.6rem; border: 1px solid var(--line); border-radius: var(--r-lg);
+  background: var(--surface);
+}
+.pv-toolbar[hidden] { display: none; }
+.pv-filter { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.pv-chip {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  padding: 0.42rem 0.85rem; border-radius: var(--r-pill); border: 1px solid transparent;
+  background: transparent; color: var(--ink-2); font-size: 0.86rem; line-height: 1.2; cursor: pointer;
+  transition: background .2s var(--ease), color .2s var(--ease), border-color .2s var(--ease);
+}
+.pv-chip span { font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-3); }
+.pv-chip:hover { background: var(--accent-tint); color: var(--ink); }
+.pv-chip.is-on { background: var(--accent-tint); border-color: color-mix(in srgb, var(--accent) 45%, transparent); color: var(--accent); }
+.pv-chip.is-on span { color: inherit; }
+.pv-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pv-search {
+  flex: 1 1 240px; max-width: 340px; display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.38rem 0.8rem; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--bg-alt);
+  margin: 0;
+}
+.pv-search:focus-within { border-color: var(--accent); }
+.pv-search svg { width: 14px; height: 14px; fill: var(--ink-3); flex: none; }
+.pv-search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink); font-size: 0.88rem; outline: none; }
+.pv-search input::placeholder { color: var(--ink-3); }
+.pv-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin: 0 0 1.6rem; }
+.pv-legend .pv-tag { padding-left: 0.5rem; }
+.pv-legend .pv-tag::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; margin-right: 0.4rem; vertical-align: 1px; }
+.pv-group + .pv-group { margin-top: 1.8rem; }
+.pv-group[hidden], .pv-card[hidden], .pv-policy[hidden], .pv-nav a[hidden], .pv-nav-group[hidden] { display: none !important; }
+.pv-group-title {
+  display: flex; align-items: center; gap: 0.6rem; margin: 0 0 0.8rem;
+  font-family: var(--font-mono); font-size: 0.76rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2);
+}
+.pv-group-title::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.pv-group-count { color: var(--ink-3); font-weight: 500; }
+.pv-card-date { font-family: var(--font-mono); font-size: 0.7rem; color: var(--ink-3); padding-top: 0.55rem; border-top: 1px solid var(--line); }
+.pv-card .pv-tags { margin-top: 0; }
+.pv-card > p { flex: 1; }
+.pv-empty { padding: 1.4rem; border: 1px dashed var(--line-2); border-radius: var(--r-lg); color: var(--ink-2); text-align: center; }
+.pv-reset { border: 0; background: none; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; }
+.pv-nav-group {
+  margin: 0.8rem 0 0.25rem 0.7rem; font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.pv-nav-label + .pv-nav-group { margin-top: 0; }
+
 /* side nav: tracks the policy in view */
 .pv-policies { padding-top: 0; }
 .pv-nav { position: sticky; top: 92px; display: flex; flex-direction: column; gap: 0.1rem; }
@@ -924,7 +975,7 @@ body.theme-dark { --pv-ok: #7ee2b8; --pv-net: #67dcef; --pv-perm: #f5c26b; }
     border-bottom: 1px solid var(--line);
   }
   .pv-nav::-webkit-scrollbar { display: none; }
-  .pv-nav-label, .pv-nav .pv-nav-top { display: none; }
+  .pv-nav-label, .pv-nav .pv-nav-top, .pv-nav-group { display: none; }
   .pv-nav a {
     flex: none; white-space: nowrap; padding: 0.35rem 0.7rem 0.35rem 0.45rem;
     border: 1px solid var(--line); border-radius: var(--r-pill); font-size: 0.8rem;
@@ -965,7 +1016,7 @@ body.theme-dark { --pv-ok: #7ee2b8; --pv-net: #67dcef; --pv-perm: #f5c26b; }
 .pv-meta dd { margin: 0; font-size: 0.88rem; color: var(--ink); overflow-wrap: anywhere; }
 .pv-meta dd a { color: var(--accent); }
 .pv-meta dd code { font-family: var(--font-mono); font-size: 0.84em; }
-/* The nine policies were written across two years and head their sections
+/* The policies were written across two years and head their sections
    differently -- "3. LOCAL DATA STORAGE" here, "Files on your device" there.
    Set every section heading the same way, as the site's mono eyebrow, so they
    read as one document without a word of them changing. */
@@ -1000,6 +1051,7 @@ body.theme-dark { --pv-ok: #7ee2b8; --pv-net: #67dcef; --pv-perm: #f5c26b; }
 }
 @media print {
   .navbar, .site-footer, .pv-nav, .pv-glance, .pv-anchor, .pv-contact { display: none !important; }
+  .pv-policy[hidden] { display: block !important; }
   body, body.theme-dark { background: #fff !important; color: #000 !important; }
   .pv-policy { border: 0; padding: 0 0 1.5rem; break-inside: avoid; margin-bottom: 1.5rem; border-bottom: 1px solid #ccc; }
   .pv-body p, .pv-body li, .pv-meta dd { color: #111 !important; }
