@@ -178,3 +178,17 @@
   background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--accent);
 }
+
+/* Phones. The bar rows have fixed name / number / percent columns that add up to wider than a
+   phone card, so the bar collapsed to nothing and the percent ran past the card's edge. Below
+   640px a row is name, number and percent on one line with the bar full width under it,
+   the same shape the funnel rows already take. */
+@media (max-width:640px){
+  .ss-cmp-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;column-gap:.6rem;row-gap:.35rem}
+  .ss-cmp-row .ss-cmp-name{width:auto;min-width:0}
+  .ss-cmp-track{grid-column:1/-1;grid-row:2;width:100%}
+  .ss-cmp-val{width:auto}
+  .ss-cmp-pct{width:2.4rem}
+  /* section labels: the mono pill wrapped onto two lines at full tracking */
+  .ss-devices .eyebrow--rule,.ss-geo .eyebrow--rule{font-size:.66rem;letter-spacing:.06em;max-width:100%}
+}
