@@ -822,6 +822,16 @@
         if (!apps || !apps.length) return;      // no snapshots yet: section stays hidden
         return Promise.all(apps.map(function (a) { return fetchApp(APPLE_DATA, a.id); }))
           .then(function (loaded) {
+          // The refresh writes a row for every day of its 10-day window, so a
+          // new app's first snapshot carries zero days from before it existed --
+          // "0 over 10 reported days", a best day dated before launch. Days
+          // before the app's first release are not reported days; drop them.
+          loaded.forEach(function (d) {
+            if (!d || !d.first_released) return;
+            ["rows", "page_view_rows"].forEach(function (k) {
+              if (d[k]) d[k] = d[k].filter(function (r) { return !r.date || r.date >= d.first_released; });
+            });
+          });
           var data = loaded.filter(function (d) { return d && d.rows && d.rows.length; });
           var missing = apps.filter(function (a, i) { return !(loaded[i] && loaded[i].rows && loaded[i].rows.length); })
                             .map(function (a) { return a.name; });

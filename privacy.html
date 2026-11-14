@@ -101,7 +101,7 @@
         <button type="button" class="pv-chip" data-filter="mac" aria-pressed="false">Mac <span>2</span></button>
         <button type="button" class="pv-chip" data-filter="win" aria-pressed="false">Windows <span>3</span></button>
       </div>
-      <label class="pv-search"><span class="visually-hidden">Search the policies</span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M11.7 10.3a6 6 0 1 0-1.4 1.4l3.3 3.3 1.4-1.4-3.3-3.3ZM6.5 11a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z"/></svg><input type="search" placeholder="Search: camera, network, Hugging Face&hellip;" autocomplete="off"></label>
+      <label class="pv-search"><span class="visually-hidden">Search the policies</span><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M11.7 10.3a6 6 0 1 0-1.4 1.4l3.3 3.3 1.4-1.4-3.3-3.3ZM6.5 11a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9Z"/></svg><input type="search" placeholder="Search policies, e.g. camera" autocomplete="off"></label>
     </div>
     <p class="pv-legend reveal"><span class="pv-tag pv-tag--ok">stays with you</span><span class="pv-tag pv-tag--net">network use</span><span class="pv-tag pv-tag--perm">asks a permission</span></p>
     <div class="pv-groups reveal">
@@ -1123,7 +1123,11 @@
         c.hidden = !ok;
         var art = document.getElementById(id); if (art) art.hidden = !ok;
       });
-      groups.forEach(function (g) { g.hidden = !g.querySelector('.pv-card:not([hidden])'); });
+      groups.forEach(function (g) {
+        var n = g.querySelectorAll('.pv-card:not([hidden])').length;
+        g.hidden = !n;
+        g.querySelector('.pv-group-count').textContent = n;
+      });
       navLinks.forEach(function (a) { a.hidden = !shown[a.getAttribute('href').slice(1)]; });
       navGroups.forEach(function (p) {
         var n = p.nextElementSibling, vis = false;
