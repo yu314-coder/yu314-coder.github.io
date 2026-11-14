@@ -1929,15 +1929,21 @@ body.theme-dark .chip-no { background: rgba(255,255,255,0.05); }
    as a possible double-tap-zoom, so the first tap on a tile is delayed or
    swallowed and the tab reads as "not working" on iPhone. Tiles are 52px+ tall,
    over Apple's 44px minimum target. */
-.pt-nav { max-width: 1060px; margin-left: auto; margin-right: auto; display: grid; gap: 0.9rem; }
-.pt-group { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr); gap: 0.75rem; align-items: start; }
-.pt-group + .pt-group { padding-top: 0.9rem; border-top: 1px solid var(--line); }
+.pt-nav { max-width: 1060px; margin-left: auto; margin-right: auto; display: grid; gap: 1.6rem; }
+.pt-group { display: grid; gap: 0.6rem; align-content: start; min-width: 0; }
 .pt-group__label {
-  margin: 0; padding-top: 1.05rem;
+  margin: 0; display: flex; align-items: center; gap: 0.6rem;
   font-family: var(--font-mono, ui-monospace, monospace); font-size: 0.7rem; font-weight: 600;
   letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3);
 }
-.pt-group__items { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+.pt-group__label::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.pt-group__items { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem; }
+/* the three short groups share one row: 2 + 1 + 1 tiles on a four-column rhythm */
+.pt-nav__row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 0.6rem; }
+.pt-group--2 .pt-group__items { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pt-group--1 .pt-group__items { grid-template-columns: minmax(0, 1fr); }
+#projectTabs .pt-group--apps .pt-tile { min-height: 68px; }
+.pt-group--apps .pt-tile__icon { width: 44px; height: 44px; border-radius: 11px; }
 #projectTabs .pt-tile {
   display: flex; align-items: center; gap: 0.7rem; width: 100%; min-height: 56px;
   padding: 0.55rem 0.8rem; text-align: left;
@@ -1992,27 +1998,48 @@ a.pt-meta__item:hover { color: var(--accent); border-color: var(--accent); }
 .pt-next__k { font-size: 0.74rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
 .pt-next__name { font-size: 1rem; font-weight: 600; }
 
-/* floating switcher, shown once the tiles have scrolled away */
+/* switcher strip under the menu, shown once the tiles have scrolled away */
 .pt-sticky {
-  position: fixed; left: 50%; top: 76px; z-index: 1020;
-  display: flex; align-items: center; gap: 0.15rem; padding: 0.25rem;
-  background: rgba(14, 14, 22, 0.86); -webkit-backdrop-filter: saturate(160%) blur(14px); backdrop-filter: saturate(160%) blur(14px);
-  border: 1px solid var(--line-2); border-radius: var(--r-pill); box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-  transform: translate(-50%, -10px); opacity: 0; visibility: hidden; pointer-events: none;
+  position: fixed; left: 0; right: 0; top: 64px; z-index: 1020;
+  background: rgba(14, 14, 22, 0.88); -webkit-backdrop-filter: saturate(160%) blur(14px); backdrop-filter: saturate(160%) blur(14px);
+  border-bottom: 1px solid var(--line-2); box-shadow: 0 10px 24px rgba(0,0,0,0.28);
+  transform: translateY(-8px); opacity: 0; visibility: hidden; pointer-events: none;
   transition: opacity .2s var(--ease), transform .2s var(--ease), visibility 0s linear .2s;
 }
-.pt-sticky.is-shown { transform: translate(-50%, 0); opacity: 1; visibility: visible; pointer-events: auto; transition: opacity .2s var(--ease), transform .2s var(--ease); }
-.pt-sticky button {
+.pt-sticky.is-shown { transform: none; opacity: 1; visibility: visible; pointer-events: auto; transition: opacity .2s var(--ease), transform .2s var(--ease); }
+.pt-sticky__in { max-width: 1060px; margin: 0 auto; padding: 0.35rem 16px; display: flex; align-items: center; gap: 0.35rem; }
+.pt-sticky button, .pt-sticky__get {
   font: inherit; color: var(--ink); background: transparent; border: 0; cursor: pointer; touch-action: manipulation;
-  border-radius: var(--r-pill); min-height: 38px;
+  border-radius: var(--r-pill); min-height: 40px;
 }
-.pt-sticky__step { width: 38px; font-size: 1.35rem; line-height: 1; color: var(--ink-2); }
-.pt-sticky__step:hover, .pt-sticky__all:hover { background: var(--accent-tint); color: var(--accent); }
-.pt-sticky__all { display: inline-flex; align-items: baseline; gap: 0.5rem; padding: 0 0.9rem; }
-.pt-sticky__now { font-weight: 600; font-size: 0.9rem; white-space: nowrap; }
-.pt-sticky__hint { font-size: 0.74rem; color: var(--ink-3); white-space: nowrap; }
-@media (max-width: 419.98px) { .pt-sticky__hint { display: none; } }
+.pt-sticky__all { display: inline-flex; align-items: center; gap: 0.65rem; padding: 0 0.6rem 0 0.25rem; margin-right: auto; min-width: 0; text-align: left; }
+.pt-sticky__icon { flex: none; width: 30px; height: 30px; border-radius: 8px; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; background: var(--bg-alt); border: 1px solid var(--line); color: var(--ink-2); }
+.pt-sticky__icon picture { display: contents; }
+.pt-sticky__icon img { width: 100%; height: 100%; object-fit: cover; }
+.pt-sticky__icon svg { width: 18px; height: 18px; }
+.pt-sticky__text { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.pt-sticky__now { font-weight: 600; font-size: 0.92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pt-sticky__hint { font-size: 0.72rem; color: var(--ink-3); white-space: nowrap; }
+.pt-sticky__all:hover .pt-sticky__hint { color: var(--accent); }
+.pt-sticky__get {
+  display: inline-flex; align-items: center; padding: 0 0.95rem; min-height: 34px; white-space: nowrap;
+  font-size: 0.82rem; font-weight: 600; text-decoration: none; color: var(--accent);
+  border: 1px solid var(--accent); background: var(--accent-tint);
+}
+.pt-sticky__get::after { content: "\2197"; margin-left: 0.35rem; font-size: 0.8em; }
+.pt-sticky__get:hover { color: var(--ink); }
+.pt-sticky__get[hidden] { display: none; }
+.pt-sticky__step { width: 40px; flex: none; font-size: 1.35rem; line-height: 1; color: var(--ink-2); border: 1px solid var(--line-2) !important; }
+.pt-sticky__step:hover { background: var(--accent-tint); color: var(--accent); }
+.pt-sticky__bar { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--accent); transform-origin: 0 50%; transform: scaleX(0); }
 @media (prefers-reduced-motion: reduce) { .pt-sticky, .pt-sticky.is-shown { transition: none; } }
+/* a project's store, repo and privacy links sit right under its title */
+.pt-actions { margin-bottom: 2.25rem; padding-bottom: 2rem; border-bottom: 1px solid var(--line); }
+@media (max-width: 575.98px) {
+  .pt-actions { gap: 0.5rem !important; margin-bottom: 1.75rem; padding-bottom: 1.5rem; }
+  .pt-actions .badge-btn { padding: 0.45rem 0.85rem; font-size: 0.82rem; }
+  .pt-actions .store-badge { flex-basis: 100%; display: flex; justify-content: center; }
+}
 
 /* --- Trackformer model-card page (trackformer.html) ------------------------
    The model card's sections were written for a centred card; on its own page
@@ -2058,15 +2085,27 @@ a.pt-meta__item:hover { color: var(--accent); border-color: var(--accent); }
   .mc-toc a { padding: 0.28rem 0.7rem; margin: 0; border: 1px solid var(--line-2); border-radius: var(--r-pill); font-size: 0.8rem; }
   .mc-toc a.is-on { border-color: var(--accent); }
 }
+@media (max-width: 991.98px) {
+  .pt-nav__row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .pt-nav__row .pt-group--2 { grid-column: 1 / -1; }
+}
 @media (max-width: 767.98px) {
-  .pt-group { grid-template-columns: minmax(0, 1fr); gap: 0.45rem; }
-  .pt-group__label { padding-top: 0; }
-  .pt-group__items { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pt-nav { gap: 1.1rem; }
+  .pt-group { gap: 0.45rem; }
+  .pt-group__items, .pt-group--apps .pt-group__items { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #projectTabs .pt-group--apps .pt-tile { min-height: 56px; }
+  .pt-group--apps .pt-tile__icon { width: 36px; height: 36px; border-radius: 9px; }
+  .pt-sticky__hint { display: none; }
 }
 @media (max-width: 419.98px) {
   .pt-group__items { gap: 0.4rem; }
   #projectTabs .pt-tile { min-height: 50px; padding: 0.45rem 0.5rem; gap: 0.45rem; }
-  .pt-tile__icon { width: 26px; height: 26px; border-radius: 7px; }
+  .pt-tile__icon, .pt-group--apps .pt-tile__icon { width: 26px; height: 26px; border-radius: 7px; }
+  .pt-sticky__in { gap: 0.25rem; padding-left: 12px; padding-right: 12px; }
+  .pt-sticky__get { padding: 0 0.6rem; font-size: 0.78rem; }
+  .pt-sticky__get::after { content: none; }
+  .pt-sticky__step { width: 36px; min-height: 36px !important; }
+  .pt-sticky__icon { width: 26px; height: 26px; border-radius: 7px; }
   .pt-tile__icon--glyph svg { width: 17px; height: 17px; }
   .pt-tile__sub { display: none; }
   .pt-tile__name { font-size: 0.8rem; overflow-wrap: anywhere; }

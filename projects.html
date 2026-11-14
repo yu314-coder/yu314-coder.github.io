@@ -42,7 +42,7 @@
   <link rel="preload" href="assets/fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
 
   <!-- Site stylesheet (single source of truth) -->
-  <link rel="stylesheet" href="assets/css/style.min.css?v=369cbc65">
+  <link rel="stylesheet" href="assets/css/style.min.css?v=31cb594e">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
 <body class="theme-dark">
@@ -91,7 +91,7 @@
          every button keeps its .nav-link class, id and data-bs-target, and #projectTabs keeps
          role="tablist" -- so deep links like projects.html#tab-py2bin still work. -->
     <div class="pt-nav mb-5" id="projectTabs" role="tablist" aria-label="Projects">
-      <div class="pt-group" role="presentation">
+      <div class="pt-group pt-group--apps" role="presentation">
         <p class="pt-group__label" aria-hidden="true">Apps</p>
         <div class="pt-group__items" role="presentation">
           <button class="nav-link pt-tile active" id="tab-manim-btn" data-bs-toggle="pill" data-bs-target="#tab-manim" type="button" role="tab" aria-controls="tab-manim" aria-selected="true"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/manimstudio-win.webp" type="image/webp"><img src="assets/img/app-icons/manimstudio-win.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">ManimStudio</span><span class="pt-tile__sub">Math animation studio</span></span></button>
@@ -100,21 +100,28 @@
           <button class="nav-link pt-tile" id="tab-blender-btn" data-bs-toggle="pill" data-bs-target="#tab-blender" type="button" role="tab" aria-controls="tab-blender" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/blender-local.webp" type="image/webp"><img src="assets/img/app-icons/blender-local.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">Blender Local</span><span class="pt-tile__sub">Blender on iPhone &amp; iPad</span></span></button>
           <button class="nav-link pt-tile" id="tab-gps-btn" data-bs-toggle="pill" data-bs-target="#tab-gps" type="button" role="tab" aria-controls="tab-gps" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/gps-location-app.webp" type="image/webp"><img src="assets/img/app-icons/gps-location-app.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">GPS-location-app</span><span class="pt-tile__sub">GPS workout tracker</span></span></button>
           <button class="nav-link pt-tile" id="tab-sidecar-btn" data-bs-toggle="pill" data-bs-target="#tab-sidecar" type="button" role="tab" aria-controls="tab-sidecar" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/sidecarbridge.webp" type="image/webp"><img src="assets/img/app-icons/sidecarbridge.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">SidecarBridge</span><span class="pt-tile__sub">Remote window into your Mac</span></span></button>
-          <button class="nav-link pt-tile" id="tab-other-btn" data-bs-toggle="pill" data-bs-target="#tab-other" type="button" role="tab" aria-controls="tab-other" aria-selected="false"><span class="pt-tile__icon pt-tile__icon--glyph"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="4.5" width="6" height="6" rx="1.5"/><rect x="13.5" y="4.5" width="6" height="6" rx="1.5"/><rect x="4.5" y="13.5" width="6" height="6" rx="1.5"/><rect x="13.5" y="13.5" width="6" height="6" rx="1.5"/></svg></span><span class="pt-tile__text"><span class="pt-tile__name">Others</span><span class="pt-tile__sub">WhisperKit, t-SNE and more</span></span></button>
         </div>
       </div>
-      <div class="pt-group" role="presentation">
+      <div class="pt-nav__row" role="presentation">
+      <div class="pt-group pt-group--2" role="presentation">
         <p class="pt-group__label" aria-hidden="true">Research &amp; AI</p>
         <div class="pt-group__items" role="presentation">
           <button class="nav-link pt-tile" id="tab-gencov-btn" data-bs-toggle="pill" data-bs-target="#tab-gencov" type="button" role="tab" aria-controls="tab-gencov" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/generalized-covariance.webp" type="image/webp"><img src="assets/img/app-icons/generalized-covariance.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">Generalized Covariance</span><span class="pt-tile__sub">Eigenvalue spectral analysis</span></span></button>
           <button class="nav-link pt-tile" id="tab-afm-btn" data-bs-toggle="pill" data-bs-target="#tab-afm" type="button" role="tab" aria-controls="tab-afm" aria-selected="false"><span class="pt-tile__icon pt-tile__icon--glyph"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M10 3.5V7M14 3.5V7M10 17v3.5M14 17v3.5M3.5 10H7M3.5 14H7M17 10h3.5M17 14h3.5"/></svg></span><span class="pt-tile__text"><span class="pt-tile__name">Apple Teardown</span><span class="pt-tile__sub">On-device LLM, decoded</span></span></button>
         </div>
       </div>
-      <div class="pt-group" role="presentation">
+      <div class="pt-group pt-group--1" role="presentation">
         <p class="pt-group__label" aria-hidden="true">Tools</p>
         <div class="pt-group__items" role="presentation">
           <button class="nav-link pt-tile" id="tab-py2bin-btn" data-bs-toggle="pill" data-bs-target="#tab-py2bin" type="button" role="tab" aria-controls="tab-py2bin" aria-selected="false"><span class="pt-tile__icon pt-tile__icon--glyph"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="M7.5 10l2.5 2-2.5 2M12.5 15h4"/></svg></span><span class="pt-tile__text"><span class="pt-tile__name">py2bin</span><span class="pt-tile__sub">Python to machine code</span></span></button>
         </div>
+      </div>
+      <div class="pt-group pt-group--1" role="presentation">
+        <p class="pt-group__label" aria-hidden="true">More</p>
+        <div class="pt-group__items" role="presentation">
+          <button class="nav-link pt-tile" id="tab-other-btn" data-bs-toggle="pill" data-bs-target="#tab-other" type="button" role="tab" aria-controls="tab-other" aria-selected="false"><span class="pt-tile__icon pt-tile__icon--glyph"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="4.5" width="6" height="6" rx="1.5"/><rect x="13.5" y="4.5" width="6" height="6" rx="1.5"/><rect x="4.5" y="13.5" width="6" height="6" rx="1.5"/><rect x="13.5" y="13.5" width="6" height="6" rx="1.5"/></svg></span><span class="pt-tile__text"><span class="pt-tile__name">Others</span><span class="pt-tile__sub">WhisperKit, t-SNE and more</span></span></button>
+        </div>
+      </div>
       </div>
     </div>
 
@@ -142,6 +149,21 @@
               </div>
               <p class="lead mb-0">Create stunning mathematical animations with a powerful GUI application. Microsoft Store compatible — no administrator rights required.</p>
             </header>
+
+            <div class="pt-actions d-flex flex-wrap justify-content-center align-items-center gap-3">
+              <a href="https://apps.microsoft.com/detail/9NZFT55DVCBS" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Get ManimStudio from the Microsoft Store">
+                <img src="assets/img/badges/microsoft-store.svg" alt="Get it from Microsoft" width="111" height="40">
+              </a>
+              <a href="https://github.com/yu314-coder/manim_app" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                GitHub Repository
+              </a>
+              <a href="privacy.html#manim-studio" class="badge-btn">
+                Privacy policy
+              </a>
+              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
+                Contact
+              </a>
+            </div>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
               <span class="feature-badge">Visual Code Editor</span>
@@ -202,20 +224,6 @@
               </div>
             </div>
 
-            <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
-              <a href="https://apps.microsoft.com/detail/9NZFT55DVCBS" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Get ManimStudio from the Microsoft Store">
-                <img src="assets/img/badges/microsoft-store.svg" alt="Get it from Microsoft" width="111" height="40">
-              </a>
-              <a href="https://github.com/yu314-coder/manim_app" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                GitHub Repository
-              </a>
-              <a href="privacy.html#manim-studio" class="badge-btn">
-                Privacy policy
-              </a>
-              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
-                Contact
-              </a>
-            </div>
           </div>
         </div>
       </div>
@@ -238,6 +246,24 @@
               </div>
               <p class="lead mb-0">A complete offline Python animation studio for iPad and iPhone, built on the Manim engine. Edit Python in a Monaco editor, render to MP4 via Apple VideoToolbox hardware encode, drop in LaTeX with busytex — entirely on-device.</p>
             </header>
+
+            <div class="pt-actions d-flex flex-wrap justify-content-center align-items-center gap-3">
+              <a href="https://apps.apple.com/app/manimstudio/id6764472686" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Download ManimStudio on the App Store">
+                <img src="assets/img/badges/appstore.svg" alt="Download on the App Store" width="120" height="40">
+              </a>
+              <a href="https://github.com/yu314-coder/manim_app/tree/ios" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                GitHub (ios branch)
+              </a>
+              <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                python-ios-lib
+              </a>
+              <a href="https://github.com/yu314-coder/CodeBench" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                CodeBench
+              </a>
+              <a href="privacy.html#manim-studio-ios" class="badge-btn">
+                Privacy policy
+              </a>
+            </div>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
               <span class="feature-badge">Monaco Editor</span>
@@ -304,23 +330,6 @@
               </div>
             </div>
 
-            <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
-              <a href="https://apps.apple.com/app/manimstudio/id6764472686" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Download ManimStudio on the App Store">
-                <img src="assets/img/badges/appstore.svg" alt="Download on the App Store" width="120" height="40">
-              </a>
-              <a href="https://github.com/yu314-coder/manim_app/tree/ios" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                GitHub (ios branch)
-              </a>
-              <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                python-ios-lib
-              </a>
-              <a href="https://github.com/yu314-coder/CodeBench" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                CodeBench
-              </a>
-              <a href="privacy.html#manim-studio-ios" class="badge-btn">
-                Privacy policy
-              </a>
-            </div>
           </div>
         </div>
       </div>
@@ -347,6 +356,21 @@
               </div>
               <p class="lead mb-0">A self-contained developer / scientific / AI workstation for iPad and Mac. Python 3.14, Jupyter notebooks, C, C++, Fortran, pdflatex, and local LLMs — all running on-device, no internet required.</p>
             </header>
+
+            <div class="pt-actions d-flex flex-wrap justify-content-center gap-3">
+              <a href="https://github.com/yu314-coder/codebench" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                GitHub Repository
+              </a>
+              <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                Runtime Layer
+              </a>
+              <a href="privacy.html#benchcode" class="badge-btn">
+                Privacy policy
+              </a>
+              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
+                Contact developer
+              </a>
+            </div>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
               <span class="feature-badge">Monaco Editor</span>
@@ -558,20 +582,6 @@
               </div>
             </div>
 
-            <div class="d-flex flex-wrap justify-content-center gap-3">
-              <a href="https://github.com/yu314-coder/codebench" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                GitHub Repository
-              </a>
-              <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                Runtime Layer
-              </a>
-              <a href="privacy.html#benchcode" class="badge-btn">
-                Privacy policy
-              </a>
-              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
-                Contact developer
-              </a>
-            </div>
           </div>
         </div>
       </div>
@@ -593,6 +603,15 @@
               </div>
               <p class="lead mb-0">Full Python 3.14 runtime for iOS/iPadOS with about 180 offline packages — including native PyTorch, HuggingFace transformers, Rust tokenizers, and Blender <code>bpy</code>. Train on-device. No JIT, App Store safe. Powers <strong>CodeBench</strong>. Its Metal-accelerated pieces also ship as standalone repos: <a href="https://github.com/yu314-coder/cairometal" target="_blank" rel="noopener noreferrer" class="lib-link">cairometal</a> and <a href="https://github.com/yu314-coder/torchmetal" target="_blank" rel="noopener noreferrer" class="lib-link">torchmetal</a>.</p>
             </header>
+
+            <div class="pt-actions d-flex flex-wrap justify-content-center gap-3">
+              <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                GitHub Repository
+              </a>
+              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
+                Contact developer
+              </a>
+            </div>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
               <span class="feature-badge">iOS 17+</span>
@@ -889,14 +908,6 @@
               </div>
             </div>
 
-            <div class="d-flex flex-wrap justify-content-center gap-3">
-              <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                GitHub Repository
-              </a>
-              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
-                Contact developer
-              </a>
-            </div>
           </div>
         </div>
       </div>
@@ -922,6 +933,27 @@
               </div>
               <p class="lead mb-0">A virtual PC for iPad and iPhone. Bootbox emulates a complete 64-bit x86 computer in software and boots real operating systems on it &mdash; a Linux desktop with a web browser, a Linux terminal with Python and Wine, and Android&nbsp;12 &mdash; with real internet, real multi-core and your files in the Files app. No jailbreak, no sign-in, no server.</p>
             </header>
+
+            <div class="pt-actions d-flex flex-wrap justify-content-center align-items-center gap-3">
+              <a href="https://apps.apple.com/app/bootbox/id6782149582" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Download Bootbox on the App Store">
+                <img src="assets/img/badges/appstore.svg" alt="Download on the App Store" width="120" height="40">
+              </a>
+              <a href="https://github.com/yu314-coder/Bootbox" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                GitHub Repository
+              </a>
+              <a href="privacy.html#bootbox" class="badge-btn">
+                Privacy policy
+              </a>
+              <a href="https://github.com/yu314-coder/container2wasm" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                container2wasm Fork
+              </a>
+              <a href="https://github.com/yu314-coder/qemu-wasm" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                qemu-wasm Fork
+              </a>
+              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
+                Contact developer
+              </a>
+            </div>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
               <span class="feature-badge">Linux Desktop</span>
@@ -1055,26 +1087,6 @@
               </div>
             </div>
 
-            <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
-              <a href="https://apps.apple.com/app/bootbox/id6782149582" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Download Bootbox on the App Store">
-                <img src="assets/img/badges/appstore.svg" alt="Download on the App Store" width="120" height="40">
-              </a>
-              <a href="https://github.com/yu314-coder/Bootbox" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                GitHub Repository
-              </a>
-              <a href="privacy.html#bootbox" class="badge-btn">
-                Privacy policy
-              </a>
-              <a href="https://github.com/yu314-coder/container2wasm" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                container2wasm Fork
-              </a>
-              <a href="https://github.com/yu314-coder/qemu-wasm" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                qemu-wasm Fork
-              </a>
-              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
-                Contact developer
-              </a>
-            </div>
           </div>
         </div>
       </div>
@@ -1100,6 +1112,24 @@
               </div>
               <p class="lead mb-0">A full 3D studio for iPhone and iPad, built on Blender&rsquo;s own engine. Blender&rsquo;s <code>bpy</code> module is compiled into the app, so modeling, modifiers, sculpting, Grease Pencil drawing, animation and rendering run Blender&rsquo;s real code on the device, under a touch-native SwiftUI and Metal interface. No account, no subscription, no cloud.</p>
             </header>
+
+            <div class="pt-actions d-flex flex-wrap justify-content-center align-items-center gap-3">
+              <a href="https://apps.apple.com/app/blender-local/id6806630544" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Download Blender Local on the App Store">
+                <img src="assets/img/badges/appstore.svg" alt="Download on the App Store" width="120" height="40">
+              </a>
+              <a href="https://github.com/yu314-coder/blender-local" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                GitHub Repository
+              </a>
+              <a href="privacy.html#blender-local" class="badge-btn">
+                Privacy policy
+              </a>
+              <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                python-ios-lib
+              </a>
+              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
+                Contact developer
+              </a>
+            </div>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
               <span class="feature-badge">Blender bpy</span>
@@ -1214,23 +1244,6 @@
               </div>
             </div>
 
-            <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
-              <a href="https://apps.apple.com/app/blender-local/id6806630544" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Download Blender Local on the App Store">
-                <img src="assets/img/badges/appstore.svg" alt="Download on the App Store" width="120" height="40">
-              </a>
-              <a href="https://github.com/yu314-coder/blender-local" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                GitHub Repository
-              </a>
-              <a href="privacy.html#blender-local" class="badge-btn">
-                Privacy policy
-              </a>
-              <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                python-ios-lib
-              </a>
-              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
-                Contact developer
-              </a>
-            </div>
           </div>
         </div>
       </div>
@@ -1256,6 +1269,24 @@
               </div>
               <p class="lead mb-0">Advanced eigenvalue spectral distribution analysis for generalized covariance matrices. A powerful research tool for mathematicians and data scientists!</p>
             </header>
+
+            <div class="pt-actions d-flex flex-wrap justify-content-center align-items-center gap-3">
+              <a href="https://apps.microsoft.com/detail/9nzj475s7b01" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Get Generalized Covariance Matrix from the Microsoft Store">
+                <img src="assets/img/badges/microsoft-store.svg" alt="Get it from Microsoft" width="111" height="40">
+              </a>
+              <a href="https://github.com/yu314-coder/random_matrix_ESD" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                GitHub Repository
+              </a>
+              <a href="privacy.html#random-matrix" class="badge-btn">
+                Privacy policy
+              </a>
+              <a href="assets/docs/yau-science-award-research-paper.pdf" class="badge-btn" download>
+                Download research paper
+              </a>
+              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
+                Contact developer
+              </a>
+            </div>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
               <span class="feature-badge">ESD Analysis</span>
@@ -1311,23 +1342,6 @@
               </div>
             </div>
 
-            <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
-              <a href="https://apps.microsoft.com/detail/9nzj475s7b01" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Get Generalized Covariance Matrix from the Microsoft Store">
-                <img src="assets/img/badges/microsoft-store.svg" alt="Get it from Microsoft" width="111" height="40">
-              </a>
-              <a href="https://github.com/yu314-coder/random_matrix_ESD" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                GitHub Repository
-              </a>
-              <a href="privacy.html#random-matrix" class="badge-btn">
-                Privacy policy
-              </a>
-              <a href="assets/docs/yau-science-award-research-paper.pdf" class="badge-btn" download>
-                Download research paper
-              </a>
-              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
-                Contact developer
-              </a>
-            </div>
           </div>
         </div>
       </div>
@@ -1349,6 +1363,24 @@
               </div>
               <p class="lead mb-0">Native macOS image denoiser using random matrix theory — the macOS counterpart to Generalized Covariance Matrix. Pure Swift, Metal-accelerated, App Store sandbox-ready.</p>
             </header>
+
+            <div class="pt-actions d-flex flex-wrap justify-content-center align-items-center gap-3">
+              <a href="https://apps.apple.com/app/eigendenoise/id6764759636" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Download EigenDenoise on the Mac App Store">
+                <img src="assets/img/badges/macappstore.svg" alt="Download on the Mac App Store" width="156" height="40">
+              </a>
+              <a href="https://github.com/yu314-coder/EigenDenoise" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                GitHub Repository
+              </a>
+              <a href="privacy.html#eigendenoise" class="badge-btn">
+                Privacy policy
+              </a>
+              <a href="assets/docs/yau-science-award-research-paper.pdf" class="badge-btn" download>
+                Research paper
+              </a>
+              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
+                Contact developer
+              </a>
+            </div>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
               <span class="feature-badge">Marchenko–Pastur</span>
@@ -1416,23 +1448,6 @@
               </div>
             </div>
 
-            <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
-              <a href="https://apps.apple.com/app/eigendenoise/id6764759636" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Download EigenDenoise on the Mac App Store">
-                <img src="assets/img/badges/macappstore.svg" alt="Download on the Mac App Store" width="156" height="40">
-              </a>
-              <a href="https://github.com/yu314-coder/EigenDenoise" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                GitHub Repository
-              </a>
-              <a href="privacy.html#eigendenoise" class="badge-btn">
-                Privacy policy
-              </a>
-              <a href="assets/docs/yau-science-award-research-paper.pdf" class="badge-btn" download>
-                Research paper
-              </a>
-              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
-                Contact developer
-              </a>
-            </div>
           </div>
         </div>
       </div>
@@ -1460,6 +1475,24 @@
               </div>
               <p class="lead mb-0">Precision GPS workout tracker for iPhone & Apple Watch. Kalman-filtered location, Velocity Mode for when GPS drops out, HealthKit sync, Live Activities, and route analytics — all in a clean SwiftUI interface, with CarPlay pending Apple approval.</p>
             </header>
+
+            <div class="pt-actions d-flex flex-wrap justify-content-center align-items-center gap-3">
+              <a href="https://apps.apple.com/app/gps-location-app/id6764729098" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Download GPS-location-app on the App Store">
+                <img src="assets/img/badges/appstore.svg" alt="Download on the App Store" width="120" height="40">
+              </a>
+              <a href="https://github.com/yu314-coder/GPS-location-app" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                GitHub Repository
+              </a>
+              <a href="https://github.com/yu314-coder/GPS-location-app/blob/main/paper/velocity_mode.pdf" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                Velocity Mode paper
+              </a>
+              <a href="privacy.html#gps-location-app" class="badge-btn">
+                Privacy policy
+              </a>
+              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
+                Contact developer
+              </a>
+            </div>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
               <span class="feature-badge">Kalman-filtered GPS</span>
@@ -1531,23 +1564,6 @@
               </div>
             </div>
 
-            <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
-              <a href="https://apps.apple.com/app/gps-location-app/id6764729098" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Download GPS-location-app on the App Store">
-                <img src="assets/img/badges/appstore.svg" alt="Download on the App Store" width="120" height="40">
-              </a>
-              <a href="https://github.com/yu314-coder/GPS-location-app" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                GitHub Repository
-              </a>
-              <a href="https://github.com/yu314-coder/GPS-location-app/blob/main/paper/velocity_mode.pdf" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                Velocity Mode paper
-              </a>
-              <a href="privacy.html#gps-location-app" class="badge-btn">
-                Privacy policy
-              </a>
-              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
-                Contact developer
-              </a>
-            </div>
           </div>
         </div>
       </div>
@@ -1576,6 +1592,21 @@
               </div>
               <p class="lead mb-0">A secure remote window into your Mac, with iPhone and iPad keyboard, trackpad, touch and Apple&nbsp;Pencil input. Everything stays on your own network — the Mac's screen is never published to the Internet.</p>
             </header>
+
+            <div class="pt-actions d-flex flex-wrap justify-content-center align-items-center gap-3">
+              <a href="https://apps.apple.com/app/sidecarbridge/id6792298083" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Download SidecarBridge on the App Store">
+                <img src="assets/img/badges/appstore.svg" alt="Download on the App Store" width="120" height="40">
+              </a>
+              <a href="https://github.com/yu314-coder/SidecarBridge" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                GitHub Repository
+              </a>
+              <a href="privacy.html#sidecarbridge" class="badge-btn">
+                Privacy policy
+              </a>
+              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
+                Contact developer
+              </a>
+            </div>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
               <span class="feature-badge">Encrypted LAN stream</span>
@@ -1651,20 +1682,6 @@
               </div>
             </div>
 
-            <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
-              <a href="https://apps.apple.com/app/sidecarbridge/id6792298083" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Download SidecarBridge on the App Store">
-                <img src="assets/img/badges/appstore.svg" alt="Download on the App Store" width="120" height="40">
-              </a>
-              <a href="https://github.com/yu314-coder/SidecarBridge" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                GitHub Repository
-              </a>
-              <a href="privacy.html#sidecarbridge" class="badge-btn">
-                Privacy policy
-              </a>
-              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
-                Contact developer
-              </a>
-            </div>
           </div>
         </div>
       </div>
@@ -1689,6 +1706,18 @@
               </div>
               <p class="lead mb-0">A complete static reverse-engineering of Apple's on-device foundation model &mdash; the sparse Mixture-of-Experts backbone shipped with Apple&nbsp;Intelligence &mdash; decoded from its container formats down to a component-validated PyTorch forward pass. The outcome is a controlled negative result: every shipped byte is recovered and individually correct, yet the assembled forward pass does not predict text. <strong>Original research only: the teardown paper and decode code &mdash; no Apple weights or tokenizer data are included or distributed.</strong> Everything operates on the asset files already present on an Apple device you own.</p>
             </header>
+
+            <div class="pt-actions d-flex flex-wrap justify-content-center align-items-center gap-3">
+              <a href="https://github.com/yu314-coder/afm-ifp-teardown" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                GitHub Repository
+              </a>
+              <a href="assets/afm/afm_teardown.pdf" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                Read the paper
+              </a>
+              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
+                Contact developer
+              </a>
+            </div>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
               <span class="feature-badge">9.86&nbsp;B params recovered</span>
@@ -1745,17 +1774,6 @@
               </div>
             </div>
 
-            <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
-              <a href="https://github.com/yu314-coder/afm-ifp-teardown" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                GitHub Repository
-              </a>
-              <a href="assets/afm/afm_teardown.pdf" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                Read the paper
-              </a>
-              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
-                Contact developer
-              </a>
-            </div>
           </div>
         </div>
       </div>
@@ -1783,6 +1801,21 @@
           </div>
           <p class="lead mb-0 mx-auto" style="max-width:70ch;">A compiler and application builder written with <strong>nothing but the Python standard library</strong>. It turns Python into real machine code &mdash; and where it needs C in the middle, it compiles that C with a C compiler it also wrote. No Cython, Nuitka, mypyc, Rust, PyInstaller, assembler, linker, SDK, <code>gcc</code> or <code>clang</code> at any point. Build and runtime dependency lists are literally empty, and the test suite fails if that stops being true.</p>
         </header>
+
+        <div class="pt-actions d-flex flex-wrap justify-content-center align-items-center gap-3">
+          <a href="https://github.com/yu314-coder/python_to_binary" target="_blank" rel="noopener noreferrer" class="badge-btn">
+            GitHub Repository
+          </a>
+          <a href="https://pypi.org/project/python-to-binary/" target="_blank" rel="noopener noreferrer" class="badge-btn">
+            PyPI package
+          </a>
+          <a href="pypi-stats.html" class="badge-btn">
+            Download stats
+          </a>
+          <a href="mailto:euler.yu@gmail.com" class="badge-btn">
+            Contact developer
+          </a>
+        </div>
 
         <!-- headline numbers -->
         <div class="g g-4 mb-5">
@@ -2109,20 +2142,6 @@
           </div>
         </div>
 
-        <div class="d-flex flex-wrap justify-content-center align-items-center gap-3">
-          <a href="https://github.com/yu314-coder/python_to_binary" target="_blank" rel="noopener noreferrer" class="badge-btn">
-            GitHub Repository
-          </a>
-          <a href="https://pypi.org/project/python-to-binary/" target="_blank" rel="noopener noreferrer" class="badge-btn">
-            PyPI package
-          </a>
-          <a href="pypi-stats.html" class="badge-btn">
-            Download stats
-          </a>
-          <a href="mailto:euler.yu@gmail.com" class="badge-btn">
-            Contact developer
-          </a>
-        </div>
 
       </div>
     </div>
@@ -2279,9 +2298,13 @@
        says which project you are reading and steps to the previous or next one,
        or back up to all of them -- some projects run for many screens. -->
   <div class="pt-sticky" id="ptSticky" aria-label="Project switcher" role="navigation">
-    <button type="button" class="pt-sticky__step" data-dir="-1" aria-label="Previous project">&lsaquo;</button>
-    <button type="button" class="pt-sticky__all"><span class="pt-sticky__now"></span><span class="pt-sticky__hint">All projects</span></button>
-    <button type="button" class="pt-sticky__step" data-dir="1" aria-label="Next project">&rsaquo;</button>
+    <div class="pt-sticky__in">
+      <button type="button" class="pt-sticky__all" aria-label="Back to all projects"><span class="pt-sticky__icon" aria-hidden="true"></span><span class="pt-sticky__text"><span class="pt-sticky__now"></span><span class="pt-sticky__hint">All projects &uarr;</span></span></button>
+      <a class="pt-sticky__get" href="#" target="_blank" rel="noopener noreferrer" hidden></a>
+      <button type="button" class="pt-sticky__step" data-dir="-1" aria-label="Previous project">&lsaquo;</button>
+      <button type="button" class="pt-sticky__step" data-dir="1" aria-label="Next project">&rsaquo;</button>
+    </div>
+    <i class="pt-sticky__bar" aria-hidden="true"></i>
   </div>
 
   <!-- Footer -->
@@ -2508,7 +2531,22 @@
       function refresh() {
         var i = current(), n = tiles.length;
         var prev = tiles[(i - 1 + n) % n], next = tiles[(i + 1) % n];
-        if (sticky) sticky.querySelector(".pt-sticky__now").textContent = nameOf(tiles[i]);
+        if (sticky) {
+          sticky.querySelector(".pt-sticky__now").textContent = nameOf(tiles[i]);
+          var ic = tiles[i].querySelector(".pt-tile__icon");
+          sticky.querySelector(".pt-sticky__icon").innerHTML = ic ? ic.innerHTML : "";
+          // The project's first action (its store page, else its repo), so the way to get it
+          // stays one tap away however far down a long project the reader is.
+          var get = sticky.querySelector(".pt-sticky__get"), pane = paneFor(tiles[i]);
+          var a = pane && pane.querySelector(".pt-actions a[href^='http']");
+          if (a) {
+            var h = a.getAttribute("href");
+            get.href = h;
+            get.textContent = /apps\.apple\.com/.test(h) ? "App Store" : /apps\.microsoft\.com/.test(h) ? "Microsoft Store"
+              : /pypi\.org/.test(h) ? "PyPI" : /github\.com/.test(h) ? "GitHub" : a.textContent.trim();
+            get.hidden = false;
+          } else get.hidden = true;
+        }
         if (nextNav) {
           var b = nextNav.querySelectorAll(".pt-next__name");
           b[0].textContent = nameOf(prev); b[1].textContent = nameOf(next);
@@ -2532,10 +2570,18 @@
         var check = function () {
           ticking = false;
           var off = navOffset(), navR = tabsEl.getBoundingClientRect(), cR = content.getBoundingClientRect();
+          sticky.style.top = (off - 12) + "px";
           var show = navR.bottom < off && cR.bottom > window.innerHeight * 0.35;
           sticky.classList.toggle("is-shown", show);
           sticky.setAttribute("aria-hidden", show ? "false" : "true");
-          Array.prototype.forEach.call(sticky.querySelectorAll("button"), function (b) { b.tabIndex = show ? 0 : -1; });
+          Array.prototype.forEach.call(sticky.querySelectorAll("button, a"), function (b) { b.tabIndex = show ? 0 : -1; });
+          // reading progress through the open project
+          var pane = paneFor(tiles[current()]);
+          if (show && pane) {
+            var pR = pane.getBoundingClientRect(), span = pR.height - (window.innerHeight - off);
+            var f = span > 0 ? Math.min(1, Math.max(0, (off - pR.top) / span)) : 1;
+            sticky.querySelector(".pt-sticky__bar").style.transform = "scaleX(" + f.toFixed(3) + ")";
+          }
         };
         window.addEventListener("scroll", function () {
           if (!ticking) { ticking = true; requestAnimationFrame(check); }
