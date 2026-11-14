@@ -42,7 +42,7 @@
   <link rel="preload" href="assets/fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
 
   <!-- Site stylesheet (single source of truth) -->
-  <link rel="stylesheet" href="assets/css/style.min.css?v=31cb594e">
+  <link rel="stylesheet" href="assets/css/style.min.css?v=56b6489a">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
 <body class="theme-dark">
@@ -107,7 +107,7 @@
         <p class="pt-group__label" aria-hidden="true">Research &amp; AI</p>
         <div class="pt-group__items" role="presentation">
           <button class="nav-link pt-tile" id="tab-gencov-btn" data-bs-toggle="pill" data-bs-target="#tab-gencov" type="button" role="tab" aria-controls="tab-gencov" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/generalized-covariance.webp" type="image/webp"><img src="assets/img/app-icons/generalized-covariance.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">Generalized Covariance</span><span class="pt-tile__sub">Eigenvalue spectral analysis</span></span></button>
-          <button class="nav-link pt-tile" id="tab-afm-btn" data-bs-toggle="pill" data-bs-target="#tab-afm" type="button" role="tab" aria-controls="tab-afm" aria-selected="false"><span class="pt-tile__icon pt-tile__icon--glyph"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M10 3.5V7M14 3.5V7M10 17v3.5M14 17v3.5M3.5 10H7M3.5 14H7M17 10h3.5M17 14h3.5"/></svg></span><span class="pt-tile__text"><span class="pt-tile__name">Apple Teardown</span><span class="pt-tile__sub">On-device LLM, decoded</span></span></button>
+          <button class="nav-link pt-tile" id="tab-afm-btn" data-bs-toggle="pill" data-bs-target="#tab-afm" type="button" role="tab" aria-controls="tab-afm" aria-selected="false"><span class="pt-tile__icon pt-tile__icon--glyph"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M10 3.5V7M14 3.5V7M10 17v3.5M14 17v3.5M3.5 10H7M3.5 14H7M17 10h3.5M17 14h3.5"/></svg></span><span class="pt-tile__text"><span class="pt-tile__name">Apple Teardown</span><span class="pt-tile__sub">On-device LLM, rebuilt</span></span></button>
         </div>
       </div>
       <div class="pt-group pt-group--1" role="presentation">
@@ -1691,20 +1691,23 @@
     <!-- Tab: AFM-IFP Teardown -->
     <div class="tab-pane fade" id="tab-afm" role="tabpanel" aria-labelledby="tab-afm-btn">
 
-    <!-- Featured Project: Apple On-Device Model Teardown -->
+    <!-- Featured Project: Apple's on-device foundation model, rebuilt (afm-ifp-teardown).
+         Figures are the repository README's and the paper's; update them together. -->
     <div class="card card--hue hue-afm reveal">
       <div class="card-body p-4 p-md-5">
         <div class="row g-0 align-items-center justify-content-center">
           <div class="col-12 text-center">
             <header class="mb-4">
-              <h3 class="h2 mb-2 fw-bold">Apple On-Device Model Teardown</h3>
-              <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
-                <span class="badge-neutral mono">afmplus-v11.0-ifp</span>
-                <span class="badge-accent mono">reverse engineering</span>
-                <span class="badge-neutral mono">sparse MoE</span>
-                <span class="badge-neutral mono">paper + code</span>
+              <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
+                <span class="app-icon pt-glyph-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M10 3.5V7M14 3.5V7M10 17v3.5M14 17v3.5M3.5 10H7M3.5 14H7M17 10h3.5M17 14h3.5"/></svg></span>
+                <div class="text-start">
+                  <h3 class="h2 mb-1 fw-bold">Apple&rsquo;s On-Device Model, Rebuilt</h3>
+                  <span class="badge-neutral mono">afmplus-v11.2-ifp</span>
+                  <span class="badge-accent mono ms-1">llama.cpp</span>
+                  <span class="badge-neutral mono ms-1">paper + code</span>
+                </div>
               </div>
-              <p class="lead mb-0">A complete static reverse-engineering of Apple's on-device foundation model &mdash; the sparse Mixture-of-Experts backbone shipped with Apple&nbsp;Intelligence &mdash; decoded from its container formats down to a component-validated PyTorch forward pass. The outcome is a controlled negative result: every shipped byte is recovered and individually correct, yet the assembled forward pass does not predict text. <strong>Original research only: the teardown paper and decode code &mdash; no Apple weights or tokenizer data are included or distributed.</strong> Everything operates on the asset files already present on an Apple device you own.</p>
+              <p class="lead mb-0">The language model behind Apple Intelligence on macOS&nbsp;27 (&ldquo;AFM&nbsp;3 Core Advanced&rdquo;), reconstructed from the files Apple Intelligence installs on a Mac and run in llama.cpp on macOS, Windows and Linux &mdash; together with the models that ship alongside it. Nothing is trained or fitted, and every component is checked against Apple&rsquo;s own model wherever Apple exposes a reference. <strong>Code only: no Apple weights, tokenizer or GGUF are included or distributed.</strong> The converter rebuilds the model from the files already on your own Mac.</p>
             </header>
 
             <div class="pt-actions d-flex flex-wrap justify-content-center align-items-center gap-3">
@@ -1714,27 +1717,38 @@
               <a href="assets/afm/afm_teardown.pdf" target="_blank" rel="noopener noreferrer" class="badge-btn">
                 Read the paper
               </a>
+              <a href="https://github.com/yu314-coder/afm-ifp-teardown/releases" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                llama.cpp builds
+              </a>
               <a href="mailto:euler.yu@gmail.com" class="badge-btn">
                 Contact developer
               </a>
             </div>
 
+            <div class="afm-stats mb-4">
+              <div class="afm-stat"><b>97.0%</b><span>next-token agreement with Apple&rsquo;s live model</span></div>
+              <div class="afm-stat"><b>20.3&nbsp;B</b><span>parameters, 2-bit codes carried over bit-exactly</span></div>
+              <div class="afm-stat"><b>17 / 40</b><span>answers identical to Apple&rsquo;s, character for character</span></div>
+              <div class="afm-stat"><b>99.2%</b><span>of Apple&rsquo;s draft-model decisions reproduced</span></div>
+            </div>
+
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
-              <span class="feature-badge">9.86&nbsp;B params recovered</span>
-              <span class="feature-badge">4-bit LUT codec</span>
-              <span class="feature-badge">ANE 8&times;128 de-swizzle</span>
-              <span class="feature-badge">Container stack decoded</span>
-              <span class="feature-badge">Reconstructed forward pass</span>
-              <span class="feature-badge">Controlled negative result</span>
+              <span class="feature-badge">afm2gguf converter</span>
+              <span class="feature-badge">llama.cpp afm architecture</span>
+              <span class="feature-badge">26 feature adapters</span>
+              <span class="feature-badge">Speculative draft model</span>
+              <span class="feature-badge">Image encoder</span>
+              <span class="feature-badge">300M model + safety guard</span>
+              <span class="feature-badge">CPU &middot; Metal &middot; CUDA &middot; Vulkan</span>
             </div>
 
             <div class="mb-4">
-              <h4 class="h5 fw-bold mb-3">What it found</h4>
+              <h4 class="h5 fw-bold mb-3">What it shows</h4>
               <ul class="list-unstyled">
-                <li class="mb-2"><strong>The whole model, as data</strong> &mdash; all 9.86&nbsp;B stored weights recovered (100% of the file), the container stack (Cryptex, BBBB, odix, hwx, MPSGraph) fully characterized, and the 4-bit&nbsp;LUT + per-1024 fp16 block-scale weight codec validated against Apple's own <code>coreml2hwx</code> toolchain</li>
-                <li class="mb-2"><strong>A corrected &ldquo;fatal blocker&rdquo;</strong> &mdash; the expert-selection router&rarr;physical-expert map, long thought unrecoverable, is <em>mathematically irrelevant</em>: the IFP sparse FFN is an <em>ungated</em>, permutation-invariant SwiGLU sum over experts, so no selection map is needed to run it</li>
-                <li class="mb-2"><strong>The architecture</strong> &mdash; 32 full-QKV + 12 KV-reuse attention layers; 12 dense + 32 expert-FFN layers, d=1536, GQA, RoPE, SwiGLU, 219 routable experts/layer with Instruction-Following Pruning. The learned RMSNorm &gamma; turned out to be compile-time <em>folded</em> into the adjacent linears, not missing</li>
-                <li class="mb-2"><strong>A controlled negative result</strong> &mdash; 42 controlled experiments establish that every shipped byte is recovered and individually correct, yet the assembled forward pass does not predict text; the defect localizes to a residual-axis basis convention that no static statistic can see</li>
+                <li class="mb-2"><strong>The whole model, decoded</strong> &mdash; 56 layers (12 dense + 44 Instruction-Following-Pruned sparse), a 1536-wide residual stream, 16 query / 8 key-value heads and KV sharing across the last 21 layers. Apple&rsquo;s 2-bit codes and fp16 scales go into Q2_K bit-exactly; the prompt template and the expert schedule, which the model files do not contain, are recovered from Apple&rsquo;s runtime</li>
+                <li class="mb-2"><strong>Measured against Apple</strong> &mdash; fed Apple&rsquo;s own answers at temperature&nbsp;0, the reconstruction picks Apple&rsquo;s next token 97.0% of the time (40 prompts, 1,127 answer tokens; 95.3% on a harder 230-prompt set). The misses are near-ties: Apple&rsquo;s token is its second choice in 84% of cases, a gap set by the arithmetic of Apple&rsquo;s compiled Neural Engine program</li>
+                <li class="mb-2"><strong>The models around it</strong> &mdash; the 26 Apple Intelligence feature adapters as llama.cpp LoRAs (translation agrees on 98.7% of 3,424 tokens), the 9M speculative-decoding draft, the 358M image encoder (cosine 0.98&ndash;0.99 per token against Apple&rsquo;s), and the 300M base model, whose safety guard predicts the public API&rsquo;s guardrail decision on 95 of 100 prompts</li>
+                <li class="mb-2"><strong>The bug that hid it</strong> &mdash; for much of the project the assembled model produced no meaningful predictions. The cause was a single misaligned read: every normalisation gain was taken one element early, found with probes calibrated on a healthy Apple model (Xcode&rsquo;s on-device code model)</li>
               </ul>
             </div>
 
@@ -1743,21 +1757,21 @@
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">The model</h5>
                   <ul class="small mb-0 text-start">
-                    <li><code>afmplus-v11.0-ifp</code> &mdash; sparse MoE, ~9.86&nbsp;B stored params</li>
-                    <li>12 dense + 32 sparse layers, d=1536, GQA, RoPE, SwiGLU</li>
-                    <li>219 experts/layer; default <code>ifp1_r48</code> = 10 active + 4 shared</li>
-                    <li>Shipped in <code>com.apple.MobileAsset.UAF.FM.GenerativeModels</code></li>
+                    <li><code>afmplus-v11.2-ifp</code>, Apple&rsquo;s <code>SystemLanguageModel</code> on macOS&nbsp;27</li>
+                    <li>23 always-on + 23 of 348 routed experts, picked by a router at layer&nbsp;12 and re-picked every 32 positions</li>
+                    <li>Apple&rsquo;s <code>afm_cider_v2</code> prompt format, checked against its public token counter</li>
+                    <li>About 150 tokens/s prompt, 12&ndash;21 tokens/s generation on an M4 (Metal)</li>
                   </ul>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">What's in the repo</h5>
+                  <h5 class="h6 fw-bold mb-3">What&rsquo;s in the repo</h5>
                   <ul class="small mb-0 text-start">
-                    <li>Teardown paper (LaTeX) + condensed <code>FINDINGS.md</code></li>
-                    <li>Python: ANE de-swizzle, LUT-codec cracker, <code>odix</code> parser, weight export, forward pass</li>
-                    <li>Running the model is left to Apple's public <code>FoundationModels</code> framework &mdash; not part of the repo</li>
-                    <li>No weights or tokenizer data &mdash; runs on assets already on your own device</li>
+                    <li><code>afm2gguf</code>: a standalone converter that reads only your Mac&rsquo;s own assets (about 3 minutes, 6.3&nbsp;GiB GGUF)</li>
+                    <li>A llama.cpp patch: the <code>afm</code> and <code>afm-draft</code> architectures and an <code>afm</code> image projector</li>
+                    <li>Prebuilt binaries for Windows, Linux and macOS; <code>tools/eval</code> reproduces every figure</li>
+                    <li>The technical report (LaTeX + PDF) and the correspondence with Apple</li>
                   </ul>
                 </div>
               </div>
@@ -1768,9 +1782,10 @@
               <div class="d-inline-block text-start">
                 <p class="small mb-1"><strong>Created by:</strong> Yu Yao-Hsing</p>
                 <p class="small mb-1"><strong>Category:</strong> Research &mdash; reverse engineering / ML systems</p>
-                <p class="small mb-1"><strong>Languages:</strong> TeX &middot; Python</p>
-                <p class="small mb-1"><strong>Target:</strong> Apple on-device <code>afmplus-v11.0-ifp</code> (Apple&nbsp;Intelligence, macOS&nbsp;26/27); devices now run <code>afmplus-v11.2-ifp</code></p>
-                <p class="small mb-0"><strong>Status:</strong> Controlled negative result &mdash; the assembled forward pass does not predict text</p>
+                <p class="small mb-1"><strong>Languages:</strong> Python &middot; C++ (llama.cpp patch) &middot; Swift &middot; TeX</p>
+                <p class="small mb-1"><strong>Target:</strong> Apple&rsquo;s on-device <code>afmplus-v11.2-ifp</code> (Apple&nbsp;Intelligence, macOS&nbsp;27) and the 300M <code>afmplus-v11.0-pico</code></p>
+                <p class="small mb-1"><strong>Status:</strong> Working port &mdash; 97.0% next-token agreement with Apple&rsquo;s live model; builds at <a href="https://github.com/yu314-coder/afm-ifp-teardown/releases" target="_blank" rel="noopener noreferrer">v1.8.0</a></p>
+                <p class="small mb-0 text-muted">Unofficial and not affiliated with or endorsed by Apple. The weights belong to Apple: do not redistribute a GGUF made with the converter.</p>
               </div>
             </div>
 

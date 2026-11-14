@@ -2033,6 +2033,15 @@ a.pt-meta__item:hover { color: var(--accent); border-color: var(--accent); }
 .pt-sticky__step:hover { background: var(--accent-tint); color: var(--accent); }
 .pt-sticky__bar { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--accent); transform-origin: 0 50%; transform: scaleX(0); }
 @media (prefers-reduced-motion: reduce) { .pt-sticky, .pt-sticky.is-shown { transition: none; } }
+/* a drawn icon in a card header, where a project has no app icon */
+.pt-glyph-icon { color: var(--accent); }
+.pt-glyph-icon svg { width: 56%; height: 56%; }
+/* headline figures row (Apple model card) */
+.afm-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.6rem; }
+.afm-stat { display: flex; flex-direction: column; gap: 0.2rem; padding: 0.9rem 0.8rem; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+.afm-stat b { font-size: 1.55rem; font-weight: 700; line-height: 1.1; color: var(--ink); font-variant-numeric: tabular-nums; }
+.afm-stat span { font-size: 0.78rem; line-height: 1.35; color: var(--ink-3); }
+@media (max-width: 767.98px) { .afm-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .afm-stat b { font-size: 1.3rem; } }
 /* a project's store, repo and privacy links sit right under its title */
 .pt-actions { margin-bottom: 2.25rem; padding-bottom: 2rem; border-bottom: 1px solid var(--line); }
 @media (max-width: 575.98px) {

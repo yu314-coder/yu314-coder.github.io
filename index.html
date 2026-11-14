@@ -45,7 +45,7 @@
   <link rel="preload" href="assets/fonts/sora-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="assets/css/style.min.css?v=31cb594e">
+  <link rel="stylesheet" href="assets/css/style.min.css?v=56b6489a">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
 <body class="theme-dark">
@@ -366,10 +366,10 @@
                 <span class="app-icon app-icon--gh" role="img" aria-label="Apple foundation-model teardown on GitHub"></span>
                 <div>
                   <h3 class="h4 mb-1">Apple Foundation Model Teardown</h3>
-                  <span class="mono" style="font-size:.76rem; color:var(--ink-3);">reverse engineering · paper</span>
+                  <span class="mono" style="font-size:.76rem; color:var(--ink-3);">reverse engineering · llama.cpp · paper</span>
                 </div>
               </div>
-              <p class="card-text flex-grow-1">A static reverse-engineering of Apple's on-device foundation model — the sparse Mixture-of-Experts backbone in Apple Intelligence — decoded from its container formats down to a component-validated PyTorch forward pass. Original research only: no Apple weights or tokenizer are redistributed.</p>
+              <p class="card-text flex-grow-1">Apple Intelligence's on-device language model, rebuilt from the files installed on a Mac and run in llama.cpp on any OS — 97.0% next-token agreement with Apple's live model, plus its adapters, draft model and image encoder. Code and paper only: no Apple weights or tokenizer are redistributed.</p>
               <div class="d-flex gap-2 mt-auto flex-wrap">
                 <a href="https://github.com/yu314-coder/afm-ifp-teardown" target="_blank" rel="noopener noreferrer" class="badge-btn">GitHub</a>
                 <a href="projects.html" class="badge-btn">Learn more<span class="visually-hidden"> about Apple Foundation Model Teardown</span></a>
