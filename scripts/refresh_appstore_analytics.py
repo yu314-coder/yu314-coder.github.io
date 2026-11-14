@@ -53,6 +53,7 @@ APPS = {
     "6764729098": "GPS-location-app",
     "6764759491": "WhisperKit",
     "6782149582": "Bootbox",
+    "6806630544": "Blender Local",
 }
 
 # Apple's category for discovery/engagement (impressions, page views, taps).

@@ -15,7 +15,8 @@ HERE = pathlib.Path(__file__).resolve().parents[1]
 OUT = HERE / "assets/appstore-tracker/data"
 APPS = {"6764472686": "ManimStudio", "6764759636": "EigenDenoise",
         "6792298083": "SidecarBridge", "6764729098": "GPS-location-app",
-        "6764759491": "WhisperKit", "6782149582": "Bootbox"}
+        "6764759491": "WhisperKit", "6782149582": "Bootbox",
+        "6806630544": "Blender Local"}
 
 def log(m): print(m, flush=True)
 

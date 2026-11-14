@@ -23,7 +23,7 @@ The research is mine. The apps, packages and this site are built with AI coding 
 |------|------------|
 | [Home](https://yu314-coder.github.io/) | Animated eigenvalue-spiral hero, the published-research bar, live counters (apps shipped, app downloads, PyPI installs, countries) and ten "selected work" cards whose version badges come from the store snapshots |
 | [About](https://yu314-coder.github.io/about.html) | Education, the paper and its advisors, skills, timeline |
-| [Projects](https://yu314-coder.github.io/projects.html) | Grouped tiles: **Apps** (ManimStudio, CodeBench, Bootbox, GPS-location-app, SidecarBridge, others), **Research & AI** (Generalized Covariance + EigenDenoise, Apple on-device model teardown), **Tools** (py2bin). Versions are filled from the snapshots |
+| [Projects](https://yu314-coder.github.io/projects.html) | Grouped tiles: **Apps** (ManimStudio, CodeBench, Bootbox, Blender Local, GPS-location-app, SidecarBridge, others), **Research & AI** (Generalized Covariance + EigenDenoise, Apple on-device model teardown), **Tools** (py2bin). Versions are filled from the snapshots |
 | [PyPI Stats](https://yu314-coder.github.io/pypi-stats.html) | Download analytics for my packages |
 | [Store Stats](https://yu314-coder.github.io/store-stats.html) | App Store and Microsoft Store download dashboard |
 | [Typhoon Tracks](https://yu314-coder.github.io/typhoon-tracks.html) | Western Pacific typhoon explorer with the Trackformer AI overlay |
@@ -118,6 +118,7 @@ The model card for Trackformer 1.2 (released 29 Sep 2026):
 | WhisperKit | iOS | [App Store](https://apps.apple.com/app/whisperkit/id6764759491) | [GitHub](https://github.com/yu314-coder/WhisperKit) |
 | SidecarBridge | iOS / iPadOS / macOS | [App Store](https://apps.apple.com/app/sidecarbridge/id6792298083) | [GitHub](https://github.com/yu314-coder/SidecarBridge) |
 | Bootbox | iOS / iPadOS | [App Store](https://apps.apple.com/app/bootbox/id6782149582) | [GitHub](https://github.com/yu314-coder/Bootbox) |
+| Blender Local | iOS / iPadOS | [App Store](https://apps.apple.com/app/blender-local/id6806630544) | [GitHub](https://github.com/yu314-coder/blender-local) |
 | GPS-location-app | iOS / watchOS | [App Store](https://apps.apple.com/app/gps-location-app/id6764729098) | [GitHub](https://github.com/yu314-coder/GPS-location-app) |
 | EigenDenoise | macOS | [Mac App Store](https://apps.apple.com/app/eigendenoise/id6764759636) | [GitHub](https://github.com/yu314-coder/EigenDenoise) |
 | Generalized Covariance Matrix | Windows 10+ | [Microsoft Store](https://apps.microsoft.com/detail/9nzj475s7b01) | [GitHub](https://github.com/yu314-coder/random_matrix_ESD) |
@@ -146,6 +147,7 @@ Current versions are on the site; the snapshots refresh them hourly.
 | CodeBench | Offline developer / scientific / AI workstation for iPad and Mac | [GitHub](https://github.com/yu314-coder/CodeBench) |
 | python-ios-lib | Python 3.14 for iOS / iPadOS with native offline libraries, including PyTorch with a Metal bridge | [GitHub](https://github.com/yu314-coder/python-ios-lib) · [torchmetal](https://github.com/yu314-coder/torchmetal) |
 | Bootbox | A virtual PC for iPad and iPhone: a Linux desktop or terminal and Android 12 on a 64-bit x86 PC emulated in WebAssembly | [App Store](https://apps.apple.com/app/bootbox/id6782149582) · [GitHub](https://github.com/yu314-coder/Bootbox) |
+| Blender Local | A 3D studio for iPhone and iPad built on Blender's own bpy: modeling, sculpting, Grease Pencil, animation and Cycles/EEVEE rendering, offline | [App Store](https://apps.apple.com/app/blender-local/id6806630544) · [GitHub](https://github.com/yu314-coder/blender-local) |
 | Apple on-device model teardown | A static reverse-engineering of Apple's on-device foundation model (the sparse Mixture-of-Experts backbone in Apple Intelligence), down to a component-validated PyTorch forward pass | [GitHub](https://github.com/yu314-coder/afm-ifp-teardown) |
 | py2bin | Stdlib-only Python compiler to ELF / PE / Mach-O | [GitHub](https://github.com/yu314-coder/python_to_binary) · [PyPI](https://pypi.org/project/python-to-binary/) |
 | NeonScribe | Creative writing and text processing tool | [GitHub](https://github.com/yu314-coder/NeonScribe) |

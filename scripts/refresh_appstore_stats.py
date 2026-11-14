@@ -61,6 +61,7 @@ APPS = {
     "6764729098": "GPS-location-app",
     "6764759491": "WhisperKit",
     "6782149582": "Bootbox",
+    "6806630544": "Blender Local",
 }
 
 # How far back to reach on a cold start: everything Apple keeps, which is about
