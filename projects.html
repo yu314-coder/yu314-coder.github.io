@@ -42,7 +42,7 @@
   <link rel="preload" href="assets/fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
 
   <!-- Site stylesheet (single source of truth) -->
-  <link rel="stylesheet" href="assets/css/style.min.css?v=bbd4127e">
+  <link rel="stylesheet" href="assets/css/style.min.css?v=0d61ade8">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
 <body class="theme-dark">
@@ -86,42 +86,52 @@
   <!-- Projects Section (tabbed) -->
   <section class="section container pt-section">
 
-    <!-- Tab Navigation. Grouped tiles rather than one row of identical pills: eleven pills
+    <!-- Tab Navigation. Six named groups on a four-column grid (2+2, 3+1, 2+2); the panes
+         below follow the same order. Grouped tiles rather than one row of identical pills: eleven pills
          wrapped onto two rows and a new tab was easy to miss. Same Bootstrap tab wiring --
          every button keeps its .nav-link class, id and data-bs-target, and #projectTabs keeps
          role="tablist" -- so deep links like projects.html#tab-py2bin still work. -->
     <div class="pt-nav mb-5" id="projectTabs" role="tablist" aria-label="Projects">
-      <div class="pt-group pt-group--apps" role="presentation">
-        <p class="pt-group__label" aria-hidden="true">Apps</p>
+      <div class="pt-group pt-span-2" role="presentation">
+        <p class="pt-group__label" aria-hidden="true">Create</p>
         <div class="pt-group__items" role="presentation">
           <button class="nav-link pt-tile active" id="tab-manim-btn" data-bs-toggle="pill" data-bs-target="#tab-manim" type="button" role="tab" aria-controls="tab-manim" aria-selected="true"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/manimstudio-win.webp" type="image/webp"><img src="assets/img/app-icons/manimstudio-win.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">ManimStudio</span><span class="pt-tile__sub">Math animation studio</span></span></button>
-          <button class="nav-link pt-tile" id="tab-codebench-btn" data-bs-toggle="pill" data-bs-target="#tab-codebench" type="button" role="tab" aria-controls="tab-codebench" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/benchcode.webp" type="image/webp"><img src="assets/img/app-icons/benchcode.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">CodeBench</span><span class="pt-tile__sub">On-device dev workstation</span></span></button>
-          <button class="nav-link pt-tile" id="tab-bootbox-btn" data-bs-toggle="pill" data-bs-target="#tab-bootbox" type="button" role="tab" aria-controls="tab-bootbox" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/bootbox.webp" type="image/webp"><img src="assets/img/app-icons/bootbox.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">Bootbox</span><span class="pt-tile__sub">Virtual PC for iPad &amp; iPhone</span></span></button>
           <button class="nav-link pt-tile" id="tab-blender-btn" data-bs-toggle="pill" data-bs-target="#tab-blender" type="button" role="tab" aria-controls="tab-blender" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/blender-local.webp" type="image/webp"><img src="assets/img/app-icons/blender-local.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">Blender Local</span><span class="pt-tile__sub">Blender on iPhone &amp; iPad</span></span></button>
-          <button class="nav-link pt-tile" id="tab-gps-btn" data-bs-toggle="pill" data-bs-target="#tab-gps" type="button" role="tab" aria-controls="tab-gps" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/gps-location-app.webp" type="image/webp"><img src="assets/img/app-icons/gps-location-app.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">GPS-location-app</span><span class="pt-tile__sub">GPS workout tracker</span></span></button>
-          <button class="nav-link pt-tile" id="tab-sidecar-btn" data-bs-toggle="pill" data-bs-target="#tab-sidecar" type="button" role="tab" aria-controls="tab-sidecar" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/sidecarbridge.webp" type="image/webp"><img src="assets/img/app-icons/sidecarbridge.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">SidecarBridge</span><span class="pt-tile__sub">Remote window into your Mac</span></span></button>
         </div>
       </div>
-      <div class="pt-nav__row" role="presentation">
-      <div class="pt-group pt-group--2" role="presentation">
+      <div class="pt-group pt-span-2" role="presentation">
+        <p class="pt-group__label" aria-hidden="true">Code &amp; run</p>
+        <div class="pt-group__items" role="presentation">
+          <button class="nav-link pt-tile" id="tab-codebench-btn" data-bs-toggle="pill" data-bs-target="#tab-codebench" type="button" role="tab" aria-controls="tab-codebench" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/benchcode.webp" type="image/webp"><img src="assets/img/app-icons/benchcode.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">CodeBench</span><span class="pt-tile__sub">On-device dev workstation</span></span></button>
+          <button class="nav-link pt-tile" id="tab-bootbox-btn" data-bs-toggle="pill" data-bs-target="#tab-bootbox" type="button" role="tab" aria-controls="tab-bootbox" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/bootbox.webp" type="image/webp"><img src="assets/img/app-icons/bootbox.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">Bootbox</span><span class="pt-tile__sub">Virtual PC for iPad &amp; iPhone</span></span></button>
+        </div>
+      </div>
+      <div class="pt-group pt-span-3" role="presentation">
+        <p class="pt-group__label" aria-hidden="true">Everyday apps</p>
+        <div class="pt-group__items" role="presentation">
+          <button class="nav-link pt-tile" id="tab-whisper-btn" data-bs-toggle="pill" data-bs-target="#tab-whisper" type="button" role="tab" aria-controls="tab-whisper" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/whisperkit.webp" type="image/webp"><img src="assets/img/app-icons/whisperkit.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">WhisperKit</span><span class="pt-tile__sub">On-device speech to text</span></span></button>
+          <button class="nav-link pt-tile" id="tab-sidecar-btn" data-bs-toggle="pill" data-bs-target="#tab-sidecar" type="button" role="tab" aria-controls="tab-sidecar" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/sidecarbridge.webp" type="image/webp"><img src="assets/img/app-icons/sidecarbridge.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">SidecarBridge</span><span class="pt-tile__sub">Remote window into your Mac</span></span></button>
+          <button class="nav-link pt-tile" id="tab-gps-btn" data-bs-toggle="pill" data-bs-target="#tab-gps" type="button" role="tab" aria-controls="tab-gps" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/gps-location-app.webp" type="image/webp"><img src="assets/img/app-icons/gps-location-app.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">GPS-location-app</span><span class="pt-tile__sub">GPS workout tracker</span></span></button>
+        </div>
+      </div>
+      <div class="pt-group pt-span-1" role="presentation">
+        <p class="pt-group__label" aria-hidden="true">Python tools</p>
+        <div class="pt-group__items" role="presentation">
+          <button class="nav-link pt-tile" id="tab-py2bin-btn" data-bs-toggle="pill" data-bs-target="#tab-py2bin" type="button" role="tab" aria-controls="tab-py2bin" aria-selected="false"><span class="pt-tile__icon pt-tile__icon--glyph"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="M7.5 10l2.5 2-2.5 2M12.5 15h4"/></svg></span><span class="pt-tile__text"><span class="pt-tile__name">py2bin</span><span class="pt-tile__sub">Python to machine code</span></span></button>
+        </div>
+      </div>
+      <div class="pt-group pt-span-2" role="presentation">
         <p class="pt-group__label" aria-hidden="true">Research &amp; AI</p>
         <div class="pt-group__items" role="presentation">
           <button class="nav-link pt-tile" id="tab-gencov-btn" data-bs-toggle="pill" data-bs-target="#tab-gencov" type="button" role="tab" aria-controls="tab-gencov" aria-selected="false"><span class="pt-tile__icon"><picture><source srcset="assets/img/app-icons/generalized-covariance.webp" type="image/webp"><img src="assets/img/app-icons/generalized-covariance.png" alt="" width="64" height="64" loading="lazy" decoding="async"></picture></span><span class="pt-tile__text"><span class="pt-tile__name">Generalized Covariance</span><span class="pt-tile__sub">Eigenvalue spectral analysis</span></span></button>
           <button class="nav-link pt-tile" id="tab-afm-btn" data-bs-toggle="pill" data-bs-target="#tab-afm" type="button" role="tab" aria-controls="tab-afm" aria-selected="false"><span class="pt-tile__icon pt-tile__icon--glyph"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M10 3.5V7M14 3.5V7M10 17v3.5M14 17v3.5M3.5 10H7M3.5 14H7M17 10h3.5M17 14h3.5"/></svg></span><span class="pt-tile__text"><span class="pt-tile__name">Apple Teardown</span><span class="pt-tile__sub">On-device LLM, rebuilt</span></span></button>
         </div>
       </div>
-      <div class="pt-group pt-group--1" role="presentation">
-        <p class="pt-group__label" aria-hidden="true">Tools</p>
-        <div class="pt-group__items" role="presentation">
-          <button class="nav-link pt-tile" id="tab-py2bin-btn" data-bs-toggle="pill" data-bs-target="#tab-py2bin" type="button" role="tab" aria-controls="tab-py2bin" aria-selected="false"><span class="pt-tile__icon pt-tile__icon--glyph"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="M7.5 10l2.5 2-2.5 2M12.5 15h4"/></svg></span><span class="pt-tile__text"><span class="pt-tile__name">py2bin</span><span class="pt-tile__sub">Python to machine code</span></span></button>
-        </div>
-      </div>
-      <div class="pt-group pt-group--1" role="presentation">
+      <div class="pt-group pt-span-2 pt-group--more" role="presentation">
         <p class="pt-group__label" aria-hidden="true">More</p>
         <div class="pt-group__items" role="presentation">
-          <button class="nav-link pt-tile" id="tab-other-btn" data-bs-toggle="pill" data-bs-target="#tab-other" type="button" role="tab" aria-controls="tab-other" aria-selected="false"><span class="pt-tile__icon pt-tile__icon--glyph"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="4.5" width="6" height="6" rx="1.5"/><rect x="13.5" y="4.5" width="6" height="6" rx="1.5"/><rect x="4.5" y="13.5" width="6" height="6" rx="1.5"/><rect x="13.5" y="13.5" width="6" height="6" rx="1.5"/></svg></span><span class="pt-tile__text"><span class="pt-tile__name">Others</span><span class="pt-tile__sub">WhisperKit, t-SNE and more</span></span></button>
+          <button class="nav-link pt-tile" id="tab-other-btn" data-bs-toggle="pill" data-bs-target="#tab-other" type="button" role="tab" aria-controls="tab-other" aria-selected="false"><span class="pt-tile__icon pt-tile__icon--glyph"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="4.5" width="6" height="6" rx="1.5"/><rect x="13.5" y="4.5" width="6" height="6" rx="1.5"/><rect x="4.5" y="13.5" width="6" height="6" rx="1.5"/><rect x="13.5" y="13.5" width="6" height="6" rx="1.5"/></svg></span><span class="pt-tile__text"><span class="pt-tile__name">Others</span><span class="pt-tile__sub">t-SNE, NeonScribe and more</span></span></button>
         </div>
-      </div>
       </div>
     </div>
 
@@ -130,7 +140,6 @@
          in the outline without showing anything. -->
     <h2 class="visually-hidden">Project details</h2>
     <div class="tab-content" id="projectTabsContent">
-
     <!-- Tab 1: ManimStudio -->
     <div class="tab-pane fade show active" id="tab-manim" role="tabpanel" aria-labelledby="tab-manim-btn">
 
@@ -335,6 +344,182 @@
       </div>
     </div>
     </div><!-- /tab-manim -->
+
+    <!-- Featured Project: Blender Local -->
+    <div class="tab-pane fade" id="tab-blender" role="tabpanel" aria-labelledby="tab-blender-btn">
+
+    <div class="card card--hue hue-blender mb-5 reveal">
+      <div class="card-body p-4 p-md-5">
+        <div class="row g-0 align-items-center justify-content-center">
+          <div class="col-12 text-center">
+            <header class="mb-4">
+              <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
+                <span class="app-icon"><picture><source srcset="assets/img/app-icons/blender-local.webp" type="image/webp"><img src="assets/img/app-icons/blender-local.png" alt="Blender Local icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
+                <div class="text-start">
+                  <h3 class="h2 mb-1 fw-bold">Blender Local</h3>
+                  <span class="badge-neutral mono">iPad · iPhone</span>
+                  <span class="badge-accent mono ms-1">Real bpy</span>
+                  <span class="badge-neutral mono ms-1">Offline</span>
+                </div>
+              </div>
+              <p class="lead mb-0">A full 3D studio for iPhone and iPad, built on Blender&rsquo;s own engine. Blender&rsquo;s <code>bpy</code> module is compiled into the app, so modeling, modifiers, sculpting, Grease Pencil drawing, animation and rendering run Blender&rsquo;s real code on the device, under a touch-native SwiftUI and Metal interface. No account, no subscription, no cloud.</p>
+            </header>
+
+            <div class="pt-actions d-flex flex-wrap justify-content-center align-items-center gap-3">
+              <a href="https://apps.apple.com/app/blender-local/id6806630544" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Download Blender Local on the App Store">
+                <img src="assets/img/badges/appstore.svg" alt="Download on the App Store" width="120" height="40">
+              </a>
+              <a href="https://github.com/yu314-coder/blender-local" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                GitHub Repository
+              </a>
+              <a href="privacy.html#blender-local" class="badge-btn">
+                Privacy policy
+              </a>
+              <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                python-ios-lib
+              </a>
+              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
+                Contact developer
+              </a>
+            </div>
+
+            <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
+              <span class="feature-badge">Blender bpy</span>
+              <span class="feature-badge">Python 3.14</span>
+              <span class="feature-badge">Edit Mode</span>
+              <span class="feature-badge">Modifier Stack</span>
+              <span class="feature-badge">Sculpt &amp; Paint</span>
+              <span class="feature-badge">Grease Pencil</span>
+              <span class="feature-badge">Cycles on Metal</span>
+              <span class="feature-badge">MP4 Animation</span>
+              <span class="feature-badge">Image to 3D</span>
+              <span class="feature-badge">.blend / glTF / USD / FBX</span>
+              <span class="feature-badge">Apple Pencil &amp; Keyboard</span>
+            </div>
+
+            <figure class="bl-shot mb-4">
+              <img src="assets/img/blender-local/layout.webp" alt="Blender Local on iPad: a studio scene in the 3D View with the Outliner and Properties" width="1400" height="1050" class="img-fluid rounded" loading="lazy" decoding="async">
+              <figcaption class="small text-muted mt-2">On iPad: a studio scene in the 3D View, with the Outliner and Properties</figcaption>
+            </figure>
+
+            <!-- Capability Grid -->
+            <div class="row g-3 mb-4">
+
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h4 class="h5 h-sub">Blender Owns the Scene <span class="lib-count-badge">bpy</span></h4>
+                  <p class="mt-1 mb-0" style="text-align:left;">CPython&nbsp;3.14 is embedded in the app and Blender&rsquo;s <code>bpy</code> is imported into it. Every button, menu and field runs Blender&rsquo;s own operators and properties on the main thread, one undo step per action, and Edit &rsaquo; Undo steps Blender&rsquo;s own undo stack.</p>
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h4 class="h5 h-sub">A Metal Viewport <span class="lib-count-badge">Metal</span></h4>
+                  <p class="mt-1 mb-0" style="text-align:left;">After every change the app reads Blender&rsquo;s evaluated depsgraph &mdash; meshes after their modifiers, curves, lights, cameras, the edit mesh&rsquo;s selection &mdash; and draws it with Metal, so the viewport always shows what Blender evaluated.</p>
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h4 class="h5 h-sub">Model <span class="lib-count-badge">Edit Mode</span></h4>
+                  <p class="mt-1 mb-0" style="text-align:left;">Vertex, edge and face selection with Blender&rsquo;s Mesh, Vertex, Edge and Face menus: Extrude, Inset Faces, Bevel, Loop Cut, Knife Project, Spin, Bisect, Merge, Bridge Edge Loops, Grid Fill, plus X/Y/Z and topology mirror, vertex groups and shape keys.</p>
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h4 class="h5 h-sub">Modifiers &amp; Sculpt</h4>
+                  <p class="mt-1 mb-0" style="text-align:left;">Every modifier Blender holds, in Blender&rsquo;s stack order with Apply and reordering &mdash; Subdivision Surface, Mirror, Array, Boolean, Remesh, Shrinkwrap, Geometry Nodes and more. Sculpt Mode uses Blender&rsquo;s Essentials brushes with Dynamic Topology, masks and face sets.</p>
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h4 class="h5 h-sub">Draw Mode <span class="lib-count-badge">Grease Pencil</span></h4>
+                  <p class="mt-1 mb-0" style="text-align:left;">Draw with a finger or Apple Pencil, with pressure, the Essentials brushes, layers, materials, onion skinning and keyframes per layer &mdash; Blender&rsquo;s 2D animation tool on a touch screen.</p>
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h4 class="h5 h-sub">Render <span class="lib-count-badge">Cycles &middot; EEVEE</span></h4>
+                  <p class="mt-1 mb-0" style="text-align:left;">F12 renders an image and Ctrl+F12 an animation, with Cycles on the Metal GPU, EEVEE or Workbench; animations save as H.264 or HEVC MP4. Render, Output and World tabs hold Blender&rsquo;s own settings.</p>
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h4 class="h5 h-sub">Image to 3D <span class="lib-count-badge">on-device</span></h4>
+                  <p class="mt-1 mb-0" style="text-align:left;"><strong>Relief</strong> builds a model from a photo&rsquo;s depth (Depth Anything V2); <strong>Full 3D</strong> runs TripoSG, whose weights download only when you ask. The photo never leaves the device.</p>
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h4 class="h5 h-sub">Scripting <span class="lib-count-badge">Python</span></h4>
+                  <p class="mt-1 mb-0" style="text-align:left;">A Monaco editor with Blender-aware completion and a Python console, driving the same scene the Layout tab shows &mdash; as in Blender&rsquo;s Scripting workspace.</p>
+                </div>
+              </div>
+              <div class="col-md-6 col-lg-4">
+                <div class="lib-category-card">
+                  <h4 class="h5 h-sub">Blender&rsquo;s Files &amp; Keys</h4>
+                  <p class="mt-1 mb-0" style="text-align:left;">Open and save <code>.blend</code>; import and export glTF, OBJ, USD, STL, PLY, FBX and Alembic. G/R/S, pie menus, numpad views and Blender&rsquo;s shortcuts sit where Blender has them, and every tool uses Blender&rsquo;s name.</p>
+                </div>
+              </div>
+
+            </div>
+
+            <div class="row g-3 mb-4">
+              <div class="col-md-6"><figure class="bl-shot mb-0"><img src="assets/img/blender-local/render.webp" alt="A Cycles render of the studio showcase" width="1400" height="1050" class="img-fluid rounded" loading="lazy" decoding="async"><figcaption class="small text-muted mt-2">A Cycles render of the studio showcase</figcaption></figure></div>
+              <div class="col-md-6"><figure class="bl-shot mb-0"><img src="assets/img/blender-local/edit-mode.webp" alt="Edit Mode on a mesh" width="1400" height="1050" class="img-fluid rounded" loading="lazy" decoding="async"><figcaption class="small text-muted mt-2">Edit Mode on a mesh</figcaption></figure></div>
+              <div class="col-md-6"><figure class="bl-shot mb-0"><img src="assets/img/blender-local/draw-mode.webp" alt="Grease Pencil Draw Mode" width="1400" height="1050" class="img-fluid rounded" loading="lazy" decoding="async"><figcaption class="small text-muted mt-2">Grease Pencil Draw Mode</figcaption></figure></div>
+              <div class="col-md-6"><figure class="bl-shot mb-0"><img src="assets/img/blender-local/scripting.webp" alt="The Scripting workspace: a Python script that builds a spiral of cubes, and a terminal" width="1400" height="1050" class="img-fluid rounded" loading="lazy" decoding="async"><figcaption class="small text-muted mt-2">Scripting: a Python script that builds a spiral of cubes</figcaption></figure></div>
+            </div>
+
+            <div class="row g-3 mb-4 justify-content-center">
+              <div class="col-md-6">
+                <div class="lib-category-card">
+                  <h5 class="h6 fw-bold mb-3">Start From</h5>
+                  <ul class="small mb-0 text-start">
+                    <li>Blender&rsquo;s General, 2D Animation and Storyboarding scenes</li>
+                    <li>Templates built on the device by a bpy script: Classroom, Studio Showcase, Bouncing Ball, Low-Poly Landscape, Product Turntable &mdash; each opens looking through its camera, ready to render</li>
+                    <li>A guided tour that lights up each part of the screen on first launch</li>
+                    <li>On iPhone, the Outliner and Properties open as a drawer over the 3D View</li>
+                    <li>Your files live in the app&rsquo;s folder, which also shows in the Files app; a finished render or video saves to Photos</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="lib-category-card">
+                  <h5 class="h6 fw-bold mb-3">Built On</h5>
+                  <ul class="small mb-0 text-start">
+                    <li>Blender&rsquo;s <code>bpy</code>, cross-compiled for iOS arm64 in <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="lib-link">python-ios-lib</a></li>
+                    <li>SwiftUI interface and a Metal viewport over Blender&rsquo;s depsgraph</li>
+                    <li>Names checked against Blender 5.2&rsquo;s own menus, toolbar and RNA</li>
+                    <li>Features checked in desktop Blender 5.2.1 with the app&rsquo;s context</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="lib-category-card text-start mb-4" id="blender-local-support">
+              <h4 class="h5 h-sub">Support</h4>
+              <p class="small mt-1">Questions, a scene that won&rsquo;t open or render, or an idea: in the app, tap <b>?</b> &rsaquo; Send Feedback, or email <a href="mailto:euler.yu@gmail.com" class="lib-link">euler.yu@gmail.com</a> and say which device and iOS or iPadOS version you use. Bugs can also be reported on <a href="https://github.com/yu314-coder/blender-local/issues" target="_blank" rel="noopener noreferrer" class="lib-link">GitHub</a>.</p>
+              <p class="small mb-0">Long Cycles renders use a lot of memory on iPhone; lower the samples or the resolution under Render, or use EEVEE, if a render stops. No account, no subscription and no ads &mdash; scenes and renders stay on the device (<a href="privacy.html#blender-local" class="lib-link">privacy policy</a>).</p>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">Technical Specifications</h4>
+              <div class="d-inline-block text-start">
+                <p class="small mb-1"><strong>Created by:</strong> Yu Yao-Hsing</p>
+                <p class="small mb-1"><strong>Platform:</strong> iPhone and iPad, iOS <span data-minos="6806630544">17.0</span> or later</p>
+                <p class="small mb-1"><strong>App Store ID:</strong> 6806630544 (<code>euleryu.blenderkit</code>)</p>
+                <p class="small mb-1"><strong>Engine:</strong> Blender&rsquo;s <code>bpy</code> in embedded CPython&nbsp;3.14; Cycles renders on the Metal GPU</p>
+                <p class="small mb-1"><strong>App size:</strong> 645&nbsp;MB, everything on board; only TripoSG&rsquo;s weights download, on request</p>
+                <p class="small mb-1"><strong>License:</strong> MIT app source; Blender is GPL-2.0-or-later, its iOS build changes published in python-ios-lib</p>
+                <p class="small mb-1"><strong>Status:</strong> Live on the App Store &mdash; version <span data-appver="6806630544">1.0</span>, free, Graphics &amp; Design, rated 4+</p>
+                <p class="small mb-0 text-muted">An independent app, not affiliated with or endorsed by the Blender Foundation. Blender is a registered trademark of the Blender Foundation.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+    </div><!-- /tab-blender -->
 
     <!-- Tab 2: CodeBench + python-ios-lib -->
     <div class="tab-pane fade" id="tab-codebench" role="tabpanel" aria-labelledby="tab-codebench-btn">
@@ -1093,38 +1278,35 @@
     </div>
     </div><!-- /tab-bootbox -->
 
-    <!-- Featured Project: Blender Local -->
-    <div class="tab-pane fade" id="tab-blender" role="tabpanel" aria-labelledby="tab-blender-btn">
+    <!-- Tab: WhisperKit (was a small card under Others until 2026-11-16) -->
+    <div class="tab-pane fade" id="tab-whisper" role="tabpanel" aria-labelledby="tab-whisper-btn">
 
-    <div class="card card--hue hue-blender mb-5 reveal">
+    <div class="card card--hue hue-whisper mb-5 reveal">
       <div class="card-body p-4 p-md-5">
         <div class="row g-0 align-items-center justify-content-center">
           <div class="col-12 text-center">
             <header class="mb-4">
               <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
-                <span class="app-icon"><picture><source srcset="assets/img/app-icons/blender-local.webp" type="image/webp"><img src="assets/img/app-icons/blender-local.png" alt="Blender Local icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
+                <span class="app-icon"><picture><source srcset="assets/img/app-icons/whisperkit.webp" type="image/webp"><img src="assets/img/app-icons/whisperkit.png" alt="WhisperKit icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
                 <div class="text-start">
-                  <h3 class="h2 mb-1 fw-bold">Blender Local</h3>
-                  <span class="badge-neutral mono">iPad · iPhone</span>
-                  <span class="badge-accent mono ms-1">Real bpy</span>
-                  <span class="badge-neutral mono ms-1">Offline</span>
+                  <h3 class="h2 mb-1 fw-bold">WhisperKit</h3>
+                  <span class="badge-neutral mono">iOS <span data-minos="6764759491">18.5</span>+</span>
+                  <span class="badge-accent mono ms-1">App Store</span>
+                  <span class="badge-neutral mono ms-1">On-device</span>
                 </div>
               </div>
-              <p class="lead mb-0">A full 3D studio for iPhone and iPad, built on Blender&rsquo;s own engine. Blender&rsquo;s <code>bpy</code> module is compiled into the app, so modeling, modifiers, sculpting, Grease Pencil drawing, animation and rendering run Blender&rsquo;s real code on the device, under a touch-native SwiftUI and Metal interface. No account, no subscription, no cloud.</p>
+              <p class="lead mb-0">Speech to text on iPhone and iPad, entirely on the device. Record, import, share a file in or paste a link, and the app transcribes it on the Neural Engine in any of 99 languages &mdash; then shows how it was said. A Music tab (beta) turns a description into a song with ACE-Step&nbsp;1.5, also on the device. No account, no servers, no ads.</p>
             </header>
 
             <div class="pt-actions d-flex flex-wrap justify-content-center align-items-center gap-3">
-              <a href="https://apps.apple.com/app/blender-local/id6806630544" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Download Blender Local on the App Store">
+              <a href="https://apps.apple.com/app/whisperkit/id6764759491" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Download WhisperKit on the App Store">
                 <img src="assets/img/badges/appstore.svg" alt="Download on the App Store" width="120" height="40">
               </a>
-              <a href="https://github.com/yu314-coder/blender-local" target="_blank" rel="noopener noreferrer" class="badge-btn">
+              <a href="https://github.com/yu314-coder/WhisperKit" target="_blank" rel="noopener noreferrer" class="badge-btn">
                 GitHub Repository
               </a>
-              <a href="privacy.html#blender-local" class="badge-btn">
+              <a href="privacy.html#whisper" class="badge-btn">
                 Privacy policy
-              </a>
-              <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                python-ios-lib
               </a>
               <a href="mailto:euler.yu@gmail.com" class="badge-btn">
                 Contact developer
@@ -1132,101 +1314,66 @@
             </div>
 
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
-              <span class="feature-badge">Blender bpy</span>
-              <span class="feature-badge">Python 3.14</span>
-              <span class="feature-badge">Edit Mode</span>
-              <span class="feature-badge">Modifier Stack</span>
-              <span class="feature-badge">Sculpt &amp; Paint</span>
-              <span class="feature-badge">Grease Pencil</span>
-              <span class="feature-badge">Cycles on Metal</span>
-              <span class="feature-badge">MP4 Animation</span>
-              <span class="feature-badge">Image to 3D</span>
-              <span class="feature-badge">.blend / glTF / USD / FBX</span>
-              <span class="feature-badge">Apple Pencil &amp; Keyboard</span>
+              <span class="feature-badge">99 Languages</span>
+              <span class="feature-badge">Neural Engine</span>
+              <span class="feature-badge">Live Transcription</span>
+              <span class="feature-badge">Speech Analysis</span>
+              <span class="feature-badge">Paste a Link</span>
+              <span class="feature-badge">SRT / VTT / JSON Export</span>
+              <span class="feature-badge">On-device Translation</span>
+              <span class="feature-badge">Music with ACE-Step 1.5</span>
+              <span class="feature-badge">Background Work</span>
+              <span class="feature-badge">Live Activity</span>
             </div>
-
-            <figure class="bl-shot mb-4">
-              <img src="assets/img/blender-local/layout.webp" alt="Blender Local on iPad: a studio scene in the 3D View with the Outliner and Properties" width="1400" height="1050" class="img-fluid rounded" loading="lazy" decoding="async">
-              <figcaption class="small text-muted mt-2">On iPad: a studio scene in the 3D View, with the Outliner and Properties</figcaption>
-            </figure>
 
             <!-- Capability Grid -->
             <div class="row g-3 mb-4">
-
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h4 class="h5 h-sub">Blender Owns the Scene <span class="lib-count-badge">bpy</span></h4>
-                  <p class="mt-1 mb-0" style="text-align:left;">CPython&nbsp;3.14 is embedded in the app and Blender&rsquo;s <code>bpy</code> is imported into it. Every button, menu and field runs Blender&rsquo;s own operators and properties on the main thread, one undo step per action, and Edit &rsaquo; Undo steps Blender&rsquo;s own undo stack.</p>
+                  <h4 class="h5 h-sub">Bring Any Audio <span class="lib-count-badge">in</span></h4>
+                  <p class="mt-1 mb-0" style="text-align:left;">Record in the app; import audio or video from Files, iCloud or Photos; share a file in from Voice Memos, Files or Mail; or paste a link to an audio or video file and the app downloads it straight from that address.</p>
                 </div>
               </div>
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h4 class="h5 h-sub">A Metal Viewport <span class="lib-count-badge">Metal</span></h4>
-                  <p class="mt-1 mb-0" style="text-align:left;">After every change the app reads Blender&rsquo;s evaluated depsgraph &mdash; meshes after their modifiers, curves, lights, cameras, the edit mesh&rsquo;s selection &mdash; and draws it with Metal, so the viewport always shows what Blender evaluated.</p>
+                  <h4 class="h5 h-sub">99 Languages <span class="lib-count-badge">Whisper</span></h4>
+                  <p class="mt-1 mb-0" style="text-align:left;">Auto-detect the language or choose one; Chinese can be written in Simplified or Traditional characters. Four Whisper models from Small (217&nbsp;MB) to Large V3 Turbo, plus NVIDIA&rsquo;s Canary; each downloads once, then works offline.</p>
                 </div>
               </div>
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h4 class="h5 h-sub">Model <span class="lib-count-badge">Edit Mode</span></h4>
-                  <p class="mt-1 mb-0" style="text-align:left;">Vertex, edge and face selection with Blender&rsquo;s Mesh, Vertex, Edge and Face menus: Extrude, Inset Faces, Bevel, Loop Cut, Knife Project, Spin, Bisect, Merge, Bridge Edge Loops, Grid Fill, plus X/Y/Z and topology mirror, vertex groups and shape keys.</p>
+                  <h4 class="h5 h-sub">Live <span class="lib-count-badge">as you talk</span></h4>
+                  <p class="mt-1 mb-0" style="text-align:left;">A Live tab writes your speech out while you speak, with NVIDIA&rsquo;s Nemotron, and stays quick however long you talk.</p>
                 </div>
               </div>
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h4 class="h5 h-sub">Modifiers &amp; Sculpt</h4>
-                  <p class="mt-1 mb-0" style="text-align:left;">Every modifier Blender holds, in Blender&rsquo;s stack order with Apply and reordering &mdash; Subdivision Surface, Mirror, Array, Boolean, Remesh, Shrinkwrap, Geometry Nodes and more. Sculpt Mode uses Blender&rsquo;s Essentials brushes with Dynamic Topology, masks and face sets.</p>
+                  <h4 class="h5 h-sub">Speech Analysis <span class="lib-count-badge">v1.3</span></h4>
+                  <p class="mt-1 mb-0" style="text-align:left;">Open a transcript to see how it was said: pace and how it changed, pauses, pitch and intonation, loudness against the background, a spectrogram, who spoke for how long, hesitations and the most-used words. Tap a pause to listen from there.</p>
                 </div>
               </div>
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h4 class="h5 h-sub">Draw Mode <span class="lib-count-badge">Grease Pencil</span></h4>
-                  <p class="mt-1 mb-0" style="text-align:left;">Draw with a finger or Apple Pencil, with pressure, the Essentials brushes, layers, materials, onion skinning and keyframes per layer &mdash; Blender&rsquo;s 2D animation tool on a touch screen.</p>
+                  <h4 class="h5 h-sub">Library &amp; Export</h4>
+                  <p class="mt-1 mb-0" style="text-align:left;">Every transcript is kept with its audio and waveform, searchable by title, text or language, with speaker labels; tap a line to play from it. Translate a transcript on the device with Apple&rsquo;s Translation framework, and export as TXT, SRT, VTT, Markdown or JSON.</p>
                 </div>
               </div>
               <div class="col-md-6 col-lg-4">
                 <div class="lib-category-card">
-                  <h4 class="h5 h-sub">Render <span class="lib-count-badge">Cycles &middot; EEVEE</span></h4>
-                  <p class="mt-1 mb-0" style="text-align:left;">F12 renders an image and Ctrl+F12 an animation, with Cycles on the Metal GPU, EEVEE or Workbench; animations save as H.264 or HEVC MP4. Render, Output and World tabs hold Blender&rsquo;s own settings.</p>
+                  <h4 class="h5 h-sub">Music &amp; Pictures <span class="lib-count-badge">beta</span></h4>
+                  <p class="mt-1 mb-0" style="text-align:left;">Describe the style, mood, instruments and voice, with lyrics if you like, and ACE-Step&nbsp;1.5 makes the song on the Neural Engine and GPU. Pictures are made from a description too, with Enhance prompt to fill it out.</p>
                 </div>
               </div>
-              <div class="col-md-6 col-lg-4">
-                <div class="lib-category-card">
-                  <h4 class="h5 h-sub">Image to 3D <span class="lib-count-badge">on-device</span></h4>
-                  <p class="mt-1 mb-0" style="text-align:left;"><strong>Relief</strong> builds a model from a photo&rsquo;s depth (Depth Anything V2); <strong>Full 3D</strong> runs TripoSG, whose weights download only when you ask. The photo never leaves the device.</p>
-                </div>
-              </div>
-              <div class="col-md-6 col-lg-4">
-                <div class="lib-category-card">
-                  <h4 class="h5 h-sub">Scripting <span class="lib-count-badge">Python</span></h4>
-                  <p class="mt-1 mb-0" style="text-align:left;">A Monaco editor with Blender-aware completion and a Python console, driving the same scene the Layout tab shows &mdash; as in Blender&rsquo;s Scripting workspace.</p>
-                </div>
-              </div>
-              <div class="col-md-6 col-lg-4">
-                <div class="lib-category-card">
-                  <h4 class="h5 h-sub">Blender&rsquo;s Files &amp; Keys</h4>
-                  <p class="mt-1 mb-0" style="text-align:left;">Open and save <code>.blend</code>; import and export glTF, OBJ, USD, STL, PLY, FBX and Alembic. G/R/S, pie menus, numpad views and Blender&rsquo;s shortcuts sit where Blender has them, and every tool uses Blender&rsquo;s name.</p>
-                </div>
-              </div>
-
-            </div>
-
-            <div class="row g-3 mb-4">
-              <div class="col-md-6"><figure class="bl-shot mb-0"><img src="assets/img/blender-local/render.webp" alt="A Cycles render of the studio showcase" width="1400" height="1050" class="img-fluid rounded" loading="lazy" decoding="async"><figcaption class="small text-muted mt-2">A Cycles render of the studio showcase</figcaption></figure></div>
-              <div class="col-md-6"><figure class="bl-shot mb-0"><img src="assets/img/blender-local/edit-mode.webp" alt="Edit Mode on a mesh" width="1400" height="1050" class="img-fluid rounded" loading="lazy" decoding="async"><figcaption class="small text-muted mt-2">Edit Mode on a mesh</figcaption></figure></div>
-              <div class="col-md-6"><figure class="bl-shot mb-0"><img src="assets/img/blender-local/draw-mode.webp" alt="Grease Pencil Draw Mode" width="1400" height="1050" class="img-fluid rounded" loading="lazy" decoding="async"><figcaption class="small text-muted mt-2">Grease Pencil Draw Mode</figcaption></figure></div>
-              <div class="col-md-6"><figure class="bl-shot mb-0"><img src="assets/img/blender-local/scripting.webp" alt="The Scripting workspace: a Python script that builds a spiral of cubes, and a terminal" width="1400" height="1050" class="img-fluid rounded" loading="lazy" decoding="async"><figcaption class="small text-muted mt-2">Scripting: a Python script that builds a spiral of cubes</figcaption></figure></div>
             </div>
 
             <div class="row g-3 mb-4 justify-content-center">
               <div class="col-md-6">
                 <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">Start From</h5>
+                  <h5 class="h6 fw-bold mb-3">Keeps Working</h5>
                   <ul class="small mb-0 text-start">
-                    <li>Blender&rsquo;s General, 2D Animation and Storyboarding scenes</li>
-                    <li>Templates built on the device by a bpy script: Classroom, Studio Showcase, Bouncing Ball, Low-Poly Landscape, Product Turntable &mdash; each opens looking through its camera, ready to render</li>
-                    <li>A guided tour that lights up each part of the screen on first launch</li>
-                    <li>On iPhone, the Outliner and Properties open as a drawer over the 3D View</li>
-                    <li>Your files live in the app&rsquo;s folder, which also shows in the Files app; a finished render or video saves to Photos</li>
+                    <li>On iOS 26 and later, transcriptions, downloads and music keep running when you switch apps, with progress shown by iOS</li>
+                    <li>Earlier iOS versions get a Live Activity while the work runs</li>
+                    <li>Feedback from <b>?</b> on any tab, with the app version and device filled in</li>
                   </ul>
                 </div>
               </div>
@@ -1234,118 +1381,11 @@
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">Built On</h5>
                   <ul class="small mb-0 text-start">
-                    <li>Blender&rsquo;s <code>bpy</code>, cross-compiled for iOS arm64 in <a href="https://github.com/yu314-coder/python-ios-lib" target="_blank" rel="noopener noreferrer" class="lib-link">python-ios-lib</a></li>
-                    <li>SwiftUI interface and a Metal viewport over Blender&rsquo;s depsgraph</li>
-                    <li>Names checked against Blender 5.2&rsquo;s own menus, toolbar and RNA</li>
-                    <li>Features checked in desktop Blender 5.2.1 with the app&rsquo;s context</li>
+                    <li><a href="https://github.com/argmaxinc/WhisperKit" target="_blank" rel="noopener noreferrer" class="lib-link">Argmax WhisperKit</a> for speech on the Neural Engine</li>
+                    <li>A port of ACE-Step&nbsp;1.5 to Core ML and MLX for music</li>
+                    <li>Apple&rsquo;s on-device model finds lyrics in a prompt, on Apple Intelligence devices</li>
+                    <li>SwiftUI and SwiftData; model weights from Hugging Face and the repo&rsquo;s releases</li>
                   </ul>
-                </div>
-              </div>
-            </div>
-
-            <div class="lib-category-card text-start mb-4" id="blender-local-support">
-              <h4 class="h5 h-sub">Support</h4>
-              <p class="small mt-1">Questions, a scene that won&rsquo;t open or render, or an idea: in the app, tap <b>?</b> &rsaquo; Send Feedback, or email <a href="mailto:euler.yu@gmail.com" class="lib-link">euler.yu@gmail.com</a> and say which device and iOS or iPadOS version you use. Bugs can also be reported on <a href="https://github.com/yu314-coder/blender-local/issues" target="_blank" rel="noopener noreferrer" class="lib-link">GitHub</a>.</p>
-              <p class="small mb-0">Long Cycles renders use a lot of memory on iPhone; lower the samples or the resolution under Render, or use EEVEE, if a render stops. No account, no subscription and no ads &mdash; scenes and renders stay on the device (<a href="privacy.html#blender-local" class="lib-link">privacy policy</a>).</p>
-            </div>
-
-            <div class="mb-4">
-              <h4 class="h5 fw-bold mb-3">Technical Specifications</h4>
-              <div class="d-inline-block text-start">
-                <p class="small mb-1"><strong>Created by:</strong> Yu Yao-Hsing</p>
-                <p class="small mb-1"><strong>Platform:</strong> iPhone and iPad, iOS <span data-minos="6806630544">17.0</span> or later</p>
-                <p class="small mb-1"><strong>App Store ID:</strong> 6806630544 (<code>euleryu.blenderkit</code>)</p>
-                <p class="small mb-1"><strong>Engine:</strong> Blender&rsquo;s <code>bpy</code> in embedded CPython&nbsp;3.14; Cycles renders on the Metal GPU</p>
-                <p class="small mb-1"><strong>App size:</strong> 645&nbsp;MB, everything on board; only TripoSG&rsquo;s weights download, on request</p>
-                <p class="small mb-1"><strong>License:</strong> MIT app source; Blender is GPL-2.0-or-later, its iOS build changes published in python-ios-lib</p>
-                <p class="small mb-1"><strong>Status:</strong> Live on the App Store &mdash; version <span data-appver="6806630544">1.0</span>, free, Graphics &amp; Design, rated 4+</p>
-                <p class="small mb-0 text-muted">An independent app, not affiliated with or endorsed by the Blender Foundation. Blender is a registered trademark of the Blender Foundation.</p>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </div>
-    </div>
-    </div><!-- /tab-blender -->
-
-    <!-- Tab 3: Generalized Covariance + EigenDenoise -->
-    <div class="tab-pane fade" id="tab-gencov" role="tabpanel" aria-labelledby="tab-gencov-btn">
-
-    <!-- Featured Project 4: Generalized Covariance Matrix -->
-    <div class="card card--hue hue-covariance reveal">
-      <div class="card-body p-4 p-md-5">
-        <div class="row g-0 align-items-center justify-content-center">
-          <div class="col-12 text-center">
-            <header class="mb-4">
-              <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
-                <span class="app-icon"><picture><source srcset="assets/img/app-icons/generalized-covariance.webp" type="image/webp"><img src="assets/img/app-icons/generalized-covariance.png" alt="Generalized Covariance Matrix icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
-                <div class="text-start">
-                  <h3 class="h2 mb-1 fw-bold">Generalized Covariance Matrix</h3>
-                  <span class="badge-neutral mono">ESD Analysis Tool</span>
-                  <span class="badge-neutral mono version" data-msstore="9NZJ475S7B01">v1.0.3.0</span>
-                </div>
-              </div>
-              <p class="lead mb-0">Advanced eigenvalue spectral distribution analysis for generalized covariance matrices. A powerful research tool for mathematicians and data scientists!</p>
-            </header>
-
-            <div class="pt-actions d-flex flex-wrap justify-content-center align-items-center gap-3">
-              <a href="https://apps.microsoft.com/detail/9nzj475s7b01" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Get Generalized Covariance Matrix from the Microsoft Store">
-                <img src="assets/img/badges/microsoft-store.svg" alt="Get it from Microsoft" width="111" height="40">
-              </a>
-              <a href="https://github.com/yu314-coder/random_matrix_ESD" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                GitHub Repository
-              </a>
-              <a href="privacy.html#random-matrix" class="badge-btn">
-                Privacy policy
-              </a>
-              <a href="assets/docs/yau-science-award-research-paper.pdf" class="badge-btn" download>
-                Download research paper
-              </a>
-              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
-                Contact developer
-              </a>
-            </div>
-
-            <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
-              <span class="feature-badge">ESD Analysis</span>
-              <span class="feature-badge">Matrix Computation</span>
-              <span class="feature-badge">Offline Mode</span>
-              <span class="feature-badge">Real-time Visualization</span>
-              <span class="feature-badge">Export Results</span>
-            </div>
-
-            <div class="mb-4">
-              <h4 class="h5 fw-bold mb-3">Key Capabilities</h4>
-              <ul class="list-unstyled">
-                <li class="mb-2">Analyze eigenvalue distributions</li>
-                <li class="mb-2">Visualize spectral densities</li>
-                <li class="mb-2">Explore random matrix theory</li>
-                <li class="mb-2">Export data for further analysis</li>
-              </ul>
-              <p class="small"><strong>Perfect for:</strong> Statistical analysis, ML research, quantum mechanics, and financial modeling</p>
-            </div>
-
-            <div class="row g-3 mb-4 justify-content-center">
-              <div class="col-md-6">
-                <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">System Requirements</h5>
-                  <ul class="small mb-0 text-start">
-                    <li>Windows 10+ (64-bit)</li>
-                    <li>Works completely offline</li>
-                    <li>One-click installation</li>
-                  </ul>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">Get Started</h5>
-                  <ol class="small mb-0 text-start">
-                    <li>Install from Microsoft Store</li>
-                    <li>Launch the application</li>
-                    <li>Input your matrix data</li>
-                    <li>Analyze & visualize!</li>
-                  </ol>
                 </div>
               </div>
             </div>
@@ -1354,10 +1394,11 @@
               <h4 class="h5 fw-bold mb-3">Technical Specifications</h4>
               <div class="d-inline-block text-start">
                 <p class="small mb-1"><strong>Created by:</strong> Yu Yao-Hsing</p>
-                <p class="small mb-1"><strong>Category:</strong> Research & Education</p>
-                <p class="small mb-1"><strong>Platform:</strong> Windows Store</p>
-                <p class="small mb-1"><strong>Type:</strong> Desktop App</p>
-                <p class="small mb-0"><strong>Status:</strong> Active Development</p>
+                <p class="small mb-1"><strong>Platform:</strong> iPhone and iPad, iOS <span data-minos="6764759491">18.5</span> or later (background work and lyric detection need iOS 26)</p>
+                <p class="small mb-1"><strong>App Store ID:</strong> 6764759491</p>
+                <p class="small mb-1"><strong>License:</strong> MIT (WhisperKit and ACE-Step 1.5 are MIT too)</p>
+                <p class="small mb-1"><strong>Status:</strong> Live on the App Store &mdash; version <span data-appver="6764759491">1.3.1</span>, free</p>
+                <p class="small mb-0 text-muted">An app built on Argmax&rsquo;s open-source WhisperKit library, not that library itself.</p>
               </div>
             </div>
 
@@ -1365,229 +1406,7 @@
         </div>
       </div>
     </div>
-
-    <!-- Featured Project 5: EigenDenoise (macOS) -->
-    <div class="card card--hue hue-eigendenoise mt-5 reveal">
-      <div class="card-body p-4 p-md-5">
-        <div class="row g-0 align-items-center justify-content-center">
-          <div class="col-12 text-center">
-            <header class="mb-4">
-              <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
-                <span class="app-icon"><picture><source srcset="assets/img/app-icons/eigendenoise.webp" type="image/webp"><img src="assets/img/app-icons/eigendenoise.png" alt="EigenDenoise icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
-                <div class="text-start">
-                  <h3 class="h2 mb-1 fw-bold">EigenDenoise</h3>
-                  <span class="badge-neutral mono">macOS <span data-minos="6764759636">26.2</span>+</span>
-                  <span class="badge-accent mono ms-1">Metal GPU</span>
-                </div>
-              </div>
-              <p class="lead mb-0">Native macOS image denoiser using random matrix theory — the macOS counterpart to Generalized Covariance Matrix. Pure Swift, Metal-accelerated, App Store sandbox-ready.</p>
-            </header>
-
-            <div class="pt-actions d-flex flex-wrap justify-content-center align-items-center gap-3">
-              <a href="https://apps.apple.com/app/eigendenoise/id6764759636" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Download EigenDenoise on the Mac App Store">
-                <img src="assets/img/badges/macappstore.svg" alt="Download on the Mac App Store" width="156" height="40">
-              </a>
-              <a href="https://github.com/yu314-coder/EigenDenoise" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                GitHub Repository
-              </a>
-              <a href="privacy.html#eigendenoise" class="badge-btn">
-                Privacy policy
-              </a>
-              <a href="assets/docs/yau-science-award-research-paper.pdf" class="badge-btn" download>
-                Research paper
-              </a>
-              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
-                Contact developer
-              </a>
-            </div>
-
-            <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
-              <span class="feature-badge">Marchenko–Pastur</span>
-              <span class="feature-badge">Generalized-Cov Oracle</span>
-              <span class="feature-badge">Blind RIE</span>
-              <span class="feature-badge">Metal Acceleration</span>
-              <span class="feature-badge">5 Noise Models</span>
-              <span class="feature-badge">Spectral Visualizations</span>
-              <span class="feature-badge">App Sandbox</span>
-            </div>
-
-            <div class="mb-4">
-              <h4 class="h5 fw-bold mb-3">Key Capabilities</h4>
-              <ul class="list-unstyled">
-                <li class="mb-2">Side-by-side RMT denoisers — MP thresholding + generalized-covariance oracle (β·δ_a + (1−β)·δ_1)</li>
-                <li class="mb-2">Blind RIE denoising — a third, optimal-shrinkage method that works without a clean reference image</li>
-                <li class="mb-2">Differential evolution to find best (a, β) against a clean reference</li>
-                <li class="mb-2">Three interactive spectral tabs — Eigenvalue density, Im(s) vs z, Roots vs β</li>
-                <li class="mb-2">Curated dataset gallery: ORL Faces (400 PGMs), CBSD68 (68 colour), Brain MRI (3,264 T1 slices)</li>
-                <li class="mb-2">Custom URL lists with per-image checkboxes &amp; destination preview</li>
-                <li class="mb-2">Built-in &ldquo;How to use&rdquo; guide</li>
-              </ul>
-            </div>
-
-            <div class="row g-3 mb-4 justify-content-center">
-              <div class="col-md-6">
-                <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">System Requirements</h5>
-                  <ul class="small mb-0 text-start">
-                    <li>macOS <span data-minos="6764759636">26.2</span> or later</li>
-                    <li>Apple Silicon (arm64) — Rosetta supported</li>
-                    <li>Metal GPU acceleration (LAPACK fallback)</li>
-                    <li>App Sandbox enabled</li>
-                  </ul>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">Tech Stack</h5>
-                  <ul class="small mb-0 text-start">
-                    <li>Pure Swift 5.9+ / SwiftUI / Charts</li>
-                    <li><code>MPSMatrixMultiplication</code> for Gram step</li>
-                    <li>LAPACK <code>dsyevd</code> for eigen-decomposition</li>
-                    <li>Zero external Swift package deps</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <div class="mb-4">
-              <h4 class="h5 fw-bold mb-3">Mathematics</h4>
-              <p class="small mb-0">For X ∈ ℝ^(p×n) with i.i.d. N(0,1) entries, S_n = (1/n)XXᵀ and T_n = diag(t₁,…,t_p), the generalized sample covariance B_n = S_n T_n. Its Stieltjes transform satisfies a cubic:</p>
-              <p class="small mono mt-2 mb-0">a·z·s³ + (a(z − y + 1) + z)·s² + (a + z − y + 1 − y·β·(a − 1))·s + 1 = 0</p>
-              <p class="small mt-2 mb-0">Limiting density f_{y,H}(z) follows from Cardano's depressed-cubic root; support recovered via bulk-edge function and quartic discriminant for one-interval (Cases 1, 3) vs two-interval (Case 2) topology.</p>
-            </div>
-
-            <div class="mb-4">
-              <h4 class="h5 fw-bold mb-3">Technical Specifications</h4>
-              <div class="d-inline-block text-start">
-                <p class="small mb-1"><strong>Created by:</strong> Yao-Hsing Yu</p>
-                <p class="small mb-1"><strong>License:</strong> MIT</p>
-                <p class="small mb-1"><strong>Platform:</strong> macOS <span data-minos="6764759636">26.2</span>+ (Apple Silicon)</p>
-                <p class="small mb-1"><strong>Type:</strong> Native macOS App (Live on the Mac App Store)</p>
-                <p class="small mb-0"><strong>Status:</strong> Active Development</p>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </div>
-    </div>
-    </div><!-- /tab-gencov -->
-
-    <!-- Tab 5: GPS-location-app -->
-    <div class="tab-pane fade" id="tab-gps" role="tabpanel" aria-labelledby="tab-gps-btn">
-
-    <!-- Featured Project: GPS-location-app -->
-    <div class="card card--hue hue-gps reveal">
-      <div class="card-body p-4 p-md-5">
-        <div class="row g-0 align-items-center justify-content-center">
-          <div class="col-12 text-center">
-            <header class="mb-4">
-              <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
-                <span class="app-icon"><picture><source srcset="assets/img/app-icons/gps-location-app.webp" type="image/webp"><img src="assets/img/app-icons/gps-location-app.png" alt="GPS-location-app icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
-                <div class="text-start">
-                  <h3 class="h2 mb-1 fw-bold">GPS-location-app</h3>
-                  <span class="badge-neutral mono">iOS <span data-minos="6764729098">18.5</span>+</span>
-                  <span class="badge-neutral mono ms-1">watchOS 11.5+</span>
-                  <span class="badge-accent mono ms-1">App Store</span>
-                  <span class="badge-neutral mono ms-1">CarPlay pending Apple approval</span>
-                </div>
-              </div>
-              <p class="lead mb-0">Precision GPS workout tracker for iPhone & Apple Watch. Kalman-filtered location, Velocity Mode for when GPS drops out, HealthKit sync, Live Activities, and route analytics — all in a clean SwiftUI interface, with CarPlay pending Apple approval.</p>
-            </header>
-
-            <div class="pt-actions d-flex flex-wrap justify-content-center align-items-center gap-3">
-              <a href="https://apps.apple.com/app/gps-location-app/id6764729098" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Download GPS-location-app on the App Store">
-                <img src="assets/img/badges/appstore.svg" alt="Download on the App Store" width="120" height="40">
-              </a>
-              <a href="https://github.com/yu314-coder/GPS-location-app" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                GitHub Repository
-              </a>
-              <a href="https://github.com/yu314-coder/GPS-location-app/blob/main/paper/velocity_mode.pdf" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                Velocity Mode paper
-              </a>
-              <a href="privacy.html#gps-location-app" class="badge-btn">
-                Privacy policy
-              </a>
-              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
-                Contact developer
-              </a>
-            </div>
-
-            <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
-              <span class="feature-badge">Kalman-filtered GPS</span>
-              <span class="feature-badge">Velocity Mode</span>
-              <span class="feature-badge">Apple Watch</span>
-              <span class="feature-badge">HealthKit Sync</span>
-              <span class="feature-badge">CarPlay (pending approval)</span>
-              <span class="feature-badge">Live Activities</span>
-              <span class="feature-badge">Route Analytics</span>
-              <span class="feature-badge">Workout History</span>
-              <span class="feature-badge">Privacy-First</span>
-            </div>
-
-            <div class="mb-4">
-              <h4 class="h5 fw-bold mb-3">Key Capabilities</h4>
-              <ul class="list-unstyled">
-                <li class="mb-2">Record workouts with high-precision GPS, Kalman-filtered for noisy signals</li>
-                <li class="mb-2">Continuous tracking from iPhone + Apple Watch — start one, finish on the other</li>
-                <li class="mb-2">Two-way HealthKit sync — workouts appear in the iOS Fitness / Health apps</li>
-                <li class="mb-2">Live Activity / Dynamic Island shows current distance, pace, and duration</li>
-                <li class="mb-2">Velocity Mode keeps recording the route when GPS drops out or degrades &mdash; see below</li>
-                <li class="mb-2">CarPlay live route map on the car display &mdash; pending Apple approval</li>
-                <li class="mb-2">Per-workout route map with split / pace / elevation analytics</li>
-                <li class="mb-2">All workout data stays on your device — no servers, no telemetry</li>
-              </ul>
-            </div>
-
-            <div class="mb-4">
-              <h4 class="h5 fw-bold mb-3">Velocity Mode</h4>
-              <div class="d-inline-block text-start">
-                <p class="small mb-1">When satellite positioning drops out or degrades &mdash; a tunnel, an underground car park, a street between tall buildings &mdash; Velocity Mode takes over on its own and keeps recording the route. Speed comes from the phone's vibration, read off how the vehicle shakes; direction comes from the gyroscope, accelerometer and magnetometer; GPS supplies only the first point. It reads the vehicle, so the phone needs to be in a pocket, lying flat or on a mount &mdash; held in the hand, the speed signal is lost.</p>
-                <p class="small mb-1">Replayed through the current version and checked against GPS over 94 motorcycle and car journeys (28 hours, 511&nbsp;km GPS could check) and walks on foot: in a car, distance came out &minus;3.4% against GPS (301 of 312&nbsp;km) and direction was within 30&deg; of GPS 87% of the time (median error 14&deg;); on a motorcycle &minus;13.3% and 74%; on foot +6.8% and 93%.</p>
-                <p class="small mb-0">The method, its accuracy and where it fails are written up in <a href="https://github.com/yu314-coder/GPS-location-app/blob/main/paper/velocity_mode.pdf" target="_blank" rel="noopener noreferrer" class="lib-link"><em>Recording a Route Without Satellites</em></a> &mdash; Speed from Vibration and Direction from Turns on a Smartphone, Measured Against GPS.</p>
-              </div>
-            </div>
-
-            <div class="row g-3 mb-4 justify-content-center">
-              <div class="col-md-6">
-                <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">Requirements</h5>
-                  <ul class="small mb-0 text-start">
-                    <li>iOS <span data-minos="6764729098">18.5</span>+ / watchOS 11.5+</li>
-                    <li>Location, Motion & Fitness, HealthKit permissions</li>
-                    <li>Works fully offline</li>
-                  </ul>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">Get Started</h5>
-                  <ol class="small mb-0 text-start">
-                    <li>Install from the App Store</li>
-                    <li>Grant location & HealthKit permissions</li>
-                    <li>Pair with Apple Watch (optional)</li>
-                    <li>Tap Start to record a workout</li>
-                  </ol>
-                </div>
-              </div>
-            </div>
-
-            <div class="mb-4">
-              <h4 class="h5 fw-bold mb-3">Technical Specifications</h4>
-              <div class="d-inline-block text-start">
-                <p class="small mb-1"><strong>Created by:</strong> Yu Yao-Hsing</p>
-                <p class="small mb-1"><strong>App Store ID:</strong> 6764729098</p>
-                <p class="small mb-1"><strong>Frameworks:</strong> SwiftUI · CoreLocation · Core Motion · HealthKit · ActivityKit · CarPlay</p>
-                <p class="small mb-1"><strong>Stack:</strong> Pure Swift / SwiftUI</p>
-                <p class="small mb-0"><strong>Status:</strong> Live on App Store (approved May 18, 2026)</p>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </div>
-    </div>
-    </div><!-- /tab-gps -->
+    </div><!-- /tab-whisper -->
 
     <!-- Tab: SidecarBridge -->
     <div class="tab-pane fade" id="tab-sidecar" role="tabpanel" aria-labelledby="tab-sidecar-btn">
@@ -1707,91 +1526,101 @@
     </div>
     </div><!-- /tab-sidecar -->
 
-    <!-- Tab: AFM-IFP Teardown -->
-    <div class="tab-pane fade" id="tab-afm" role="tabpanel" aria-labelledby="tab-afm-btn">
+    <!-- Tab 5: GPS-location-app -->
+    <div class="tab-pane fade" id="tab-gps" role="tabpanel" aria-labelledby="tab-gps-btn">
 
-    <!-- Featured Project: Apple's on-device foundation model, rebuilt (afm-ifp-teardown).
-         Figures are the repository README's and the paper's; update them together. -->
-    <div class="card card--hue hue-afm reveal">
+    <!-- Featured Project: GPS-location-app -->
+    <div class="card card--hue hue-gps reveal">
       <div class="card-body p-4 p-md-5">
         <div class="row g-0 align-items-center justify-content-center">
           <div class="col-12 text-center">
             <header class="mb-4">
               <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
-                <span class="app-icon pt-glyph-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M10 3.5V7M14 3.5V7M10 17v3.5M14 17v3.5M3.5 10H7M3.5 14H7M17 10h3.5M17 14h3.5"/></svg></span>
+                <span class="app-icon"><picture><source srcset="assets/img/app-icons/gps-location-app.webp" type="image/webp"><img src="assets/img/app-icons/gps-location-app.png" alt="GPS-location-app icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
                 <div class="text-start">
-                  <h3 class="h2 mb-1 fw-bold">Apple&rsquo;s On-Device Model, Rebuilt</h3>
-                  <span class="badge-neutral mono">afmplus-v11.2-ifp</span>
-                  <span class="badge-accent mono ms-1">llama.cpp</span>
-                  <span class="badge-neutral mono ms-1">paper + code</span>
+                  <h3 class="h2 mb-1 fw-bold">GPS-location-app</h3>
+                  <span class="badge-neutral mono">iOS <span data-minos="6764729098">18.5</span>+</span>
+                  <span class="badge-neutral mono ms-1">watchOS 11.5+</span>
+                  <span class="badge-accent mono ms-1">App Store</span>
+                  <span class="badge-neutral mono ms-1">CarPlay pending Apple approval</span>
                 </div>
               </div>
-              <p class="lead mb-0">The language model behind Apple Intelligence on macOS&nbsp;27 (&ldquo;AFM&nbsp;3 Core Advanced&rdquo;), reconstructed from the files Apple Intelligence installs on a Mac and run in llama.cpp on macOS, Windows and Linux &mdash; together with the models that ship alongside it. Nothing is trained or fitted, and every component is checked against Apple&rsquo;s own model wherever Apple exposes a reference. <strong>Code only: no Apple weights, tokenizer or GGUF are included or distributed.</strong> The converter rebuilds the model from the files already on your own Mac.</p>
+              <p class="lead mb-0">Precision GPS workout tracker for iPhone & Apple Watch. Kalman-filtered location, Velocity Mode for when GPS drops out, HealthKit sync, Live Activities, and route analytics — all in a clean SwiftUI interface, with CarPlay pending Apple approval.</p>
             </header>
 
             <div class="pt-actions d-flex flex-wrap justify-content-center align-items-center gap-3">
-              <a href="https://github.com/yu314-coder/afm-ifp-teardown" target="_blank" rel="noopener noreferrer" class="badge-btn">
+              <a href="https://apps.apple.com/app/gps-location-app/id6764729098" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Download GPS-location-app on the App Store">
+                <img src="assets/img/badges/appstore.svg" alt="Download on the App Store" width="120" height="40">
+              </a>
+              <a href="https://github.com/yu314-coder/GPS-location-app" target="_blank" rel="noopener noreferrer" class="badge-btn">
                 GitHub Repository
               </a>
-              <a href="assets/afm/afm_teardown.pdf" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                Read the paper
+              <a href="https://github.com/yu314-coder/GPS-location-app/blob/main/paper/velocity_mode.pdf" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                Velocity Mode paper
               </a>
-              <a href="https://github.com/yu314-coder/afm-ifp-teardown/releases" target="_blank" rel="noopener noreferrer" class="badge-btn">
-                llama.cpp builds
+              <a href="privacy.html#gps-location-app" class="badge-btn">
+                Privacy policy
               </a>
               <a href="mailto:euler.yu@gmail.com" class="badge-btn">
                 Contact developer
               </a>
             </div>
 
-            <div class="afm-stats mb-4">
-              <div class="afm-stat"><b>97.0%</b><span>next-token agreement with Apple&rsquo;s live model</span></div>
-              <div class="afm-stat"><b>20.3&nbsp;B</b><span>parameters, 2-bit codes carried over bit-exactly</span></div>
-              <div class="afm-stat"><b>17 / 40</b><span>answers identical to Apple&rsquo;s, character for character</span></div>
-              <div class="afm-stat"><b>99.2%</b><span>of Apple&rsquo;s draft-model decisions reproduced</span></div>
-            </div>
-
             <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
-              <span class="feature-badge">afm2gguf converter</span>
-              <span class="feature-badge">llama.cpp afm architecture</span>
-              <span class="feature-badge">26 feature adapters</span>
-              <span class="feature-badge">Speculative draft model</span>
-              <span class="feature-badge">Image encoder</span>
-              <span class="feature-badge">300M model + safety guard</span>
-              <span class="feature-badge">CPU &middot; Metal &middot; CUDA &middot; Vulkan</span>
+              <span class="feature-badge">Kalman-filtered GPS</span>
+              <span class="feature-badge">Velocity Mode</span>
+              <span class="feature-badge">Apple Watch</span>
+              <span class="feature-badge">HealthKit Sync</span>
+              <span class="feature-badge">CarPlay (pending approval)</span>
+              <span class="feature-badge">Live Activities</span>
+              <span class="feature-badge">Route Analytics</span>
+              <span class="feature-badge">Workout History</span>
+              <span class="feature-badge">Privacy-First</span>
             </div>
 
             <div class="mb-4">
-              <h4 class="h5 fw-bold mb-3">What it shows</h4>
+              <h4 class="h5 fw-bold mb-3">Key Capabilities</h4>
               <ul class="list-unstyled">
-                <li class="mb-2"><strong>The whole model, decoded</strong> &mdash; 56 layers (12 dense + 44 Instruction-Following-Pruned sparse), a 1536-wide residual stream, 16 query / 8 key-value heads and KV sharing across the last 21 layers. Apple&rsquo;s 2-bit codes and fp16 scales go into Q2_K bit-exactly; the prompt template and the expert schedule, which the model files do not contain, are recovered from Apple&rsquo;s runtime</li>
-                <li class="mb-2"><strong>Measured against Apple</strong> &mdash; fed Apple&rsquo;s own answers at temperature&nbsp;0, the reconstruction picks Apple&rsquo;s next token 97.0% of the time (40 prompts, 1,127 answer tokens; 95.3% on a harder 230-prompt set). The misses are near-ties: Apple&rsquo;s token is its second choice in 84% of cases, a gap set by the arithmetic of Apple&rsquo;s compiled Neural Engine program</li>
-                <li class="mb-2"><strong>The models around it</strong> &mdash; the 26 Apple Intelligence feature adapters as llama.cpp LoRAs (translation agrees on 98.7% of 3,424 tokens), the 9M speculative-decoding draft, the 358M image encoder (cosine 0.98&ndash;0.99 per token against Apple&rsquo;s), and the 300M base model, whose safety guard predicts the public API&rsquo;s guardrail decision on 95 of 100 prompts</li>
-                <li class="mb-2"><strong>The bug that hid it</strong> &mdash; for much of the project the assembled model produced no meaningful predictions. The cause was a single misaligned read: every normalisation gain was taken one element early, found with probes calibrated on a healthy Apple model (Xcode&rsquo;s on-device code model)</li>
+                <li class="mb-2">Record workouts with high-precision GPS, Kalman-filtered for noisy signals</li>
+                <li class="mb-2">Continuous tracking from iPhone + Apple Watch — start one, finish on the other</li>
+                <li class="mb-2">Two-way HealthKit sync — workouts appear in the iOS Fitness / Health apps</li>
+                <li class="mb-2">Live Activity / Dynamic Island shows current distance, pace, and duration</li>
+                <li class="mb-2">Velocity Mode keeps recording the route when GPS drops out or degrades &mdash; see below</li>
+                <li class="mb-2">CarPlay live route map on the car display &mdash; pending Apple approval</li>
+                <li class="mb-2">Per-workout route map with split / pace / elevation analytics</li>
+                <li class="mb-2">All workout data stays on your device — no servers, no telemetry</li>
               </ul>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">Velocity Mode</h4>
+              <div class="d-inline-block text-start">
+                <p class="small mb-1">When satellite positioning drops out or degrades &mdash; a tunnel, an underground car park, a street between tall buildings &mdash; Velocity Mode takes over on its own and keeps recording the route. Speed comes from the phone's vibration, read off how the vehicle shakes; direction comes from the gyroscope, accelerometer and magnetometer; GPS supplies only the first point. It reads the vehicle, so the phone needs to be in a pocket, lying flat or on a mount &mdash; held in the hand, the speed signal is lost.</p>
+                <p class="small mb-1">Replayed through the current version and checked against GPS over 94 motorcycle and car journeys (28 hours, 511&nbsp;km GPS could check) and walks on foot: in a car, distance came out &minus;3.4% against GPS (301 of 312&nbsp;km) and direction was within 30&deg; of GPS 87% of the time (median error 14&deg;); on a motorcycle &minus;13.3% and 74%; on foot +6.8% and 93%.</p>
+                <p class="small mb-0">The method, its accuracy and where it fails are written up in <a href="https://github.com/yu314-coder/GPS-location-app/blob/main/paper/velocity_mode.pdf" target="_blank" rel="noopener noreferrer" class="lib-link"><em>Recording a Route Without Satellites</em></a> &mdash; Speed from Vibration and Direction from Turns on a Smartphone, Measured Against GPS.</p>
+              </div>
             </div>
 
             <div class="row g-3 mb-4 justify-content-center">
               <div class="col-md-6">
                 <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">The model</h5>
+                  <h5 class="h6 fw-bold mb-3">Requirements</h5>
                   <ul class="small mb-0 text-start">
-                    <li><code>afmplus-v11.2-ifp</code>, Apple&rsquo;s <code>SystemLanguageModel</code> on macOS&nbsp;27</li>
-                    <li>23 always-on + 23 of 348 routed experts, picked by a router at layer&nbsp;12 and re-picked every 32 positions</li>
-                    <li>Apple&rsquo;s <code>afm_cider_v2</code> prompt format, checked against its public token counter</li>
-                    <li>About 150 tokens/s prompt, 12&ndash;21 tokens/s generation on an M4 (Metal)</li>
+                    <li>iOS <span data-minos="6764729098">18.5</span>+ / watchOS 11.5+</li>
+                    <li>Location, Motion & Fitness, HealthKit permissions</li>
+                    <li>Works fully offline</li>
                   </ul>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="lib-category-card">
-                  <h5 class="h6 fw-bold mb-3">What&rsquo;s in the repo</h5>
-                  <ul class="small mb-0 text-start">
-                    <li><code>afm2gguf</code>: a standalone converter that reads only your Mac&rsquo;s own assets (about 3 minutes, 6.3&nbsp;GiB GGUF)</li>
-                    <li>A llama.cpp patch: the <code>afm</code> and <code>afm-draft</code> architectures and an <code>afm</code> image projector</li>
-                    <li>Prebuilt binaries for Windows, Linux and macOS; <code>tools/eval</code> reproduces every figure</li>
-                    <li>The technical report (LaTeX + PDF) and the correspondence with Apple</li>
-                  </ul>
+                  <h5 class="h6 fw-bold mb-3">Get Started</h5>
+                  <ol class="small mb-0 text-start">
+                    <li>Install from the App Store</li>
+                    <li>Grant location & HealthKit permissions</li>
+                    <li>Pair with Apple Watch (optional)</li>
+                    <li>Tap Start to record a workout</li>
+                  </ol>
                 </div>
               </div>
             </div>
@@ -1800,11 +1629,10 @@
               <h4 class="h5 fw-bold mb-3">Technical Specifications</h4>
               <div class="d-inline-block text-start">
                 <p class="small mb-1"><strong>Created by:</strong> Yu Yao-Hsing</p>
-                <p class="small mb-1"><strong>Category:</strong> Research &mdash; reverse engineering / ML systems</p>
-                <p class="small mb-1"><strong>Languages:</strong> Python &middot; C++ (llama.cpp patch) &middot; Swift &middot; TeX</p>
-                <p class="small mb-1"><strong>Target:</strong> Apple&rsquo;s on-device <code>afmplus-v11.2-ifp</code> (Apple&nbsp;Intelligence, macOS&nbsp;27) and the 300M <code>afmplus-v11.0-pico</code></p>
-                <p class="small mb-1"><strong>Status:</strong> Working port &mdash; 97.0% next-token agreement with Apple&rsquo;s live model; builds at <a href="https://github.com/yu314-coder/afm-ifp-teardown/releases" target="_blank" rel="noopener noreferrer">v1.8.0</a></p>
-                <p class="small mb-0 text-muted">Unofficial and not affiliated with or endorsed by Apple. The weights belong to Apple: do not redistribute a GGUF made with the converter.</p>
+                <p class="small mb-1"><strong>App Store ID:</strong> 6764729098</p>
+                <p class="small mb-1"><strong>Frameworks:</strong> SwiftUI · CoreLocation · Core Motion · HealthKit · ActivityKit · CarPlay</p>
+                <p class="small mb-1"><strong>Stack:</strong> Pure Swift / SwiftUI</p>
+                <p class="small mb-0"><strong>Status:</strong> Live on App Store (approved May 18, 2026)</p>
               </div>
             </div>
 
@@ -1812,7 +1640,7 @@
         </div>
       </div>
     </div>
-    </div><!-- /tab-afm -->
+    </div><!-- /tab-gps -->
 
     <!-- Tab: py2bin (python-to-binary) -->
     <div class="tab-pane fade" id="tab-py2bin" role="tabpanel" aria-labelledby="tab-py2bin-btn">
@@ -2181,6 +2009,317 @@
     </div>
     </div><!-- /tab-py2bin -->
 
+    <!-- Tab 3: Generalized Covariance + EigenDenoise -->
+    <div class="tab-pane fade" id="tab-gencov" role="tabpanel" aria-labelledby="tab-gencov-btn">
+
+    <!-- Featured Project 4: Generalized Covariance Matrix -->
+    <div class="card card--hue hue-covariance reveal">
+      <div class="card-body p-4 p-md-5">
+        <div class="row g-0 align-items-center justify-content-center">
+          <div class="col-12 text-center">
+            <header class="mb-4">
+              <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
+                <span class="app-icon"><picture><source srcset="assets/img/app-icons/generalized-covariance.webp" type="image/webp"><img src="assets/img/app-icons/generalized-covariance.png" alt="Generalized Covariance Matrix icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
+                <div class="text-start">
+                  <h3 class="h2 mb-1 fw-bold">Generalized Covariance Matrix</h3>
+                  <span class="badge-neutral mono">ESD Analysis Tool</span>
+                  <span class="badge-neutral mono version" data-msstore="9NZJ475S7B01">v1.0.3.0</span>
+                </div>
+              </div>
+              <p class="lead mb-0">Advanced eigenvalue spectral distribution analysis for generalized covariance matrices. A powerful research tool for mathematicians and data scientists!</p>
+            </header>
+
+            <div class="pt-actions d-flex flex-wrap justify-content-center align-items-center gap-3">
+              <a href="https://apps.microsoft.com/detail/9nzj475s7b01" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Get Generalized Covariance Matrix from the Microsoft Store">
+                <img src="assets/img/badges/microsoft-store.svg" alt="Get it from Microsoft" width="111" height="40">
+              </a>
+              <a href="https://github.com/yu314-coder/random_matrix_ESD" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                GitHub Repository
+              </a>
+              <a href="privacy.html#random-matrix" class="badge-btn">
+                Privacy policy
+              </a>
+              <a href="assets/docs/yau-science-award-research-paper.pdf" class="badge-btn" download>
+                Download research paper
+              </a>
+              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
+                Contact developer
+              </a>
+            </div>
+
+            <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
+              <span class="feature-badge">ESD Analysis</span>
+              <span class="feature-badge">Matrix Computation</span>
+              <span class="feature-badge">Offline Mode</span>
+              <span class="feature-badge">Real-time Visualization</span>
+              <span class="feature-badge">Export Results</span>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">Key Capabilities</h4>
+              <ul class="list-unstyled">
+                <li class="mb-2">Analyze eigenvalue distributions</li>
+                <li class="mb-2">Visualize spectral densities</li>
+                <li class="mb-2">Explore random matrix theory</li>
+                <li class="mb-2">Export data for further analysis</li>
+              </ul>
+              <p class="small"><strong>Perfect for:</strong> Statistical analysis, ML research, quantum mechanics, and financial modeling</p>
+            </div>
+
+            <div class="row g-3 mb-4 justify-content-center">
+              <div class="col-md-6">
+                <div class="lib-category-card">
+                  <h5 class="h6 fw-bold mb-3">System Requirements</h5>
+                  <ul class="small mb-0 text-start">
+                    <li>Windows 10+ (64-bit)</li>
+                    <li>Works completely offline</li>
+                    <li>One-click installation</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="lib-category-card">
+                  <h5 class="h6 fw-bold mb-3">Get Started</h5>
+                  <ol class="small mb-0 text-start">
+                    <li>Install from Microsoft Store</li>
+                    <li>Launch the application</li>
+                    <li>Input your matrix data</li>
+                    <li>Analyze & visualize!</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">Technical Specifications</h4>
+              <div class="d-inline-block text-start">
+                <p class="small mb-1"><strong>Created by:</strong> Yu Yao-Hsing</p>
+                <p class="small mb-1"><strong>Category:</strong> Research & Education</p>
+                <p class="small mb-1"><strong>Platform:</strong> Windows Store</p>
+                <p class="small mb-1"><strong>Type:</strong> Desktop App</p>
+                <p class="small mb-0"><strong>Status:</strong> Active Development</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Featured Project 5: EigenDenoise (macOS) -->
+    <div class="card card--hue hue-eigendenoise mt-5 reveal">
+      <div class="card-body p-4 p-md-5">
+        <div class="row g-0 align-items-center justify-content-center">
+          <div class="col-12 text-center">
+            <header class="mb-4">
+              <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
+                <span class="app-icon"><picture><source srcset="assets/img/app-icons/eigendenoise.webp" type="image/webp"><img src="assets/img/app-icons/eigendenoise.png" alt="EigenDenoise icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
+                <div class="text-start">
+                  <h3 class="h2 mb-1 fw-bold">EigenDenoise</h3>
+                  <span class="badge-neutral mono">macOS <span data-minos="6764759636">26.2</span>+</span>
+                  <span class="badge-accent mono ms-1">Metal GPU</span>
+                </div>
+              </div>
+              <p class="lead mb-0">Native macOS image denoiser using random matrix theory — the macOS counterpart to Generalized Covariance Matrix. Pure Swift, Metal-accelerated, App Store sandbox-ready.</p>
+            </header>
+
+            <div class="pt-actions d-flex flex-wrap justify-content-center align-items-center gap-3">
+              <a href="https://apps.apple.com/app/eigendenoise/id6764759636" target="_blank" rel="noopener noreferrer" class="store-badge" aria-label="Download EigenDenoise on the Mac App Store">
+                <img src="assets/img/badges/macappstore.svg" alt="Download on the Mac App Store" width="156" height="40">
+              </a>
+              <a href="https://github.com/yu314-coder/EigenDenoise" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                GitHub Repository
+              </a>
+              <a href="privacy.html#eigendenoise" class="badge-btn">
+                Privacy policy
+              </a>
+              <a href="assets/docs/yau-science-award-research-paper.pdf" class="badge-btn" download>
+                Research paper
+              </a>
+              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
+                Contact developer
+              </a>
+            </div>
+
+            <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
+              <span class="feature-badge">Marchenko–Pastur</span>
+              <span class="feature-badge">Generalized-Cov Oracle</span>
+              <span class="feature-badge">Blind RIE</span>
+              <span class="feature-badge">Metal Acceleration</span>
+              <span class="feature-badge">5 Noise Models</span>
+              <span class="feature-badge">Spectral Visualizations</span>
+              <span class="feature-badge">App Sandbox</span>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">Key Capabilities</h4>
+              <ul class="list-unstyled">
+                <li class="mb-2">Side-by-side RMT denoisers — MP thresholding + generalized-covariance oracle (β·δ_a + (1−β)·δ_1)</li>
+                <li class="mb-2">Blind RIE denoising — a third, optimal-shrinkage method that works without a clean reference image</li>
+                <li class="mb-2">Differential evolution to find best (a, β) against a clean reference</li>
+                <li class="mb-2">Three interactive spectral tabs — Eigenvalue density, Im(s) vs z, Roots vs β</li>
+                <li class="mb-2">Curated dataset gallery: ORL Faces (400 PGMs), CBSD68 (68 colour), Brain MRI (3,264 T1 slices)</li>
+                <li class="mb-2">Custom URL lists with per-image checkboxes &amp; destination preview</li>
+                <li class="mb-2">Built-in &ldquo;How to use&rdquo; guide</li>
+              </ul>
+            </div>
+
+            <div class="row g-3 mb-4 justify-content-center">
+              <div class="col-md-6">
+                <div class="lib-category-card">
+                  <h5 class="h6 fw-bold mb-3">System Requirements</h5>
+                  <ul class="small mb-0 text-start">
+                    <li>macOS <span data-minos="6764759636">26.2</span> or later</li>
+                    <li>Apple Silicon (arm64) — Rosetta supported</li>
+                    <li>Metal GPU acceleration (LAPACK fallback)</li>
+                    <li>App Sandbox enabled</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="lib-category-card">
+                  <h5 class="h6 fw-bold mb-3">Tech Stack</h5>
+                  <ul class="small mb-0 text-start">
+                    <li>Pure Swift 5.9+ / SwiftUI / Charts</li>
+                    <li><code>MPSMatrixMultiplication</code> for Gram step</li>
+                    <li>LAPACK <code>dsyevd</code> for eigen-decomposition</li>
+                    <li>Zero external Swift package deps</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">Mathematics</h4>
+              <p class="small mb-0">For X ∈ ℝ^(p×n) with i.i.d. N(0,1) entries, S_n = (1/n)XXᵀ and T_n = diag(t₁,…,t_p), the generalized sample covariance B_n = S_n T_n. Its Stieltjes transform satisfies a cubic:</p>
+              <p class="small mono mt-2 mb-0">a·z·s³ + (a(z − y + 1) + z)·s² + (a + z − y + 1 − y·β·(a − 1))·s + 1 = 0</p>
+              <p class="small mt-2 mb-0">Limiting density f_{y,H}(z) follows from Cardano's depressed-cubic root; support recovered via bulk-edge function and quartic discriminant for one-interval (Cases 1, 3) vs two-interval (Case 2) topology.</p>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">Technical Specifications</h4>
+              <div class="d-inline-block text-start">
+                <p class="small mb-1"><strong>Created by:</strong> Yao-Hsing Yu</p>
+                <p class="small mb-1"><strong>License:</strong> MIT</p>
+                <p class="small mb-1"><strong>Platform:</strong> macOS <span data-minos="6764759636">26.2</span>+ (Apple Silicon)</p>
+                <p class="small mb-1"><strong>Type:</strong> Native macOS App (Live on the Mac App Store)</p>
+                <p class="small mb-0"><strong>Status:</strong> Active Development</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+    </div><!-- /tab-gencov -->
+
+    <!-- Tab: AFM-IFP Teardown -->
+    <div class="tab-pane fade" id="tab-afm" role="tabpanel" aria-labelledby="tab-afm-btn">
+
+    <!-- Featured Project: Apple's on-device foundation model, rebuilt (afm-ifp-teardown).
+         Figures are the repository README's and the paper's; update them together. -->
+    <div class="card card--hue hue-afm reveal">
+      <div class="card-body p-4 p-md-5">
+        <div class="row g-0 align-items-center justify-content-center">
+          <div class="col-12 text-center">
+            <header class="mb-4">
+              <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
+                <span class="app-icon pt-glyph-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M10 3.5V7M14 3.5V7M10 17v3.5M14 17v3.5M3.5 10H7M3.5 14H7M17 10h3.5M17 14h3.5"/></svg></span>
+                <div class="text-start">
+                  <h3 class="h2 mb-1 fw-bold">Apple&rsquo;s On-Device Model, Rebuilt</h3>
+                  <span class="badge-neutral mono">afmplus-v11.2-ifp</span>
+                  <span class="badge-accent mono ms-1">llama.cpp</span>
+                  <span class="badge-neutral mono ms-1">paper + code</span>
+                </div>
+              </div>
+              <p class="lead mb-0">The language model behind Apple Intelligence on macOS&nbsp;27 (&ldquo;AFM&nbsp;3 Core Advanced&rdquo;), reconstructed from the files Apple Intelligence installs on a Mac and run in llama.cpp on macOS, Windows and Linux &mdash; together with the models that ship alongside it. Nothing is trained or fitted, and every component is checked against Apple&rsquo;s own model wherever Apple exposes a reference. <strong>Code only: no Apple weights, tokenizer or GGUF are included or distributed.</strong> The converter rebuilds the model from the files already on your own Mac.</p>
+            </header>
+
+            <div class="pt-actions d-flex flex-wrap justify-content-center align-items-center gap-3">
+              <a href="https://github.com/yu314-coder/afm-ifp-teardown" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                GitHub Repository
+              </a>
+              <a href="assets/afm/afm_teardown.pdf" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                Read the paper
+              </a>
+              <a href="https://github.com/yu314-coder/afm-ifp-teardown/releases" target="_blank" rel="noopener noreferrer" class="badge-btn">
+                llama.cpp builds
+              </a>
+              <a href="mailto:euler.yu@gmail.com" class="badge-btn">
+                Contact developer
+              </a>
+            </div>
+
+            <div class="afm-stats mb-4">
+              <div class="afm-stat"><b>97.0%</b><span>next-token agreement with Apple&rsquo;s live model</span></div>
+              <div class="afm-stat"><b>20.3&nbsp;B</b><span>parameters, 2-bit codes carried over bit-exactly</span></div>
+              <div class="afm-stat"><b>17 / 40</b><span>answers identical to Apple&rsquo;s, character for character</span></div>
+              <div class="afm-stat"><b>99.2%</b><span>of Apple&rsquo;s draft-model decisions reproduced</span></div>
+            </div>
+
+            <div class="mb-4 d-flex flex-wrap justify-content-center gap-2">
+              <span class="feature-badge">afm2gguf converter</span>
+              <span class="feature-badge">llama.cpp afm architecture</span>
+              <span class="feature-badge">26 feature adapters</span>
+              <span class="feature-badge">Speculative draft model</span>
+              <span class="feature-badge">Image encoder</span>
+              <span class="feature-badge">300M model + safety guard</span>
+              <span class="feature-badge">CPU &middot; Metal &middot; CUDA &middot; Vulkan</span>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">What it shows</h4>
+              <ul class="list-unstyled">
+                <li class="mb-2"><strong>The whole model, decoded</strong> &mdash; 56 layers (12 dense + 44 Instruction-Following-Pruned sparse), a 1536-wide residual stream, 16 query / 8 key-value heads and KV sharing across the last 21 layers. Apple&rsquo;s 2-bit codes and fp16 scales go into Q2_K bit-exactly; the prompt template and the expert schedule, which the model files do not contain, are recovered from Apple&rsquo;s runtime</li>
+                <li class="mb-2"><strong>Measured against Apple</strong> &mdash; fed Apple&rsquo;s own answers at temperature&nbsp;0, the reconstruction picks Apple&rsquo;s next token 97.0% of the time (40 prompts, 1,127 answer tokens; 95.3% on a harder 230-prompt set). The misses are near-ties: Apple&rsquo;s token is its second choice in 84% of cases, a gap set by the arithmetic of Apple&rsquo;s compiled Neural Engine program</li>
+                <li class="mb-2"><strong>The models around it</strong> &mdash; the 26 Apple Intelligence feature adapters as llama.cpp LoRAs (translation agrees on 98.7% of 3,424 tokens), the 9M speculative-decoding draft, the 358M image encoder (cosine 0.98&ndash;0.99 per token against Apple&rsquo;s), and the 300M base model, whose safety guard predicts the public API&rsquo;s guardrail decision on 95 of 100 prompts</li>
+                <li class="mb-2"><strong>The bug that hid it</strong> &mdash; for much of the project the assembled model produced no meaningful predictions. The cause was a single misaligned read: every normalisation gain was taken one element early, found with probes calibrated on a healthy Apple model (Xcode&rsquo;s on-device code model)</li>
+              </ul>
+            </div>
+
+            <div class="row g-3 mb-4 justify-content-center">
+              <div class="col-md-6">
+                <div class="lib-category-card">
+                  <h5 class="h6 fw-bold mb-3">The model</h5>
+                  <ul class="small mb-0 text-start">
+                    <li><code>afmplus-v11.2-ifp</code>, Apple&rsquo;s <code>SystemLanguageModel</code> on macOS&nbsp;27</li>
+                    <li>23 always-on + 23 of 348 routed experts, picked by a router at layer&nbsp;12 and re-picked every 32 positions</li>
+                    <li>Apple&rsquo;s <code>afm_cider_v2</code> prompt format, checked against its public token counter</li>
+                    <li>About 150 tokens/s prompt, 12&ndash;21 tokens/s generation on an M4 (Metal)</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="lib-category-card">
+                  <h5 class="h6 fw-bold mb-3">What&rsquo;s in the repo</h5>
+                  <ul class="small mb-0 text-start">
+                    <li><code>afm2gguf</code>: a standalone converter that reads only your Mac&rsquo;s own assets (about 3 minutes, 6.3&nbsp;GiB GGUF)</li>
+                    <li>A llama.cpp patch: the <code>afm</code> and <code>afm-draft</code> architectures and an <code>afm</code> image projector</li>
+                    <li>Prebuilt binaries for Windows, Linux and macOS; <code>tools/eval</code> reproduces every figure</li>
+                    <li>The technical report (LaTeX + PDF) and the correspondence with Apple</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <h4 class="h5 fw-bold mb-3">Technical Specifications</h4>
+              <div class="d-inline-block text-start">
+                <p class="small mb-1"><strong>Created by:</strong> Yu Yao-Hsing</p>
+                <p class="small mb-1"><strong>Category:</strong> Research &mdash; reverse engineering / ML systems</p>
+                <p class="small mb-1"><strong>Languages:</strong> Python &middot; C++ (llama.cpp patch) &middot; Swift &middot; TeX</p>
+                <p class="small mb-1"><strong>Target:</strong> Apple&rsquo;s on-device <code>afmplus-v11.2-ifp</code> (Apple&nbsp;Intelligence, macOS&nbsp;27) and the 300M <code>afmplus-v11.0-pico</code></p>
+                <p class="small mb-1"><strong>Status:</strong> Working port &mdash; 97.0% next-token agreement with Apple&rsquo;s live model; builds at <a href="https://github.com/yu314-coder/afm-ifp-teardown/releases" target="_blank" rel="noopener noreferrer">v1.8.0</a></p>
+                <p class="small mb-0 text-muted">Unofficial and not affiliated with or endorsed by Apple. The weights belong to Apple: do not redistribute a GGUF made with the converter.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+    </div><!-- /tab-afm -->
+
     <!-- Tab 6: Other Projects -->
     <div class="tab-pane fade" id="tab-other" role="tabpanel" aria-labelledby="tab-other-btn">
 
@@ -2188,30 +2327,10 @@
     <div class="mb-5 reveal">
       <div class="category-header">
         <span class="mono" style="color:var(--accent); font-size:.8rem;">01</span>
-        <h3>Apps &amp; Visualizations</h3>
+        <h3>Small Apps</h3>
       </div>
       <div class="row justify-content-center">
-        <div class="col-md-4 d-flex mb-4">
-          <div class="card flex-fill">
-            <div class="card-body d-flex flex-column">
-              <div class="d-flex align-items-center gap-2 mb-3">
-                <span class="app-icon app-icon-sm"><picture><source srcset="assets/img/app-icons/whisperkit.webp" type="image/webp"><img src="assets/img/app-icons/whisperkit.png" alt="WhisperKit icon" width="256" height="256" loading="lazy" decoding="async"></picture></span>
-                <h4 class="card-title h5 h-sub mb-0">WhisperKit <span class="badge-accent ms-1">NEW</span></h4>
-              </div>
-              <p class="card-text">On-device transcription for iPhone &amp; iPad (iOS <span data-minos="6764759491">18.5</span>+). Record, import, Share to Whisper, or paste a link to an audio or video file; 99 languages (Chinese in Simplified or Traditional), four models, export to TXT, SRT, VTT, Markdown or JSON.</p>
-              <p class="card-text">A Music tab (beta) turns a description into a song, made entirely on your device with ACE-Step 1.5. On iOS 26 and later, transcriptions, downloads and music keep running when you switch apps.</p>
-              <p class="card-text flex-grow-1"><span class="badge-accent me-1" data-appnext="6764759491" data-after="1.2">Coming next</span> A Live tab that writes out your speech as you talk (NVIDIA Nemotron), NVIDIA&rsquo;s Canary as another speech model, translation of a transcript on your device with Apple&rsquo;s Translation framework, and pictures made from a description, with Enhance prompt to fill it out. All of it on your device, like everything else.</p>
-              <a href="https://apps.apple.com/app/whisperkit/id6764759491" target="_blank" rel="noopener noreferrer" class="store-badge store-badge-sm mt-auto mb-2" aria-label="Download WhisperKit on the App Store">
-                <img src="assets/img/badges/appstore.svg" alt="Download on the App Store" width="120" height="40">
-              </a>
-              <div class="d-flex gap-2 align-items-center">
-                <a href="https://github.com/yu314-coder/WhisperKit" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm flex-fill">GitHub</a>
-                <a href="privacy.html#whisper" class="btn btn-ghost btn-sm">Privacy</a>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4 d-flex mb-4">
+        <div class="col-md-6 col-lg-5 d-flex mb-4">
           <div class="card flex-fill">
             <div class="card-body d-flex flex-column">
               <div class="d-flex align-items-center gap-2 mb-3">
@@ -2229,7 +2348,7 @@
             </div>
           </div>
         </div>
-        <div class="col-md-4 d-flex mb-4">
+        <div class="col-md-6 col-lg-5 d-flex mb-4">
           <div class="card flex-fill">
             <div class="card-body d-flex flex-column">
               <div class="d-flex align-items-center gap-2 mb-3">
@@ -2251,7 +2370,7 @@
         <h3>Utilities</h3>
       </div>
       <div class="row justify-content-center">
-        <div class="col-md-4 d-flex mb-4">
+        <div class="col-md-6 col-lg-5 d-flex mb-4">
           <div class="card flex-fill">
             <div class="card-body d-flex flex-column">
               <div class="d-flex align-items-center gap-2 mb-3">
@@ -2263,7 +2382,7 @@
             </div>
           </div>
         </div>
-        <div class="col-md-4 d-flex mb-4">
+        <div class="col-md-6 col-lg-5 d-flex mb-4">
           <div class="card flex-fill">
             <div class="card-body d-flex flex-column">
               <div class="d-flex align-items-center gap-2 mb-3">
@@ -2279,7 +2398,7 @@
     </div>
 
     <!-- HIDDEN: Typhoon Data Analysis, Craw Web, Purchase Record (temporarily disabled)
-    <div class="col-md-4 d-flex mb-4">
+    <div class="col-md-6 col-lg-5 d-flex mb-4">
       <div class="card flex-fill shadow-sm">
         <div class="card-body d-flex flex-column">
           <div class="d-flex align-items-center mb-3">
@@ -2291,7 +2410,7 @@
         </div>
       </div>
     </div>
-    <div class="col-md-4 d-flex mb-4">
+    <div class="col-md-6 col-lg-5 d-flex mb-4">
       <div class="card flex-fill shadow-sm">
         <div class="card-body d-flex flex-column">
           <div class="d-flex align-items-center mb-3">
@@ -2303,7 +2422,7 @@
         </div>
       </div>
     </div>
-    <div class="col-md-4 d-flex mb-4">
+    <div class="col-md-6 col-lg-5 d-flex mb-4">
       <div class="card flex-fill shadow-sm">
         <div class="card-body d-flex flex-column">
           <div class="d-flex align-items-center mb-3">
