@@ -2417,3 +2417,7 @@ body.theme-dark .navbar.scrolled { background: rgba(8,8,12,0.82); }
     .capability-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   }
 }
+
+/* Blender Local tab: screenshots carried over from the old product page. */
+.bl-shot { margin: 0; }
+.bl-shot img { display: block; width: 100%; height: auto; border: 1px solid var(--line, rgba(255,255,255,.08)); }

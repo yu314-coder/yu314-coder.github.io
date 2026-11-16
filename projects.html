@@ -42,7 +42,7 @@
   <link rel="preload" href="assets/fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
 
   <!-- Site stylesheet (single source of truth) -->
-  <link rel="stylesheet" href="assets/css/style.min.css?v=56b6489a">
+  <link rel="stylesheet" href="assets/css/style.min.css?v=bbd4127e">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 </head>
 <body class="theme-dark">
@@ -1145,6 +1145,11 @@
               <span class="feature-badge">Apple Pencil &amp; Keyboard</span>
             </div>
 
+            <figure class="bl-shot mb-4">
+              <img src="assets/img/blender-local/layout.webp" alt="Blender Local on iPad: a studio scene in the 3D View with the Outliner and Properties" width="1400" height="1050" class="img-fluid rounded" loading="lazy" decoding="async">
+              <figcaption class="small text-muted mt-2">On iPad: a studio scene in the 3D View, with the Outliner and Properties</figcaption>
+            </figure>
+
             <!-- Capability Grid -->
             <div class="row g-3 mb-4">
 
@@ -1205,15 +1210,23 @@
 
             </div>
 
+            <div class="row g-3 mb-4">
+              <div class="col-md-6"><figure class="bl-shot mb-0"><img src="assets/img/blender-local/render.webp" alt="A Cycles render of the studio showcase" width="1400" height="1050" class="img-fluid rounded" loading="lazy" decoding="async"><figcaption class="small text-muted mt-2">A Cycles render of the studio showcase</figcaption></figure></div>
+              <div class="col-md-6"><figure class="bl-shot mb-0"><img src="assets/img/blender-local/edit-mode.webp" alt="Edit Mode on a mesh" width="1400" height="1050" class="img-fluid rounded" loading="lazy" decoding="async"><figcaption class="small text-muted mt-2">Edit Mode on a mesh</figcaption></figure></div>
+              <div class="col-md-6"><figure class="bl-shot mb-0"><img src="assets/img/blender-local/draw-mode.webp" alt="Grease Pencil Draw Mode" width="1400" height="1050" class="img-fluid rounded" loading="lazy" decoding="async"><figcaption class="small text-muted mt-2">Grease Pencil Draw Mode</figcaption></figure></div>
+              <div class="col-md-6"><figure class="bl-shot mb-0"><img src="assets/img/blender-local/scripting.webp" alt="The Scripting workspace: a Python script that builds a spiral of cubes, and a terminal" width="1400" height="1050" class="img-fluid rounded" loading="lazy" decoding="async"><figcaption class="small text-muted mt-2">Scripting: a Python script that builds a spiral of cubes</figcaption></figure></div>
+            </div>
+
             <div class="row g-3 mb-4 justify-content-center">
               <div class="col-md-6">
                 <div class="lib-category-card">
                   <h5 class="h6 fw-bold mb-3">Start From</h5>
                   <ul class="small mb-0 text-start">
                     <li>Blender&rsquo;s General, 2D Animation and Storyboarding scenes</li>
-                    <li>Templates built on the device by a bpy script: Classroom, Studio Showcase, Bouncing Ball, Low-Poly Landscape, Product Turntable</li>
+                    <li>Templates built on the device by a bpy script: Classroom, Studio Showcase, Bouncing Ball, Low-Poly Landscape, Product Turntable &mdash; each opens looking through its camera, ready to render</li>
                     <li>A guided tour that lights up each part of the screen on first launch</li>
                     <li>On iPhone, the Outliner and Properties open as a drawer over the 3D View</li>
+                    <li>Your files live in the app&rsquo;s folder, which also shows in the Files app; a finished render or video saves to Photos</li>
                   </ul>
                 </div>
               </div>
@@ -1228,6 +1241,12 @@
                   </ul>
                 </div>
               </div>
+            </div>
+
+            <div class="lib-category-card text-start mb-4" id="blender-local-support">
+              <h4 class="h5 h-sub">Support</h4>
+              <p class="small mt-1">Questions, a scene that won&rsquo;t open or render, or an idea: in the app, tap <b>?</b> &rsaquo; Send Feedback, or email <a href="mailto:euler.yu@gmail.com" class="lib-link">euler.yu@gmail.com</a> and say which device and iOS or iPadOS version you use. Bugs can also be reported on <a href="https://github.com/yu314-coder/blender-local/issues" target="_blank" rel="noopener noreferrer" class="lib-link">GitHub</a>.</p>
+              <p class="small mb-0">Long Cycles renders use a lot of memory on iPhone; lower the samples or the resolution under Render, or use EEVEE, if a render stops. No account, no subscription and no ads &mdash; scenes and renders stay on the device (<a href="privacy.html#blender-local" class="lib-link">privacy policy</a>).</p>
             </div>
 
             <div class="mb-4">
@@ -2516,10 +2535,16 @@
         // Trackformer -- the Typhoon AI project and its model card -- has its own page
         // now; links to either old tab go there.
         if (id === "tab-trackformer" || id === "tab-typhoon") { location.replace("trackformer.html"); return; }
+        // The old Blender Local product page (blender-local.html) redirects here.
+        var target = null;
+        if (id === "blender-local-support") { target = document.getElementById(id); id = "tab-blender"; }
+        else if (id === "blender-local") id = "tab-blender";
         var btn = document.getElementById(id + "-btn");
-        if (!btn || btn.classList.contains("active")) return;
-        if (hasBsTab()) { btn.click(); } else { activate(btn); }
-        if (tabsEl.scrollIntoView) tabsEl.scrollIntoView({ block: "start" });
+        if (!btn) return;
+        if (!btn.classList.contains("active")) { if (hasBsTab()) { btn.click(); } else { activate(btn); } }
+        else if (!target) return;
+        var to = target || tabsEl;
+        if (to.scrollIntoView) setTimeout(function () { to.scrollIntoView({ block: "start" }); }, target ? 350 : 0);
       }
       if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", openFromHash);
