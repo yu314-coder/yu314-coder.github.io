@@ -192,3 +192,12 @@
   /* section labels: the mono pill wrapped onto two lines at full tracking */
   .ss-devices .eyebrow--rule,.ss-geo .eyebrow--rule{font-size:.66rem;letter-spacing:.06em;max-width:100%}
 }
+/* App Store overview: the store-wide metric picker beside the heading */
+.ss-ov-top{display:flex;align-items:center;justify-content:space-between;gap:.6rem 1rem;flex-wrap:wrap;margin-bottom:.9rem}
+.ss-ov-top .ss-ov-head{margin-bottom:0}
+.ss-cmp-title{margin:1.3rem 0 0}
+.ss-cmp-title + .ss-compare{margin-top:.7rem}
+@media (max-width:480px){
+  .ss-ov-top .ss-metric-sel{width:100%;flex:1 1 100%}
+  .ss-ov-top .ss-metric-sel button{flex:1 1 0;padding:.45rem .3rem}
+}

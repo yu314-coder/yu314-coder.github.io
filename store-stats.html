@@ -37,7 +37,7 @@
   <link rel="stylesheet" href="assets/css/style.min.css?v=0d61ade8">
   <script>document.documentElement.classList.add('js');addEventListener('load',function(){setTimeout(function(){if(document.querySelector('.reveal')&&!document.querySelector('.reveal.is-visible')){document.querySelectorAll('.reveal').forEach(function(e){e.classList.add('is-visible')})}},1400)})</script>
 
-  <link rel="stylesheet" href="assets/css/stats.css?v=20261114-phone">
+  <link rel="stylesheet" href="assets/css/stats.css?v=20261124-metric">
 </head>
 <body class="theme-dark">
   <script>/* The device class before the first paint. main.js / script.js set the same value at DOMContentLoaded (same test, kept in step with DeviceDetect.detect), but by then the page had painted, and the phone layout it switches on -- a smaller hero headline, a taller hero -- moved the page under the reader. */(function(){var u=(navigator.userAgent||'').toLowerCase(),w=Math.min(innerWidth,screen.width||innerWidth),t=('ontouchstart' in window)||navigator.maxTouchPoints>0,k=(/iphone|ipod|android.*mobile|windows phone|blackberry|bb10/.test(u)||(t&&w<600))?'phone':(/ipad/.test(u)||(u.indexOf('macintosh')>-1&&t)||(/android/.test(u)&&!/mobile/.test(u))||(t&&w>=600&&w<1180))?'tablet':'desktop';document.body.setAttribute('data-device',k)})()</script>
@@ -391,18 +391,32 @@
                            (marks.length ? '<span class="ss-legend-sep">releases</span>' + marksKey : '');
         noteEl.textContent = describe(cur);
       }
+      var listeners = [];
+      // Switch the plotted metric by key -- from this chart's own buttons, or from the store
+      // overview's picker, which keeps the two in step. A key with no data (dropped above)
+      // leaves the chart as it is.
+      function set(key, quiet) {
+        var m = metrics.filter(function (x) { return x.key === key; })[0];
+        if (!m) return;
+        cur = m;
+        if (sel) [].forEach.call(sel.children, function (o) {
+          o.className = o.getAttribute("data-key") === key ? "on" : "";
+        });
+        paint();
+        if (!quiet) listeners.forEach(function (fn) { fn(key); });
+      }
       if (sel) {
         metrics.forEach(function (m, i) {
           var b = document.createElement("button"); b.type = "button"; b.textContent = m.label;
+          b.setAttribute("data-key", m.key);
           if (i === 0) b.className = "on";
-          b.onclick = function () {
-            [].forEach.call(sel.children, function (o) { o.className = ""; });
-            b.className = "on"; cur = m; paint();
-          };
+          b.onclick = function () { set(m.key); };
           sel.appendChild(b);
         });
       }
-      return { node: box, paint: paint, series: cur ? cur.series : [] };
+      return { node: box, paint: paint, series: cur ? cur.series : [], set: set,
+               keys: metrics.map(function (m) { return m.key; }),
+               onChange: function (fn) { listeners.push(fn); } };
     }
     var REPAINT = {};          // per-store repaint hook, called on resize and on store switch
 
@@ -876,6 +890,12 @@
           note: "Product-page views for every app, summed, from the same report as impressions and "
             + "over the same days." }
       ]);
+      // One choice of metric for the whole store: the picker at the top of the overview and the
+      // chart's own buttons drive each other, so the ranking, the country list and the chart
+      // always show the same thing.
+      overview.offer(apTrend.keys);
+      overview.onPick(function (key) { apTrend.set(key, true); });
+      apTrend.onChange(function (key) { overview.setMetric(key, true); });
       asRoot.innerHTML = "";
       asRoot.appendChild(overview); asRoot.appendChild(apTrend.node);
       asRoot.appendChild(tabs); asRoot.appendChild(body);
@@ -895,14 +915,15 @@
         tabs.appendChild(b);
         return b;
       });
-      [].forEach.call(overview.querySelectorAll(".ss-cmp-row"), function (row) {
+      // delegated: the ranking is rebuilt each time the metric changes
+      overview.addEventListener("click", function (e) {
+        var row = e.target.closest && e.target.closest(".ss-cmp-row[data-id]");
+        if (!row) return;
         var id = row.getAttribute("data-id");
         var i = apps.findIndex(function (a) { return a.id === id; });
         if (i < 0) return;
-        row.addEventListener("click", function () {
-          activate(apps[i], buttons[i]);
-          window.scrollTo({ top: tabs.getBoundingClientRect().top + window.scrollY - 90, behavior: "smooth" });
-        });
+        activate(apps[i], buttons[i]);
+        window.scrollTo({ top: tabs.getBoundingClientRect().top + window.scrollY - 90, behavior: "smooth" });
       });
       showAppleApp(apps[0], body);
       // Redraw on resize: the SVG is sized in px against the wrapper's width.
@@ -978,7 +999,12 @@
       });
       days = spanDays(apps, "dl_first_time") || spanDays(apps, null);
       var wrap = document.createElement("div"); wrap.className = "ss-overview";
-      wrap.innerHTML = '<p class="ss-ov-head">all apple apps &middot; ' + apps.length + ' tracked</p>';
+      var ovHead = document.createElement("div"); ovHead.className = "ss-ov-top";
+      ovHead.innerHTML = '<p class="ss-ov-head">all apple apps &middot; ' + apps.length + ' tracked</p>';
+      var pick = document.createElement("div"); pick.className = "ss-metric-sel";
+      pick.setAttribute("role", "group"); pick.setAttribute("aria-label", "Show all apps by");
+      ovHead.appendChild(pick);
+      wrap.appendChild(ovHead);
 
       // Impressions and page views arrive from a different API than units and
       // land later, so they show only once Apple has actually published them —
@@ -1005,19 +1031,48 @@
         });
       wrap.appendChild(tiles);
 
+      // What the overview can rank by. Impressions and page views are each app's own totals
+      // over the days Apple reported them; countries come from the sales report for downloads
+      // and from the engagement report for impressions. Apple does not split page views by
+      // country, so that view says so instead of showing a downloads list under its name.
+      var OV = {
+        downloads: { label: "Downloads", word: "first-time downloads", value: appleDownloads,
+          geo: function () { return { items: ccList, field: "units" }; } },
+        impressions: { label: "Impressions", word: "impressions",
+          value: function (a) { return a.impressions || 0; },
+          geo: function () { return { items: sumGeo("impression_territories", "impressions"), field: "impressions" }; } },
+        page_views: { label: "Page views", word: "page views",
+          value: function (a) { return a.page_views || 0; }, geo: null }
+      };
+      function sumGeo(key, field) {
+        var acc = {};
+        apps.forEach(function (a) {
+          (a[key] || []).forEach(function (t) { acc[t.code] = (acc[t.code] || 0) + (t[field] || 0); });
+        });
+        return Object.keys(acc).map(function (c) { var o = { code: c }; o[field] = acc[c]; return o; })
+          .sort(function (x, y) { return y[field] - x[field] || (x.code < y.code ? -1 : 1); });
+      }
+      var cmpTitle = document.createElement("p"); cmpTitle.className = "eyebrow eyebrow--rule ss-cmp-title";
+      wrap.appendChild(cmpTitle);
       var cmp = document.createElement("div"); cmp.className = "ss-compare";
-      var maxD = Math.max.apply(null, apps.map(appleDownloads).concat([1]));
-      apps.slice().sort(function (a, b) { return appleDownloads(b) - appleDownloads(a); }).forEach(function (a) {
-        var n = appleDownloads(a);
-        var row = document.createElement("button"); row.type = "button"; row.className = "ss-cmp-row";
-        row.setAttribute("data-id", a.id);
-        row.innerHTML = '<span class="ss-cmp-name">' + iconHtml(a.id, "app-icon-sm") + '<span>' + a.app + '</span></span>'
-          + '<span class="ss-cmp-track"><span class="ss-cmp-bar" style="width:'
-          + Math.max(2, Math.round(100 * n / maxD)) + '%"></span></span>'
-          + '<span class="ss-cmp-val">' + fmt(n) + '</span>';
-        cmp.appendChild(row);
-      });
       wrap.appendChild(cmp);
+      function rank(key) {
+        var m = OV[key], vals = apps.map(m.value);
+        var total = vals.reduce(function (t, v) { return t + v; }, 0);
+        var max = Math.max.apply(null, vals.concat([1]));
+        cmpTitle.innerHTML = m.word + " by app &middot; " + fmt(total) + " in all";
+        cmp.innerHTML = "";
+        apps.slice().sort(function (a, b) { return m.value(b) - m.value(a); }).forEach(function (a) {
+          var n = m.value(a);
+          var row = document.createElement("button"); row.type = "button"; row.className = "ss-cmp-row";
+          row.setAttribute("data-id", a.id);
+          row.innerHTML = '<span class="ss-cmp-name">' + iconHtml(a.id, "app-icon-sm") + '<span>' + a.app + '</span></span>'
+            + '<span class="ss-cmp-track"><span class="ss-cmp-bar" style="width:'
+            + Math.max(2, Math.round(100 * n / max)) + '%"></span></span>'
+            + '<span class="ss-cmp-val">' + fmt(n) + '</span>';
+          cmp.appendChild(row);
+        });
+      }
       // The device split for the whole store, in the store tab itself -- the same place the
       // country split for all apps sits -- so "where do my App Store downloads land" is answered
       // without opening five apps one by one. A block of bars, not lines on the trend chart:
@@ -1035,8 +1090,44 @@
                                  apps.reduce(function (t, a) { return t + appleDownloads(a); }, 0));
       if (storeDev) { storeDev.style.marginTop = "1.4rem"; wrap.appendChild(storeDev); }
 
-      var allGeo = geoBlock("downloads by country &middot; all apps", ccList, "units", "downloads");
-      if (allGeo) { allGeo.style.marginTop = "1.4rem"; wrap.appendChild(allGeo); }
+      var geoSlot = document.createElement("div"); geoSlot.style.marginTop = "1.4rem";
+      wrap.appendChild(geoSlot);
+      function geo(key) {
+        var m = OV[key], g = m.geo && m.geo();
+        geoSlot.innerHTML = "";
+        var block = g && g.items.length
+          ? geoBlock(m.word + " by country &middot; all apps", g.items, g.field, m.word) : null;
+        if (block) { geoSlot.appendChild(block); return; }
+        geoSlot.innerHTML = '<p class="eyebrow eyebrow--rule">' + m.word + ' by country</p>' +
+          '<p class="ss-updated">Apple does not split ' + m.word + ' by country, so there is no '
+          + 'country list for them.</p>';
+      }
+
+      var pickFns = [], curKey = "downloads";
+      wrap.setMetric = function (key, quiet) {
+        if (!OV[key]) return;
+        curKey = key;
+        [].forEach.call(pick.children, function (b) {
+          var on = b.getAttribute("data-key") === key;
+          b.className = on ? "on" : ""; b.setAttribute("aria-pressed", on ? "true" : "false");
+        });
+        rank(key); geo(key);
+        if (!quiet) pickFns.forEach(function (fn) { fn(key); });
+      };
+      wrap.onPick = function (fn) { pickFns.push(fn); };
+      // Only metrics with data get a button (the chart drops empty ones the same way).
+      wrap.offer = function (keys) {
+        pick.innerHTML = "";
+        keys.filter(function (k) { return OV[k]; }).forEach(function (k) {
+          var b = document.createElement("button"); b.type = "button";
+          b.textContent = OV[k].label; b.setAttribute("data-key", k);
+          b.onclick = function () { wrap.setMetric(k); };
+          pick.appendChild(b);
+        });
+        pick.hidden = pick.children.length < 2;
+        wrap.setMetric(curKey, true);
+      };
+      wrap.setMetric("downloads", true);
       return wrap;
     }
 
