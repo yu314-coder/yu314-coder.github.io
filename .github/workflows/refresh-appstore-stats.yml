@@ -31,6 +31,10 @@ on:
     # Off the hour to avoid the :00 scheduling crush, which is when GitHub is
     # most likely to drop a run.
     - cron: "27 * * * *"
+    # Extra chances around Apple's publish time (~13:00-14:00 UTC). A run that
+    # starts here waits for yesterday's report (APPSTORE_WAIT_MINUTES below),
+    # so any one of these that GitHub actually honours is enough.
+    - cron: "7,47 12-15 * * *"
 
   # Cron alone does not work on this repo. Measured over 48 hours, GitHub
   # honoured 10 of 144 scheduled runs for the typhoon job, 8 of 24 for the data
@@ -68,6 +72,7 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    timeout-minutes: 80
     steps:
       - uses: actions/checkout@v4
 
@@ -81,6 +86,7 @@ jobs:
           APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
           APPSTORE_VENDOR_NUMBER: ${{ secrets.APPSTORE_VENDOR_NUMBER }}
           APPSTORE_BACKFILL_DAYS: ${{ inputs.backfill_days }}
+          APPSTORE_WAIT_MINUTES: ${{ github.event_name == 'schedule' && '55' || '' }}
         run: python3 scripts/refresh_appstore_stats.py
 
       # Impressions and page views come from a different API than units — the

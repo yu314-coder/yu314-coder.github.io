@@ -130,7 +130,7 @@ def report_for(day, bearer, vendor):
             raw = r.read()
     except urllib.error.HTTPError as e:
         if e.code == 404:
-            return []
+            return None        # no report: nothing sold, or not published yet
         if e.code == 403:
             raise SystemExit(
                 "403 from /v1/salesReports — the API key's role is too low. "
@@ -285,7 +285,44 @@ def main():
 
     # Apple publishes a day or so behind, so start at yesterday rather than today.
     today = dt.date.today()
+
+    # Apple posts yesterday's report around 13:00-14:00 UTC, and GitHub drops
+    # most scheduled runs, so a single run rarely lands just after it. Runs
+    # started in that window (APPSTORE_WAIT_MINUTES, set by the workflow) stay
+    # and poll until the report appears instead of leaving it for a later run
+    # that may never come. Measured 2026-11-24: no run between 04:00 and 12:18
+    # UTC, report missing at 12:48, picked up at 14:06.
+    wait = int(os.environ.get("APPSTORE_WAIT_MINUTES") or 0)
+    if not 12 <= dt.datetime.now(dt.timezone.utc).hour < 17:
+        wait = 0                       # only worth waiting around publish time
+    if wait > 0:
+        deadline = time.time() + wait * 60
+        newest = today - dt.timedelta(days=1)
+        while True:
+            try:
+                got = report_for(newest, bearer, c["APPSTORE_VENDOR_NUMBER"])
+            except SystemExit:
+                raise
+            except Exception as exc:                  # noqa: BLE001
+                log(f"  waiting: {type(exc).__name__}: {exc}")
+                got = None
+            if got is not None:
+                log(f"{newest} report is out")
+                break
+            if time.time() + 300 > deadline:
+                log(f"{newest} still not published; giving up for this run")
+                break
+            log(f"{newest} not published yet; checking again in 5 min")
+            time.sleep(300)
+            bearer = token(c["APPSTORE_ISSUER_ID"], c["APPSTORE_KEY_ID"],
+                           c["APPSTORE_PRIVATE_KEY"])
+
     fetched = 0
+    # A missing report means zero sales only once Apple has published a LATER
+    # day. Missing reports at the newest end are days Apple has not posted
+    # yet; writing them as 0 put a fake zero day on the page every morning
+    # (UTC midnight to ~14:00) until the real numbers arrived.
+    published_seen = False
     for back in range(1, span + 1):
         day = today - dt.timedelta(days=back)
         try:
@@ -295,6 +332,15 @@ def main():
         except Exception as exc:                      # noqa: BLE001
             log(f"  {day}: {type(exc).__name__}: {exc} — skipped")
             continue
+        if rows is None and not published_seen:
+            log(f"  {day}: not published yet")
+            iso = day.isoformat()
+            for app_id in APPS:
+                if history[app_id].get(iso) == 0 and iso not in terr[app_id]:
+                    history[app_id].pop(iso, None)   # drop an old placeholder
+            continue
+        published_seen = True
+        rows = rows or []
         counts, countries, devices = units_by_app(rows)
         iso = day.isoformat()
         for app_id in APPS:
