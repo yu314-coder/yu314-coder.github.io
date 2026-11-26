@@ -528,6 +528,18 @@ def main():
                 for key in DL_KINDS:
                     if key in vals:
                         row["dl_" + key] = vals[key]
+        # Apple's downloads report leaves out a day with no downloads at all, and
+        # the in-report zero fill only reaches the last day that HAD one. Days the
+        # engagement report (same analytics source) covers are covered days, so a
+        # missing download row there is a zero. Without this GPS-location-app's
+        # chart stopped at 2026-10-31, its last download, while the rest of the
+        # page ran to 11-25.
+        if any(r.get("dl_first_time") is not None for r in by_date.values()):
+            for d in per_day:
+                row = by_date.get(d)
+                if row is not None and row.get("dl_first_time") is None:
+                    for key in DL_KINDS:
+                        row["dl_" + key] = 0
         rollup(payload)
         # The country split is stored only as totals, so it cannot be overlaid day by
         # day. Replace it only with a reading that covers at least as many
