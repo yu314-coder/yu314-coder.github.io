@@ -293,8 +293,11 @@ def main():
     # that may never come. Measured 2026-11-24: no run between 04:00 and 12:18
     # UTC, report missing at 12:48, picked up at 14:06.
     wait = int(os.environ.get("APPSTORE_WAIT_MINUTES") or 0)
-    if not 12 <= dt.datetime.now(dt.timezone.utc).hour < 17:
-        wait = 0                       # only worth waiting around publish time
+    # Any scheduled run from 06 UTC on may wait: on 2026-11-26 GitHub dropped
+    # every slot from 12 to 16 UTC, so the last run of the morning (11:12) has
+    # to be the one that holds on until Apple publishes.
+    if not 6 <= dt.datetime.now(dt.timezone.utc).hour < 17:
+        wait = 0
     if wait > 0:
         deadline = time.time() + wait * 60
         newest = today - dt.timedelta(days=1)
