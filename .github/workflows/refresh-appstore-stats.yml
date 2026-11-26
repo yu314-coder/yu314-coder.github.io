@@ -35,6 +35,10 @@ on:
     # starts here waits for yesterday's report (APPSTORE_WAIT_MINUTES below),
     # so any one of these that GitHub actually honours is enough.
     - cron: "7,47 6-15 * * *"
+    # And a guaranteed-ish slot every 3 hours, so a day GitHub drops the
+    # others still gets picked up within a few hours. A run at 15-23 UTC waits
+    # for Apple's analytics report (impressions/page views) the same way.
+    - cron: "53 */3 * * *"
 
   # Cron alone does not work on this repo. Measured over 48 hours, GitHub
   # honoured 10 of 144 scheduled runs for the typhoon job, 8 of 24 for the data
@@ -72,9 +76,12 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 350
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
+
+      - name: Note the job start (waiting steps must leave time to commit)
+        run: echo "APPSTORE_JOB_START=$(date +%s)" >> "$GITHUB_ENV"
 
       - name: Install PyJWT (ES256 needs the cryptography extra)
         run: pip install --quiet "pyjwt[crypto]>=2.8"
@@ -105,6 +112,7 @@ jobs:
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
           APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
           APPSTORE_VENDOR_NUMBER: ${{ secrets.APPSTORE_VENDOR_NUMBER }}
+          APPSTORE_ANALYTICS_WAIT_MINUTES: ${{ github.event_name == 'schedule' && '300' || '' }}
         run: python3 scripts/refresh_appstore_analytics.py
 
       # The App Store version HISTORY and the platforms each app runs on. Separate from the

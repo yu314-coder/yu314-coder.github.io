@@ -572,5 +572,52 @@ def main():
     return 0
 
 
+def newest_engagement_day():
+    best = ""
+    for f in OUT.glob("*.json"):
+        try:
+            rows = json.loads(f.read_text()).get("rows", [])
+        except Exception:                                     # noqa: BLE001
+            continue
+        if not isinstance(rows, list):
+            continue
+        for r in rows:
+            if isinstance(r, dict) and r.get("impressions") is not None and r["date"] > best:
+                best = r["date"]
+    return best
+
+
+def main_waiting():
+    """Run once; in Apple's analytics publish window, keep re-running until
+    yesterday's impressions are in.
+
+    Apple posts day D's analytics around 16:00-23:00 UTC on D+1, some eight hours
+    after the sales report, and GitHub drops most scheduled runs. A run started
+    in that window (APPSTORE_ANALYTICS_WAIT_MINUTES, set by the workflow) holds on
+    and checks every 15 minutes so the numbers land within minutes of Apple
+    posting them, not whenever the next run is allowed.
+    """
+    rc = main()
+    wait = int(os.environ.get("APPSTORE_ANALYTICS_WAIT_MINUTES") or 0)
+    now = dt.datetime.now(dt.timezone.utc)
+    if wait <= 0 or not 15 <= now.hour <= 23:
+        return rc
+    target = (now.date() - dt.timedelta(days=1)).isoformat()
+    deadline = time.time() + wait * 60
+    start = int(os.environ.get("APPSTORE_JOB_START") or 0)
+    if start:                       # stop well inside the job's 360-minute limit
+        deadline = min(deadline, start + 330 * 60)
+    while newest_engagement_day() < target:
+        if time.time() + 900 > deadline:
+            log(f"{target} analytics still not published; giving up for this run")
+            break
+        log(f"{target} analytics not published yet; checking again in 15 min")
+        time.sleep(900)
+        rc = main()
+    else:
+        log(f"analytics through {newest_engagement_day()}")
+    return rc
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main_waiting())
