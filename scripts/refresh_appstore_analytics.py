@@ -569,7 +569,44 @@ def main():
             f"{len(dl)} download day(s) refreshed from Apple this run")
 
     log(f"updated {touched} app(s) with engagement data")
+    touched += fill_quiet_days()
     return 0
+
+
+def fill_quiet_days():
+    """Once Apple has published first-time downloads for a day (any app has
+    them), an app with no row that day had zero downloads -- Apple omits zero
+    days. Without this EigenDenoise and GPS-location-app sat a day behind the
+    rest of the page on 2026-11-27 until impressions arrived hours later."""
+    files = {}
+    for f in OUT.glob("*.json"):
+        try:
+            d = json.loads(f.read_text())
+        except Exception:                                     # noqa: BLE001
+            continue
+        if isinstance(d, dict) and isinstance(d.get("rows"), list):
+            files[f] = d
+    published = set()
+    for d in files.values():
+        for r in d["rows"]:
+            if r.get("dl_first_time") is not None:
+                published.add(r["date"])
+    changed = 0
+    for f, d in files.items():
+        if not any(r.get("dl_first_time") is not None for r in d["rows"]):
+            continue
+        hit = False
+        for r in d["rows"]:
+            if r["date"] in published and r.get("dl_first_time") is None:
+                for key in DL_KINDS:
+                    r["dl_" + key] = 0
+                hit = True
+        if hit:
+            rollup(d)
+            f.write_text(json.dumps(d, separators=(",", ":")))
+            log(f"  {f.stem}: filled quiet download day(s) with zero")
+            changed += 1
+    return changed
 
 
 def newest_engagement_day(field="impressions"):
