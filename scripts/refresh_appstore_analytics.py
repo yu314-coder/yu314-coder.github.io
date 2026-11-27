@@ -572,7 +572,7 @@ def main():
     return 0
 
 
-def newest_engagement_day():
+def newest_engagement_day(field="impressions"):
     best = ""
     for f in OUT.glob("*.json"):
         try:
@@ -582,7 +582,7 @@ def newest_engagement_day():
         if not isinstance(rows, list):
             continue
         for r in rows:
-            if isinstance(r, dict) and r.get("impressions") is not None and r["date"] > best:
+            if isinstance(r, dict) and r.get(field) is not None and r["date"] > best:
                 best = r["date"]
     return best
 
@@ -600,22 +600,37 @@ def main_waiting():
     rc = main()
     wait = int(os.environ.get("APPSTORE_ANALYTICS_WAIT_MINUTES") or 0)
     now = dt.datetime.now(dt.timezone.utc)
-    if wait <= 0 or not 15 <= now.hour <= 23:
+    # From 12 UTC: first-time downloads for day D come out of this report with
+    # Apple's evening sales drop (~13:45-14:15 UTC), impressions hours later. On
+    # 2026-11-27 runs at 13:41 and 13:45 just missed the downloads and, outside
+    # the old 15-23 window, gave up -- leaving 11/26 off the page for hours.
+    if wait <= 0 or not 12 <= now.hour <= 23:
         return rc
     target = (now.date() - dt.timedelta(days=1)).isoformat()
+
+    # The workflow runs this twice: first waiting for downloads only (then
+    # commits, so they go live at once), then waiting for impressions, which
+    # Apple publishes hours later.
+    fields = ("dl_first_time",) if os.environ.get("APPSTORE_ANALYTICS_WAIT_FOR") == "downloads" \
+        else ("dl_first_time", "impressions")
+
+    def behind():
+        return min(newest_engagement_day(f) for f in fields) < target
     deadline = time.time() + wait * 60
     start = int(os.environ.get("APPSTORE_JOB_START") or 0)
     if start:                       # stop well inside the job's 360-minute limit
         deadline = min(deadline, start + 330 * 60)
-    while newest_engagement_day() < target:
-        if time.time() + 900 > deadline:
+    while behind():
+        if time.time() + 300 > deadline:
             log(f"{target} analytics still not published; giving up for this run")
             break
-        log(f"{target} analytics not published yet; checking again in 15 min")
-        time.sleep(900)
+        log(f"{target} analytics not complete yet (downloads through "
+            f"{newest_engagement_day('dl_first_time')}, impressions through "
+            f"{newest_engagement_day('impressions')}); checking again in 5 min")
+        time.sleep(300)
         rc = main()
     else:
-        log(f"analytics through {newest_engagement_day()}")
+        log(f"analytics through {target} for {', '.join(fields)}")
     return rc
 
 

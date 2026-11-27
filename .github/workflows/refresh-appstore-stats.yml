@@ -112,7 +112,8 @@ jobs:
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
           APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
           APPSTORE_VENDOR_NUMBER: ${{ secrets.APPSTORE_VENDOR_NUMBER }}
-          APPSTORE_ANALYTICS_WAIT_MINUTES: ${{ github.event_name == 'schedule' && '300' || '' }}
+          APPSTORE_ANALYTICS_WAIT_MINUTES: ${{ github.event_name == 'schedule' && '120' || '' }}
+          APPSTORE_ANALYTICS_WAIT_FOR: downloads
         run: python3 scripts/refresh_appstore_analytics.py
 
       # The App Store version HISTORY and the platforms each app runs on. Separate from the
@@ -153,6 +154,73 @@ jobs:
         run: python3 scripts/sync_version_fallbacks.py
 
       - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # The data directory does not exist until the first successful pull.
+          # `git add` on a missing pathspec is a fatal error, so before the
+          # secrets are set this step would fail the run — the opposite of the
+          # graceful no-op the script goes to the trouble of providing.
+          if [ ! -d assets/appstore-tracker/data ]; then
+            echo "No App Store snapshots yet (script is a no-op until the four secrets are set)."
+            exit 0
+          fi
+          git add assets/appstore-tracker/data assets/store-tracker/data \
+                  assets/pypi-tracker/data index.html projects.html pypi-stats.html
+          if git diff --cached --quiet; then
+            echo "No change in the store snapshots."
+            exit 0
+          fi
+          git commit -m "chore: refresh App Store download snapshots"
+
+          # main moves under this job. It runs hourly AND after three other
+          # workflows complete, so it frequently starts moments after one of
+          # them pushed — which is exactly how it failed: checked out, worked,
+          # then found main had advanced and the push was rejected. Making it
+          # run more often is what made a rare race routine.
+          #
+          # Two App Store runs cannot overlap (the concurrency group queues
+          # them), so whatever landed on main touched OTHER paths. Replaying
+          # our snapshots on top of it is safe and loses nothing.
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "main moved; replaying the snapshots on top of it (attempt $attempt)"
+            git fetch origin main
+            # --mixed, NOT --soft. --soft moves HEAD but keeps the index this
+            # runner built, so the next commit records a tree that predates
+            # whatever landed on main and silently deletes it. That happened
+            # once in this repo already — see the same guard in
+            # refresh-typhoon-forecast.yml. --mixed resets the index to main
+            # and leaves our files in the working tree, so the add below
+            # stages only ours.
+            git reset --mixed origin/main
+            git add assets/appstore-tracker/data assets/store-tracker/data \
+                  assets/pypi-tracker/data index.html projects.html pypi-stats.html
+            if git diff --staged --quiet; then
+              echo "main already has these snapshots"
+              exit 0
+            fi
+            git commit -m "chore: refresh App Store download snapshots"
+          done
+          echo "::warning title=Could not push::main kept moving; the next run refreshes it anyway"
+
+      # Second pass: impressions and page views come out hours after downloads.
+      # The downloads are already committed above, so waiting here costs nothing.
+      - name: Wait for impressions and page views
+        if: github.event_name == 'schedule'
+        continue-on-error: true
+        env:
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
+          APPSTORE_VENDOR_NUMBER: ${{ secrets.APPSTORE_VENDOR_NUMBER }}
+          APPSTORE_ANALYTICS_WAIT_MINUTES: "300"
+        run: python3 scripts/refresh_appstore_analytics.py
+
+      - name: Commit impressions if changed
+        if: github.event_name == 'schedule'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
